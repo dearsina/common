@@ -1,2 +1,2 @@
 # Common
-A set of commonly used classes
+A set of commonly used PHP classes
