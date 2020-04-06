@@ -63,10 +63,16 @@ class PA {
 		}
 	}
 
+	/**
+	 * @param $a
+	 */
 	public function msg($a){
 
 	}
 
+	/**
+	 * @param $a
+	 */
 	public function listen($a){
 
 	}
