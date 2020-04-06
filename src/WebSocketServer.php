@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * The following script is a WebSocket server.
+ * It uses Swoole.
+ */
+
 # Ensure the appropriate level of error reporting
 error_reporting(E_ALL ^ (E_NOTICE | E_STRICT));
 
