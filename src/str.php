@@ -109,6 +109,7 @@ class str {
 			$first_word = array_shift($str_array);
 			$str = ucfirst(strtolower(trim($str)));
 			if(is_array(self::ALL_UPPERCASE)){
+				$all_uppercase = '';
 				foreach(self::ALL_UPPERCASE as $uc){
 					if($first_word == strtolower($uc)){
 						$str = strtoupper($first_word)." ".implode(" ",$str_array);
@@ -118,6 +119,7 @@ class str {
 				}
 			}
 			if(is_array(self::ALL_LOWERCASE)){
+				$all_lowercase = '';
 				foreach(self::ALL_LOWERCASE as $uc){
 					if($first_word == strtolower($uc)){
 						$str = strtolower($first_word)." ".implode(" ",$str_array);

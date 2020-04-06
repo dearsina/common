@@ -202,13 +202,14 @@ class log {
 	 */
 	private function log($a){
 		extract($a);
-		$this->alerts[$type][] = [
+		$alert = [
 			"icon" => $icon,
 			"title" => $title,
 			"message" => $message,
 			"seconds" => $this->seconds_since_start(),
 			"backtrace" => $backtrace ?: str::backtrace(true)
 		];
+		$this->alerts[$type][] = $alert;
 		return true;
 	}
 
@@ -245,14 +246,13 @@ class log {
 			$message = $a;
 		}
 
-		$this->log([
+		return $this->log([
 			"type" => "error",
 			"icon" => $icon,
 			"title" => $title,
 			"message" => $message,
 			"backtrace" => $backtrace
 		]);
-		return true;
 	}
 
 	/**
@@ -286,13 +286,13 @@ class log {
 			$icon = icon::DEFAULTS['warning'];
 			$message = $a;
 		}
-		$this->log([
+
+		return $this->log([
 			"type" => "warning",
 			"icon" => $icon,
 			"title" => $title,
 			"message" => $message
 		]);
-		return true;
 	}
 
 	/**
@@ -326,13 +326,13 @@ class log {
 			$icon = icon::DEFAULTS['info'];
 			$message = $a;
 		}
-		$this->log([
+
+		return $this->log([
 			"type" => "info",
 			"icon" => $icon,
 			"title" => $title,
 			"message" => $message
 		]);
-		return true;
 	}
 
 	/**
@@ -366,13 +366,13 @@ class log {
 			$icon = icon::DEFAULTS['success'];
 			$message = $a;
 		}
-		$this->log([
+
+		return $this->log([
 			"type" => "success",
 			"icon" => $icon,
 			"title" => $title,
 			"message" => $message
 		]);
-		return true;
 	}
 
 }

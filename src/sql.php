@@ -103,7 +103,7 @@ class sql {
 		# Fill the two array with the appropriate column definitions
 		foreach ($result['rows'] as $c) {
 			$this->tableColumnNamesAll[$c['TABLE_NAME']][$c['COLUMN_NAME']] = $c;
-			if (!in_array($c['COLUMN_NAME'], $this->getTableColumnsUsersCannotUpdate($table))) {
+			if (!in_array($c['COLUMN_NAME'], $this->getTableColumnsUsersCannotUpdate($c['TABLE_NAME']))) {
 				$this->tableColumnNames[$c['TABLE_NAME']][$c['COLUMN_NAME']] = $c;
 			}
 		}
@@ -204,6 +204,9 @@ class sql {
 			return false;
 		}
 
+		# Get the potential inserted ID
+		$insert_id = $this->mysqli->insert_id;
+
 		# Normalise dot-notation
 		$rows = $this->normalise($rows);
 
@@ -214,13 +217,40 @@ class sql {
 		$_SESSION['database_calls']++;
 		$_SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
 
+		# Get (potential/optional) rowcount
+		if(is_array($rows)){
+			$rowcount = count($rows);
+		} else {
+			try {
+				$result = $this->mysqli->query("SELECT ROW_COUNT();");
+				if(is_object($result)) {
+					$rowcount = $result->fetch_assoc()['ROW_COUNT()'];
+					$result->close();
+				}
+			}
+			# Catch any errors
+			catch(\mysqli_sql_exception $e) {
+				$this->log->error([
+					"icon" => "database",
+					"title" => "mySQL error on line ".$e->getLine(),
+					"message" => $e->getMessage()
+				]);
+				$this->log->info([
+					"icon" => "code",
+					"title" => "Query",
+					"message" => $query
+				]);
+				return false;
+			}
+		}
+
 		# Return a meta array of results
 		return [
 			"rows" => $rows,
 			"columns" => $columns,
 			"query" => $query,
-			"insert_id" =>  $this->mysqli->insert_id,
-			"rowcount" => is_array($rows) ? count($rows) : $this->mysqli->query("SELECT ROW_COUNT();")->fetch_assoc()['ROW_COUNT()'],
+			"insert_id" =>  $insert_id,
+			"rowcount" => $rowcount,//is_array($rows) ? count($rows) : $this->mysqli->query("SELECT ROW_COUNT();")->fetch_assoc()['ROW_COUNT()'],
 			"affected_rows" => $this->mysqli->affected_rows
 		];
 	}
@@ -386,11 +416,11 @@ class sql {
 	private function contract(&$data, $table = NULL){
 		$table = $table ?: $this->table['name'];
 
+		$nextLevel = [];
+		$mergedNextLevel = [];
+
 		# Break apart next level
 		foreach($data as $id => $row){
-//			if(!$id && !in_array("{$table}_id", array_keys($row))){
-//				return true;
-//			}
 			foreach($row as $key => $val){
 				if(is_array($val)){
 					$nextLevel[$id][$key] = $val;
@@ -409,7 +439,9 @@ class sql {
 				continue;
 			}
 			$serialisedRows[$id] = serialize($row);
-			$mergedNextLevel[$id][$id] = $nextLevel[$id];
+			if(array_key_exists($id, $nextLevel)){
+				$mergedNextLevel[$id][$id] = $nextLevel[$id];
+			}
 		}
 
 		# Bring together
@@ -1952,7 +1984,7 @@ class sql {
 			return $SQL;
 		}
 
-		if (!($sql = $this->run($SQL))) {
+		if (!($result = $this->run($SQL))) {
 			return false;
 		}
 
@@ -1965,7 +1997,7 @@ class sql {
 			/**
 			 * Audit trails can be turned off by setting "audit_trail" => false.
 			 */
-			if(!$this->addToAuditTrail($table, $sql['insert_id'], $set, TRUE)){
+			if(!$this->addToAuditTrail($table, $result['insert_id'], $set, TRUE)){
 				return false;
 			}
 		}
@@ -1973,7 +2005,7 @@ class sql {
 		# Restore the insert query (we're not interested in the audit trail query)
 		$_SESSION['query'] = $insertQuery;
 
-		return $sql['insert_id'];
+		return $result['insert_id'];
 	}
 
 	/**
@@ -2327,7 +2359,7 @@ class sql {
 			return false;
 		}
 
-		return $sql['rowcount'];
+		return $sql['rowcount'] ?: TRUE;
 	}
 
 	/**

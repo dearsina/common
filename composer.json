@@ -1,14 +1,14 @@
 {
-  "name": "dearsina/Common",
+  "name": "dearsina/common",
   "version": "0.0.1",
   "dist": {
-    "url": "https://github.com/dearsina/Common/archive/master.zip",
+    "url": "https://github.com/dearsina/common/archive/master.zip",
     "type": "zip"
   },
   "type": "library",
   "description": "A set of commonly used PHP classes",
   "keywords": ["common","php"],
-  "homepage": "https://github.com/dearsina/Common",
+  "homepage": "https://github.com/dearsina/common",
   "license": "MIT",
   "authors": [
     {
