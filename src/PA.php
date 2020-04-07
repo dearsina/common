@@ -86,11 +86,13 @@ class PA {
 		$data = urlencode(json_encode($array));
 
 		$cmd  = "'go(function(){";
-		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_ip']}\", {$_ENV['websocket_port']});";
+		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
 		$cmd .= "\$client->upgrade(\"/\");";
 		$cmd .= "\$client->push(urldecode(\"{$data}\"));";
 		$cmd .= "\$client->close();";
 		$cmd .= "});'";
+
+		echo $cmd."\r\n";
 
 		$output = shell_exec("php -r {$cmd} 2>&1");
 		echo $output;
