@@ -41,7 +41,7 @@ class request {
 
 	function __construct () {
 		$this->load_session_vars();
-		$this->log = log::getInstance();
+		$this->log = Log::getInstance();
 		$this->hash = hash::getInstance();
 		$this->callback = callback::getInstance();
 		$this->output = output::getInstance();

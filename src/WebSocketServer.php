@@ -16,6 +16,8 @@ $dotenv->load();
 /**
  * Class WebSocketServer
  * Run as a service to provide WebSocket support.
+ * Is based on Swoole.
+ *
  * Requries the following $_ENV variables to be set:
  *
  * local_cert="/etc/letsencrypt/live/DOMAIN/cert.pem"     # Local SSL Certificate path
@@ -65,7 +67,7 @@ class WebSocketServer {
 
 		# Load Common scripts
 		$this->sql = \App\Common\sql::getInstance();
-		$this->log = \App\Common\log::getInstance();
+		$this->log = \App\Common\Log::getInstance();
 
 		# The internal port
 		$this->port = $this->server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);

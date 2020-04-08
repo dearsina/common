@@ -8,7 +8,7 @@ namespace App\Common;
  * Class log
  * @package App\Common
  */
-class log {
+class Log {
 
 	protected static $instance = false;
 	private $alerts = [];
@@ -28,7 +28,7 @@ class log {
 
 	/**
 	 * Used instead of new to ensure that the same instance is used every time it's initiated.
-	 * @return mixed
+	 * @return Log
 	 * @link http://stackoverflow.com/questions/3126130/extending-singletons-in-php
 	 */
 	final public static function getInstance () {

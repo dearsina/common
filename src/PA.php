@@ -18,7 +18,7 @@ class PA {
 	 */
 	private function __construct () {
 		# Set up an internal log
-		$this->log = log::getInstance();
+		$this->log = Log::getInstance();
 	}
 
 	/**

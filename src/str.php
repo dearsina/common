@@ -515,7 +515,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	function bytes($bytes, $precision = 2) {
+	static function bytes($bytes, $precision = 2) {
 		$units = array('B', 'KB', 'MB', 'GB', 'TB');
 
 		$bytes = max($bytes, 0);
@@ -897,7 +897,7 @@ EOF;
 	 *
 	 * @return string A human readable XML string.
 	 */
-	public function xmlify($array, $root){
+	public static function xmlify($array, $root){
 		$xml = self::array_to_xml($array, new \SimpleXMLElement($root))->asXML();
 		$dom = new \DOMDocument;
 		$dom->preserveWhiteSpace = FALSE;
@@ -1095,7 +1095,7 @@ EOF;
 	 *
 	 * @return array
 	 */
-	function array_key_search($array, $key)
+	static function array_key_search($array, $key)
 	{
 		$results = array();
 

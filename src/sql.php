@@ -33,7 +33,7 @@ class sql {
 	 *
 	 */
 	private function __construct() {
-		$this->log = log::getInstance();
+		$this->log = Log::getInstance();
 
 		$driver = new \mysqli_driver();
 		$driver->report_mode = MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR;

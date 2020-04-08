@@ -28,7 +28,7 @@ class output {
 	protected $log;
 
 	protected function __construct() {
-		$this->log = log::getInstance();
+		$this->log = Log::getInstance();
 	}
 
 	private function __clone() {
