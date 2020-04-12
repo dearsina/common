@@ -4,7 +4,7 @@
 namespace App\Common;
 
 
-class request {
+class Request {
 
 	/**
 	 * Where title, body, footer for the modal are stored.
@@ -44,7 +44,7 @@ class request {
 		$this->log = Log::getInstance();
 		$this->hash = hash::getInstance();
 		$this->callback = callback::getInstance();
-		$this->output = output::getInstance();
+		$this->output = Output::getInstance();
 		$this->sql = sql::getInstance();
 	}
 
@@ -127,9 +127,8 @@ class request {
 		return $this->output($success);
 	}
 
-
 	/**
-	 * Handles an incoming request.
+	 * Handles an incoming AJAX request.
 	 *
 	 * @param $a
 	 *
@@ -176,13 +175,13 @@ class request {
 		}
 
 		# Does a common path exist
-		$common_path = "\\app\\common\\{$rel_table}\\{$rel_table}";
+		$common_path = "\\App\\Common\\{$rel_table}\\{$rel_table}";
 		if(class_exists($common_path)) {
 			$class_path = $common_path;
 		}
 
 		# Even better, does a custom path exist
-		$core_path = "\\app\\{$rel_table}\\{$rel_table}";
+		$core_path = "\\App\\{$rel_table}\\{$rel_table}";
 		if(class_exists($core_path)) {
 			$class_path = $core_path;
 		}

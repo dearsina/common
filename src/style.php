@@ -50,7 +50,7 @@ trait style {
 		if(!$colour){
 			return false;
 		}
-		if($translated_colour = self::translate_colour($colour)){
+		if($translated_colour = str::translate_colour($colour)){
 			return "{$prefix}-{$translated_colour}";
 		} else {
 			return false;
@@ -193,7 +193,7 @@ trait style {
 
 		}
 
-		$icon_class = icon::get_class($icon);
+		$icon_class = Icon::get_class($icon);
 		$type = self::translate_approve_colour($colour);
 		$button_colour = self::get_colour($colour, "btn");
 

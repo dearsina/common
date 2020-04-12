@@ -148,6 +148,27 @@ class sql {
 	}
 
 	/**
+	 * Reconnects to a mySQL server.
+	 * Can be run even if the connection is still active.
+	 *
+	 * This is only really useful for when long running
+	 * scripts that can stay dormant for extended periods
+	 * of time want to reconnect to the mySQL server.
+	 *
+	 * Set the reconnect flag to true to initiate.
+	 *
+	 * @return bool
+	 */
+	private function reconnect(){
+		if(!$this->mysqli->ping()){
+			if (!self::__construct()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * Runs a given SQL query, returns an array of results or boolean FALSE with error message.
 	 * Return array:
 	 * <code>
@@ -1626,6 +1647,11 @@ class sql {
 			extract($a);
 		}
 
+		# Reconnect (for long running scripts)
+		if($reconnect){
+			$this->reconnect();
+		}
+
 		# Reset all the class variables, as they will have lingered from the last SQL query
 		$this->reset();
 
@@ -1962,6 +1988,11 @@ class sql {
 			extract($a);
 		}
 
+		# Reconnect (for long running scripts)
+		if($reconnect){
+			$this->reconnect();
+		}
+
 		$this->removeIllegalColumns($set, $table);
 
 		$set['created'] = "NOW()";
@@ -2027,6 +2058,11 @@ class sql {
 			return false;
 		} else {
 			extract($a);
+		}
+
+		# Reconnect (for long running scripts)
+		if($reconnect){
+			$this->reconnect();
 		}
 
 		if (!is_array($set)) {

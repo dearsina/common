@@ -1,11 +1,11 @@
 <?php
 
-namespace app\common;
+namespace App\Common;
 
 /**
  * Tracks the output of a ajax call
  */
-class output {
+class Output {
 	private $output = [];
 	private $direction = [];
 
@@ -41,21 +41,20 @@ class output {
 
 	/**
 	 * Used instead of new to ensure that the same instance is used every time it's initiated.
-	 * @return mixed
+	 *
+	 * @return Output
 	 * @link http://stackoverflow.com/questions/3126130/extending-singletons-in-php
 	 */
 	final public static function getInstance () {
 		static $instance;
 		if(!isset($instance)) {
-			$calledClass = get_called_class();
-			$instance = new $calledClass();
+			$instance = new Output();
 		}
-
 		return $instance;
 	}
 
 	/**
-	 * Shortcut to set multiple outputs at once.
+	 * Shortcut to setting multiple outputs at once.
 	 *
 	 * @param array $a [$type][$id] = $data, or [$type] = $data, depending on the type.
 	 *

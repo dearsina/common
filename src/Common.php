@@ -11,6 +11,11 @@ class Common {
 	protected $log;
 
 	/**
+	 * @var Output
+	 */
+	protected $output;
+
+	/**
 	 * @var str
 	 */
 	protected $str;
@@ -18,5 +23,6 @@ class Common {
 
 	function __construct () {
 		$this->log = Log::getInstance();
+		$this->output = Output::getInstance();
 	}
 }

@@ -53,7 +53,7 @@ class Log {
 		if(!empty($this->alerts)){
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
-					$icon = icon::get_array($alert['icon']);
+					$icon = Icon::get_array($alert['icon']);
 					$flat_error_array[] = [
 						"type" => $type,
 						"title" => $alert['title'],
@@ -148,7 +148,7 @@ class Log {
 				continue;
 			}
 			foreach($alerts as $alert){
-				$icon = icon::get_array($alert['icon']);
+				$icon = Icon::get_array($alert['icon']);
 
 				$alert_array = [
 					"type" => $type,
@@ -237,12 +237,12 @@ class Log {
 				$message = $msg;
 			}
 			if(!$icon){
-				$icon = icon::DEFAULTS['error'];
+				$icon = Icon::DEFAULTS['error'];
 			}
 		} else {
 			// Default values
 			$title = "Error";
-			$icon = icon::DEFAULTS['error'];
+			$icon = Icon::DEFAULTS['error'];
 			$message = $a;
 		}
 
@@ -279,11 +279,11 @@ class Log {
 				$message = $msg;
 			}
 			if(!$icon){
-				$icon = icon::DEFAULTS['warning'];
+				$icon = Icon::DEFAULTS['warning'];
 			}
 		} else {
 			$title = "Warning";
-			$icon = icon::DEFAULTS['warning'];
+			$icon = Icon::DEFAULTS['warning'];
 			$message = $a;
 		}
 
@@ -319,11 +319,11 @@ class Log {
 				$message = $msg;
 			}
 			if(!$icon){
-				$icon = icon::DEFAULTS['info'];
+				$icon = Icon::DEFAULTS['info'];
 			}
 		} else {
 			$title = "Notice";
-			$icon = icon::DEFAULTS['info'];
+			$icon = Icon::DEFAULTS['info'];
 			$message = $a;
 		}
 
@@ -359,11 +359,11 @@ class Log {
 				$message = $msg;
 			}
 			if(!$icon){
-				$icon = icon::DEFAULTS['success'];
+				$icon = Icon::DEFAULTS['success'];
 			}
 		} else {
 			$title = "Great success!";
-			$icon = icon::DEFAULTS['success'];
+			$icon = Icon::DEFAULTS['success'];
 			$message = $a;
 		}
 

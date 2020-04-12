@@ -196,10 +196,12 @@ class WebSocketServer {
 				"ip_address" => $request->server['remote_addr'],
 				"opened" => "NOW()"
 			],
-			"audit_trail" => false
+			"audit_trail" => false,
+			"reconnect" => true
 		])){
 			//The new connection was not saved
 			var_dump($this->log->get_alerts());
+			$this->log->clear_alerts();
 			return false;
 		}
 
@@ -231,10 +233,12 @@ class WebSocketServer {
 				"fd" => $fd,
 			],
 			"user_id" => false,
-			"limit" => 1
+			"limit" => 1,
+			"reconnect" => true
 		])){
 			//The connection close was not saved
 			var_dump($this->log->get_alerts());
+			$this->log->clear_alerts();
 			return false;
 		}
 
