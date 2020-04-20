@@ -3,6 +3,7 @@
 
 namespace App\Common;
 
+use App\Common\SQL\mySQL;
 
 class Request {
 
@@ -25,11 +26,6 @@ class Request {
 	protected $hash;
 
 	/**
-	 * @var callback
-	 */
-	protected $callback;
-
-	/**
 	 * @var output
 	 */
 	protected $output;
@@ -42,10 +38,9 @@ class Request {
 	function __construct () {
 		$this->load_session_vars();
 		$this->log = Log::getInstance();
-		$this->hash = hash::getInstance();
-		$this->callback = callback::getInstance();
+		$this->hash = Hash::getInstance();
 		$this->output = Output::getInstance();
-		$this->sql = sql::getInstance();
+		$this->sql = mySQL::getInstance();
 	}
 
 	/**
@@ -144,7 +139,7 @@ class Request {
 		}
 
 		# Create and set the callback based on the hash
-		$this->callback->set($a);
+		$this->hash->setCallback($a);
 
 		# If directions for the output have been sent with the vars
 		if(is_array($vars) && $vars['div'] && $vars['div_id']){

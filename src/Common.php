@@ -24,5 +24,6 @@ class Common {
 	function __construct () {
 		$this->log = Log::getInstance();
 		$this->output = Output::getInstance();
+//		$this->user =
 	}
 }

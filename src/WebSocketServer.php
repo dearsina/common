@@ -66,7 +66,7 @@ class WebSocketServer {
 		$this->server_id = date("YmdHis");
 
 		# Load Common scripts
-		$this->sql = \App\Common\sql::getInstance();
+		$this->sql = App\Common\SQL\mySQL::getInstance();
 		$this->log = \App\Common\Log::getInstance();
 
 		# The internal port

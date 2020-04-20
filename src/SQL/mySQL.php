@@ -1,6 +1,13 @@
 <?php
 
-namespace App\Common;
+namespace App\Common\SQL;
+
+use App\Common\Log;
+use App\Common\str;
+
+use Ramsey\Uuid\Codec\TimestampFirstCombCodec;
+use Ramsey\Uuid\Generator\CombGenerator;
+use Ramsey\Uuid\UuidFactory;
 
 /**
  * Reset global vars related to SQL calls.
@@ -10,15 +17,22 @@ $_SESSION['database_calls'] = 0;
 $_SESSION['queries'] = [];
 
 /**
- * Class sql
+ * Class mySQL
  * An update to the sql() class.
  *
  * @package App\Common
- * @version 2
+ * @version 3
  */
-class sql {
+class mySQL {
+	/**
+	 * @var \mysqli
+	 */
 	private $mysqli;
-	private static $instance = null;
+
+	/**
+	 * @var mySQL
+	 */
+	private static $instance;
 
 	/**
 	 * A private array of table column name definitions, so that multiple calls to the same table definition doesn't result in multiple database calls.
@@ -73,11 +87,14 @@ class sql {
 		// Stopping unserializing of object
 	}
 
+	/**
+	 * @return mySQL
+	 */
 	public static function getInstance() {
 
 		// Check if instance is already exists
 		if(self::$instance == null) {
-			self::$instance = new sql();
+			self::$instance = new mySQL();
 		}
 
 		return self::$instance;
@@ -160,12 +177,26 @@ class sql {
 	 * @return bool
 	 */
 	private function reconnect(){
-		if(!$this->mysqli->ping()){
+		try {
+			if($this->mysqli->ping()){
+				return true;
+			}
 			if (!self::__construct()) {
 				return false;
 			}
+			return true;
 		}
-		return true;
+		catch (mysqli_sql_exception $e){
+			$this->log->error([
+				"title" => "mySQL Error [{$e->getCode()}]",
+				"message" => $e->getMessage()
+			]);
+			$this->log->info([
+				"title" => "mySQL error details",
+				"message" => $e->getTraceAsString()
+			]);
+		}
+		return false;
 	}
 
 	/**
@@ -1367,7 +1398,7 @@ class sql {
 			return true;
 		}
 
-		if($type == "or" && str::is_numeric_array($condition)){
+		if($type == "or" && str::isNumericArray($condition)){
 			do {
 				foreach($condition as $col => $val){
 					if(!is_numeric($col) || !is_array($val)){
@@ -1411,7 +1442,7 @@ class sql {
 			 */
 
 			# Option for one column, multiple OR values
-			if($type == 'or' && is_array($val) && str::is_numeric_array($val)){
+			if($type == 'or' && is_array($val) && str::isNumericArray($val)){
 				/**
 				 * "or" => ["col" => ["NULL", "val"]
 				 *
@@ -1436,7 +1467,7 @@ class sql {
 			}
 
 			# Do the same thing as above, but this time for the AND_OR hybrids
-			if($type == 'and_or' && is_array($val) && str::is_numeric_array($val)) {
+			if($type == 'and_or' && is_array($val) && str::isNumericArray($val)) {
 				foreach($val as $v){
 					$this->where['or'][$and_or_key][] = [
 						"col" => $col,
@@ -1959,6 +1990,45 @@ class sql {
 	}
 
 	/**
+	 * Generate a UUID
+	 *
+	 * UUID stands for Universally Unique IDentifier and is defined in the `RFC 4122`.
+	 * It is a 128 bits number, normally written in hexadecimal and split by dashes
+	 * into five groups. A typical UUID value looks like:
+	 * <code>
+	 * 905b194e-b7ab-42c2-af21-7dbd33e227e3
+	 * </code>
+	 * This method will return a "COMB", a timestap first random UUID.
+	 * So-called because they COMBine random bytes with a timestamp, the
+	 * timestamp-first COMB codec replaces the first 48 bits of a version 4,
+	 * random UUID with a Unix timestamp and microseconds, creating an
+	 * identifier that can be sorted by creation time. These UUIDs are
+	 * monotonically increasing, each one coming after the previously-created
+	 * one, in a proper sort order.
+	 *
+	 * @link https://github.com/ramsey/uuid
+	 * @link https://uuid.ramsey.dev/en/latest/customize/timestamp-first-comb-codec.html
+	 * @link https://www.percona.com/blog/2019/11/22/uuids-are-popular-but-bad-for-performance-lets-discuss/
+	 *
+	 * @return string Returns char(36) with a timestamp-first COMB codec UUID
+	 */
+	public function generateUUID(){
+		$factory = new UuidFactory();
+		$codec = new TimestampFirstCombCodec($factory->getUuidBuilder());
+
+		$factory->setCodec($codec);
+
+		$factory->setRandomGenerator(new CombGenerator(
+			$factory->getRandomGenerator(),
+			$factory->getNumberConverter()
+		));
+
+		$timestampFirstComb = $factory->uuid4();
+
+		return $timestampFirstComb->toString();
+	}
+
+	/**
 	 * SQL insert function, returns the insert_id
 	 *
 	 * <pre>
@@ -1994,6 +2064,9 @@ class sql {
 		}
 
 		$this->removeIllegalColumns($set, $table);
+
+		# Generate the table_id
+//		$set["{$table}_id"] = $this->generateUUID();
 
 		$set['created'] = "NOW()";
 

@@ -61,19 +61,19 @@ class href {
 		if($url){
 			if(is_array($url)){
 				foreach($url as $attr => $val){
-					$return[] = str::get_attr_tag($attr, $val);
+					$return[] = str::getAttrTag($attr, $val);
 				}
 			} else {
-				$return[] = str::get_attr_tag("href", $url);
+				$return[] = str::getAttrTag("href", $url);
 			}
 		}
 
 		if($href){
-			$return[] = str::get_attr_tag("href", $href);
+			$return[] = str::getAttrTag("href", $href);
 		}
 
 		if($onClick){
-			$return[] = str::get_attr_tag("onClick", $onClick);
+			$return[] = str::getAttrTag("onClick", $onClick);
 		}
 
 		if(!$return){

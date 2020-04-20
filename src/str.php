@@ -535,7 +535,7 @@ class str {
 	 *
 	 * @return bool|string
 	 */
-	static function script_tag($script){
+	static function getScriptTag($script){
 		if(!$script){
 			return false;
 		}
@@ -575,8 +575,8 @@ class str {
 	 *
 	 * @return array|null
 	 */
-	static function get_attr_array($attr = NULL, $defaults = NULL, $only_attr = NULL){
-		if($attr === false || $only_attr === false){
+	static function getAttrArrray($attr = NULL, $defaults = NULL, $only_attr = NULL){
+		if($only_attr === false){
 			return [];
 		}
 
@@ -602,11 +602,11 @@ class str {
 	 *
 	 * @return bool|string
 	 */
-	static function get_attr_tag($attr, $val, $if_null = NULL){
+	static function getAttrTag($attr, $val, $if_null = NULL){
 		if(is_array($val)){
 			$val_array = $val;
 			unset($val);
-			if(str::is_numeric_array($val_array)){
+			if(str::isNumericArray($val_array)){
 				//if keys don't matter
 				array_walk_recursive($val_array, function($a) use (&$flat_val_array) { $flat_val_array[] = $a; });
 				//flatten the potentially multidimensional array
@@ -619,7 +619,8 @@ class str {
 				}
 			}
 		}
-		if(!strlen($val)){
+
+		if(!strlen(trim($val))){
 			//if there is no visible val
 			if($if_null){
 				//if there is a replacement
@@ -630,14 +631,14 @@ class str {
 			}
 		}
 
-		if(!$attr){
-			//if there is no attribute, peace out
-			return false;
-		}
-
 		$val = str_replace("\"", "&quot;", $val);
 		//make sure the val doesn't break the whole tag
 		//@link https://stackoverflow.com/a/1081581/429071
+
+		if(!$attr){
+			//if there is no attribute, just return the value (now a string)
+			return " {$val}";
+		}
 
 		return " {$attr}=\"{$val}\"";
 	}
@@ -891,7 +892,8 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function is_associative_array (array $arr) {
+	static function isAssociativeArray ($arr) {
+		if (!is_array($arr)) return false;
 		if (array() === $arr) return false;
 		return array_keys($arr) !== range(0, count($arr) - 1);
 	}
@@ -900,7 +902,7 @@ EOF;
 	 * Checks to see whether an array has sequential numerical keys (only),
 	 * starting from 0 to n, where n is the array count minus one.
 	 *
-	 * The opposite of `is_associative_array()`.
+	 * The opposite of `isAssociativeArray()`.
 	 *
 	 * @link https://codereview.stackexchange.com/questions/201/is-numeric-array-is-missing/204
 	 *
@@ -908,7 +910,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function is_numeric_array ($arr) {
+	static function isNumericArray ($arr) {
 		if (!is_array($arr)) return false;
 		return array_keys($arr) === range(0, (count($arr) - 1));
 	}
@@ -1725,7 +1727,7 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function get_colour($colour, $prefix = 'text'){
+	static function getColour($colour, $prefix = 'text'){
 		if(!$colour){
 			return false;
 		}
@@ -1750,8 +1752,8 @@ EOF;
 		case 'primary'  : return 'primary'; break;
 		case 'blue'     : return 'blue'; break;
 		case 'secondary': return 'secondary'; break;
-		case 'grey'     : return 'secondary'; break;
-		case 'gray'     : return 'secondary'; break;
+		case 'grey'     : return 'gray'; break;
+		case 'gray'     : return 'gray'; break;
 		case 'green'    : return 'success'; break;
 		case 'success'  : return 'success'; break;
 		case 'warning'  : return 'warning'; break;
@@ -1875,9 +1877,9 @@ EOF;
 
 		}
 
-		$icon_class = Icon::get_class($icon);
+		$icon_class = Icon::getClass($icon);
 		$type = self::translate_approve_colour($colour);
-		$button_colour = self::get_colour($colour, "btn");
+		$button_colour = self::getColour($colour, "btn");
 
 		$message = str_replace(["\r\n","\r","\n"], " ", $message);
 

@@ -53,7 +53,7 @@ class Log {
 		if(!empty($this->alerts)){
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
-					$icon = Icon::get_array($alert['icon']);
+					$icon = Icon::getArray($alert['icon']);
 					$flat_error_array[] = [
 						"type" => $type,
 						"title" => $alert['title'],
@@ -137,7 +137,7 @@ class Log {
 	 * Stores all failure messages in the DB.
 	 */
 	public function log_failures(){
-		$sql = sql::getInstance();
+		$sql = App\Common\SQL\mySQL::getInstance();
 
 		if(!is_array($this->alerts)){
 			return false;
@@ -148,7 +148,7 @@ class Log {
 				continue;
 			}
 			foreach($alerts as $alert){
-				$icon = Icon::get_array($alert['icon']);
+				$icon = Icon::getArray($alert['icon']);
 
 				$alert_array = [
 					"type" => $type,

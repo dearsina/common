@@ -3,64 +3,103 @@ namespace App\Common;
 
 
 /**
- * Class callback
- * Quasi-global, static callback that can be called from anywhere.
- *
- * Not sure if we need this.
+ * Class hash
+ * Quasi-global, static hash that can be called from anywhere.
  *
  * <code>
- * $this->callback->set("hash");
+ * $this->hash->set("hash");
  * </code>
  *
  * @package App\Common
  */
-class callback {
+class Hash {
+	private $hash;
+	private $silent;
 	private $callback;
-	private static $instance = null;
 
+	/**
+	 * @var Hash
+	 */
+	private static $instance;
+
+	/**
+	 * The constructor is private so that the class can be run in static mode
+	 *
+	 */
 	private function __construct() {
-		//The constructor is private so that the class can be run in static mode.
-		$this->callback = false;
+		$this->hash = false;
 	}
 
 	private function __clone() {
-		//Stops the cloning of this object.
+		// Stopping Clonning of Object
 	}
 
 	private function __wakeup() {
-		//Stops the unserialising of this object.
+		// Stopping unserialize of object
 	}
 
+	/**
+	 * @return Hash
+	 */
 	public static function getInstance() {
+
+		// Check if instance is already exists
 		if(self::$instance == null) {
-			//If this is the first instance request
-			self::$instance = new callback();
+			self::$instance = new Hash();
 		}
+
 		return self::$instance;
 	}
 
-//	/**
-//	 * Generates the hash per request for use when logging in mid-process.
-//	 *
-//	 * The $this->callback variable will ALWAYS be encoded, and will need to be
-//	 * decoded for use.
-//	 *
-//	 * @param $a array|string
-//	 *
-//	 * @return bool Always returns TRUE, after having stored the $this->callback variable
-//	 */
-//	function set($a){
-//		# When callback is used in forms, the callback is sent as a string
-//		if(!$a || is_string($a) || is_numeric($a)){
-//			$this->callback = str::urlencode($a);
-//			return true;
-//		}
-//
-//		# Otherwise, the callback is created from the AJAX request formed by the change in the hash (url)
-//		$this->callback = str::generate_uri($a, true);
-//
-//		return $this->callback;
-//	}
+	/**
+	 * Set the hash
+	 * If a hash is set, the browser will be re-directed to the new hash.
+	 * The method will override existing hashes set.
+	 * <code>
+	 * $this->hash->set("rel_table/rel_id/action");
+	 * </code>
+	 *
+	 * @param @a string|array Do not prefix the hash with a hashtag, it will be added later automatically.
+	 *
+	 * @return bool
+	 */
+	function set($a){
+		if($a === false){
+			return $this->unset();
+		} else if(is_array($a)){
+			$this->hash = str::generate_uri($a);
+		} else if(is_int($a) || is_string($a)){
+			$this->hash = urldecode($a);
+		} else {
+			return false;
+		}
+		return true;
+	}
+
+	function unset(){
+		$this->hash = false;
+		return true;
+	}
+
+	function get(){
+		return $this->hash;
+	}
+
+	/**
+	 * If called (without a variable),
+	 * or if the varible is set to TRUE,
+	 * the browser will change the hash,
+	 * without refreshing the screen.
+	 *
+	 * @param bool $silent
+	 */
+	function silent($silent = TRUE){
+		$this->silent = $silent;
+	}
+
+	function get_silent(){
+		return $this->silent;
+	}
 
 	/**
 	 * Sets the callback. This feature is run every time an ajax request is handled.
@@ -79,7 +118,7 @@ class callback {
 	 *
 	 * @return bool
 	 */
-	function set($a, $urlencode = TRUE){
+	function setCallback($a, $urlencode = TRUE){
 		# No value sent
 		if(!$a){
 			return true;
@@ -121,7 +160,7 @@ class callback {
 	 *
 	 * @return string
 	 */
-	function get($urlencode = NULL){
+	function getCallback($urlencode = NULL){
 		if($urlencode){
 			return str::urlencode($this->callback);
 		} else {
