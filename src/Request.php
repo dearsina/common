@@ -79,7 +79,7 @@ class Request {
 	private function handle_errors($a){
 		extract($a);
 
-		if(!$vars){
+		if(!is_array($vars)){
 			return true;
 		}
 
@@ -169,38 +169,26 @@ class Request {
 			$rel_table = "home";
 		}
 
-		# Does a common path exist
-		$common_path = "\\App\\Common\\{$rel_table}\\{$rel_table}";
-		if(class_exists($common_path)) {
-			$class_path = $common_path;
-		}
-
-		# Even better, does a custom path exist
-		$core_path = "\\App\\{$rel_table}\\{$rel_table}";
-		if(class_exists($core_path)) {
-			$class_path = $core_path;
-		}
-
-		if(!$class_path){
+		if(!$classPath = self::findClass($rel_table)){
 			//if a class doesn't exist
-			$this->log->error("No matching class for <code>".str::generate_uri($a)."</code> can be found.");
+			$this->log->error("No matching class for <code>".str::generate_uri($a)."</code> can be found. {$commonPath}");
 			return false;
 		}
 
 		# Create a new instance of the class
-		$class_instance = new $class_path($this);
+		$classInstance = new $classPath($this);
 
 		# Set the method (view is the default)
-		$method = $action ?: "view";
+		$method = str::getMethodCase($action) ?: "view";
 
 		# Ensure the method is available
-		if(!$this->method_available($class_instance, $method)){
+		if(!self::methodAvailable($classInstance, $method)){
 			$this->log->error("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
 			return false;
 		}
 
 		# Call the class action
-		if(!$class_instance->$method([
+		if(!$classInstance->$method([
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
@@ -210,6 +198,30 @@ class Request {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Given a rel_table, find a class
+	 *
+	 * @param $rel_table
+	 *
+	 * @return bool|string Returns the class with path or FALSE if it can't find it
+	 */
+	public static function findClass($rel_table){
+		# Does a custom path exist?
+		$corePath = str::getClassCase("\\App\\{$rel_table}\\{$rel_table}");
+		if(class_exists($corePath)) {
+			return $corePath;
+		}
+
+		# Does a common path exist
+		$commonPath = str::getClassCase("\\App\\Common\\{$rel_table}\\{$rel_table}");
+		if(class_exists($commonPath)) {
+			return $commonPath;
+		}
+
+		# If no class can be found
+		return false;
 	}
 
 	/**
@@ -240,16 +252,16 @@ class Request {
 		}
 
 		# Silent is the same as hash = -1, but without refreshing the screen
-//		if(!$output['silent'] = $this->hash->get_silent()){
+//		if(!$output['silent'] = $this->hash->getSilent()){
 		//only if there is no need to be silent will a hash be sent
 		$output['hash'] = $this->hash->get();
 //		}
-		$output['silent'] = $this->hash->get_silent();
+		$output['silent'] = $this->hash->getSilent();
 		# TEMP I think we can send a hash always
 		# No, otherwise the silent flag means nothing
 
 		# Alerts
-		$output['alerts'] = $this->log->get_alerts();
+		$output['alerts'] = $this->log->getAlerts();
 		/**
 		 * Alerts are fed into the $output array,
 		 * but have otherwise no relation to the
@@ -259,9 +271,9 @@ class Request {
 		if($success === true){
 			//not sure if this will have unintended consequences
 			$output['success'] = true;
-		} else if($this->log->has_failures()){
+		} else if($this->log->hasFailures()){
 			//if there are any errors
-			$this->log->log_failures();
+			$this->log->logFailures();
 			//log them for posterity
 			$output['success'] = false;
 		} else if($success === false) {
@@ -294,7 +306,11 @@ class Request {
 	 * @return bool
 	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
 	 */
-	private function method_available($class, $method, $modifier = "public"){
+	public static function methodAvailable($class, $method, $modifier = "public"){
+		if(!$class || !$method){
+			return false;
+		}
+
 		if(!method_exists($class, $method)){
 			return false;
 		}

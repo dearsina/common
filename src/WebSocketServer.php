@@ -183,15 +183,15 @@ class WebSocketServer {
 	 * @return bool
 	 */
 	public function onExternalOpen(Swoole\WebSocket\Server $server, Swoole\Http\Request $request) {
-//		var_dump($request);
-
 		# Add the session id to the record of currently active sessions
+		$session_id = substr($request->server['request_uri'],1);
+
 		if(!$insert_id = $this->sql->insert([
 			"table" => "connection",
 			"set" => [
 				"server_id" => $this->server_id,
 				"fd" => $request->fd,
-				"session_id" => $request->cookie['session_id'],
+				"session_id" => $session_id,
 				"user_id" => $request->cookie['user_id'],
 				"ip_address" => $request->server['remote_addr'],
 				"opened" => "NOW()"
@@ -200,12 +200,12 @@ class WebSocketServer {
 			"reconnect" => true
 		])){
 			//The new connection was not saved
-			var_dump($this->log->get_alerts());
-			$this->log->clear_alerts();
+			var_dump($this->log->getAlerts());
+			$this->log->clearAlerts();
 			return false;
 		}
 
-		$this->log("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$insert_id}]");
+		$this->log("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], session [{$session_id}], connection_id [{$insert_id}]");
 	}
 
 	/**
@@ -237,15 +237,85 @@ class WebSocketServer {
 			"reconnect" => true
 		])){
 			//The connection close was not saved
-			var_dump($this->log->get_alerts());
-			$this->log->clear_alerts();
+			var_dump($this->log->getAlerts());
+			$this->log->clearAlerts();
 			return false;
 		}
 
 		$this->log("External connection [{$fd}] closed.");
 	}
-
 }
 
 $server = new WebSocketServer();
 $server->start();
+
+/**
+object(Swoole\Http\Request)#24 (8) {
+["fd"]=>
+int(1)
+["header"]=>
+array(12) {
+["host"]=>
+string(28) "registerofmembers.co.uk:4043"
+["connection"]=>
+string(7) "Upgrade"
+["pragma"]=>
+string(8) "no-cache"
+["cache-control"]=>
+string(8) "no-cache"
+["user-agent"]=>
+string(115) "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
+["upgrade"]=>
+string(9) "websocket"
+["origin"]=>
+string(35) "https://app.registerofmembers.co.uk"
+["sec-websocket-version"]=>
+string(2) "13"
+["accept-encoding"]=>
+string(17) "gzip, deflate, br"
+["accept-language"]=>
+string(62) "en-GB,en;q=0.9,en-US;q=0.8,nb;q=0.7,sv;q=0.6,la;q=0.5,no;q=0.4"
+["sec-websocket-key"]=>
+string(24) "mditpwx7MZazIDiVZHMylg=="
+["sec-websocket-extensions"]=>
+string(42) "permessage-deflate; client_max_window_bits"
+}
+["server"]=>
+array(10) {
+["request_method"]=>
+string(3) "GET"
+["request_uri"]=>
+string(27) "/ui9d070pnpnhnq0togicn6sifc"
+["path_info"]=>
+string(27) "/ui9d070pnpnhnq0togicn6sifc"
+["request_time"]=>
+int(1587559801)
+["request_time_float"]=>
+float(1587559801.4001)
+["server_protocol"]=>
+string(8) "HTTP/1.1"
+["server_port"]=>
+int(4043)
+["remote_port"]=>
+int(55358)
+["remote_addr"]=>
+string(13) "105.242.32.54"
+["master_time"]=>
+int(1587559800)
+}
+["cookie"]=>
+array(1) {
+["PHPSESSID"]=>
+string(26) "5b3312js9eeellfeh5c9mr2nll"
+}
+["get"]=>
+NULL
+["files"]=>
+NULL
+["post"]=>
+NULL
+["tmpfiles"]=>
+NULL
+}
+
+ */

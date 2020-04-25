@@ -4,6 +4,7 @@
 namespace App\Common;
 
 use App\Common\log;
+use App\Common\SQL\mySQL;
 
 class PA {
 	/**
@@ -19,6 +20,7 @@ class PA {
 	private function __construct () {
 		# Set up an internal log
 		$this->log = Log::getInstance();
+		$this->sql = mySQL::getInstance();
 	}
 
 	/**
@@ -78,12 +80,56 @@ class PA {
 	}
 
 	public function speak($a = NULL){
+		if(!$a['fd']){
+			//if no recipients have been identified,
+			//assume only the person kicking off the
+			//ajax is to be notified
+			if($recipients = $this->sql->select([
+				"table" => "connection",
+				"where" => [
+					"closed" => "NULL",
+					"session_id" => session_id()
+				]
+			])){
+				foreach($recipients as $recipient){
+					$a['fd'][] = $recipient['fd'];
+				}
+			}
+		}
 
-		$array = [
-			"command" => "update_data",
-			"user" => "tester01"
-		];
-		$data = urlencode(json_encode($array));
+		try {
+			$this->push($a['fd'], $a['data']);
+		}
+		catch (\Exception $e){
+			$this->log->error($e);
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Push a message to a given list of recipients.
+	 *
+	 * @param array $fd A numerical array of recipients (`fd` numbers)
+	 * @param array $message An array of messages, direction, instructions.
+	 *
+	 * @return bool TRUE on success, exceptions on error.
+	 * @throws \Exception
+	 */
+	private function push(array $fd, array $message){
+		if(empty($fd)){
+			throw new \Exception("No recipients provided.");
+		}
+		if(empty($message)){
+			throw new \Exception("No message provided.");
+		}
+
+		# Prepare the data as a single commandline friendly json string
+		$data = urlencode(json_encode([
+			"fd" => $fd,
+			"data" => $message
+		]));
 
 		$cmd  = "'go(function(){";
 		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
@@ -92,9 +138,13 @@ class PA {
 		$cmd .= "\$client->close();";
 		$cmd .= "});'";
 
-		echo $cmd."\r\n";
-
+		# Execute the command
 		$output = shell_exec("php -r {$cmd} 2>&1");
-		echo $output;
+
+		if($output){
+			throw new \Exception($output);
+		}
+
+		return true;
 	}
 }

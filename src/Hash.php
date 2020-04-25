@@ -13,41 +13,51 @@ namespace App\Common;
  * @package App\Common
  */
 class Hash {
-	private $hash;
+	/**
+	 * If set to true, will silently change the
+	 * user's URL.
+	 *
+	 * @var bool
+	 */
 	private $silent;
+
+	/**
+	 * Contains the next (or previous) URL to go to.
+	 * @var string
+	 */
 	private $callback;
 
 	/**
+	 * The Hash() instance.
+	 *
 	 * @var Hash
 	 */
 	private static $instance;
 
 	/**
-	 * The constructor is private so that the class can be run in static mode
+	 * The constructor is private so that the class
+	 * can be run in static mode.
 	 *
+	 * Cloning and wakeup are also set to private to prevent
+	 * cloning and unserialising of the Hash() object.
 	 */
 	private function __construct() {
-		$this->hash = false;
-	}
 
-	private function __clone() {
-		// Stopping Clonning of Object
 	}
-
-	private function __wakeup() {
-		// Stopping unserialize of object
-	}
+	private function __clone() {}
+	private function __wakeup() {}
 
 	/**
+	 * Checks to see if an instance of Hash()
+	 * already exists, if not creates it,
+	 * and returns it.
+	 *
 	 * @return Hash
 	 */
 	public static function getInstance() {
-
-		// Check if instance is already exists
-		if(self::$instance == null) {
+		if(!self::$instance) {
 			self::$instance = new Hash();
 		}
-
 		return self::$instance;
 	}
 
@@ -76,7 +86,7 @@ class Hash {
 		return true;
 	}
 
-	function unset(){
+	private function unset(){
 		$this->hash = false;
 		return true;
 	}
@@ -97,7 +107,7 @@ class Hash {
 		$this->silent = $silent;
 	}
 
-	function get_silent(){
+	function getSilent(){
 		return $this->silent;
 	}
 

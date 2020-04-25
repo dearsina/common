@@ -30,17 +30,18 @@ class str {
 	private $str;
 	private static $instance = null;
 
+	/**
+	 * The constructor is private so that the class
+	 * can be run in static mode.
+	 *
+	 * Cloning and wakeup are also set to private to prevent
+	 * cloning and unserialising of the Hash() object.
+	 */
 	private function __construct() {
 		$this->str = false;
 	}
-
-	private function __clone() {
-		// Stopping Clonning of Object
-	}
-
-	private function __wakeup() {
-		// Stopping unserialize of object
-	}
+	private function __clone() {}
+	private function __wakeup() {}
 
 	public static function getInstance() {
 
@@ -51,6 +52,16 @@ class str {
 
 		return self::$instance;
 	}
+
+	/**
+	 * Defines the minimum password length requirements
+	 */
+	const MIMINUM_PASSWORD_LENGTH = 8;
+
+	/**
+	 * Defines the mininum phone number length requirement.
+	 */
+	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
 	/**
 	 * Words or abbreviations that should always be all uppercase
@@ -311,6 +322,41 @@ class str {
 	}
 
 	/**
+	 * Checks to see if an email address is valid
+	 *
+	 * 	<code>str::isValidEmail($email);<code>
+	 *
+	 * @param string $email email@address.com
+	 * @return boolean returns the email address on true or false on failure
+	 * @link: https://github.com/egulias/EmailValidator
+	 */
+	public static function isValidEmail($email){
+		$validator = new \Egulias\EmailValidator\EmailValidator();
+		$multipleValidations = new \Egulias\EmailValidator\Validation\MultipleValidationWithAnd([
+			new \Egulias\EmailValidator\Validation\RFCValidation(),
+			new \Egulias\EmailValidator\Validation\DNSCheckValidation()
+		]);
+		return $validator->isValid($email, $multipleValidations);
+	}
+
+	/**
+	 * Validates a phone number.
+	 *
+	 * TODO Expand to include fixing/adding country codes etc.
+	 *
+	 * @param $number
+	 *
+	 * @return bool
+	 */
+	public static function isValidPhoneNumber($number){
+		$number = preg_replace("/[^0-9\\+]/","",$number);
+		if(strlen($number) < self::MINIMUM_PHONE_NUMBER_LENGTH){
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * @link http://php.net/manual/en/function.mysql-real-escape-string.php#101248
 	 * @param float|int|string $inp
 	 *
@@ -344,6 +390,119 @@ class str {
 	}
 
 	/**
+	 * Converts snake_case to methodCase (camelCase).
+	 *
+	 * @param $snake
+	 */
+	public static function getMethodCase($snake){
+		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
+	}
+
+	/**
+	 * Converts snake_case to ClassCase (CamelCase).
+	 * Will also convert \app\common\rel_table to \App\Common\RelTable
+	 *
+	 * @param $snake
+	 */
+	public static function getClassCase($snake){
+		return str_replace("_", "", ucwords($snake, "_\\"));
+	}
+
+	/**
+	 * Returns an array of the following:
+	 * <code>
+	 * {
+	 *   "ip": "134.201.250.155",
+	 *   "hostname": "134.201.250.155",
+	 *   "type": "ipv4",
+	 *   "continent_code": "NA",
+	 *   "continent_name": "North America",
+	 *   "country_code": "US",
+	 *   "country_name": "United States",
+	 *   "region_code": "CA",
+	 *   "region_name": "California",
+	 *   "city": "Los Angeles",
+	 *   "zip": "90013",
+	 *   "latitude": 34.0453,
+	 *   "longitude": -118.2413,
+	 *   "location": {
+	 *     "geoname_id": 5368361,
+	 *     "capital": "Washington D.C.",
+	 *     "languages": [
+	 *         {
+	 *           "code": "en",
+	 *           "name": "English",
+	 *           "native": "English"
+	 *         }
+	 *     ],
+	 *     "country_flag": "https://assets.ipstack.com/images/assets/flags_svg/us.svg",
+	 *     "country_flag_emoji": "🇺🇸",
+	 *     "country_flag_emoji_unicode": "U+1F1FA U+1F1F8",
+	 *     "calling_code": "1",
+	 *     "is_eu": false
+	 *   },
+	 *   "time_zone": {
+	 *     "id": "America/Los_Angeles",
+	 *     "current_time": "2018-03-29T07:35:08-07:00",
+	 *     "gmt_offset": -25200,
+	 *     "code": "PDT",
+	 *     "is_daylight_saving": true
+	 *   },
+	 *   "currency": {
+	 *     "code": "USD",
+	 *     "name": "US Dollar",
+	 *     "plural": "US dollars",
+	 *     "symbol": "$",
+	 *     "symbol_native": "$"
+	 *   },
+	 *   "connection": {
+	 *     "asn": 25876,
+	 *     "isp": "Los Angeles Department of Water & Power"
+	 *   },
+	 *   "security": {
+	 *     "is_proxy": false,
+	 *     "proxy_type": null,
+	 *     "is_crawler": false,
+	 *     "crawler_name": null,
+	 *     "crawler_type": null,
+	 *     "is_tor": false,
+	 *     "threat_level": "low",
+	 *     "threat_types": null
+	 *   }
+	 * }
+	 * </code>
+	 * @param null $ip
+	 *
+	 * @return bool|mixed
+	 */
+	public static function ip($ip = NULL){
+		if(!$_ENV['ipstack_access_key']){
+			//if a key hasn't been set, ignore this
+			return false;
+		}
+		$ip = $ip ?: $_SERVER['REMOTE_ADDR'];
+		//if an IP isn't explicitly given, use the requester's IP
+
+		$client = new \GuzzleHttp\Client([
+			"base_uri" => "http://api.ipstack.com/"
+		]);
+
+		try {
+			$response = $client->request("GET", $ip, [
+				"query" => [
+					"access_key" => $_ENV['ipstack_access_key'],
+				]
+			]);
+		}
+		catch (\Exception $e) {
+			//Catch errors
+			return false;
+		}
+
+		return json_decode($response->getBody()->getContents(), true);
+	}
+
+	/**
 	 * Given an array of rel_table/id and action, and an array of vars,
 	 * creates a hash string and returns it.
 	 *
@@ -357,7 +516,7 @@ class str {
 		# If an array is given (most common)
 		if(is_array($array)){
 			extract($array);
-			$hash = "{$rel_table}/{$rel_id}/{$action}";
+			$hash = "/{$rel_table}/{$rel_id}/{$action}";
 		}
 
 		# If a string is given (less common)
@@ -575,7 +734,7 @@ class str {
 	 *
 	 * @return array|null
 	 */
-	static function getAttrArrray($attr = NULL, $defaults = NULL, $only_attr = NULL){
+	static function getAttrArray($attr = NULL, $defaults = NULL, $only_attr = NULL){
 		if($only_attr === false){
 			return [];
 		}
@@ -658,6 +817,36 @@ class str {
 		$prefix = preg_replace("/[^A-Za-z0-9]/", '_', $prefix);
 		return "{$prefix}_".rand();
 	}
+
+	/**
+	 * Generates a UUID version 4, like so:
+	 * <code>
+	 * 1ee9aa1b-6510-4105-92b9-7171bb2f3089
+	 * </code>
+	 * Add a `$length` value, and only a certain section is returned.
+	 *
+	 * @param int $length 4, 8 or 12 are the only accepted values
+	 *
+	 * @return mixed|string
+	 */
+	public static function uuid($length = NULL){
+		$obj = \Ramsey\Uuid\Uuid::uuid4();
+		$uuid = $obj->toString();
+
+		switch($length){
+		case 4: # Return the second section (4 characteres) of the UUID
+			return explode("-", $uuid)[1];
+			break;
+		case 8: # Return the first 8 characters
+			return explode("-", $uuid)[0];
+			break;
+		case 12: # Return the last section (12 characters) of the UUID
+			return explode("-", $uuid)[4];
+			break;
+		default: # Return the entire 36 character string
+			return $uuid; break;
+		}
+	} 
 
 	/**
 	 * Returns a green check if $value is TRUE.

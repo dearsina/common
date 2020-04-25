@@ -3,6 +3,7 @@
 namespace App\Common\SQL;
 
 use App\Common\Log;
+use App\Common\SQL\mySQL\Grow;
 use App\Common\str;
 
 use Ramsey\Uuid\Codec\TimestampFirstCombCodec;
@@ -23,7 +24,7 @@ $_SESSION['queries'] = [];
  * @package App\Common
  * @version 3
  */
-class mySQL {
+class mySQL extends Grow {
 	/**
 	 * @var \mysqli
 	 */
@@ -76,7 +77,14 @@ class mySQL {
 		$offset = (new \DateTime())->format("P");
 		$this->mysqli->query("SET time_zone='$offset';");
 
-		$this->loadTableMetadata();
+		try {
+			$this->loadTableMetadata();
+		}
+		catch(\Exception $e){
+			$this->log->error($e->getMessage());
+			return false;
+		}
+
 	}
 
 	private function __clone() {
@@ -114,7 +122,7 @@ class mySQL {
 
 		# Make sure tables exist
 		if(!$result['rows']){
-			return false;
+			throw new \Exception("No tables exist for this database.");
 		}
 
 		# Fill the two array with the appropriate column definitions
@@ -181,20 +189,12 @@ class mySQL {
 			if($this->mysqli->ping()){
 				return true;
 			}
-			if (!self::__construct()) {
-				return false;
-			}
 			return true;
 		}
-		catch (mysqli_sql_exception $e){
-			$this->log->error([
-				"title" => "mySQL Error [{$e->getCode()}]",
-				"message" => $e->getMessage()
-			]);
-			$this->log->info([
-				"title" => "mySQL error details",
-				"message" => $e->getTraceAsString()
-			]);
+		catch (\mysqli_sql_exception $e){
+			if (self::__construct()) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -575,8 +575,7 @@ class mySQL {
 	 */
 	public function getTableMetadata($table, $all = NULL, $update = NULL){
 		if(!$table){
-			$this->log->error("A valid table name must be given.");
-			return false;
+			throw new \Exception("A valid table name must be given.");
 		}
 
 		# Ensure table string is clean
@@ -587,26 +586,22 @@ class mySQL {
 
 		if($update) {
 			//If the user has requested an update to the index
-			$this->loadTableMetadata();
-		}
-
-		if(!$all){
-			//if the user has only requested the columns they can update
-			if($this->tableColumnNames[$table]) {
-				//if the definition has already been sought
-				return $this->tableColumnNames[$table];
-				//return the existing definition
+			try {
+				$this->loadTableMetadata();
 			}
-		} else {
-			//if the user has requested *all* columns
-			if($this->tableColumnNamesAll[$table]) {
-				//if the definition has already been sought
-				return $this->tableColumnNamesAll[$table];
-				//return the existing definition
+			catch(\Exception $e){
+				$this->log->error($e->getMessage());
+				return false;
 			}
 		}
 
-		return false;
+		if($all){
+			//if the user has requested *all* columns (including those the user cannot update)
+			return $this->tableColumnNamesAll[$table];
+		}
+
+		# Return only the columns they can update
+		return $this->tableColumnNames[$table];
 	}
 
 	/**
@@ -616,7 +611,7 @@ class mySQL {
 	 *
 	 * @return array
 	 */
-	private function getTableColumnsUsersCannotUpdate($table){
+	protected function getTableColumnsUsersCannotUpdate($table){
 		return [
 			"${table}_id",
 			"verified",
@@ -1350,6 +1345,11 @@ class mySQL {
 			return $val;
 		}
 
+		# "col" => NULL,
+		if($val === NULL){
+			return "NULL";
+		}
+
 		# "col" => "0", "col" => 0,
 		if ($val === "0" || $val === 0){
 			return $val;
@@ -2063,10 +2063,17 @@ class mySQL {
 			$this->reconnect();
 		}
 
+		# Grow the columns of the if they don't exist / are too small for the data
+		if($grow){
+			if(!$this->growTable($table, $set)){
+				return false;
+			}
+		}
+
 		$this->removeIllegalColumns($set, $table);
 
-		# Generate the table_id
-//		$set["{$table}_id"] = $this->generateUUID();
+		# Generate the table_id if one hasn't been generated for it
+		$set["{$table}_id"] = $this->generateUUID();
 
 		$set['created'] = "NOW()";
 
@@ -2610,6 +2617,9 @@ class mySQL {
 				}
 				if($val == "true"){
 					$val = 1;
+				}
+				if($val === NULL){
+					$val = "NULL";
 				}
 				if($val === false){
 					$val = "NULL";

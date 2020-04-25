@@ -50,7 +50,7 @@ class href {
 			$href = "#";
 			$onClick = "window.history.back();";
 		} else if($hash){
-			$href = "#{$hash}";
+			$href = $hash;
 		}
 
 		if($remove){

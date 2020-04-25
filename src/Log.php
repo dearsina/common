@@ -4,6 +4,9 @@
 namespace App\Common;
 
 
+use App\Common\SQL\mySQL;
+use App\UI\Icon;
+
 /**
  * Class log
  * @package App\Common
@@ -14,17 +17,18 @@ class Log {
 	private $alerts = [];
 	private $script_start_time;
 
-	protected function __construct() {
-		$this->start_timer();
+	/**
+	 * The constructor is private so that the class
+	 * can be run in static mode.
+	 *
+	 * Cloning and wakeup are also set to private to prevent
+	 * cloning and unserialising of the Hash() object.
+	 */
+	private function __construct() {
+		$this->startTimer();
 	}
-
-	private function __clone() {
-		// Stopping cloning of object
-	}
-
-	private function __wakeup() {
-		// Stopping unserialize of object
-	}
+	private function __clone() {}
+	private function __wakeup() {}
 
 	/**
 	 * Used instead of new to ensure that the same instance is used every time it's initiated.
@@ -41,26 +45,27 @@ class Log {
 		return $instance;
 	}
 
-	public function start_timer(){
+	public function startTimer(){
 		$this->script_start_time = microtime(true);
 	}
 
 	/**
-	 * Returns errors, if any, otherwise returns boolean false
+	 * Returns all allerts, of false if none are found.
+	 *
 	 * @return mixed
 	 */
-	public function get_alerts () {
+	public function getAlerts () {
 		if(!empty($this->alerts)){
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
 					$icon = Icon::getArray($alert['icon']);
-					$flat_error_array[] = [
+					$flat_error_array[] = array_merge($alert, [
 						"type" => $type,
 						"title" => $alert['title'],
 						"message" => $alert['message'],
 						"icon" => "{$icon['type']} fa-{$icon['name']}",
 						"seconds" => $alert['seconds'],
-					];
+					]);
 				}
 			}
 			return $flat_error_array;
@@ -68,7 +73,7 @@ class Log {
 		return false;
 	}
 
-	public function clear_alerts(){
+	public function clearAlerts(){
 		$this->alerts = [];
 	}
 
@@ -78,7 +83,7 @@ class Log {
 	 *
 	 * @return bool|string
 	 */
-	public function get_status(){
+	public function getStatus(){
 		if(!is_array($this->alerts)){
 			return false;
 		}
@@ -105,8 +110,8 @@ class Log {
 	 *
 	 * @return float
 	 */
-	public function get_duration(){
-		return $this->seconds_since_start();
+	public function getDuration(){
+		return $this->secondsSinceStart();
 	}
 
 	private $failure_error_types = [
@@ -121,7 +126,7 @@ class Log {
 	 *
 	 * @return bool
 	 */
-	public function has_failures() {
+	public function hasFailures() {
 		if(!$this->alerts){
 			return false;
 		}
@@ -136,12 +141,13 @@ class Log {
 	/**
 	 * Stores all failure messages in the DB.
 	 */
-	public function log_failures(){
-		$sql = App\Common\SQL\mySQL::getInstance();
-
+	public function logFailures(){
 		if(!is_array($this->alerts)){
 			return false;
 		}
+
+		$sql = mySQL::getInstance();
+		// Has to be initiated "locally" to prevent an infiniate loop
 
 		foreach($this->alerts as $type => $alerts){
 			if(!in_array($type,$this->failure_error_types)){
@@ -180,7 +186,7 @@ class Log {
 	 *
 	 * @return float
 	 */
-	private function seconds_since_start(){
+	private function secondsSinceStart(){
 		$now = microtime(true);
 		return round($now - $this->script_start_time,3);
 	}
@@ -200,15 +206,19 @@ class Log {
 	 *
 	 * @return bool
 	 */
-	private function log($a){
-		extract($a);
-		$alert = [
-			"icon" => $icon,
-			"title" => $title,
-			"message" => $message,
-			"seconds" => $this->seconds_since_start(),
-			"backtrace" => $backtrace ?: str::backtrace(true)
-		];
+	private function log($a, string $type){
+		$alert = is_array($a) ? $a : ["message" => $a];
+
+		if(!$alert['icon']){
+			$alert['icon'] = Icon::DEFAULTS[$type];
+		}
+
+		if(!$alert['title']){
+			$alert['title'] = str::title($type);
+		}
+
+		$alert['seconds'] = $this->secondsSinceStart();
+		$alert['backtrace'] = str::backtrace(true);
 		$this->alerts[$type][] = $alert;
 		return true;
 	}
@@ -228,31 +238,7 @@ class Log {
 	 * @return true
 	 */
 	function error($a){
-		if(is_array($a)){
-			extract($a);
-			if($headline){
-				$title = $headline;
-			}
-			if($msg){
-				$message = $msg;
-			}
-			if(!$icon){
-				$icon = Icon::DEFAULTS['error'];
-			}
-		} else {
-			// Default values
-			$title = "Error";
-			$icon = Icon::DEFAULTS['error'];
-			$message = $a;
-		}
-
-		return $this->log([
-			"type" => "error",
-			"icon" => $icon,
-			"title" => $title,
-			"message" => $message,
-			"backtrace" => $backtrace
-		]);
+		return $this->log($a, __FUNCTION__);
 	}
 
 	/**
@@ -270,29 +256,7 @@ class Log {
 	 * @return true
 	 */
 	function warning($a){
-		if(is_array($a)){
-			extract($a);
-			if($headline){
-				$title = $headline;
-			}
-			if($msg){
-				$message = $msg;
-			}
-			if(!$icon){
-				$icon = Icon::DEFAULTS['warning'];
-			}
-		} else {
-			$title = "Warning";
-			$icon = Icon::DEFAULTS['warning'];
-			$message = $a;
-		}
-
-		return $this->log([
-			"type" => "warning",
-			"icon" => $icon,
-			"title" => $title,
-			"message" => $message
-		]);
+		return $this->log($a, __FUNCTION__);
 	}
 
 	/**
@@ -310,29 +274,7 @@ class Log {
 	 * @return true
 	 */
 	function info($a) {
-		if(is_array($a)){
-			extract($a);
-			if($headline){
-				$title = $headline;
-			}
-			if($msg){
-				$message = $msg;
-			}
-			if(!$icon){
-				$icon = Icon::DEFAULTS['info'];
-			}
-		} else {
-			$title = "Notice";
-			$icon = Icon::DEFAULTS['info'];
-			$message = $a;
-		}
-
-		return $this->log([
-			"type" => "info",
-			"icon" => $icon,
-			"title" => $title,
-			"message" => $message
-		]);
+		return $this->log($a, __FUNCTION__);
 	}
 
 	/**
@@ -340,7 +282,7 @@ class Log {
 	 * <code>
 	 * $this->log->success("Success message");
 	 * $this->log->success([
-	 * 	"title" => "Info title",
+	 * 	"title" => "Success title",
 	 * 	"message" => "Info message"
 	 * ]);
 	 * </code>
@@ -350,29 +292,7 @@ class Log {
 	 * @return true
 	 */
 	function success($a) {
-		if(is_array($a)){
-			extract($a);
-			if($headline){
-				$title = $headline;
-			}
-			if($msg){
-				$message = $msg;
-			}
-			if(!$icon){
-				$icon = Icon::DEFAULTS['success'];
-			}
-		} else {
-			$title = "Great success!";
-			$icon = Icon::DEFAULTS['success'];
-			$message = $a;
-		}
-
-		return $this->log([
-			"type" => "success",
-			"icon" => $icon,
-			"title" => $title,
-			"message" => $message
-		]);
+		return $this->log($a, __FUNCTION__);
 	}
 
 }
