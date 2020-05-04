@@ -165,7 +165,7 @@ class Log {
 					"action" => $_REQUEST['action'],
 					"rel_table" => $_REQUEST['rel_table'],
 					"rel_id" => $_REQUEST['rel_id'],
-					"vars" => $_REQUEST['vars'] ? http_build_query($_REQUEST['vars']) : NULL
+					"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL
 				];
 
 				# Insert the error in the DB

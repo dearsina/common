@@ -47,44 +47,49 @@ class mySQL extends Grow {
 	 * The constructor is private so that the class can be run in static mode
 	 *
 	 */
-	private function __construct() {
+	private function __construct()
+	{
 		$this->log = Log::getInstance();
 
 		$driver = new \mysqli_driver();
 		$driver->report_mode = MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR;
 
 		try {
+			# Connect to the mySQL server
 			$this->mysqli = new \mysqli($_ENV['db_servername'],$_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
-		}
-		catch(\mysqli_sql_exception $e) {
-			if ($this->mysqli->connect_error) {
-				$this->log->error("[Error #{$this->mysqli->connect_errno}] {$this->mysqli->connect_error}");
-			} else {
 
-				$this->log->error([
-					"icon" => "bolt",
-					"title" => "SQL Connection error",
-					"message" => "Unable to connect to the SQL server. This is a problem. The error message received from the server is as follows: ".$e->getMessage()
-				]);
-			}
-			return false;
-		}
+			# Ensure everything is UTF8mb4
+			$this->mysqli->set_charset('utf8mb4');
 
-		# Ensure everything is UTF8mb4
-		$this->mysqli->set_charset('utf8mb4');
+			# Ensure PHP and mySQL time zones are in sync
+			$offset = (new \DateTime())->format("P");
+			$this->mysqli->query("SET time_zone='$offset';");
 
-		# Ensure PHP and mySQL time zones are in sync
-		$offset = (new \DateTime())->format("P");
-		$this->mysqli->query("SET time_zone='$offset';");
-
-		try {
 			$this->loadTableMetadata();
 		}
-		catch(\Exception $e){
-			$this->log->error($e->getMessage());
-			return false;
-		}
 
+		catch(\mysqli_sql_exception | \Exception $e) {
+			/**
+			 * If there is an error connecting,
+			 * put together a custom response,
+			 * and stop everything, because
+			 * without a database connection,
+			 * nothing can be done.
+			 */
+			echo json_encode([
+				"success" => false,
+				"alerts" => [[
+					"container" => "#ui-view",
+					"close" => false,
+					"type" => "error",
+					"title" => "SQL Connection error",
+					"icon" => "far fa-ethernet",
+					"message" => $e->getMessage()
+				]]
+			]);
+			exit;
+			//There is no point in continuing
+		}
 	}
 
 	private function __clone() {
@@ -99,9 +104,8 @@ class mySQL extends Grow {
 	 * @return mySQL
 	 */
 	public static function getInstance() {
-
 		// Check if instance is already exists
-		if(self::$instance == null) {
+		if (self::$instance == null) {
 			self::$instance = new mySQL();
 		}
 
@@ -122,7 +126,7 @@ class mySQL extends Grow {
 
 		# Make sure tables exist
 		if(!$result['rows']){
-			throw new \Exception("No tables exist for this database.");
+			throw new \mysqli_sql_exception("No tables exist for this database.");
 		}
 
 		# Fill the two array with the appropriate column definitions
@@ -229,35 +233,15 @@ class mySQL extends Grow {
 		# Store the query in a session variable
 		$_SESSION['query'] = $query;
 
-		# Try running the query and storing the results in an array
-		try {
-			$result = $this->mysqli->query($query);
-			if(is_object($result)){
-				while ($row = $result->fetch_assoc()) {
-					$rows[] = $row;
-				}
-				$result->close();
-				//Frees the memory associated with a result
+		# Run the query and store the results in an array
+		$result = $this->mysqli->query($query);
+		if(is_object($result)){
+			while ($row = $result->fetch_assoc()) {
+				$rows[] = $row;
 			}
+			$result->close();
+			//Frees the memory associated with a result
 		}
-
-		# Catch any errors
-		catch(\mysqli_sql_exception $e) {
-			$this->log->error([
-				"icon" => "database",
-				"title" => "mySQL error on line ".$e->getLine(),
-				"message" => $e->getMessage()
-			]);
-			$this->log->info([
-				"icon" => "code",
-				"title" => "Query",
-				"message" => $query
-			]);
-			return false;
-		}
-
-		# Get the potential inserted ID
-		$insert_id = $this->mysqli->insert_id;
 
 		# Normalise dot-notation
 		$rows = $this->normalise($rows);
@@ -273,26 +257,10 @@ class mySQL extends Grow {
 		if(is_array($rows)){
 			$rowcount = count($rows);
 		} else {
-			try {
-				$result = $this->mysqli->query("SELECT ROW_COUNT();");
-				if(is_object($result)) {
-					$rowcount = $result->fetch_assoc()['ROW_COUNT()'];
-					$result->close();
-				}
-			}
-			# Catch any errors
-			catch(\mysqli_sql_exception $e) {
-				$this->log->error([
-					"icon" => "database",
-					"title" => "mySQL error on line ".$e->getLine(),
-					"message" => $e->getMessage()
-				]);
-				$this->log->info([
-					"icon" => "code",
-					"title" => "Query",
-					"message" => $query
-				]);
-				return false;
+			$result = $this->mysqli->query("SELECT ROW_COUNT();");
+			if(is_object($result)) {
+				$rowcount = $result->fetch_assoc()['ROW_COUNT()'];
+				$result->close();
 			}
 		}
 
@@ -301,7 +269,6 @@ class mySQL extends Grow {
 			"rows" => $rows,
 			"columns" => $columns,
 			"query" => $query,
-			"insert_id" =>  $insert_id,
 			"rowcount" => $rowcount,//is_array($rows) ? count($rows) : $this->mysqli->query("SELECT ROW_COUNT();")->fetch_assoc()['ROW_COUNT()'],
 			"affected_rows" => $this->mysqli->affected_rows
 		];
@@ -575,24 +542,18 @@ class mySQL extends Grow {
 	 */
 	public function getTableMetadata($table, $all = NULL, $update = NULL){
 		if(!$table){
-			throw new \Exception("A valid table name must be given.");
+			throw new \mysqli_sql_exception("A table name must be given.");
 		}
 
 		# Ensure table string is clean
 		$table = str::i($table);
 
-		# Take into account that on occasion, table names are from another database
+		# Take into account that on occasion, table names are from another database (?)
 		$table = end(explode(".",$table));
 
 		if($update) {
 			//If the user has requested an update to the index
-			try {
-				$this->loadTableMetadata();
-			}
-			catch(\Exception $e){
-				$this->log->error($e->getMessage());
-				return false;
-			}
+			$this->loadTableMetadata();
 		}
 
 		if($all){
@@ -614,8 +575,6 @@ class mySQL extends Grow {
 	protected function getTableColumnsUsersCannotUpdate($table){
 		return [
 			"${table}_id",
-			"verified",
-			"verified_by",
 			"created",
 			"created_by",
 			"updated",
@@ -1331,8 +1290,7 @@ class mySQL extends Grow {
 					return "NULL";
 				}
 			}
-			$this->log->error("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>".print_r($val,true)."</pre>");
-			return false;
+			throw new \mysqli_sql_exception("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>".print_r($val,true)."</pre>");
 		}
 
 		# "col" => "NOW()",
@@ -1661,11 +1619,11 @@ class mySQL extends Grow {
 	 *                 Starts is the row to start from, length is the number of rows from start.
 	 *                 Limit, is the number of rows from row 1.
 	 *
-	 * @param bool  $returnQuery If set to TRUE, will return the final SQL query instead of running it.
+	 * @param bool  $return_query If set to TRUE, will return the final SQL query instead of running it.
 	 *
 	 * @return bool|mixed
 	 */
-	public function select($a, $returnQuery = FALSE){
+	public function select($a, $return_query = FALSE){
 		if(is_string($a)){
 			//If the select method variable is just a SQL string
 			if($results = $this->run($a)){
@@ -1801,7 +1759,7 @@ class mySQL extends Grow {
 
 		$SQL = implode(array_filter($query), "\r\n");
 
-		if($returnQuery){
+		if($return_query){
 			//If the query is to be returned, NOT run
 			return $SQL;
 		}
@@ -2040,22 +1998,16 @@ class mySQL extends Grow {
 	 * }
 	 * </pre>
 	 *
-	 * @param array|string $a An array of string with SQL insert data.
-	 * @param bool $returnQuery If set to true, will only return the SQL query, not execute it.
+	 * @param array $a An array with SQL insert data.
+	 * @param bool $return_query If set to true, will only return the SQL query, not execute it.
 	 *
 	 * @return bool|int	Returns bool FALSE on error, or an integer value if a row has been inserted.
 	 */
-	public function insert($a, $returnQuery = NULL){
-		if(is_string($a)){
-			//If the insert method variable is just a SQL string
-			if($results = $this->run($a)){
-				return $results['insert_id'];
-			}
-		} else if(!is_array($a)){
-			$this->log->error("SQL insert calls must be either in string or array format.");
-			return false;
-		} else {
+	public function insert(array $a, bool $return_query = NULL){
+		if(is_array($a)){
 			extract($a);
+		} else {
+			throw new Exception("SQL insert calls must be in an array format.");
 		}
 
 		# Reconnect (for long running scripts)
@@ -2075,23 +2027,25 @@ class mySQL extends Grow {
 		# Generate the table_id if one hasn't been generated for it
 		$set["{$table}_id"] = $this->generateUUID();
 
+		# Set the row created date value
 		$set['created'] = "NOW()";
 
+		# Set the created by (if set)
 		global $user_id;
 		$set['created_by'] = $user_id ?: "NULL";
 		//at times, there may not be a given user performing the insert (user creation, etc)
 
-		if(!$setArray = $this->generateSetArray($set, $table)){
-			return false;
-		}
+		# Prepare the array to insert into the table
+		$setArray = $this->generateSetArray($set, $table);
 
+		# Generate the query
 		$query[] = "INSERT INTO `{$table}` SET ";
 		$query[] = implode(",\r\n", $setArray);
 
 		$SQL = implode( "\r\n", $query);
 
 		# If set to true, return the query instead of running it
-		if($returnQuery){
+		if($return_query){
 			return $SQL;
 		}
 
@@ -2103,12 +2057,12 @@ class mySQL extends Grow {
 		$insertQuery = $_SESSION['query'];
 
 		# Insert values in the audit trail
-		if($audit_trail !== false){
+		if($audit_trail == true){
 			$this->columns = NULL;
 			/**
-			 * Audit trails can be turned off by setting "audit_trail" => false.
+			 * Audit trails need to be invoked
 			 */
-			if(!$this->addToAuditTrail($table, $result['insert_id'], $set, TRUE)){
+			if(!$this->addToAuditTrail($table, $set["{$table}_id"], $set, TRUE)){
 				return false;
 			}
 		}
@@ -2116,28 +2070,34 @@ class mySQL extends Grow {
 		# Restore the insert query (we're not interested in the audit trail query)
 		$_SESSION['query'] = $insertQuery;
 
-		return $result['insert_id'];
+		# Return the inserted ID _we made_ (cause we make the IDs)
+		return $set["{$table}_id"];
 	}
 
 	/**
 	 * Create and run a SQL update query.
 	 *
 	 * @param      $a
-	 * @param null $returnQuery
+	 * @param null $return_query
 	 *
 	 * @return bool
 	 */
-	public function update($a, $returnQuery = NULL){
-		if(is_string($a)){
-			//If the insert method variable is just a SQL string
-			if($results = $this->run($a)){
-				return true;
-			}
-		} else if(!is_array($a)){
-			$this->log->error("SQL update calls must be either in string or array format.");
+	public function update($a, $return_query = NULL){
+		if(!is_array($a)){
+			throw new \Exception("SQL update calls must be in an array format.");
+		}
+
+		extract($a);
+
+		# Make sure there is a set to update
+		if (!is_array($set)) {
+			throw new \Exception("An update request was sent with no columns to update.");
+		}
+
+		# Make sure the column or columns are identified
+		if (!$id && !$where) {
+			throw new \Exception("An update request was sent with no WHERE clause or column ID to identify what to update.");
 			return false;
-		} else {
-			extract($a);
 		}
 
 		# Reconnect (for long running scripts)
@@ -2145,22 +2105,11 @@ class mySQL extends Grow {
 			$this->reconnect();
 		}
 
-		if (!is_array($set)) {
-			$this->log->error("An update request was sent with no columns to update.");
-			return false;
-		}
-		if (!$id && !$where) {
-			$this->log->error("An update request was sent with no WHERE clause or column ID to identify what to update.");
-			$this->log->info(print_r($a, true));
-			return false;
-		}
-
-		if($user_id !== false){
-			// The user ID requirement can be overridden by setting user_id = FALSE
+		# If the user_id has not been set (most common)
+		if(!array_key_exists("user_id", $a)){
 			global $user_id;
 			if(!$user_id){
-				$this->log->error('Updating without a user_id is not allowed.');
-				return false;
+				throw new \Exception("Updating without a user ID is not allowed.");
 			}
 		}
 
@@ -2169,7 +2118,7 @@ class mySQL extends Grow {
 		$a['set']['updated'] = "NOW()";
 		$a['set']['updated_by'] = $user_id;
 
-		return $this->runUpdate($a, $returnQuery);
+		return $this->runUpdate($a, $return_query);
 	}
 
 	/**
@@ -2177,19 +2126,19 @@ class mySQL extends Grow {
 	 *
 	 * @param array $a
 	 *
-	 * @param null  $returnQuery
+	 * @param null  $return_query
 	 *
 	 * @return bool
 	 */
-	private function runUpdate($a, $returnQuery = NULL){
+	private function runUpdate($a, $return_query = NULL){
 		extract($a);
 
 		# Reset variables
 		$this->reset();
 
 		# Ensure the main table exists
-		if(!$this->getTableMetadata($table, false)){
-			return false;
+		if(!$this->tableExists($table)){
+			throw new \mysqli_sql_exception("The <code>{$table}</code> table does not exist.");
 		}
 
 		# The main table (the $this->table array is used by the joins)
@@ -2223,9 +2172,7 @@ class mySQL extends Grow {
 		$this->setCondition("or", $or);
 		$this->setCondition("or", $or_not, NULL, NULL, true);
 
-		if(!$setArray = $this->generateSetArray($set, $table)){
-			return false;
-		}
+		$setArray = $this->generateSetArray($set, $table);
 
 		$query = [];
 
@@ -2238,15 +2185,15 @@ class mySQL extends Grow {
 
 		$SQL = implode(array_filter($query), "\r\n");
 
-		if($returnQuery){
+		if($return_query){
 			//If the query is to be returned, NOT run
 			return $SQL;
 		}
 
-		if($id && $audit_trail !== false) {
+		if($id && $audit_trail == true) {
 			/**
 			 * Audit trails only work when ONE record (row) is being updated
-			 * Audit trails can also be turned off by setting "audit_trail" => false
+			 * Audit trails must be invoked
 			 *
 			 * The audit trail is run first. Two considerations:
 			 * 1. The last SQL query (var_dump(query)) will still be the update SQL query
@@ -2537,19 +2484,21 @@ class mySQL extends Grow {
 	 * @return array|bool
 	 */
 	private function generateSetArray($data, $table){
-		if(!is_array($data)){
-			$this->log->error("No data was given to set in the <code>{$table}</code> table.");
-			return false;
+		if(!$data){
+			throw new \mysqli_sql_exception("No data was given to set in the <code>{$table}</code> table.");
+		} else if(!is_array($data)){
+			throw new \mysqli_sql_exception("The data given to set in the <code>{$table}</code> table is not in array format.");
 		}
 
 		if(!$table){
-			$this->log->error("Table definition is missing");
-			return false;
+			throw new \mysqli_sql_exception("Table definition is missing");
 		}
 
 		if(!$tableMetadata = $this->getTableMetadata($table, true)){
-			$this->log->error("Getting the metadata for the <code>{$table}</code> failed.");
-			return false;
+			if(!$this->tableExists($table)){
+				throw new \mysqli_sql_exception("The <code>{$table}</code> table does not exist.");
+			}
+			throw new \mysqli_sql_exception("Getting the metadata for the <code>{$table}</code> table failed.");
 		}
 
 		foreach($data as $col => $val){
@@ -2590,7 +2539,7 @@ class mySQL extends Grow {
 				 */
 				if(($val = $this->setValHandler($col, $val, true)) === FALSE){
 					//A legit value can be "0"
-					return false;
+					continue;
 				}
 			} else if($tableMetadata[$col]['DATA_TYPE'] == 'timestamp'){
 				/**
@@ -2603,9 +2552,7 @@ class mySQL extends Grow {
 				if(is_numeric($val)){
 					$val = date_create('@' . $val)->format("Y-m-d H:i:s");
 				}
-				if(!$val = $this->setValHandler($col, $val)){
-					return false;
-				}
+				$val = $this->setValHandler($col, $val);
 			} else if($tableMetadata[$col]['DATA_TYPE'] == 'tinyint'){
 				/**
 				 * The assumption here is that if the data type is tinyint,
@@ -2627,14 +2574,9 @@ class mySQL extends Grow {
 				if($val == "false"){
 					$val = "NULL";
 				}
-				if(!$val = $this->setValHandler($col, $val)){
-					return false;
-				}
+				$val = $this->setValHandler($col, $val);
 			} else {
-				if(($val = $this->setValHandler($col, $val)) === FALSE){
-					//The value can be "0"
-					return false;
-				}
+				$val = $this->setValHandler($col, $val);
 			}
 			$outputArray[] = "`{$table}`.`{$col}` = {$val}";
 		}

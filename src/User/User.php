@@ -45,9 +45,11 @@ class User{
 	private $pa;
 
 	/**
-	 * The constructor is private so that the class can be run in static mode
+	 * User constructor.
+	 *
+	 * Can't be an extension of Common, cause that
+	 * class uses an instance of User.
 	 */
-//	private function __construct() {
 	function __construct() {
 		$this->sql = mySQL::getInstance();
 		$this->log = Log::getInstance();
@@ -56,31 +58,12 @@ class User{
 		$this->pa = PA::getInstance();
 	}
 
-//	private function __clone() {
-//		// Stopping Clonning of Object
-//	}
-//
-//	private function __wakeup() {
-//		// Stopping unserialize of object
-//	}
-
 	/**
 	 * @return Card
 	 */
 	private function card(){
 		return new Card();
 	}
-
-//	/**
-//	 * @return User
-//	 */
-//	public static function getInstance() {
-//		// Check if instance is already exists
-//		if(self::$instance == null) {
-//			self::$instance = new User();
-//		}
-//		return self::$instance;
-//	}
 
 	/**
 	 * Login form
@@ -262,6 +245,45 @@ class User{
 	}
 
 	/**
+	 * Given a response, an action and a callback array,
+	 * checks to see if the reCAPTCHA response is legit,
+	 * and checks if the score is above the threshold.
+	 * <code>
+	 * # Ensure reCAPTCHA is validated
+	 * if(!$this->validateRecaptcha($vars['recaptcha_response'], "insert_user", $hash)){
+	 * 	return false;
+	 * }
+	 * </code>
+	 *
+	 * @param string $response
+	 * @param string $action
+	 * @param mixed  $hash
+	 *
+	 * @return bool
+	 */
+	private function validateRecaptcha(string $response, string $action, $hash = NULL){
+		# Get the reCAPTCHA score
+		if(!$score = $this->getRecaptchaScore($response, $action)){
+			//If a score was not received
+			if($hash){
+				$this->hash->set($hash);
+			}
+			$this->log->warning([
+				"message" => "Please try again."
+			]);
+			return false;
+		}
+
+		if($score < self::recaptchaThreshold){
+			//if the score is below the reCAPTCHA threshold
+			$this->log->error("Computer says no.");
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Insert new user.
 	 *
 	 * @param $a
@@ -271,8 +293,23 @@ class User{
 	public function insert($a){
 		extract($a);
 
-		$this->log->info($a['vars']['number']);
-		return false;
+		# The hash to send the user back to in case there is an error with the reCAPTCHA
+		$hash =  [
+			"rel_table" => $rel_table,
+			"action" => "new",
+			"vars" => [
+				"first_name" => $vars['first_name'],
+				"last_name" => $vars['last_name'],
+				"email" => $vars['email'],
+				"phone" => $vars['phone'],
+				"tnc" => $vars['tnc'],
+			]
+		];
+
+		# Ensure reCAPTCHA is validated
+		if(!$this->validateRecaptcha($vars['recaptcha_response'], "insert_user", $hash)){
+			return false;
+		}
 
 		# Ensure form is complete
 		if(!$this->formComplete(["first_name","last_name","email","phone"], $vars)){
@@ -321,77 +358,115 @@ class User{
 			]);
 			$this->hash->set([
 				"rel_table" => $rel_table,
-				"rel_id" => $rel_id,
-				"action" => "verificationEmailSent"
+				"rel_id" => $user['user_id'],
+				"action" => "verification_email_sent"
 			]);
 			return true;
 		}
 
-
-
-
-		if(!$insert_id = $this->sql->insert([
-			"table" => $rel_table,
-			"set" => $vars,
-		])){
-			return false;
-		}
-
-
-
-
-		extract($a['variables']);
-
-
-
-		# Ensure the phone number is correct
-		if($number){
-			$phone = $number;
-		}
-		if(!$phone = $this->is_a_valid_phone_number($phone)){
-			return false;
-		}
-
-		# Ensure the user has filled in both first and last names
-		if(!$first_name || !$last_name){
-			$this->log->error("Please ensure you have filled in both first and last name.");
-			return false;
-		}
+		# Create a random key for the verification process
+		$key = str::uuid();
 
 		# Insert the new user, get the new user_id
 		$user_id = $this->sql->insert([
 			"table" => 'user',
 			"set" => [
-				"facebook_id" => $facebook_id,
-				"first_name" => $first_name,
-				"last_name" => $last_name,
-				"email" => $email,
-				"phone" => $phone
-			]
+				"first_name" => $vars['first_name'],
+				"last_name" => $vars['last_name'],
+				"email" => $vars['email'],
+				"phone" => $vars['phone'],
+				"key" => $key
+			],
 		]);
 
-		# Create the link between the user and the type
+		# Create the link between the user and the user type
 		$user_role_id = $this->sql->insert([
 			"table" => "user_role",
 			"set" => [
 				"user_id" => $user_id,
 				"rel_table" => "user",
 				"rel_id" => $user_id
-			]
+			],
 		]);
 
-		# Send verification email
-		if(!$this->send_verification_email([
-			"rel_table" => "user",
-			"rel_id" => $user_id,
-			"variables" => [
-				"email" => $email
-			]
+		$a['rel_id']  = $user_id;
+		return $this->sendVerificationEmail($a, true);
+	}
+
+	/**
+	 * Sends a verification email.
+	 *
+	 * @param      $a
+	 * @param null $internal
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function sendVerificationEmail($a, $internal = NULL){
+		extract($a);
+
+		if(!$internal){
+			//If this is not an internal request
+			$hash = [
+				"rel_table" => $rel_table,
+				"rel_id" => $rel_id,
+				"action" => "verification_email_sent"
+			];
+
+			# Ensure reCAPTCHA is validated
+			if(!$this->validateRecaptcha($vars['recaptcha_response'], "send_verification_email", $hash)){
+				return false;
+			}
+		}
+
+		if(!$user = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
 		])){
+			//if the user cannot be found
+			$this->log->error("Cannot find user to send verification email to.");
 			return false;
 		}
 
-		return $user_id;
+		if($user['verified']){
+			//if the user is already verified
+			$this->log->info([
+				"title" => "Already verified",
+				"message" => "You do not need to verify this email address again. Next time just log in.",
+			]);
+			$this->hash->set("login");
+			return true;
+		}
+
+		$variables = [
+			"user_id" => $rel_id,
+			"email" => $user['email'],
+			"key" => $user['key'],
+		];
+
+		$email = new Email();
+		$email->template("verify_email", $variables)
+			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
+			->send();
+
+		if($internal) {
+			//if it's internal, meaning it's part of a process (eg. insert new user), direct them to the email sent page
+			$this->hash->set([
+				"rel_table" => $rel_table,
+				"rel_id" => $rel_id,
+				"action" => "verification_email_sent"
+			]);
+		} else {
+			//if it's not internal let the user know that a verification email has been sent
+			$this->log->success([
+				"container" => ".card-body",
+				"icon" => "envelope",
+				"title" => "Verification email sent",
+				"message" => "Verification email sent to <code>{$user['email']}</code>."
+			]);
+		}
+
+		return true;
 	}
 
 	/**
@@ -423,18 +498,73 @@ class User{
 	}
 
 	/**
-	 * Logs the IP and prints the session ID.
+	 * Logs a connection and returns a connection ID
+	 * back to the browser, that will be used as both
+	 * the CSRF token for AJAX requests and the ID
+	 * for any websockets data transfers both ways.
+	 *
+	 * @return bool
+	 * @throws \Exception
 	 */
-	public function getWebSocketToken(){
-		$this->getGeolocation();
-		echo session_id(); exit;
+	public function getSessionToken()
+	{
+		$geolocation = $this->getGeolocation();
+		$user_agent_id = $this->getUserAgentId();
+		if(!$connection_id = $this->sql->insert([
+			"table" => "connection",
+			"set" => [
+				"session_id" => session_id(),
+				"ip_address" => $geolocation['ip'],
+				"user_agent_id" => $user_agent_id,
+			],
+		])){
+			//The new connection was not saved
+			throw new \Exception("Unable to store connection details");
+		}
+		$this->output->set_var("token", $connection_id);
+		return true;
+	}
+
+	/**
+	 * Returns an ID for the current user's user agent
+	 * from the user_agent table.
+	 *
+	 * @return bool|int|mixed
+	 */
+	private function getUserAgentId()
+	{
+		# If the agent already exists, get the existing one
+		if($user_agent = $this->sql->select([
+			"table" => "user_agent",
+			"where" => [
+				"desc" => $_SERVER['HTTP_USER_AGENT']
+			],
+			"limit" => 1
+		])) {
+			//if it already exists
+			return $user_agent['user_agent_id'];
+		}
+
+		//If the user agent does not exist, create a new record
+		if(!$user_agent_id = $this->sql->insert([
+			"table" => 'user_agent',
+			"set" => [
+				"desc" => $_SERVER['HTTP_USER_AGENT']
+			],
+		])){
+			throw new \Exception("Unable to create a user agent record.");
+		}
+
+		return $user_agent_id;
 	}
 
 	/**
 	 * Given an IP address,
 	 * returns geolocation details.
 	 *
-	 * @param string $ip
+	 * Is public because, problamatically, it's called from elsewhere also.
+	 * 
+	 * @param string|null $ip
 	 *
 	 * @return bool|mixed
 	 */
@@ -489,7 +619,6 @@ class User{
 			"table" => "geolocation",
 			"set" => $set,
 			"grow" => true,
-			"audit_trail" => false
 		])){
 			return false;
 		}
@@ -526,8 +655,8 @@ class User{
 	 */
 	private function getRecaptchaScore($response, $action){
 		if(!$_ENV['recaptcha_key'] || !$_ENV['recaptcha_secret']){
-			//if either recaptcha_key or secret has not been assigned, ignore by returing a perfect score
-			return 1;
+			//if either recaptcha_key or secret has not been assigned
+			throw new \Exception("The reCAPTCHA key and secret have not been set.");
 		}
 
 		$recaptcha = new \ReCaptcha\ReCaptcha($_ENV['recaptcha_secret']);
@@ -547,44 +676,42 @@ class User{
 	}
 
 	public function sendResetPasswordEmail($a = NULL){
-		if(is_array($a))
-			extract($a);
+		extract($a);
 
-		# Get the reCAPTCHA score
-		$score = $this->getRecaptchaScore($vars['recaptcha_response'], "reset_password");
+		$hash = [
+			"rel_table" => $rel_table,
+			"action" => "reset_password",
+			"vars" => [
+				"email" => $vars['email']
+			]
+		];
 
-		if(!$score){
-			//If a score was not received
-			$this->hash->set([
-				"rel_table" => $rel_table,
-				"action" => "reset_password",
-				"vars" => [
-					"email" => $vars['email']
-				]
-			]);
-			$this->log->warning([
-				"message" => "Please try again."
-			]);
-			return true;
+		# Ensure reCAPTCHA is validated
+		if(!$this->validateRecaptcha($vars['recaptcha_response'], "reset_password", $hash)) {
+			return false;
 		}
 
-		if($score < self::recaptchaThreshold){
-			//if the score is below the reCAPTCHA threshold
-			$this->log->error("Computer says no.");
+		if(!$vars['email']){
+			$this->log->error([
+				"container" => ".card-body",
+				"icon" => "envelope",
+				"title" => "No email address",
+				"message" => "No email address was provided."
+			]);
 			return false;
 		}
 
 		if(!$user = $this->sql->select([
 			"table" => "user",
 			"where" => [
-				"email" => $email
+				"email" => $vars['email']
 			],
 			"limit" => 1
 		])){
 			//If the given email address cannot be found.
-			$this->pa->speak([
-				"type" => "alert",
-				"colour" => "error",
+			$this->log->error([
+				"container" => ".card-body",
+				"icon" => "envelope",
 				"title" => "Email not found",
 				"message" => "The given email address cannot be found."
 			]);
@@ -592,13 +719,17 @@ class User{
 		}
 
 		if(!$user['verified']){
-			$this->pa->speak([
-				"type" => "alert",
-				"colour" => "warning",
+			$this->log->warning([
+				"icon" => "envelope",
 				"title" => "Email not verified",
 				"message" => "Verify your account first, you should have received a verification email when you signed up."
 			]);
-			return false;
+			$this->hash->set([
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "verification_email_sent"
+			]);
+			return true;
 		}
 
 		# Create a random key
@@ -623,15 +754,9 @@ class User{
 		];
 		
 		$email = new Email();
-		try {
-			$email->template("reset_password", $variables)
-				->to([$user['email'] => $user['name']])
-				->send();
-		}
-		catch (\Exception $e){
-			$this->log->error($e->getMessage());
-			return false;
-		}
+		$email->template("reset_password", $variables)
+			->to([$user['email'] => $user['name']])
+			->send();
 
 		$this->log->info([
 			"container" => ".card-body",
@@ -663,7 +788,7 @@ class User{
 		}
 
 		# If no local variables are stored (session expired), check to see if any cookies are stored
-		if($this->LoadCookies()){
+		if($this->loadCookies()){
 			return $this->isLoggedIn();
 		}
 		return false;
@@ -709,6 +834,13 @@ class User{
 		return false;
 	}
 
+	/**
+	 * Verify credentials before logging user in.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 */
 	function verifyCredentials($a){
 		extract($a);
 
@@ -721,16 +853,397 @@ class User{
 			"limit" => 1
 		])){
 			$this->log->error([
+				"closeInSeconds" => 10,
 				"container" => ".card-body",
 				"title" => 'Email not found',
-				"message" => "The email address <code>{$vars['email']}</code> has not been registered with {$_ENV['title']}. Are you sure have registered?",
+				"message" => "The email address <code>{$vars['email']}</code> cannot be found. Are you sure have registered with {$_ENV['title']}?",
 			]);
 			return false;
 		}
+
+		# Check to see if the account is verified
+		if(!$user['verified']) {
+			//If the user has not verified their account
+			$this->log->info([
+				"icon" => "envelope-o",
+				"title" => 'Email not verified yet',
+				"message" => 'Please verify your email address before logging in.',
+			]);
+			$this->hash->set([
+				"rel_table" => $rel_table,
+				"rel_id" => $user['user_id'],
+				"action" => "verification_email_sent"
+			]);
+			return false;
+		}
+
+		# Check to see if the password is correct, compared to the password on file
+		if (!$this->validatePassword($vars['password'], $user['password'])) {
+			$this->log->error([
+				"container" => ".card-body",
+				"title" => 'Incorrect password',
+				"message" => 'Please ensure you have written the correct password.',
+			]);
+			return false;
+		}
+
+		$this->hash->set($vars['callback'] ? $vars['callback'] : "home");
+		//This prevents callback loops by forcing callback to home if none is set
+
+		# Log the verified user in
+		return $this->logUserIn($user, $vars['remember']);
+	}
+
+	/**
+	 * After the credentials of a user has been verified,
+	 * log the user in.
+	 *
+	 * @param $user
+	 * @param $remember
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	private function logUserIn($user, $remember){
+		# Store the user_id both globally and locally
+		$_SESSION['user_id'] = $user['user_id'];
+		global $user_id;
+		$user_id = $_SESSION['user_id'];
+
+		# Log access
+		$this->logAccess($user_id);
+
+		# Store cookies if the user has asked for it
+		if($remember){
+			$this->storeCookies($user_id);
+		}
+
+		# Assign role
+		$this->assignRole($user);
+
+		return true;
+	}
+
+	private function assignRole($user) : bool
+	{
+		if($user['last_role']){
+			//if the last role variable is set, use it
+			$_SESSION['role'] = $user['last_role'];
+			global $role;
+			$role = $_SESSION['role'];
+			return true;
+		}
+
+		$roles = $this->sql->select([
+			"table" => "user_role",
+			"where" => [
+				"user_id" => $user['user_id']
+			]
+		]);
+
+//		if(count($roles) == 1){
+//			//if they only have one role to play, use it
+//			$_SESSION['role'] = $roles[0]['rel_table'];
+//			global $role;
+//			$role = $_SESSION['role'];
+//			return true;
+//		}
+
+		# Set up the modal to allow the user to chose roles
+		$this->output->modal([
+			"id" => str::id("modal"),
+			"header" => "Modal header",
+			"body" => "Modal body",
+			"footer" => "Modal footer",
+//			"dismissable" => false,
+			"draggable" => true,
+			"resizable" => true,
+			"approve" => true,
+			"approve" => [
+				"colour" => "grey",
+				"title" => "This is the title",
+				"message" => "This is the message"
+			]
+		]);
+
+		# Remove the hash (as it's been moved to a callback
+		$this->hash->unset();
+
+		return true;
+	}
+
+	/**
+	 * Logs the time the user logged in and keeps a record of the time before that they logged in.
+	 *
+	 * @param $user
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	private function logAccess($user_id){
+		$this->sql->update([
+			"table" => "user",
+			"id" => $user_id,
+			"set" => [
+				"last_logged_in" => "`user`.logged_in",
+				"logged_in" => "NOW()"
+			],
+		]);
+
+		# Update the connection record to include user_id
+		$this->sql->update([
+			"table" => "connection",
+			"set" => [
+				"user_id" => $user_id
+			],
+			"id" => $_SERVER['HTTP_CSRF_TOKEN']
+		]);
+
+		return true;
+	}
+
+	/**
+	 * Used for first time registrations and when users change address.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	function verifyEmail($a){
+		extract($a);
+
+		if(!$rel_id || !$vars['email'] || !$vars['key']){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => 'Please ensure you have entered the entire verification code.',
+			]);
+			return false;
+		}
+
+		$vars['email'] = str_replace("%40", "@", $vars['email']);
+		//hotmail.com will sometimes translate the @ to %40
+
+		# Find the user
+		if(!$user = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
+		])){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "Cannot find the user in question.",
+			]);
+			return false;
+		}
+
+		# Make sure the email and key match the ID
+		if($user['email'] != $vars['email']
+		|| $user['key'] != $vars['key']){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "Invalid or expired verification code.",
+			]);
+			return false;
+		}
+
+		# Check and see if this user has already been verified
+		if($user['verified'] && $user['password']){
+			//if the user address has already been verified (and password has been set)
+			$this->log->warning("This address has already been verified. You don't need to re-verify it. Log in straight away.");
+			$this->hash->set([
+				"rel_table" => "user",
+				"action" => "login",
+				"vars" => [
+					"email" => $user['email']
+				]
+			]);
+			return true;
+		}
+
+		# Verify the user
+		$this->sql->update([
+			"table" => "user",
+			"set" => [
+				"verified" => "NOW()"
+			],
+			"id" => $user['user_id'],
+			"user_id" => $user['user_id']
+		]);
+
+		# If an existing user (with an existing password) is verifying a new email address
+		if($user['password']){
+			$this->log->success("Your new email address has been verified, thanks. From now on, please use <b>{$user['email']}</b> to log in.");
+			$this->hash->set([
+				"rel_table" => "user",
+				"action" => "login",
+				"vars" => [
+					"email" => $user['email']
+				]
+			]);
+			return true;
+		}
+
+		$page = new Page();
+
+		$page->setGrid([
+			"class" => "justify-content-md-center",
+			"html" => [
+				"sm" => 4,
+				"class" => "fixed-width-column",
+				"html" => $this->card()->newPassword($a)
+			]
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	/**
+	 * Updates a password if:
+	 * 1. First time user (no password set)
+	 * 2. User gives both current and new password (change password)
+	 * 3. User gives password hash and new password (password reset)
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function updatePassword(array $a) : bool
+	{
+		extract($a);
+
+		# Get the user
+		if(!$user = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
+		])){
+			$this->log->error("Cannot find the given user.");
+			return false;
+		}
+
+		# Ensure key is correct
+		if($user['key'] != $vars['key']){
+			$this->log->error("You can only set the password for your own account.");
+			return false;
+		}
+
+		if (!$vars['new_password'] || !$vars['repeat_new_password']) {
+			$this->log->error("Ensure both password fields are filled out.");
+			return false;
+		}
+
+		if ($vars['new_password'] != $vars['repeat_new_password']) {
+			$this->log->error("Ensure both passwords match.");
+			return false;
+		}
+
+		if (strlen($vars['new_password']) < Field::minimumPasswordLength) {
+			$this->log->error("Ensure your password is at least ".Field::MIMINUM_PASSWORD_LENGTH." characters long.");
+			return false;
+		}
+
+		# Encrypt and store the new password and update the key
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => [
+				"password" => $this->generatePasswordHash($vars['new_password']),
+				"key" => str::uuid()
+			],
+			"id" => $rel_id,
+			"user_id" => $rel_id,
+		]);
+
+		$this->log->success([
+			"icon" => "lock",
+			"title" => "New password saved",
+			"message" => "Your new password has been saved. Give it a try!"
+		]);
+
+		$this->hash->set([
+			"rel_table" => "user",
+			"action" => "login",
+			"vars" => [
+				"email" => $email
+			]
+		]);
+
+		return true;
+	}
+
+	/**
+	 * Generate a secure hash for a given password. The cost is passed
+	 * to the blowfish algorithm. Check the PHP manual page for crypt to
+	 * find more information about this setting.
+	 *
+	 * @param string $password
+	 * @param int    $cost
+	 *
+	 * @return string|null
+	 */
+	private function generatePasswordHash(string $password, $cost=11){
+		/* To generate the salt, first generate enough random bytes. Because
+		 * base64 returns one character for each 6 bits, the we should generate
+		 * at least 22*6/8=16.5 bytes, so we generate 17. Then we get the first
+		 * 22 base64 characters
+		 */
+		$salt=substr(base64_encode(openssl_random_pseudo_bytes(17)),0,22);
+		/* As blowfish takes a salt with the alphabet ./A-Za-z0-9 we have to
+		 * replace any '+' in the base64 string with '.'. We don't have to do
+		 * anything about the '=', as this only occurs when the b64 string is
+		 * padded, which is always after the first 22 characters.
+		 */
+		$salt=str_replace("+",".",$salt);
+		/* Next, create a string that will be passed to crypt, containing all
+		 * of the settings, separated by dollar signs
+		 */
+		$param='$'.implode('$',array(
+				"2y", //select the most secure version of blowfish (>=PHP 5.3.7)
+				str_pad($cost,2,"0",STR_PAD_LEFT), //add the cost in two digits
+				$salt //add the salt
+			));
+
+		//now do the actual hashing
+		return crypt($password,$param);
+	}
+
+	/**
+	 * Check the password against a hash generated by the generate_hash
+	 * function.
+	 *
+	 * @param string $password
+	 * @param string $hash
+	 *
+	 * @return bool
+	 */
+	private function validatePassword(string $password, string $hash){
+		/* Regenerating the with an available hash as the options parameter should
+		 * produce the same hash if the same password is passed.
+		 */
+		return crypt($password, $hash)==$hash;
 	}
 
 	public function verificationEmailSent($a){
+		extract($a);
 
+		$page = new Page();
+
+		$page->setGrid([
+			"class" => "justify-content-md-center",
+			"html" => [
+				"sm" => 4,
+				"class" => "fixed-width-column",
+				"html" => $this->card()->verificationEmailSent($a)
+			]
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
 	}
 
 	/**
@@ -741,47 +1254,58 @@ class User{
 	 *
 	 * @return bool
 	 */
-	private function LoadCookies(){
-		global $user_id;
-		global $role;
-		global $seat_id;
-
-		if(!$_COOKIE['session_id']){
+	private function loadCookies() : bool
+	{
+		# If the cookies are not both present
+		if(!$_COOKIE['session_id'] || !$_COOKIE['user_id']){
 			return false;
 		}
 
+		# Are the cookie values correct?
 		if(!$user = $this->sql->select([
 			"table" => "user",
 			"where" => [
 				"session_id" => $_COOKIE['session_id'],
-				"user_id" => $_COOKIE['user_id'],
 			],
 			"where_not" => [
-				"session_id" => "NULL"
+				"session_id" => NULL
 			],
-			"limit" => 1
+			"id" => $_COOKIE['user_id'],
 		])) {
-			//if the session_id and user id from the db matches what's in the cookie
+			//if the cookies are no longer valid
 			return false;
 		}
 
 		# Message to the user returning
 		$this->log->info([
-			"message" => "Welcome back!"
+			"message" => "Welcome back {$user['first_name']}!"
 		]);
 
 		# Repopulate the session variables
 		$_SESSION['user_id'] = $user['user_id'];
 		$_SESSION['role'] = $user['last_role'];
-		$_SESSION['seat_id'] = $user['last_seat_id'];
 
 		# Repopulate the global variables
+		global $user_id;
+		global $role;
+
 		$user_id = $user['user_id'];
 		$role = $user['last_role'];
-		$seat_id = $user['last_seat_id'];
 
-		# Update the cookie
-		$this->storeCookies();
+		# Update the session ID with the new PHP session ID
+		$this->sql->update([
+			"table" => "user",
+			"set" => [
+				"session_id" => session_id()
+			],
+			"id" => $user['user_id']
+		]);
+
+		# Log access
+		$this->logAccess($user_id);
+
+		# Update the cookies
+		$this->storeCookies($user_id);
 
 		return true;
 	}
@@ -797,42 +1321,35 @@ class User{
 	 *
 	 * @return bool
 	 */
-	public function storeCookies(){
-		if(!$this->isLoggedIn()){
-			return $this->accessDenied();
-		}
+	private function storeCookies($user_id) : bool
+	{
+		$this->setCookie("user_id", $user_id);
+		$this->setCookie("session_id", session_id());
 
-		global $user_id;
-		global $role;
-		global $seat_id;
+		return true;
+	}
 
-		# Ensure the user is logged in
-		if(!$user_id || !$role){
-			return false;
-		}
-
-		if($this->isControlledByAdmin()){
-			$this->log->info("Cookies not updated because this account is being controlled by an admin.");
-			return true;
-		}
-
-
-		if (!$this->sql->update([
-			"table" => "user",
-			"set" => [
-				"session_id" => session_id(),
-				"last_role" => $role,
-				"last_seat_id" => $seat_id,
-			],
-			"id" => $user_id
-		])) {
-			return false;
-		}
-
-		# Store the most recent session_id in a cookie
-		setcookie('user_id', $user_id, strtotime('+30 days'));
-		setcookie('session_id', session_id(), strtotime('+30 days'));
-
+	/**
+	 * "Manual" set cookie function.
+	 * Ensures all cookies are set the same.
+	 *
+	 *  - `Secure` is set to `TRUE`. Indicates that the cookie should
+	 * only be transmitted over a secure HTTPS connection from the client
+	 *  - `HttpOnly` is set to `TRUE`. When `TRUE` the cookie will be made
+	 * accessible only through the HTTP protocol. This means that the cookie
+	 * won't be accessible by scripting languages, such as JavaScript.
+	 *  - `SameSite` is set to `Strict`. Asserts that a cookie must not
+	 * be sent with cross-origin requests, providing some protection
+	 * against cross-site request forgery attacks (CSRF).
+	 *
+	 * @param string $key
+	 * @param string $val
+	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+	 * @return bool
+	 */
+	private function setCookie(string $key, string $val) : bool
+	{
+		header("Set-Cookie: {$key}={$val}; Expires=".gmdate('D, d-M-Y H:i:s T', strtotime('+30 days'))."; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict");
 		return true;
 	}
 

@@ -36,7 +36,7 @@ class Request {
 	protected $sql;
 
 	function __construct () {
-		$this->load_session_vars();
+		$this->loadSessionVars();
 		$this->log = Log::getInstance();
 		$this->hash = Hash::getInstance();
 		$this->output = Output::getInstance();
@@ -55,7 +55,7 @@ class Request {
 	 *
 	 * @return bool
 	 */
-	public function load_session_vars(){
+	private function loadSessionVars(){
 		if(!is_array($_SESSION)){
 			return true;
 		}
@@ -70,13 +70,13 @@ class Request {
 
 	/**
 	 * Handle error being sent as part of the URI,
-	 * for example from  from oAuth.php.
+	 * for example from oAuth.php.
 	 *
 	 * @param $a
 	 *
 	 * @return bool
 	 */
-	private function handle_errors($a){
+	private function handleErrors($a){
 		extract($a);
 
 		if(!is_array($vars)){
@@ -86,7 +86,6 @@ class Request {
 		if(!$vars['error']){
 			return true;
 		}
-
 
 		$this->log->error([
 			"title" => str::title(urldecode($vars['error'])),
@@ -104,6 +103,7 @@ class Request {
 
 	/**
 	 * AJAX gatekeeper
+	 *
 	 * The method called every time an AJAX call is received from the browser.
 	 * Looks for a suitable (public or protected, NOT PRIVATE) method and runs it.
 	 * The order of priority is as follows:
@@ -118,8 +118,104 @@ class Request {
 	 * @return bool
 	 */
 	public function handler($a){
-		$success = $this->input($a);
+//		var_dump($_SERVER);exit;
+		/**
+		 * The method is placed in a try/catch
+		 * to catch any exceptions thrown by system errors.
+		 *
+		 * System errors are different from user errors,
+		 * as they're not the fault of the user unless
+		 * they're involved in foul play.
+		 */
+		try{
+			$this->preventCSRF($a);
+			$success = $this->input($a);
+		}
+		catch(\mysqli_sql_exception $e){
+			$this->log->error([
+				"icon" => "database",
+				"title" => "mySQL error",
+				"message" => $e->getMessage()
+			]);
+			$this->log->info([
+				"icon" => "code",
+				"title" => "Query",
+				"message" => $_SESSION['query']
+			]);
+		}
+		catch(\TypeError $e){
+			$this->log->error([
+				"icon" => "code",
+				"title" => "Type error",
+				"message" => $e->getMessage()
+			]);
+		}
+		catch(\Exception $e){
+			$this->log->error([
+				"icon" => "ethernet",
+				"title" => "System error",
+				"message" => $e->getMessage()
+			]);
+		}
 		return $this->output($success);
+	}
+
+	/**
+	 * Ensures CSRF token is valid.
+	 * Prevents CSRF.
+	 *
+	 * @link https://markitzeroday.com/x-requested-with/cors/2017/06/29/csrf-mitigation-for-ajax-requests.html
+	 * @param $a
+	 * @return bool TRUE on token is valid, FALSE on token is missing or invalid.
+	 * @throws \Exception
+	 */
+	private function preventCSRF($a){
+		# Ensure the request was sent from our domain
+		if(substr($_SERVER["HTTP_ORIGIN"],strlen($_ENV['domain']) * -1) != $_ENV['domain']){
+			//if this request wasn't done from our own domain
+			throw new \Exception("A cross domain request was attempted.");
+		}
+
+		# Ensure the request was sent from our domain via AJAX
+		if($_SERVER["HTTP_X_REQUESTED_WITH"] != "XMLHttpRequest"){
+			//if this request wasn't done via AJAX on our own domain
+			throw new \Exception("A cross domain XHR request was attempted.");
+		}
+
+		if($a['action'] == "getSessionToken"){
+			/**
+			 * If the user is getting the session token, there is
+			 * no need to check for the CSRF token, because it has
+			 * yet to be generated.
+			 */
+			return true;
+		}
+
+		# Ensure token has been supplied
+		if(!$_SERVER['HTTP_CSRF_TOKEN']){
+			//if no token has been provided
+			throw new \Exception("No CSRF token supplied.");
+		}
+
+		# Ensure token exists
+		if(!$connection = $this->sql->select([
+			"table" => "connection",
+			"id" => $_SERVER['HTTP_CSRF_TOKEN']
+		])){
+			throw new \Exception("Invalid CSRF token supplied.");
+		}
+
+		# Ensure token is still valid
+		if($connection['closed']){
+			throw new \Exception("Expired CSRF token supplied.");
+		}
+
+		# Ensure token belongs to this IP address
+		if($connection['ip_address'] != $_SERVER['REMOTE_ADDR']){
+			throw new \Exception("IP address does not match CSRF token supplied.");
+		}
+
+		return true;
 	}
 
 	/**
@@ -134,7 +230,7 @@ class Request {
 		extract($a);
 
 		# Handle any errors that may be embedded into the URI
-		if(!$this->handle_errors($a)){
+		if(!$this->handleErrors($a)){
 			return false;
 		}
 
@@ -169,9 +265,9 @@ class Request {
 			$rel_table = "home";
 		}
 
-		if(!$classPath = self::findClass($rel_table)){
+		if(!$classPath = str::findClass($rel_table)){
 			//if a class doesn't exist
-			$this->log->error("No matching class for <code>".str::generate_uri($a)."</code> can be found. {$commonPath}");
+			throw new \Exception("No matching class for <code>".str::generate_uri($a)."</code> can be found. {$commonPath}");
 			return false;
 		}
 
@@ -182,12 +278,11 @@ class Request {
 		$method = str::getMethodCase($action) ?: "view";
 
 		# Ensure the method is available
-		if(!self::methodAvailable($classInstance, $method)){
-			$this->log->error("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
+		if(!str::methodAvailable($classInstance, $method)){
+			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
 			return false;
 		}
 
-		# Call the class action
 		if(!$classInstance->$method([
 			"action" => $method,
 			"rel_table" => $rel_table,
@@ -201,34 +296,10 @@ class Request {
 	}
 
 	/**
-	 * Given a rel_table, find a class
-	 *
-	 * @param $rel_table
-	 *
-	 * @return bool|string Returns the class with path or FALSE if it can't find it
-	 */
-	public static function findClass($rel_table){
-		# Does a custom path exist?
-		$corePath = str::getClassCase("\\App\\{$rel_table}\\{$rel_table}");
-		if(class_exists($corePath)) {
-			return $corePath;
-		}
-
-		# Does a common path exist
-		$commonPath = str::getClassCase("\\App\\Common\\{$rel_table}\\{$rel_table}");
-		if(class_exists($commonPath)) {
-			return $commonPath;
-		}
-
-		# If no class can be found
-		return false;
-	}
-
-	/**
 	 * Returns the output as a json-encoded array.
 	 * @return string
 	 */
-	public function output($success) {
+	private function output($success) {
 		if($_SESSION['database_calls']){
 //			$this->log->info("{$_SESSION['database_calls']} database calls.");
 //			print_r($_SESSION['queries']);exit;
@@ -286,62 +357,5 @@ class Request {
 		$this->sql->disconnect();
 
 		return json_encode($output);
-	}
-
-	/**
-	 * Checks to see if a given method is available in the current scope.
-	 * And if that method is PUBLIC. Protected and private methods
-	 * are protected from outside execution via the load_ajax_call() call.
-	 *
-	 * If the modifier is set, it will accept any methods set at that modifier or lower:
-	 * <code>
-	 * private
-	 * protected
-	 * public
-	 * </code>
-	 *
-	 * @param        $method
-	 *
-	 * @param string $modifier The minimum accepted modifier level. (Default: public)
-	 * @return bool
-	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
-	 */
-	public static function methodAvailable($class, $method, $modifier = "public"){
-		if(!$class || !$method){
-			return false;
-		}
-
-		if(!method_exists($class, $method)){
-			return false;
-		}
-
-		try {
-			$reflection = new \ReflectionMethod($class, $method);
-		}
-
-		catch (\ReflectionException $e){
-			return false;
-		}
-
-		switch($modifier){
-		case 'private':
-			if (!$reflection->isPrivate() && !$reflection->isProtected() && !$reflection->isPublic()) {
-				return false;
-			}
-			break;
-		case 'protected':
-			if (!$reflection->isProtected() && !$reflection->isPublic()) {
-				return false;
-			}
-			break;
-		case 'public':
-		default:
-			if (!$reflection->isPublic()) {
-				return false;
-			}
-			break;
-		}
-
-		return true;
 	}
 }

@@ -2,6 +2,8 @@
 
 namespace App\Common;
 
+use App\UI\Icon;
+
 /**
  * Static class related mainly to string manipulation.
  *
@@ -374,19 +376,78 @@ class str {
 	}
 
 	/**
+	 * DEPRECIATED, USE `str::UUID()` instead
+	 *
 	 * Generate a random token of $length character length.
 	 *
 	 * @param int $length
 	 *
 	 * @return string
 	 */
-	public static function token($length = 32){
-		try{
-			return bin2hex(random_bytes(round($length/2)));
+//	public static function token($length = 32){
+//		try{
+//			return bin2hex(random_bytes(round($length/2)));
+//		}
+//		catch(\Exception $e){
+//			return substr(md5(rand()), 0, $length);
+//		}
+//	}
+
+	/**
+	 * Checks to see if a given method is available in the current scope.
+	 * And if that method is PUBLIC. Protected and private methods
+	 * are protected from outside execution via the load_ajax_call() call.
+	 *
+	 * If the modifier is set, it will accept any methods set at that modifier or lower:
+	 * <code>
+	 * private
+	 * protected
+	 * public
+	 * </code>
+	 *
+	 * @param        $method
+	 *
+	 * @param string $modifier The minimum accepted modifier level. (Default: public)
+	 * @return bool
+	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
+	 */
+	public static function methodAvailable($class, $method, $modifier = "public"){
+		if(!$class || !$method){
+			return false;
 		}
-		catch(\Exception $e){
-			return substr(md5(rand()), 0, $length);
+
+		if(!method_exists($class, $method)){
+			return false;
 		}
+
+		try {
+			$reflection = new \ReflectionMethod($class, $method);
+		}
+
+		catch (\ReflectionException $e){
+			return false;
+		}
+
+		switch($modifier){
+		case 'private':
+			if (!$reflection->isPrivate() && !$reflection->isProtected() && !$reflection->isPublic()) {
+				return false;
+			}
+			break;
+		case 'protected':
+			if (!$reflection->isProtected() && !$reflection->isPublic()) {
+				return false;
+			}
+			break;
+		case 'public':
+		default:
+			if (!$reflection->isPublic()) {
+				return false;
+			}
+			break;
+		}
+
+		return true;
 	}
 
 	/**
@@ -396,6 +457,30 @@ class str {
 	 */
 	public static function getMethodCase($snake){
 		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
+	}
+
+	/**
+	 * Given a rel_table, find a class
+	 *
+	 * @param $rel_table
+	 *
+	 * @return bool|string Returns the class with path or FALSE if it can't find it
+	 */
+	public static function findClass($rel_table){
+		# Does a custom path exist?
+		$corePath = str::getClassCase("\\App\\{$rel_table}\\{$rel_table}");
+		if(class_exists($corePath)) {
+			return $corePath;
+		}
+
+		# Does a common path exist
+		$commonPath = str::getClassCase("\\App\\Common\\{$rel_table}\\{$rel_table}");
+		if(class_exists($commonPath)) {
+			return $commonPath;
+		}
+
+		# If no class can be found
+		return false;
 	}
 
 	/**
@@ -1990,8 +2075,11 @@ EOF;
 		case 'red'      : return 'red'; break;
 		case 'purple'   : return 'purple '; break;
 		case 'dark'     : return 'dark'; break;
+		case 'grey'     : return 'dark'; break;
+		case 'gray'     : return 'dark'; break;
+		case 'silver'   : return 'dark'; break;
 		case 'black'    : return 'dark'; break;
-		default: return false; break;
+		default: return $colour; break;
 		}
 	}
 

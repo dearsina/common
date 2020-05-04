@@ -4,6 +4,7 @@
 namespace App\Common;
 
 
+use App\Common\SQL\mySQL;
 use App\Common\User\User;
 
 class Common {
@@ -28,6 +29,7 @@ class Common {
 		$this->log = Log::getInstance();
 		$this->pa = PA::getInstance();
 		$this->output = Output::getInstance();
+		$this->sql = mySQL::getInstance();
 		$this->user = new User();
 	}
 
@@ -110,7 +112,7 @@ class Common {
 		if($vars['callback']){
 			//if a callback has been requested
 			$this->hash->set($vars['callback']);
-		} else if(Request::methodAvailable(Request::findClass($rel_table), "view", "public")) {
+		} else if(str::methodAvailable(str::findClass($rel_table), "view", "public")) {
 			//if a rel_table/rel_id/view class exists
 			$this->hash->set([
 				"rel_table" => $rel_table,

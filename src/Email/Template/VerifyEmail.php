@@ -46,9 +46,9 @@ class VerifyEmail extends TemplateConstructor implements TemplateInterface {
 		]);
 		$url  = "https://{$_SERVER['HTTP_HOST']}";
 		$url .= str::generate_uri([
-			"rel_table" => $rel_table,
-			"rel_id" => $rel_id,
-			"action" => "verify",
+			"rel_table" => "user",
+			"rel_id" => $user_id,
+			"action" => "verify_email",
 			"vars" => [
 				"email" => $email,
 				"key" => $key

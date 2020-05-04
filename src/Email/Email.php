@@ -73,8 +73,7 @@ class Email extends Common {
 	 */
 	public function subject(string $subject){
 		if(!$subject){
-			$this->log->error("An email was attempted sent without a subject line.");
-			return false;
+			throw new \Exception("An email was attempted sent without a subject line.");
 		}
 		
 		# Set the subject line
@@ -91,8 +90,7 @@ class Email extends Common {
 	 */
 	public function message(string $message){
 		if(!$message){
-			$this->log->error("An email was attempted sent without a message body.");
-			return false;
+			throw new \Exception("An email was attempted sent without a message body.");
 		}
 
 		# Hack to ensure that base64 embedded photos are converted to CIDs so that Gmail will display them
@@ -169,8 +167,7 @@ class Email extends Common {
 				$this->envelope->setTo($t);	
 			}
 		} else {
-			$this->log->error("An email was attempted sent without a recipient.");
-			return false;
+			throw new \Exception("An email was attempted sent without a recipient.");
 		}
 		
 		return $this;
@@ -257,13 +254,8 @@ class Email extends Common {
 		// Create the Mailer using your created Transport
 		$mailer = new \Swift_Mailer($transport);
 
-		# Attempt to send the email
-		try{
-			$mailer->send($this->envelope);
-		} catch (Exception $e) {
-			$this->log->error($e->getMessage());
-			return false;
-		}
+		# Send the email
+		$mailer->send($this->envelope);
 
 		return true;
 	}

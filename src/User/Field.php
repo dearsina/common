@@ -5,6 +5,11 @@ namespace App\Common\User;
 
 
 class Field {
+	/**
+	 * Minimum password length
+	 */
+	const minimumPasswordLength = 8;
+
 	public static function login($a = NULL){
 		if(is_array($a))
 			extract($a);
@@ -79,7 +84,7 @@ class Field {
 		],[
 			"type" => "tel",
 			"autocomplete" => "tel",
-			"name" => "number",
+			"name" => "phone",
 			"placeholder" => false,
 //			"icon" => "phone",
 			"validation" => [
@@ -89,12 +94,14 @@ class Field {
 				],
 			],
 			"label" => false,
-			"value" => $number
+			"value" => $phone
 		],[
-			"type" => "recaptcha"
+			"type" => "recaptcha",
+			"action" => "insert_user"
 		],[
 			"type" => "checkbox",
 			"name" => "tnc",
+			"checked" => $tnc,
 			"label" => "I accept the <a href=\"#terms_and_conditions\">Terms and Conditions</a>",
 
 			"validation" => [
@@ -106,6 +113,42 @@ class Field {
 			"value" => $tnc
 		]];
 
+	}
+
+	public static function newPassword($a = NULL) {
+		if (is_array($a))
+			extract($a);
+
+		return [[
+			"html" => "<p>Please enter a new password for your account.</p>",
+		],[
+			"type" => "password",
+			"icon" => "key",
+			"name" => "new_password",
+			"label" => "New password",
+			"required" => true,
+			"validation" => [
+				"minlength" => [
+					"rule" => self::minimumPasswordLength,
+					"msg" => "Your password must be at least {0} characters."
+				]
+			]
+		],[
+			"type" => "password",
+			"icon" => "key",
+			"name" => "repeat_new_password",
+			"label" => "Repeat new password",
+			"validation" => [
+				"equalTo" => [
+					"rule" => "input[name=new_password]",
+					"msg" => "Repeated password does not match."
+				]
+			],
+		],[
+			"type" => "hidden",
+			"name" => "key",
+			"value" => $key
+		]];
 	}
 
 	public static function resetPassword($a = NULL) {
@@ -121,7 +164,8 @@ class Field {
 			"required" => true,
 			"value" => $email
 		],[
-			"type" => "recaptcha"
+			"type" => "recaptcha",
+			"action" => "reset_password"
 		]];
 	}
 

@@ -33,14 +33,14 @@ class WebSocketServer {
 	 *
 	 * @var \Swoole\WebSocket\Server
 	 */
-	private $server;
+	private $external_server;
 
 	/**
 	 * This is the port that only internal connections can use.
 	 *
 	 * @var \Swoole\WebSocket\Server
 	 */
-	private $port;
+	private $internal_server;
 
 	/**
 	 * A DateTime string acting as server ID.
@@ -53,10 +53,10 @@ class WebSocketServer {
 	private $log;
 
 	function __construct () {
-		$this->server = new Swoole\WebSocket\Server($_ENV['websocket_external_ip'], $_ENV['websocket_external_port'],SWOOLE_BASE, SWOOLE_SOCK_TCP | SWOOLE_SSL);
+		$this->external_server = new Swoole\WebSocket\Server($_ENV['websocket_external_ip'], $_ENV['websocket_external_port'],SWOOLE_BASE, SWOOLE_SOCK_TCP | SWOOLE_SSL);
 
 		# Set the SSL keys
-		$this->server->set([
+		$this->external_server->set([
 			# SSL keys
 			'ssl_cert_file' => $_ENV['local_cert'],
 			'ssl_key_file' => $_ENV['local_pk']
@@ -70,7 +70,7 @@ class WebSocketServer {
 		$this->log = \App\Common\Log::getInstance();
 
 		# The internal port
-		$this->port = $this->server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);
+		$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);
 	}
 
 	private function log($msg){
@@ -79,22 +79,22 @@ class WebSocketServer {
 
 	function start(){
 		# Server start
-		$this->server->on("start", [$this, 'onStart']);
+		$this->external_server->on("start", [$this, 'onStart']);
 
 		# Internal connections
-		$this->port->on("connect", [$this, 'onInternalConnect']);
-		$this->port->on("open", [$this, 'onInternalOpen']);
-		$this->port->on("message", [$this, 'onInternalMessage']);
-		$this->port->on("close", [$this, 'onInternalClose']);
+		$this->internal_server->on("connect", [$this, 'onInternalConnect']);
+		$this->internal_server->on("open", [$this, 'onInternalOpen']);
+		$this->internal_server->on("message", [$this, 'onInternalMessage']);
+		$this->internal_server->on("close", [$this, 'onInternalClose']);
 
 		# External connections
-		$this->server->on("connect", [$this, 'onExternalConnect']);
-		$this->server->on("open", [$this, 'onExternalOpen']);
-		$this->server->on("message", [$this, 'onExternalMessage']);
-		$this->server->on("close", [$this, 'onExternalClose']);
+		$this->external_server->on("connect", [$this, 'onExternalConnect']);
+		$this->external_server->on("open", [$this, 'onExternalOpen']);
+		$this->external_server->on("message", [$this, 'onExternalMessage']);
+		$this->external_server->on("close", [$this, 'onExternalClose']);
 
 		# Start the server
-		$this->server->start();
+		$this->external_server->start();
 	}
 
 	/**
@@ -183,29 +183,33 @@ class WebSocketServer {
 	 * @return bool
 	 */
 	public function onExternalOpen(Swoole\WebSocket\Server $server, Swoole\Http\Request $request) {
-		# Add the session id to the record of currently active sessions
-		$session_id = substr($request->server['request_uri'],1);
+		# The browser will send along the connection ID
+		$connection_id = substr($request->server['request_uri'],1);
+		//The request_uri includes a prefixed "/"
 
-		if(!$insert_id = $this->sql->insert([
+		# Make sure the connection ID exists, is valid and is for the right IP
+		if(!$this->sql->update([
 			"table" => "connection",
 			"set" => [
 				"server_id" => $this->server_id,
 				"fd" => $request->fd,
-				"session_id" => $session_id,
-				"user_id" => $request->cookie['user_id'],
-				"ip_address" => $request->server['remote_addr'],
 				"opened" => "NOW()"
 			],
-			"audit_trail" => false,
-			"reconnect" => true
+			"where" => [
+				"closed" => NULL,
+				"ip_address" => $request->server['remote_addr'],
+			],
+			"id" => $connection_id,
+			"reconnect" => true,
+			"user_id" => false,
 		])){
-			//The new connection was not saved
+			//If the connection is not valid
 			var_dump($this->log->getAlerts());
 			$this->log->clearAlerts();
 			return false;
 		}
 
-		$this->log("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], session [{$session_id}], connection_id [{$insert_id}]");
+		$this->log("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$connection_id}]");
 	}
 
 	/**

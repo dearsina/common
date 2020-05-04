@@ -86,7 +86,7 @@ class Hash {
 		return true;
 	}
 
-	private function unset(){
+	public function unset(){
 		$this->hash = false;
 		return true;
 	}

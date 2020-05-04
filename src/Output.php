@@ -2,6 +2,8 @@
 
 namespace App\Common;
 
+use App\UI\Modal;
+
 /**
  * Tracks the output of a ajax call
  */
@@ -122,7 +124,7 @@ class Output {
 	}
 
 	/**
-	 * Will replace the *contents* a given div, based on their div ID.
+	 * Will update the *contents* a given div, based on their div ID.
 	 * It will not touch the div tag itself.
 	 *
 	 * @param $id
@@ -130,8 +132,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function div($id, $data){
-		return $this->set_data("div", $id, $data);
+	public function update($id, $data){
+		return $this->set_data("update", $id, $data);
 	}
 
 	/**
@@ -178,8 +180,17 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function modal($data){
-		return $this->set_data("modal", NULL, $data);
+	public function modal($a){
+		if(is_array($a)){
+			$modal = new Modal($a);
+			return $this->set_data("append", "ui-view", $modal->getHTML());
+		}
+
+		if(is_string($a)){
+			return $this->set_data("append", "ui-view", $a);
+		}
+
+		return false;
 	}
 
 	/**
@@ -213,7 +224,7 @@ class Output {
 		if($this->direction){
 			return $this->set_data($this->direction["type"], $this->direction["id"], $data);
 		}
-		return $this->set_data("div", "ui-view", $data);
+		return $this->set_data("update", "ui-view", $data);
 	}
 
 	/**
