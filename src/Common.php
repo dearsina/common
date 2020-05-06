@@ -4,8 +4,12 @@
 namespace App\Common;
 
 
-use App\Common\SQL\mySQL;
+use App\Common\SQL\Factory;
+use App\Common\SQL\Info\Info;
+
+use App\Common\Navigation\Navigation;
 use App\Common\User\User;
+
 
 class Common {
 	/**
@@ -29,7 +33,8 @@ class Common {
 		$this->log = Log::getInstance();
 		$this->pa = PA::getInstance();
 		$this->output = Output::getInstance();
-		$this->sql = mySQL::getInstance();
+		$this->sql = Factory::getInstance();
+
 		$this->user = new User();
 	}
 
@@ -56,6 +61,34 @@ class Common {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Shortcut for complex, repeated SQL queries. Simple syntax:
+	 * <code>
+	 * $rel = $this->info($rel_table, $rel_id);
+	 * </code>
+	 * alternatively, add more colour:
+	 * <code>
+	 * $rel = $this->info([
+	 *	"rel_table" => $rel_table,
+	 * 	"rel_id" => $rel_id,
+	 * 	"where" => [
+	 * 		"key" => "val"
+	 * 	]
+	 * ]);
+	 * </code>
+	 *
+	 * @param array|string	$rel_table_or_array
+	 * @param string|null 	$rel_id
+	 *
+	 * @return bool|array
+	 * @throws \Exception
+	 */
+	protected function info($rel_table_or_array, ?string $rel_id = NULL)
+	{
+		$info = Info::getInstance();
+		return $info->getInfo($rel_table_or_array, $rel_id);
 	}
 
 	/**

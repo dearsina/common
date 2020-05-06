@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Common\SQL;
+namespace App\Common\SQL\mySQL;
 
 use App\Common\Log;
-use App\Common\SQL\mySQL\Grow;
 use App\Common\str;
 
 use Ramsey\Uuid\Codec\TimestampFirstCombCodec;
@@ -850,7 +849,8 @@ class mySQL extends Grow {
 	 * @return bool
 	 */
 	private function joinOn($jAlias, $jTable, $jGiven, $o, &$store, $or = NULL){
-		if(!$o){
+		# If the user wants to join with _no_ condition
+		if($o === false){
 			return false;
 		}
 
@@ -1681,6 +1681,9 @@ class mySQL extends Grow {
 		$this->setCondition("or", $or);
 		$this->setCondition("or", $or_not, NULL, NULL, true);
 
+		# Incorporate the OR clauses to there WHERE clause
+//		$this->mergeOrWithAnd();
+
 		# Add joins
 		if(!$this->addJoin("INNER", $join)){
 			return false;
@@ -1688,9 +1691,6 @@ class mySQL extends Grow {
 		if(!$this->addJoin("LEFT", $left_join)){
 			return false;
 		}
-
-		# Incorporate the OR clauses to there WHERE clause
-//		$this->mergeOrWithAnd();
 
 		# Count (if only a row count is requested)
 		$this->setCount($count);
@@ -1722,7 +1722,7 @@ class mySQL extends Grow {
 			$this->unsetLimits();
 
 			# Get all the columns, but only their aliases
-			$formattedColumnArray[] = $this->getColumns(true, $this->table['alias'], false, true);
+			$formattedColumnArray[] = $this->getColumns(true, $this->table['alias']);
 			$formattedColumnArray[] = $this->getColumns(true, false, $this->table['alias'], false);
 			$formattedColumns = implode(",\r\n",array_filter($formattedColumnArray));
 
@@ -2693,8 +2693,7 @@ class mySQL extends Grow {
 		}
 
 		if(is_array($j) && !is_int(key($j))) {
-			$this->log->error("Ensure the join array is double bracketed.");
-			return false;
+			throw new \mysqli_sql_exception("Ensure the join array is double bracketed.");
 		} else if(is_string($j)){
 			$joins[] = ["table" => $j];
 		} else {
@@ -2705,13 +2704,11 @@ class mySQL extends Grow {
 
 			# If the whole join is just the name of a table
 			if(is_string($join)){
-				$join  = [];
-				$join['table'] = $joins[$id];
+				$join = ["table" => $join];
 			}
 
 			if(!$join['table']){
-				$this->log->error("A join was requested without a table name.");
-				return false;
+				throw new \mysqli_sql_exception("A join was requested without a table name.");
 			}
 
 			$j = $this->formatTableName($join['table'], $join['alias']);
@@ -2721,7 +2718,8 @@ class mySQL extends Grow {
 
 			# Define join on condition
 			$this->joinOn($j['alias'], $j['name'], $j['given'], $join['on'], $jOn);
-			$this->joinOn($j['alias'], $j['name'], $j['given'], $join['on_or'], $jOn_or, true);
+			$this->joinOn($j['alias'], $j['name'], $j['given'], $join['on_or'] ?: false, $jOn_or, true);
+			// While the on condition may be missing at times (because it can be assumed), the on_or condition must exist
 
 			# Add joined table columns
 			if(!$this->setColumns($j['name'], $j['alias'], $join['columns'], true)){

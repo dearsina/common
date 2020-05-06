@@ -172,8 +172,22 @@ class Output {
 	}
 
 	/**
-	 * Will create, update or close a modal.
-	 * No ID is needed as there is only one modal.
+	 * Output a modal. Can either be a modal array
+	 * or modal HTML.
+	 *
+	 * <code>
+	 * $this->output->modal([
+	 * 	//"id" => str::id("modal"),
+	 * 	//"size" => "xl",
+	 * 	"header" => "Modal header",
+	 * 	"body" => "Modal body",
+	 * 	"footer" => "Modal footer",
+	 * 	//"dismissable" => false,
+	 * 	"draggable" => true,
+	 * 	"resizable" => true,
+	 * 	"approve" => true,
+	 * ]);
+	 * </code>
 	 *
 	 * @param $id
 	 * @param $data
@@ -233,13 +247,13 @@ class Output {
 	 * Doesn't go thru the set-data method because at times,
 	 * by design, it will need to send a blank value back to JS.
 	 *
-	 * @param null $data
+	 * @param string|bool $data Expects HTML.
 	 *
 	 * @return bool
 	 */
 	public function navigation($data){
 //		return $this->set_data("div", "ui-navigation", $data);
-		$this->output['div']["ui-navigation"] = $data;
+		$this->output['update']["ui-navigation"] = $data;
 		return true;
 	}
 

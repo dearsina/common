@@ -172,7 +172,8 @@ class Card extends Common {
 			"action" => "verify_credentials",
 			"rel_table" => "user",
 			"rel_id" => NULL,
-			"callback" => $this->hash->getCallback(),
+			"callback" => $this->hash->getCallback() == "user//login" ? false : $this->hash->getCallback(),
+			// This is to prevent a loop
 			"fields" => Field::login($vars),
 			"buttons" => $buttons
 		]);
@@ -215,12 +216,49 @@ class Card extends Common {
 
 
 		$card = new \App\UI\Card([
+			"draggable" => true,
 			"header" => "Reset password",
 			"body" => $form->getHTML(),
 			"post" => [
 				"class" => "small",
 				"html" => Recaptcha::getPrivacyPolicy()
 			]
+		]);
+
+		$html = $card->getHTML();
+
+		return $html;
+	}
+
+	public function newAdmin($a = NULL){
+		$buttons = [[
+			"type" => "submit",
+			"colour" => "red",
+			"icon" => "user-plus",
+			"title" => "Create admin"
+		]];
+
+		global $user_id;
+
+		$form = new Form([
+			"action" => "insert_first_admin",
+			"rel_table" => "user",
+			"callback" => "home",
+			"fields" => [[
+				"name" => "user_id",
+				"type" => "hidden",
+				"value" => $user_id
+			]],
+			"buttons" => $buttons
+		]);
+
+		$card = new \App\UI\Card([
+			"header" => [
+				"icon" => "exclamation-triangle",
+				"title" => "No admins assigned"
+			],
+			"body" => "No admins have been assigned for this application. The app needs admins to manage it. Click on the buttom below to set this user as the first.",
+			"footer" => $form->getHTML()
 		]);
 
 		$html = $card->getHTML();

@@ -4,6 +4,7 @@
 namespace App\Common;
 
 
+use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL;
 use App\UI\Icon;
 
@@ -146,7 +147,7 @@ class Log {
 			return false;
 		}
 
-		$sql = mySQL::getInstance();
+		$sql = Factory::getInstance();
 		// Has to be initiated "locally" to prevent an infiniate loop
 
 		foreach($this->alerts as $type => $alerts){

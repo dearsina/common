@@ -6,8 +6,10 @@ namespace App\Common\User;
 use App\Common\Email\Email;
 use App\Common\Hash;
 use App\Common\Log;
+use App\Common\Navigation\Navigation;
 use App\Common\Output;
 use App\Common\PA;
+use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL;
 use App\Common\str;
 use App\UI\Page;
@@ -51,7 +53,7 @@ class User{
 	 * class uses an instance of User.
 	 */
 	function __construct() {
-		$this->sql = mySQL::getInstance();
+		$this->sql = Factory::getInstance();
 		$this->log = Log::getInstance();
 		$this->hash = Hash::getInstance();
 		$this->output = Output::getInstance();
@@ -61,8 +63,15 @@ class User{
 	/**
 	 * @return Card
 	 */
-	private function card(){
+	public function card(){
 		return new Card();
+	}
+
+	/**
+	 * @return Modal
+	 */
+	public function modal(){
+		return new Modal();
 	}
 
 	/**
@@ -167,6 +176,10 @@ class User{
 			setcookie($var, '', time() - 3600, '/');
 			unset($$var);
 		}
+
+		# Update the navigation
+		Navigation::update();
+
 		if(!$silent){
 			$this->log->info([
 				"icon" => "power-off",
@@ -773,22 +786,19 @@ class User{
 	/**
 	 * Checks to see if the user is logged in, or if there is a session user_id variable that can be used
 	 *
+	 * @param null $silent
+	 *
 	 * @return int|bool Returns the user_id of the user that's currently logged in or FALSE if user is not logged in
 	 */
-	public function isLoggedIn() {
+	public function isLoggedIn($silent = NULL) {
 		global $user_id;
-		global $role;
 
-		if ($user_id || $user_id = $_SESSION['user_id']) {
-			//if the user logged in (is there a session user_id?
-			if($role || $role = $_SESSION['role']){
-				//if the user role has been set
-				return $user_id;
-			}
+		if($user_id){
+			return $user_id;
 		}
 
 		# If no local variables are stored (session expired), check to see if any cookies are stored
-		if($this->loadCookies()){
+		if($this->loadCookies($silent)){
 			return $this->isLoggedIn();
 		}
 		return false;
@@ -807,10 +817,6 @@ class User{
 		}
 		global $user_id;
 		global $role;
-
-		# Get the global values, failing that, the session values
-		$user_id = $user_id ?: $_SESSION['user_id'];
-		$role = $role ?: $_SESSION['role'];
 
 		if (!$user_id || !$role) {
 			//a user has to be logged in, a role has to be defined, and the user has to exist
@@ -921,6 +927,9 @@ class User{
 		# Assign role
 		$this->assignRole($user);
 
+		# Update navigation
+		Navigation::update();
+
 		return true;
 	}
 
@@ -941,30 +950,19 @@ class User{
 			]
 		]);
 
-//		if(count($roles) == 1){
-//			//if they only have one role to play, use it
-//			$_SESSION['role'] = $roles[0]['rel_table'];
-//			global $role;
-//			$role = $_SESSION['role'];
-//			return true;
-//		}
+		if(count($roles) == 1){
+			//if they only have one role to play, use it
+			$_SESSION['role'] = $roles[0]['rel_table'];
+			global $role;
+			$role = $_SESSION['role'];
+			return true;
+		}
+
+		# If the user needs to decide on a role first
+		$this->hash->set("home");
 
 		# Set up the modal to allow the user to chose roles
-		$this->output->modal([
-			"id" => str::id("modal"),
-			"header" => "Modal header",
-			"body" => "Modal body",
-			"footer" => "Modal footer",
-//			"dismissable" => false,
-			"draggable" => true,
-			"resizable" => true,
-			"approve" => true,
-			"approve" => [
-				"colour" => "grey",
-				"title" => "This is the title",
-				"message" => "This is the message"
-			]
-		]);
+		$this->output->modal($this->modal()->selectRole($user['user_id'], $roles));
 
 		# Remove the hash (as it's been moved to a callback
 		$this->hash->unset();
@@ -985,6 +983,7 @@ class User{
 			"table" => "user",
 			"id" => $user_id,
 			"set" => [
+				"session_id" => session_id(),
 				"last_logged_in" => "`user`.logged_in",
 				"logged_in" => "NOW()"
 			],
@@ -994,7 +993,7 @@ class User{
 		$this->sql->update([
 			"table" => "connection",
 			"set" => [
-				"user_id" => $user_id
+				"user_id" => $user_id,
 			],
 			"id" => $_SERVER['HTTP_CSRF_TOKEN']
 		]);
@@ -1254,7 +1253,7 @@ class User{
 	 *
 	 * @return bool
 	 */
-	private function loadCookies() : bool
+	public function loadCookies($silent = NULL) : bool
 	{
 		# If the cookies are not both present
 		if(!$_COOKIE['session_id'] || !$_COOKIE['user_id']){
@@ -1277,9 +1276,11 @@ class User{
 		}
 
 		# Message to the user returning
-		$this->log->info([
-			"message" => "Welcome back {$user['first_name']}!"
-		]);
+		if(!$silent){
+			$this->log->info([
+				"message" => "Welcome back {$user['first_name']}!"
+			]);
+		}
 
 		# Repopulate the session variables
 		$_SESSION['user_id'] = $user['user_id'];
@@ -1349,7 +1350,7 @@ class User{
 	 */
 	private function setCookie(string $key, string $val) : bool
 	{
-		header("Set-Cookie: {$key}={$val}; Expires=".gmdate('D, d-M-Y H:i:s T', strtotime('+30 days'))."; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict");
+		header("Set-Cookie: {$key}={$val}; Expires=".gmdate('D, d-M-Y H:i:s T', strtotime('+30 days'))."; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;");
 		return true;
 	}
 
@@ -1406,7 +1407,7 @@ class User{
 	public function accessDenied(){
 		global $user_id;
 
-		if(!$user_id){
+		if($user_id){
 			//if a user is logged in, and is trying to perform an action they do not have access to
 			$this->log->error([
 				"title" => 'Access violation',
@@ -1424,9 +1425,10 @@ class User{
 		]);
 
 		$this->hash->set([
+			"rel_table" => "user",
 			"action" => "login",
 			"vars" => [
-				"callback" => $this->hash->getCallback()
+				"callback" => $this->hash->getCallback(true)
 			]
 		]);
 

@@ -50,7 +50,12 @@ class href {
 			$href = "#";
 			$onClick = "window.history.back();";
 		} else if($hash){
-			$href = $hash;
+			$href = "/{$hash}";
+			/**
+			 * Hashes do NOT have a slash prefixed.
+			 * This needs to be added if the hash is to be
+			 * used in a URL.
+			 */
 		}
 
 		if($remove){

@@ -3,6 +3,7 @@
 
 namespace App\Common;
 
+use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL;
 
 class Request {
@@ -40,7 +41,7 @@ class Request {
 		$this->log = Log::getInstance();
 		$this->hash = Hash::getInstance();
 		$this->output = Output::getInstance();
-		$this->sql = mySQL::getInstance();
+		$this->sql = Factory::getInstance();
 	}
 
 	/**
@@ -280,6 +281,7 @@ class Request {
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
 			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
+//			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
 			return false;
 		}
 

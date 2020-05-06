@@ -91,8 +91,20 @@ class Hash {
 		return true;
 	}
 
-	function get(){
-		return $this->hash;
+	/**
+	 * The appropriate way of getting the current hash.
+	 *
+	 * @param bool $urlencode If set to TRUE, the callback will be urlENcoded
+	 *                        so that it can be stored as a variable.
+	 *
+	 * @return string
+	 */
+	function get($urlencode = NULL){
+		if($urlencode){
+			return str::urlencode($this->hash);
+		} else {
+			return urldecode($this->hash);
+		}
 	}
 
 	/**
@@ -171,6 +183,12 @@ class Hash {
 	 * @return string
 	 */
 	function getCallback($urlencode = NULL){
+
+		# Remvoe the first slash (not sure about the consequences)
+		if(substr(urldecode($this->callback), 0, 1) == '/'){
+			$this->callback = substr(urldecode($this->callback), 1);
+		}
+
 		if($urlencode){
 			return str::urlencode($this->callback);
 		} else {

@@ -411,7 +411,8 @@ class str {
 	 * @return bool
 	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
 	 */
-	public static function methodAvailable($class, $method, $modifier = "public"){
+	public static function methodAvailable(object $class, string $method, $modifier = "public") : bool
+	{
 		if(!$class || !$method){
 			return false;
 		}
@@ -460,21 +461,25 @@ class str {
 	}
 
 	/**
-	 * Given a rel_table, find a class
+	 * Given a rel_table, and an optional parent_class, find a class
 	 *
-	 * @param $rel_table
+	 * @param string      $rel_table The class you're looking for
+	 * @param string|null $parent_class The parent class if it's different from the class itself
 	 *
 	 * @return bool|string Returns the class with path or FALSE if it can't find it
 	 */
-	public static function findClass($rel_table){
-		# Does a custom path exist?
-		$corePath = str::getClassCase("\\App\\{$rel_table}\\{$rel_table}");
+	public static function findClass(string $rel_table, ?string $parent_class = NULL){
+		# An optional parent class can be supplied
+		$parent_class = $parent_class ?: $rel_table;
+
+		# Does an App path exist?
+		$corePath = str::getClassCase("\\App\\{$parent_class}\\{$rel_table}");
 		if(class_exists($corePath)) {
 			return $corePath;
 		}
 
-		# Does a common path exist
-		$commonPath = str::getClassCase("\\App\\Common\\{$rel_table}\\{$rel_table}");
+		# Does a Common path exist?
+		$commonPath = str::getClassCase("\\App\\Common\\{$parent_class}\\{$rel_table}");
 		if(class_exists($commonPath)) {
 			return $commonPath;
 		}
@@ -591,6 +596,8 @@ class str {
 	 * Given an array of rel_table/id and action, and an array of vars,
 	 * creates a hash string and returns it.
 	 *
+	 * Crucually, the string is not prefixed with a slash.
+	 *
 	 * @param array $array
 	 * @param bool  $urlencoded If set to yes, will urlencode the hash string
 	 *
@@ -601,7 +608,13 @@ class str {
 		# If an array is given (most common)
 		if(is_array($array)){
 			extract($array);
-			$hash = "/{$rel_table}/{$rel_id}/{$action}";
+			$hash = "{$rel_table}/{$rel_id}/{$action}";
+			if(!is_array($vars)){
+				//if there are no variables attached
+
+				# Remove any surplus slashes at the end
+				$hash = rtrim($hash, "/");
+			}
 		}
 
 		# If a string is given (less common)

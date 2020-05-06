@@ -4,6 +4,7 @@
 namespace App\Common;
 
 use App\Common\log;
+use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL;
 
 class PA {
@@ -20,7 +21,7 @@ class PA {
 	private function __construct () {
 		# Set up an internal log
 		$this->log = Log::getInstance();
-		$this->sql = mySQL::getInstance();
+		$this->sql = Factory::getInstance();
 	}
 
 	/**
