@@ -4,6 +4,7 @@
 namespace App\Common\User;
 
 use App\Common\Common;
+use App\Common\str;
 use App\UI\Form\Form;
 use App\UI\Form\Recaptcha;
 use App\UI\Grid;
@@ -186,7 +187,8 @@ class Card extends Common {
 			"body" => $form->getHTML(),
 			"post" => [
 				"class" => "text-center smaller",
-				"html" => "Don't have an account yet? <a href=\"/user//new\">Sign up here</a>!",
+//				"html" => "Don't have an account yet? <a href=\"/user//new\">Sign up here</a>!",
+				"html" => str::pre(print_r($_COOKIE, true))
 			]
 		]);
 

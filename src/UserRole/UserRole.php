@@ -4,6 +4,7 @@
 namespace App\Common\UserRole;
 
 
+use App\Common\Navigation\Navigation;
 use App\Common\str;
 use App\UI\Icon;
 
@@ -37,6 +38,8 @@ class UserRole extends \App\Common\Common {
 
 			# Since you're changing roles, go home
 			$this->hash->set("home");
+
+			Navigation::update();
 
 			return true;
 		}

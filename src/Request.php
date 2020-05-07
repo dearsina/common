@@ -236,7 +236,8 @@ class Request {
 		}
 
 		# Create and set the callback based on the hash
-		$this->hash->setCallback($a);
+		$this->hash->setCallback($a['vars']['callback']);
+		//Only explicitly set callbacks are used
 
 		# If directions for the output have been sent with the vars
 		if(is_array($vars) && $vars['div'] && $vars['div_id']){

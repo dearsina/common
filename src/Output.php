@@ -251,8 +251,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function navigation($data){
-//		return $this->set_data("div", "ui-navigation", $data);
+	public function navigation(?string $data){
 		$this->output['update']["ui-navigation"] = $data;
 		return true;
 	}
@@ -263,13 +262,12 @@ class Output {
 	 * Doesn't go thru the set-data method because at times,
 	 * by design, it will need to send a blank value back to JS.
 	 *
-	 * @param null $data
+	 * @param string|bool $data Expects HTML.
 	 *
 	 * @return bool
 	 */
-	public function footer($data){
-//		return $this->set_data("div", "ui-footer", $data);
-		$this->output['div']["ui-footer"] = $data;
+	public function footer(?string $data){
+		$this->output['update']["ui-footer"] = $data;
 		return true;
 	}
 

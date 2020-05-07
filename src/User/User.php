@@ -12,7 +12,9 @@ use App\Common\PA;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL;
 use App\Common\str;
+use App\Common\UserRole\UserRole;
 use App\UI\Page;
+use mysql_xdevapi\Exception;
 
 class User{
 	/**
@@ -89,9 +91,12 @@ class User{
 
 		$page->setGrid([
 			"class" => "justify-content-md-center",
+			"style" => [
+				"height" => "85% !important"
+			],
 			"html" => [
 				"sm" => 4,
-				"class" => "fixed-width-column",
+				"class" => "fixed-width-column my-auto",
 				"html" => $this->card()->login($a)
 			]
 		]);
@@ -173,7 +178,8 @@ class User{
 			unset($GLOBALS[$var]); //If a globalized variable is unset() inside of a function, only the local variable is destroyed.
 			unset($_SESSION[$var]);
 			unset($_COOKIE[$var]);
-			setcookie($var, '', time() - 3600, '/');
+//			setcookie($var, '', time() - 3600, '/');
+			$this->setCookie($var, "", true);
 			unset($$var);
 		}
 
@@ -292,6 +298,47 @@ class User{
 			$this->log->error("Computer says no.");
 			return false;
 		}
+
+		return true;
+	}
+
+	public function insertFirstAdmin($a){
+		extract($a);
+
+		if(!$this->isLoggedIn()){
+			$this->accessDenied();
+		}
+
+		if($this->sql->select(["table" => "admin"])){
+			//if this app _has_ admins
+			throw new Exception("This app already has admins.");
+		}
+
+		global $user_id;
+
+		# Create a new admin role
+		$admin_id = $this->sql->insert([
+			"table" => "admin",
+		]);
+
+		# Tie the new admin role to the user
+		$this->sql->insert([
+			"table" => "user_role",
+			"set" => [
+				"rel_table" => "admin",
+				"rel_id" => $admin_id,
+				"user_id" => $user_id
+			]
+		]);
+
+		# Switch the user to the new role
+		$this->hash->set([
+			"rel_table" => "user_role",
+			"action" => "switch",
+			"vars" => [
+				"new_role" => "admin",
+			]
+		]);
 
 		return true;
 	}
@@ -1343,14 +1390,17 @@ class User{
 	 * be sent with cross-origin requests, providing some protection
 	 * against cross-site request forgery attacks (CSRF).
 	 *
-	 * @param string $key
-	 * @param string $val
-	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+	 * @param string    $key
+	 * @param string    $val
+	 * @param bool|null $remove
+	 *
 	 * @return bool
+	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
 	 */
-	private function setCookie(string $key, string $val) : bool
+	private function setCookie(string $key, string $val, ?bool $remove = NULL) : bool
 	{
-		header("Set-Cookie: {$key}={$val}; Expires=".gmdate('D, d-M-Y H:i:s T', strtotime('+30 days'))."; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;");
+		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
+		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;");
 		return true;
 	}
 

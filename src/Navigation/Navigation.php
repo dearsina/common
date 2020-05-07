@@ -58,25 +58,47 @@ class Navigation {
 		# Get any role levels
 		self::getRoleLevels($levels);
 
+		$footers = [];
+
+		# Get the generic app footers
+		self::getAppFooters($footers);
+
+		# Get any role footers
+		self::getRoleFooters($footers);
+
+		# Generate the navigation
+		$navigation = Factory::generate("horizontal", $levels, $footers);
+
 		# Give the $levels to the factory to make HTML
-		$output->navigation(Factory::generate("horizontal", $levels)->getHTML());
+		$output->navigation($navigation->getHTML());
+		$output->footer($navigation->getFooterHTML());
 
 		return true;
 	}
 
 	private static function getAppLevels(&$levels) : bool
 	{
-		$levels[1]['title'] = [
-			"title" => $_ENV['title']
-		];
+		# Uses the Common class if it cannot find the App class
+		$classPath = str::findClass("App", "Navigation");
 
-		$children[]  = [];
+		# Create a new instance of the class
+		$classInstance = new $classPath();
 
-		$levels[1]['items'][] = [
-			"icon" => "user-headset",
-			"alt" => "Help",
-			"children" => $children
-		];
+		# Set the method
+		$method = "update";
+
+		# Ensure the method is available
+		if(!str::methodAvailable($classInstance, $method)){
+			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
+			return false;
+		}
+
+		$levels = $classInstance->$method([
+			"action" => $method,
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"vars" => $vars
+		]);
 
 		return true;
 	}
@@ -96,8 +118,8 @@ class Navigation {
 		# Create a new instance of the class
 		$classInstance = new $classPath();
 
-		# Set the method (view is the default)
-		$method = str::getMethodCase($action) ?: "update";
+		# Set the method
+		$method = "update";
 
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
@@ -113,24 +135,105 @@ class Navigation {
 			"vars" => $vars
 		]);
 
-		# Role levels override app levels, excpet for items, where they're merged
-		foreach($levels as $level => $a){
+		# Merge role levels into app levels
+		self::mergeLevels($levels, $role_levels);
+
+		return true;
+	}
+
+	private static function getAppFooters(&$footers) : bool
+	{
+		# Uses the Common class if it cannot find the App class
+		$classPath = str::findClass("App", "Navigation");
+
+		# Create a new instance of the class
+		$classInstance = new $classPath();
+
+		# Set the method
+		$method = "footer";
+
+		# Ensure the method is available
+		if(!str::methodAvailable($classInstance, $method)){
+			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
+			return false;
+		}
+
+		$footers = $classInstance->$method([
+			"action" => $method,
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"vars" => $vars
+		]);
+
+		return true;
+	}
+
+	private static function getRoleFooters(&$footers) : bool
+	{
+		global $role;
+
+		if(!$role){
+			return false;
+		}
+
+		if(!$classPath = str::findClass($role, "Navigation")){
+			throw new \Exception("A navigation class for the <code>{$role}</code> role does not exist.");
+		}
+
+		# Create a new instance of the class
+		$classInstance = new $classPath();
+
+		# Set the method
+		$method = "footer";
+
+		# Ensure the method is available
+		if(!str::methodAvailable($classInstance, $method)){
+			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
+			return false;
+		}
+
+		# Get the footers for this role
+		$role_footers = $classInstance->$method([
+			"action" => $method,
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"vars" => $vars
+		]);
+
+		# Merge role footers into app footers
+//		$footers = array_merge_recursive($footers, $role_footers);
+
+		return true;
+	}
+
+	/**
+	 * Child levels override parent levels, excpet for items,
+	 * where child levels are merged with parent levels.
+	 *
+	 * @param array $parent
+	 * @param array $child
+	 */
+	private static function mergeLevels(array &$parent, array $child){
+		foreach($parent as $level => $a){
 			foreach($a as $key => $val){
-				if(!$role_levels[$level][$key]){
+				if(!$child[$level][$key]){
 					//ignore if there is no corresponding role levels key
 					continue;
 				}
 				if($key == "items"){
 					//If they're items, merge them
-					$levels[$level][$key] = array_merge($levels[$level][$key], $role_levels[$level][$key]);
+					$parent[$level][$key] = array_merge($parent[$level][$key], $child[$level][$key]);
 				} else {
 					//Otherwise, override
-					$levels[$level][$key] = $role_levels[$level][$key];
+					$parent[$level][$key] = $child[$level][$key];
 				}
 			}
 		}
-
-
-		return true;
+		foreach($child as $level => $a){
+			if(empty($parent[$level])){
+				//if the parent doesn't even have this level
+				$parent[$level] = $a;
+			}
+		}
 	}
 }
