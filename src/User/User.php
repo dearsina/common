@@ -10,12 +10,18 @@ use App\Common\Navigation\Navigation;
 use App\Common\Output;
 use App\Common\PA;
 use App\Common\SQL\Factory;
-use App\Common\SQL\mySQL;
+use App\Common\SQL\mySQL\mySQL;
 use App\Common\str;
-use App\Common\UserRole\UserRole;
 use App\UI\Page;
-use mysql_xdevapi\Exception;
+use Exception;
 
+/**
+ * Class User
+ *
+ * Handles User affairs
+ *
+ * @package App\Common\User
+ */
 class User{
 	/**
 	 * The threshold where which a user's action is ignored.
@@ -114,6 +120,7 @@ class User{
 	 * @param bool $silent If TRUE, no message will be sent to the user
 	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	public function logout($a, $silent = NULL){
 		extract($a);
@@ -178,7 +185,6 @@ class User{
 			unset($GLOBALS[$var]); //If a globalized variable is unset() inside of a function, only the local variable is destroyed.
 			unset($_SESSION[$var]);
 			unset($_COOKIE[$var]);
-//			setcookie($var, '', time() - 3600, '/');
 			$this->setCookie($var, "", true);
 			unset($$var);
 		}
@@ -270,7 +276,7 @@ class User{
 	 * <code>
 	 * # Ensure reCAPTCHA is validated
 	 * if(!$this->validateRecaptcha($vars['recaptcha_response'], "insert_user", $hash)){
-	 * 	return false;
+	 *    return false;
 	 * }
 	 * </code>
 	 *
@@ -279,6 +285,7 @@ class User{
 	 * @param mixed  $hash
 	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	private function validateRecaptcha(string $response, string $action, $hash = NULL){
 		# Get the reCAPTCHA score
@@ -302,6 +309,14 @@ class User{
 		return true;
 	}
 
+	/**
+	 * Used once per project, to create the first admin.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	public function insertFirstAdmin($a){
 		extract($a);
 
@@ -349,6 +364,7 @@ class User{
 	 * @param $a
 	 *
 	 * @return bool|int|mixed
+	 * @throws Exception
 	 */
 	public function insert($a){
 		extract($a);
@@ -440,7 +456,7 @@ class User{
 		]);
 
 		# Create the link between the user and the user type
-		$user_role_id = $this->sql->insert([
+		$this->sql->insert([
 			"table" => "user_role",
 			"set" => [
 				"user_id" => $user_id,
@@ -460,7 +476,7 @@ class User{
 	 * @param null $internal
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function sendVerificationEmail($a, $internal = NULL){
 		extract($a);
@@ -564,7 +580,7 @@ class User{
 	 * for any websockets data transfers both ways.
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function getSessionToken()
 	{
@@ -579,7 +595,7 @@ class User{
 			],
 		])){
 			//The new connection was not saved
-			throw new \Exception("Unable to store connection details");
+			throw new Exception("Unable to store connection details");
 		}
 		$this->output->set_var("token", $connection_id);
 		return true;
@@ -590,6 +606,7 @@ class User{
 	 * from the user_agent table.
 	 *
 	 * @return bool|int|mixed
+	 * @throws Exception
 	 */
 	private function getUserAgentId()
 	{
@@ -612,7 +629,7 @@ class User{
 				"desc" => $_SERVER['HTTP_USER_AGENT']
 			],
 		])){
-			throw new \Exception("Unable to create a user agent record.");
+			throw new Exception("Unable to create a user agent record.");
 		}
 
 		return $user_agent_id;
@@ -660,7 +677,7 @@ class User{
 				]
 			]);
 		}
-		catch (\Exception $e) {
+		catch (Exception $e) {
 			//Catch errors
 			$this->log->error($e->getMessage());
 			return false;
@@ -694,16 +711,16 @@ class User{
 	 *
 	 * <code>
 	 * array (
-	 * 	'success' => false,
-	 * 	'hostname' => 'app.registerofmembers.co.uk',
-	 * 	'challenge_ts' => '2020-04-22T08:10:13Z',
-	 * 	'apk_package_name' => NULL,
-	 * 	'score' => 0.9,
-	 * 	'action' => 'reset_password',
-	 * 	'error-codes' => array (
-	 * 		0 => 'timeout-or-duplicate',
-	 * 		1 => 'hostname-mismatch',
-	 * 		2 => 'action-mismatch',
+	 *    'success' => false,
+	 *    'hostname' => 'app.registerofmembers.co.uk',
+	 *    'challenge_ts' => '2020-04-22T08:10:13Z',
+	 *    'apk_package_name' => NULL,
+	 *    'score' => 0.9,
+	 *    'action' => 'reset_password',
+	 *    'error-codes' => array (
+	 *        0 => 'timeout-or-duplicate',
+	 *        1 => 'hostname-mismatch',
+	 *        2 => 'action-mismatch',
 	 *   ),
 	 * )
 	 * </code>
@@ -712,11 +729,12 @@ class User{
 	 * @param string $action
 	 *
 	 * @return float|bool
+	 * @throws Exception
 	 */
 	private function getRecaptchaScore($response, $action){
 		if(!$_ENV['recaptcha_key'] || !$_ENV['recaptcha_secret']){
 			//if either recaptcha_key or secret has not been assigned
-			throw new \Exception("The reCAPTCHA key and secret have not been set.");
+			throw new Exception("The reCAPTCHA key and secret have not been set.");
 		}
 
 		$recaptcha = new \ReCaptcha\ReCaptcha($_ENV['recaptcha_secret']);
@@ -735,6 +753,14 @@ class User{
 		return false;
 	}
 
+	/**
+	 * Send a reset password email.
+	 *
+	 * @param null $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	public function sendResetPasswordEmail($a = NULL){
 		extract($a);
 
@@ -836,6 +862,7 @@ class User{
 	 * @param null $silent
 	 *
 	 * @return int|bool Returns the user_id of the user that's currently logged in or FALSE if user is not logged in
+	 * @throws Exception
 	 */
 	public function isLoggedIn($silent = NULL) {
 		global $user_id;
@@ -857,6 +884,7 @@ class User{
 	 * @param string|array $a One or many roles to check for
 	 *
 	 * @return bool|int TRUE if the current user's current role is one of the roles requested
+	 * @throws Exception
 	 */
 	function is($a){
 		if(!$this->isLoggedIn()){
@@ -893,6 +921,7 @@ class User{
 	 * @param $a
 	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	function verifyCredentials($a){
 		extract($a);
@@ -955,7 +984,7 @@ class User{
 	 * @param $remember
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	private function logUserIn($user, $remember){
 		# Store the user_id both globally and locally
@@ -980,6 +1009,15 @@ class User{
 		return true;
 	}
 
+	/**
+	 * Assigns a role to a user.
+	 * Part of the log in process.
+	 *
+	 * @param $user
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	private function assignRole($user) : bool
 	{
 		if($user['last_role']){
@@ -1020,12 +1058,12 @@ class User{
 	/**
 	 * Logs the time the user logged in and keeps a record of the time before that they logged in.
 	 *
-	 * @param $user
+	 * @param $user_id
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
-	private function logAccess($user_id){
+	private function logAccess(string $user_id){
 		$this->sql->update([
 			"table" => "user",
 			"id" => $user_id,
@@ -1054,7 +1092,7 @@ class User{
 	 * @param $a
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	function verifyEmail($a){
 		extract($a);
@@ -1157,7 +1195,7 @@ class User{
 	 * @param array $a
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function updatePassword(array $a) : bool
 	{
@@ -1189,7 +1227,7 @@ class User{
 		}
 
 		if (strlen($vars['new_password']) < Field::minimumPasswordLength) {
-			$this->log->error("Ensure your password is at least ".Field::MIMINUM_PASSWORD_LENGTH." characters long.");
+			$this->log->error("Ensure your password is at least ".Field::minimumPasswordLength." characters long.");
 			return false;
 		}
 
@@ -1273,6 +1311,14 @@ class User{
 		return crypt($password, $hash)==$hash;
 	}
 
+	/**
+	 * Confirmation page that the email verification
+	 * email has been sent.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 */
 	public function verificationEmailSent($a){
 		extract($a);
 
@@ -1298,7 +1344,10 @@ class User{
 	 * check to see if there are any cookie variables
 	 * stored, and if so, revive the session.
 	 *
+	 * @param null $silent
+	 *
 	 * @return bool
+	 * @throws Exception
 	 */
 	public function loadCookies($silent = NULL) : bool
 	{
@@ -1367,9 +1416,11 @@ class User{
 	 * be given access again. Both the cookie and the database variable will
 	 * then be refreshed.
 	 *
+	 * @param $user_id
+	 *
 	 * @return bool
 	 */
-	private function storeCookies($user_id) : bool
+	private function storeCookies(string $user_id) : bool
 	{
 		$this->setCookie("user_id", $user_id);
 		$this->setCookie("session_id", session_id());
@@ -1392,18 +1443,18 @@ class User{
 	 *
 	 * @param string    $key
 	 * @param string    $val
-	 * @param bool|null $remove
+	 * @param bool|null $remove set to TRUE to remove the cookie.
 	 *
 	 * @return bool
 	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+	 * @link https://www.php.net/manual/en/function.header.php
 	 */
 	private function setCookie(string $key, string $val, ?bool $remove = NULL) : bool
 	{
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
-		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;");
+		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
 		return true;
 	}
-
 
 	/**
 	 * Checks the current session ID with the user table, to see if

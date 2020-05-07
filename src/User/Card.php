@@ -187,9 +187,9 @@ class Card extends Common {
 			"body" => $form->getHTML(),
 			"post" => [
 				"class" => "text-center smaller",
-//				"html" => "Don't have an account yet? <a href=\"/user//new\">Sign up here</a>!",
-				"html" => str::pre(print_r($_COOKIE, true))
-			]
+				"html" => "Don't have an account yet? <a href=\"/user//new\">Sign up here</a>!",
+//				"html" => str::pre(print_r($_COOKIE, true))
+			],
 		]);
 
 		$html = $card->getHTML();
