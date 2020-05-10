@@ -829,6 +829,8 @@ class mySQL extends Grow {
 			return false;
 		}
 
+		$this->tablePrefix[$alias] = $table;
+
 		return [
 			"name" => $table,
 			"given" => $given,
@@ -947,15 +949,16 @@ class mySQL extends Grow {
 		array_pop($valArray);
 
 		# First degree children
-		foreach($valArray as $alias){
-			if($this->tablePrefix[$alias]){
-				if(substr_count($this->tablePrefix[$alias],".")){
-					$this->tablePrefix[$jAlias] = $this->tablePrefix[$alias].".";
-				} else {
-					$this->tablePrefix[$jAlias] = $this->tablePrefix[$alias].".";
-				}
-			}
-		}
+//		foreach($valArray as $alias){
+//			if($this->tablePrefix[$alias]){
+//				if(substr_count($this->tablePrefix[$alias],".")){
+//					$this->tablePrefix[$jAlias] = $this->tablePrefix[$alias].".";
+//				} else {
+//					$this->tablePrefix[$jAlias] = $this->tablePrefix[$alias].".";
+//				}
+//			}
+//		}
+		// The table prefix alias ($this->tablePrefix[$alias]) wasn't populated before
 
 		# Second to nth degree children
 		if($this->tablePrefix[$jAlias] != $jTable){
@@ -3040,7 +3043,13 @@ class mySQL extends Grow {
 			return false;
 		}
 
-		return "GROUP BY ".implode(",\r\n", array_column($filteredColumns, "columnAlias"));
+		foreach($filteredColumns as $column){
+			$groupBy[] = "`{$column['tableAlias']}`.`{$column['columnName']}`";
+		}
+
+		return "GROUP BY ".implode(",\r\n", $groupBy);
+
+//		return "GROUP BY ".implode(",\r\n", array_column($filteredColumns, "columnAlias"));
 
 //		if(is_array($this->groupBy)) {
 //			foreach ($this->groupBy as $alias => $columns) {

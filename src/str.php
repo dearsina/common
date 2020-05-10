@@ -668,6 +668,29 @@ class str {
 	}
 
 	/**
+	 * URL decodes a variable. That variable
+	 * could be an array with key-val pairs.
+	 *
+	 * All the vals will be urldecoded.
+	 *
+	 * @param $a
+	 *
+	 * @return array
+	 */
+	static function urldecode($a){
+		if(!$a){
+			return $a;
+		}
+		if(is_array($a)){
+			foreach($a as $key => $val){
+				$a[$key] = urldecode($val);
+			}
+			return $a;
+		}
+		urldecode($a);
+	}
+
+	/**
 	 * Given a url + optional key/vals, generate a URL.
 	 *
 	 * Not to confused with a hash URI.
@@ -1266,7 +1289,7 @@ EOF;
 	public static function A($input, $count=1) {
 		$matches = array();
 		$matchCount = preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
-		list($all, $pre, $word, $post) = $matches;
+		[$all, $pre, $word, $post] = $matches;
 		if(!$word)
 			return $input;
 		$result = self::_indef_article($word, $count);
@@ -1931,7 +1954,7 @@ EOF;
 	 * @return string A string containgin a HEX colour value (ex. FF0000 for red)
 	 */
 	static function hsl2hex ($hsl) {
-		list($h, $s, $l) = $hsl;
+		[$h, $s, $l] = $hsl;
 
 		if ($s == 0) {
 			$r = $g = $b = 1;

@@ -269,8 +269,7 @@ class Request {
 
 		if(!$classPath = str::findClass($rel_table)){
 			//if a class doesn't exist
-			throw new \Exception("No matching class for <code>".str::generate_uri($a)."</code> can be found. {$commonPath}");
-			return false;
+			throw new \Exception("No matching class for <code>".str::generate_uri($a)."</code> can be found.");
 		}
 
 		# Create a new instance of the class
@@ -282,8 +281,6 @@ class Request {
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
 			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
-//			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
-			return false;
 		}
 
 		if(!$classInstance->$method([

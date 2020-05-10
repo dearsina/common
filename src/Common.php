@@ -7,7 +7,6 @@ namespace App\Common;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
-use App\Common\Navigation\Navigation;
 use App\Common\User\User;
 
 
@@ -15,17 +14,32 @@ class Common {
 	/**
 	 * @var Log
 	 */
-	protected $log;
+	public $log;
 
 	/**
 	 * @var Output
 	 */
-	protected $output;
+	public $output;
 
 	/**
 	 * @var str
 	 */
-	protected $str;
+	public $str;
+
+	/**
+	 * @var Hash
+	 */
+	public $hash;
+
+	/**
+	 * @var SQL\mySQL\mySQL
+	 */
+	public $sql;
+
+	/**
+	 * @var User
+	 */
+	public $user;
 
 
 	function __construct () {
@@ -169,5 +183,37 @@ class Common {
 		}
 
 		return $insert_id;
+	}
+
+	/**
+	 * Add "name" and "full_name", and format first and last names.
+	 *
+	 * @param $row
+	 *
+	 * @return bool
+	 */
+	public function addNames(&$row) : bool
+	{
+		if(!$row){
+			return false;
+		}
+
+		$users = str::isNumericArray($row) ? $row : [$row];
+		//If there is only one user, add a numerical key index
+
+		# Go thru each user, even if there is only one
+		foreach($users as $id => $user){
+			$user['first_name'] = str::title($user['first_name'], true);
+			$user['last_name'] = str::title($user['last_name'], true);
+			$name = "{$user['first_name']} {$user['last_name']}";
+			$user['name'] = $name;
+			$user['full_name'] = $name;
+			$users[$id] = $user;
+		}
+
+		$row = str::isAssociativeArray($row) ? reset($users) : $users;
+		//If there was only one user, skip the numerical key index
+
+		return true;
 	}
 }
