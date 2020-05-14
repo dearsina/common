@@ -322,11 +322,11 @@ class Request {
 			unset($output['html']);
 		}
 
-		# Silent is the same as hash = -1, but without refreshing the screen
-//		if(!$output['silent'] = $this->hash->getSilent()){
-		//only if there is no need to be silent will a hash be sent
-		$output['hash'] = $this->hash->get();
-//		}
+		if($this->hash->get()){
+			$output['hash'] = $this->hash->get();
+		} else if($this->hash->getCallback()){
+			$output['hash'] = $this->hash->getCallback();
+		}
 		$output['silent'] = $this->hash->getSilent();
 		# TEMP I think we can send a hash always
 		# No, otherwise the silent flag means nothing
@@ -356,6 +356,6 @@ class Request {
 
 		$this->sql->disconnect();
 
-		return json_encode($output);
+		return json_encode($output, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK);
 	}
 }

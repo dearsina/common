@@ -30,7 +30,90 @@ class ErrorLog extends Common {
 
 		$page = new Page([
 			"title" => "Unresolved errors",
-			"icon" => Icon::get("error")
+			"icon" => [
+				"type" => "thick",
+				"name" => Icon::get("error")
+			],
+		]);
+
+		# UrlDEcode the variables
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				$a['vars'][$key] = urldecode($val);
+			}
+		}
+
+		$page->setGrid([[
+			"html" => $this->card()->errorsByType($a)
+		],[
+			"html" => $this->card()->errorsByUser($a)
+		],[
+			"html" => $this->card()->errorsByReltable($a)
+		]]);
+
+		$page->setGrid([
+			"html" => $this->card()->errors($a)
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	public function resolved($a){
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		$page = new Page([
+			"title" => "Resolved errors",
+			"icon" => [
+				"type" => "thin",
+				"name" => Icon::get("error")
+			],
+		]);
+
+		# UrlDEcode the variables
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				$a['vars'][$key] = urldecode($val);
+			}
+		}
+
+		$page->setGrid([[
+			"html" => $this->card()->errorsByType($a)
+		],[
+			"html" => $this->card()->errorsByUser($a)
+		],[
+			"html" => $this->card()->errorsByReltable($a)
+		]]);
+
+		$page->setGrid([
+			"html" => $this->card()->errors($a)
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	public function all($a){
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		$page = new Page([
+			"title" => "All errors",
+			"icon" => [
+				"type" => "duotone",
+				"name" => Icon::get("errors")
+			],
 		]);
 
 		# UrlDEcode the variables
@@ -102,52 +185,248 @@ class ErrorLog extends Common {
 		 * @return array
 		 */
 		$row_handler = function(array $error){
-			$row["Date"] = [
-				"value" => $error['created'],
-				"html" => str::ago($error['created']),
-				"sm" => 2
-			];
-
-			$row["Type"] = [
-				"value" => $error['title'],
-				"accordion" => [
-					"header" => $error['title'],
-					"body" => str::pre($error['message'])
-				],
-				"sm" => 4
-			];
-
-			$hash = str::generate_uri([
-				"rel_table" => $error['rel_table'],
-				"rel_id" => $error['rel_id'],
-				"action" => $error['action']
-			]);
-
-			$row['Action'] = [
-				"value" => $hash,
-				"accordion" => [
-					"header" => $hash,
-					"body" => str::pre($error['vars'])
-				]
-			];
-
-			$this->addNames($error['user']);
-			$row['User'] = [
-				"value" => $error['user'][0]['full_name'] ?: "(Not logged in)",
-				"html" => $error['user'][0]['full_name'] ?: "(Not logged in)",
-				"hash" => $error['user'][0]['user_id'] ? [
-					"rel_table" => "user",
-					"rel_id" => $error['user'][0]['user_id'],
-					"action" => "log_in_as"
-				] : false
-			];
-
-			return $row;
+			return ErrorLog::rowHandler($error);
 		};
 
 		# This line is all that is required to respond to the page request
 		Table::managePageRequest($a, $base_query, $row_handler);
 
 		return true;
+	}
+
+	public static function rowHandler($error){
+		$row["Date"] = [
+			"html" => str::ago($error['created']),
+			"class" => "text-flat",
+			"sm" => 2,
+			"col_name" => "created"
+		];
+
+		$row["Type"] = [
+			"accordion" => [
+				"header" => $error['title'],
+				"body" => str::pre($error['message'])
+			],
+			"sm" => 4,
+			"col_name" => "title"
+		];
+
+		$hash = str::generate_uri([
+			"rel_table" => $error['rel_table'],
+			"rel_id" => $error['rel_id'],
+			"action" => $error['action']
+		]);
+
+		if($error['vars']){
+			$row['Action'] = [
+				"accordion" => [
+					"header" => $hash,
+					"body" => str::pre(json_encode(json_decode($error['vars'], true), JSON_PRETTY_PRINT))
+				],
+			];
+		} else {
+			$row['Action'] = [
+				"html" => $hash,
+			];
+		}
+		$row['Action']['col_name'] = "rel_table";
+		$row['Action']['sm'] = 2;
+
+		str::addNames($error['user']);
+		$row['User'] = [
+			"col_name" => "`user`.`first_name`",
+			"html" => $error['user'][0]['full_name'] ?: "(Not logged in)",
+			"hash" => $error['user'][0]['user_id'] ? [
+				"rel_table" => "user",
+				"rel_id" => $error['user'][0]['user_id'],
+				"action" => "log_in_as"
+			] : false
+		];
+
+		$button_id = str::id("buttons");
+		$row['Actions'] = [
+			"sortable" => false,
+			"id" => $button_id,
+			"button" => ErrorLog::getErrorButtons($error, $button_id)
+		];
+
+		return $row;
+	}
+
+	public function update($a){
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => $vars,
+			"id" => $rel_id
+		]);
+
+		$error = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
+		]);
+
+		$this->output->update($vars['id'], str::getButtons([
+			"button" => ErrorLog::getErrorButtons($error, $vars['id'])
+		]));
+
+		$this->log->success([
+			"icon" => Icon::get("resolve"),
+			"title" => "Updated",
+			"message" => "The error was updated."
+		]);
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	public function resolveAll($a){
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		foreach($vars as $key => $val){
+			$vars[$key] = urldecode($val);
+		}
+
+		if($errors_to_resolve = $this->sql->select([
+			"table" => "error_log",
+			"where" => array_merge($vars,[
+				"resolved" => "NULL"
+			])
+		])){
+			foreach($errors_to_resolve as $error){
+				$this->sql->update([
+					"table" => $rel_table,
+					"set" => [
+						"resolved" => "NOW()"
+					],
+					"id" => $error['error_log_id']
+				]);
+			}
+		}
+
+		$this->log->success([
+			"icon" => Icon::get("resolve"),
+			"title" => str::pluralise_if($errors_to_resolve, "error", true)." resolved",
+			"message" => str::were($errors_to_resolve, "error", true)." marked as resolved."
+		]);
+
+		$this->hash->set([
+			"rel_table" => $rel_table,
+			"action" => "unresolved"
+		]);
+
+		return true;
+	}
+
+	/**
+	 * Generates buttons for a given error.
+	 *
+	 * @param array  $error
+	 * @param string $id
+	 *
+	 * @return array
+	 */
+	private static function getErrorButtons(array $error, string $id) : array
+	{
+		if($error['resolved']){
+			//if this error has been resolved
+			$buttons[] = [
+				"size" => "xs",
+				"alt" => "Mark error as unresolved again",
+				"icon" => "flag-alt",
+				"basic" => true,
+				"colour" => "success",
+				"class" => "resolved float-right",
+				"hash" => [
+					"rel_table" => "error_log",
+					"rel_id" => $error['error_log_id'],
+					"action" => "update",
+					"vars" => [
+						"id" => $id,
+						"resolved" => "NULL",
+						"silent" => true
+					]
+				]
+			];
+		} else {
+			//If the error is unresolved
+			$buttons[] = [
+				"basic" => true,
+				"size" => "xs",
+				"alt" => "Mark error as resolved",
+				"icon" => "flag-checkered",
+				"colour" => "success",
+				"class" => "unresolved",
+				"hash" => [
+					"rel_table" => "error_log",
+					"rel_id" => $error['error_log_id'],
+					"action" => "update",
+					"vars" => [
+						"id" => $id,
+						"resolved" => "NOW()",
+						"silent" => true
+					]
+				],
+			];
+		}
+
+		if($error['issue_tracker_id']){
+			$buttons[] = [
+				"basic" => true,
+				"size" => "xs",
+				"alt" => "Unlink or link to different existing issue",
+				"hash" => [
+					"rel_table" => "error_log",
+					"rel_id" => $error['error_log_id'],
+					"action" => "edit_link_to_existing_issue",
+				],
+				"icon" => "unlink",
+				"colour" => "info",
+			];
+		} else {
+			$buttons[] = [
+				"basic" => true,
+				"size" => "xs",
+				"alt" => "Create an issue from this error",
+				"hash" => [
+					"rel_table" => "issue_tracker",
+					"action" => "new",
+					"vars" => [
+						"error_log_id" => $error['error_log_id'],
+						"issue_type_id" => "908b20bb-ed0e-405e-858a-83682ba4533c" //bug
+					]
+				],
+				"icon" => "bug",
+				"colour" => "warning",
+			];
+
+			$buttons[] = [
+				"basic" => true,
+				"size" => "xs",
+				"alt" => "Add to existing issue",
+				"hash" => [
+					"rel_table" => "error_log",
+					"rel_id" => $error['error_log_id'],
+					"action" => "add_to_existing_issue",
+				],
+				"icon" => "link",
+				"colour" => "info",
+			];
+		}
+
+		return $buttons;
 	}
 }

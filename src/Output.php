@@ -207,6 +207,10 @@ class Output {
 		return false;
 	}
 
+	public function closeModal(){
+		return $this->set_var("modal", "close");
+	}
+
 	/**
 	 * Sets the is_modal value.
 	 * By default, sets it to true.

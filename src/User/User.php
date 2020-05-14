@@ -586,12 +586,14 @@ class User{
 	{
 		$geolocation = $this->getGeolocation();
 		$user_agent_id = $this->getUserAgentId();
+		global $user_id;
 		if(!$connection_id = $this->sql->insert([
 			"table" => "connection",
 			"set" => [
 				"session_id" => session_id(),
 				"ip_address" => $geolocation['ip'],
 				"user_agent_id" => $user_agent_id,
+				"user_id" => $user_id
 			],
 		])){
 			//The new connection was not saved

@@ -2890,7 +2890,11 @@ class mySQL extends Grow {
 		}
 
 		foreach ($orderBy as $column => $direction) {
-//			if(preg_match("/^(COUNT|MAX|MIN)\(/i", $column)){
+
+			# Sanitize what could potentially be user input
+			$column = str::i($column);
+			$direction = str::i($direction);
+
 			if($this->isFunction($column)){
 				//if the order by column is a function
 				$this->orderBy[][$column] = $direction;

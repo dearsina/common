@@ -5,5 +5,5 @@ namespace App\Common\Example;
 
 
 interface ExampleInterface {
-	public function getHTML();
+	public function getHTML($a = NULL);
 }

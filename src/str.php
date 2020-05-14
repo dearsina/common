@@ -2,6 +2,8 @@
 
 namespace App\Common;
 
+use App\UI\Button;
+use App\UI\Dropdown;
 use App\UI\Icon;
 
 /**
@@ -624,6 +626,10 @@ class str {
 
 		# If there are vars (in the array)
 		if(is_array($vars)){
+			# Callbacks can be their own URI in array form, make sure they're converted to string
+			if(is_array($vars['callback'])){
+				$vars['callback'] = str::generate_uri($vars['callback'], true);
+			}
 			if (count($vars) == count($vars, COUNT_RECURSIVE)){
 				//if the vars array is NOT multi-dimensional
 				foreach($vars as $key => $val){
@@ -921,6 +927,36 @@ class str {
 		}
 
 		return " {$attr}=\"{$val}\"";
+	}
+
+	/**
+	 * Given an array of either a "button" or "buttons",
+	 * returns HTMl with both, or returns false if neither are present.
+	 *
+	 * @param array|null $a
+	 *
+	 * @return string
+	 */
+	static function getButtons(?array $a){
+		# Dropdown buttons
+		if($a['buttons']){
+			$buttons = Dropdown::generate($a);
+		}
+
+		# Button(s) in a row
+		if(str::isNumericArray($a['button'])){
+			foreach($a['button'] as $b){
+				$button .= Button::generate($b);
+			}
+		} else if ($a['button']){
+			$button = Button::generate($a['button']);
+		}
+
+		if($button){
+			$button = "<div class=\"btn-float-right\">{$button}</div>";
+		}
+
+		return $buttons.$button;
 	}
 
 	/**
@@ -2120,115 +2156,280 @@ EOF;
 	}
 
 	/**
-	 * If "approve" => "string" is included in a button config,
-	 * create an approval modal based on the button config.
+	 * Generates approval settings, based on the boolean:
+	 * <code>
+	 * "approve" => true
+	 * </code>
+	 * or more complex approval array:
+	 * <code>
+	 * "approve" => [
+	 * 	"title" => "Title",
+	 * 	"message" => "Message",
+	 * 	"colour" => "Red",
+	 * 	"icon" => "user"
+	 *  ]
+	 * </code>
+	 * All of the array elements are optional.
 	 *
-	 * @param $a string|array Can either be a simple sentence fragment
-	 *           describing the action wanted or an array of settings,
-	 *           including icons, colour, text, etc.
-	 *
+	 * @param array|bool|string $approve
 	 *
 	 * @return bool|string
 	 */
-	static function get_approve_script($a){
-		extract($a);
-
+	static function getApproveAttr($approve){
 		if(!$approve){
 			//If no approve modal is required
 			return false;
 		}
 
-		if(is_bool($approve)){
-			$message = str::title("Are you sure you want to do this?");
-		} else if(is_string($approve)){
+		if(is_array($approve)){
+			extract($approve);
+		}
+
+		else if (is_bool($approve)){
+			$message = "Are you sure you want to do this?";
+		}
+
+		else if (is_string($approve)){
 			//if just the name of the thing to be removed is given
 			$message = str::title("Are you sure you want to {$approve}?");
-		} else {
-			extract($a['approve']);
-			//can override icon/class/etc options
 		}
 
-		if(!$title){
-			$title = "Are you sure?";
-		}
-		if(substr($title,-3) == '...'){
-			//remove potential ellipsis
-			$title = substr($title,0,-3);
-		}
+		# Title
+		$title = $title ?: "Are you sure?";
 
-		if(is_array($hash)){
-			$hash = str::generate_uri($hash, false);
-			//Not sure why this was set to true, but could have a real reason
-		}
-
-		if($remove && $hash){
-			$hash .= substr($hash,-1) == "/" ? "" : "/";
-			$hash .=  "div/{$id}";
-			$confirm = "$(\"#{$id}\").{$remove}.remove();".$confirm;
-			$confirm = "window.location.hash = '#{$hash}';".$confirm;
-		} else if($div && $hash){
-			$hash .= substr($hash,-1) == "/" ? "" : "/";
-			$hash .=  "div/{$div}";
-			$confirm = "hashChange('{$hash}');";
-		} else if($onclick||$onClick){
-			$confirm = $onclick.$onClick;
-		} else if ($hash){
-			if($hash == -1){
-				//only -1 works in a button context
-				$confirm = "window.history.back();";
-			} else {
-				$confirm = "window.location.hash = '#{$hash}';";
-			}
-		} else if ($url) {
-			$confirm = "window.location = '{$url}';";
-		} else if ($type=="submit"){
-			//if this is confirming a form submission
-			$confirm = "$('#{$id}').closest('form').submit();
-			let l = Ladda.create( document.querySelector( '#{$id}' ) );
-			l.start();";
-			//submit the form
-
-		}
+		# Message
+		$message = str_replace(["\r\n","\r","\n"], " ", $message);
 
 		$icon_class = Icon::getClass($icon);
 		$type = self::translate_approve_colour($colour);
 		$button_colour = self::getColour($colour, "btn");
 
-		$message = str_replace(["\r\n","\r","\n"], " ", $message);
-
-		return /** @lang HTML */<<<EOF
-<script>
-$('#{$id}').on('click', function (event) {
-    event.stopImmediatePropagation();
-	event.preventDefault();
-	$.confirm({
-		animateFromElement: false,
-		escapeKey: true,
-		backgroundDismiss: true,
-		closeIcon: true,
-		type: "{$type}",
-		theme: "modern",
-		icon: "{$icon_class}",
-		title: "{$title}",
-		content: "{$message}",
-		buttons: {
-			confirm: {
-				text: "Yes", // text for button
-				btnClass: "{$button_colour}", // class for the button
-				keys: ["enter"], // keyboard event for button
-				action: function(){
-					{$confirm}
-				}
-			},
-			cancel: function () {
-				//Close
-			},
-		}
-	});
-});
-</script>
-EOF;
-
-
+		return str::getDataAttr([
+			"approve" => [
+				"type" => $type,
+				"icon" => $icon_class,
+				"title" => $title,
+				"content" => $message,
+				"buttons" => [
+					"confirm" => [
+						"btnClass" => $button_colour
+					]
+				]
+			]
+		]);
 	}
+
+	/**
+	 * Given a key-value array,
+	 * returns a string of `data-key=val`,
+	 * to be fed into a tag.
+	 *
+	 * If the array is multi-dimensional (aka. the `val` is an array),
+	 * will `json_encode()` the `val`.
+	 *
+	 * @param array|null $a
+	 *
+	 * @param bool|null  $keep_empty If set to TRUE, will keep the keys with empty vals, otherwise those keys will be removed.
+	 *
+	 * @return string|bool
+	 * @link https://stackoverflow.com/a/1081581/429071
+	 *
+	 * @link https://stackoverflow.com/questions/13705473/escaping-quotes-and-html-in-a-data-attribute-json-object
+	 */
+	static function getDataAttr(?array $a, ?bool $keep_empty = NULL) : ?string
+	{
+		if(!is_array($a)){
+			return false;
+		}
+
+		foreach($a as $key => $val){
+			if(!$keep_empty){
+				if(!$val){
+					continue;
+				}
+			}
+			if(is_array($val)){
+				# Remove empty (unless requested otherwise)
+				$val = $keep_empty ? $val : str::array_filter_recursive($val);
+
+				# JSON encode
+				$val = json_encode($val);
+
+				# Escape single quotes
+				$val = str_replace("'", "&#39;",$val);
+			} else {
+				# Escape double quotes
+				$val = str_replace("\"", "&quot;", $val);
+			}
+			$str .= " data-{$key}='{$val}'";
+		}
+
+		return $str;
+	}
+
+	/**
+	 * Add "name" and "full_name", and format first and last names.
+	 *
+	 * @param $row
+	 *
+	 * @return bool
+	 */
+	public static function addNames(&$row) : bool
+	{
+		if(!$row){
+			return false;
+		}
+
+		$users = str::isNumericArray($row) ? $row : [$row];
+		//If there is only one user, add a numerical key index
+
+		# Go thru each user, even if there is only one
+		foreach($users as $id => $user){
+			$user['first_name'] = str::title($user['first_name'], true);
+			$user['last_name'] = str::title($user['last_name'], true);
+			$name = "{$user['first_name']} {$user['last_name']}";
+			$user['name'] = $name;
+			$user['full_name'] = $name;
+			$users[$id] = $user;
+		}
+
+		$row = str::isAssociativeArray($row) ? reset($users) : $users;
+		//If there was only one user, skip the numerical key index
+
+		return true;
+	}
+
+
+	/**
+	 * Same as the `array_filter()` function, but works
+	 * on multi-dimentional arrays.
+	 *
+	 * @param $input
+	 *
+	 * @return array
+	 */
+	static function array_filter_recursive($input)
+	{
+		foreach ($input as &$value)
+		{
+			if (is_array($value))
+			{
+				$value = str::array_filter_recursive($value);
+			}
+		}
+		return array_filter($input);
+	}
+
+//	/**
+//	 * If "approve" => "string" is included in a button config,
+//	 * create an approval modal based on the button config.
+//	 *
+//	 * @param $a string|array Can either be a simple sentence fragment
+//	 *           describing the action wanted or an array of settings,
+//	 *           including icons, colour, text, etc.
+//	 *
+//	 *
+//	 * @return bool|string
+//	 */
+//	static function get_approve_script($a){
+//		extract($a);
+//
+//		if(!$approve){
+//			//If no approve modal is required
+//			return false;
+//		}
+//
+//		if(is_bool($approve)){
+//			$message = str::title("Are you sure you want to do this?");
+//		} else if(is_string($approve)){
+//			//if just the name of the thing to be removed is given
+//			$message = str::title("Are you sure you want to {$approve}?");
+//		} else {
+//			extract($a['approve']);
+//			//can override icon/class/etc options
+//		}
+//
+//		if(!$title){
+//			$title = "Are you sure?";
+//		}
+//		if(substr($title,-3) == '...'){
+//			//remove potential ellipsis
+//			$title = substr($title,0,-3);
+//		}
+//
+//		if(is_array($hash)){
+//			$hash = str::generate_uri($hash, false);
+//			//Not sure why this was set to true, but could have a real reason
+//		}
+//
+//		if($remove && $hash){
+//			$hash .= substr($hash,-1) == "/" ? "" : "/";
+//			$hash .=  "div/{$id}";
+//			$confirm = "$(\"#{$id}\").{$remove}.remove();".$confirm;
+//			$confirm = "window.location.pathname = '/{$hash}';".$confirm;
+//		} else if($div && $hash){
+//			$hash .= substr($hash,-1) == "/" ? "" : "/";
+//			$hash .=  "div/{$div}";
+//			$confirm = "hashChange('{$hash}');";
+//		} else if($onclick||$onClick){
+//			$confirm = $onclick.$onClick;
+//		} else if ($hash){
+//			if($hash == -1){
+//				//only -1 works in a button context
+//				$confirm = "window.history.back();";
+//			} else {
+//				$confirm = "window.location.pathname = '/{$hash}';";
+//			}
+//		} else if ($url) {
+//			$confirm = "window.location = '{$url}';";
+//		} else if ($type=="submit"){
+//			//if this is confirming a form submission
+//			$confirm = "$('#{$id}').closest('form').submit();
+//			let l = Ladda.create( document.querySelector( '#{$id}' ) );
+//			l.start();";
+//			//submit the form
+//
+//		}
+//
+//		$icon_class = Icon::getClass($icon);
+//		$type = self::translate_approve_colour($colour);
+//		$button_colour = self::getColour($colour, "btn");
+//
+//		$message = str_replace(["\r\n","\r","\n"], " ", $message);
+//
+//		return /** @lang HTML */<<<EOF
+//<script>
+//$('#{$id}').on('click', function (event) {
+//    event.stopImmediatePropagation();
+//	event.preventDefault();
+//	$.confirm({
+//		animateFromElement: false,
+//		escapeKey: true,
+//		backgroundDismiss: true,
+//		closeIcon: true,
+//		type: "{$type}",
+//		theme: "modern",
+//		icon: "{$icon_class}",
+//		title: "{$title}",
+//		content: "{$message}",
+//		buttons: {
+//			confirm: {
+//				text: "Yes", // text for button
+//				btnClass: "{$button_colour}", // class for the button
+//				keys: ["enter"], // keyboard event for button
+//				action: function(){
+//					{$confirm}
+//				}
+//			},
+//			cancel: function () {
+//				//Close
+//			},
+//		}
+//	});
+//});
+//</script>
+//EOF;
+//
+//
+//	}
 }

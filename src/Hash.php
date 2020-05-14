@@ -76,9 +76,11 @@ class Hash {
 	function set($a){
 		if($a === false){
 			return $this->unset();
-		} else if(is_array($a)){
+		} else if(is_array($a)) {
 			$this->hash = str::generate_uri($a);
-		} else if(is_int($a) || is_string($a)){
+		} else if(is_int($a)){
+			$this->hash = $a;
+		} else if(is_string($a)){
 			$this->hash = urldecode($a);
 		} else {
 			return false;

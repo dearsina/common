@@ -15,14 +15,15 @@ class Card extends \App\Common\Common {
 	}
 
 	public function errorsByType($a){
+		extract($a);
 		$results = $this->sql->select([
 			"columns" => [
 				"Type" => "title",
 				"Errors" => "count(error_log_id)",
 			],
-			"table" => "error_log",
+			"table" => $rel_table,
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => "NULL"
+				"resolved" => $this->getResolvedStatus($a['action'])
 			]),
 			"order_by" => [
 				"Errors" => "DESC"
@@ -32,8 +33,8 @@ class Card extends \App\Common\Common {
 		if($results){
 			foreach($results as $row){
 				$hash = [
-					"rel_table" => "error_log",
-					"action" => "unresolved",
+					"rel_table" => $rel_table,
+					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
 						"title" => urlencode($row['Type'])
 					])
@@ -54,6 +55,7 @@ class Card extends \App\Common\Common {
 	}
 
 	public function errorsByUser($a){
+		extract($a);
 		$results = $this->sql->select([
 			"flat" => true,
 			"columns" => [
@@ -72,7 +74,7 @@ class Card extends \App\Common\Common {
 				]
 			]],
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => "NULL"
+				"resolved" => $this->getResolvedStatus($a['action'])
 			]),
 			"order_by" => [
 				"error_log_id_count" => "DESC"
@@ -82,8 +84,8 @@ class Card extends \App\Common\Common {
 		if($results){
 			foreach($results as $row){
 				$hash = [
-					"rel_table" => "error_log",
-					"action" => "unresolved",
+					"rel_table" => $rel_table,
+					"action" => $action,
 					"vars" => array_merge($a['vars']?:[],[
 						"created_by" => urlencode($row['user.user_id']) ?: "NULL"
 					])
@@ -104,6 +106,7 @@ class Card extends \App\Common\Common {
 	}
 
 	public function errorsByReltable($a){
+		extract($a);
 		$results = $this->sql->select([
 			"columns" => [
 				"rel_table",
@@ -112,7 +115,7 @@ class Card extends \App\Common\Common {
 			],
 			"table" => "error_log",
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => "NULL"
+				"resolved" => $this->getResolvedStatus($a['action'])
 			]),
 			"order_by" => [
 				"Errors" => "DESC"
@@ -122,22 +125,22 @@ class Card extends \App\Common\Common {
 		if($results){
 			foreach($results as $row){
 				$rel_table_hash = [
-					"rel_table" => "error_log",
-					"action" => "unresolved",
+					"rel_table" => $rel_table,
+					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
 						"rel_table" => $row['rel_table']
 					])
 				];
 				$action_hash = [
-					"rel_table" => "error_log",
-					"action" => "unresolved",
+					"rel_table" => $rel_table,
+					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
 						"action" => $row['action']
 					])
 				];
 				$hash = [
-					"rel_table" => "error_log",
-					"action" => "unresolved",
+					"rel_table" => $rel_table,
+					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
 						"rel_table" => $row['rel_table'],
 						"action" => $row['action']
@@ -199,8 +202,8 @@ class Card extends \App\Common\Common {
 				"size" => "xs",
 				"basic" => true,
 				"hash" => [
-					"rel_table" => "error_log",
-					"action" => "unresolved",
+					"rel_table" => $rel_table,
+					"action" => $action,
 					"vars" => array_merge($vars,$var_array)
 				]
 			];
@@ -221,13 +224,16 @@ class Card extends \App\Common\Common {
 	public function errors($a){
 		extract($a);
 
+		$opposite_action = $action == "resolved" ? "unresolved" : $action;
+
 		$button[] = [
 			"colour" => "blue",
-			"alt" => "View resolved errors",
+			"alt" => "View {$opposite_action} errors",
 			"icon" => Icon::get("view"),
 			"hash" => [
-				"rel_table" => "error_log",
-				"action" => "resolved"
+				"rel_table" => $rel_table,
+				"action" => $opposite_action,
+				"vars" => $vars
 			],
 			"size" => "xs",
 			"class" => "float-right"
@@ -240,7 +246,7 @@ class Card extends \App\Common\Common {
 			"size" => "small",
 			"colour" => "success",
 			"hash" => [
-				"rel_table" => "error_log",
+				"rel_table" => $rel_table,
 				"action" => "resolve_all",
 				"vars" => $vars
 			],
@@ -251,9 +257,11 @@ class Card extends \App\Common\Common {
 			"class" => "float-right"
 		];
 
+		$vars['resolved'] = $this->getResolvedStatus($action);
+
 		$body = Table::onDemand([
 			"hash" => [
-				"rel_table" => "error_log",
+				"rel_table" => $rel_table,
 				"action" => "get_errors",
 				"vars" => $vars
 			],
@@ -271,5 +279,20 @@ class Card extends \App\Common\Common {
 		]);
 
 		return $card->getHTML();
+	}
+
+	/**
+	 * Given an action, returns the value of the resolved where clause.
+	 *
+	 * @param string $action
+	 *
+	 * @return bool|string
+	 */
+	private function getResolvedStatus(string $action){
+		switch($action){
+		case 'unresolved': return "NULL"; break;
+		case 'resolved': return "NOT NULL"; break;
+		default: return NULL; break;
+		}
 	}
 }

@@ -7,6 +7,13 @@ namespace App\Common\SQL\Info;
 interface InfoInterface {
 	/**
 	 * Add joins, order, column definitions, etc.
+	 * to the $a array:
+	 * <code>
+	 * $a['join'][] = [
+	 * 	"table" => "",
+	 * 	"on" => "",
+	 * ];
+	 * </code>
 	 *
 	 * @param array $a
 	 */
@@ -17,5 +24,5 @@ interface InfoInterface {
 	 * 
 	 * @param array $row
 	 */
-	public function format(array &$row) : void;
+	public static function format(array &$row) : void;
 }

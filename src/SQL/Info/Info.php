@@ -88,7 +88,7 @@ class Info {
 		# Go thru each row
 		foreach($rows as $id => $row){
 			# Format the data (optional)
-			$class_instance->format($row);
+			$class_instance::format($row);
 			$rows[$id] = $row;
 		}
 
