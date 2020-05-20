@@ -233,34 +233,24 @@ class Card extends Common {
 	}
 
 	public function newAdmin($a = NULL){
-		$buttons = [[
-			"type" => "submit",
-			"colour" => "red",
-			"icon" => "user-plus",
-			"title" => "Create admin"
-		]];
-
-		global $user_id;
-
-		$form = new Form([
-			"action" => "insert_first_admin",
-			"rel_table" => "user",
-			"callback" => "home",
-			"fields" => [[
-				"name" => "user_id",
-				"type" => "hidden",
-				"value" => $user_id
-			]],
-			"buttons" => $buttons
-		]);
-
 		$card = new \App\UI\Card([
 			"header" => [
 				"icon" => "exclamation-triangle",
 				"title" => "No admins assigned"
 			],
 			"body" => "No admins have been assigned for this application. The app needs admins to manage it. Click on the buttom below to set this user as the first.",
-			"footer" => $form->getHTML()
+			"footer" => [
+				"button" => [
+					"type" => "submit",
+					"colour" => "red",
+					"icon" => "user-plus",
+					"title" => "Create admin",
+					"hash" => [
+						"action" => "insert",
+						"rel_table" => "admin",
+					]
+				]
+			]
 		]);
 
 		$html = $card->getHTML();

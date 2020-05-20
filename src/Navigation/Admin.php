@@ -18,7 +18,56 @@ class Admin extends \App\Common\Common implements NavigationInterface {
 
 		$this->errors();
 		$this->issues();
+		$this->cron();
+		$this->examples();
 		return $this->levels;
+	}
+
+	private function cron() : void
+	{
+		$children[] = [
+			"icon" => [
+				"name" => Icon::get("cron_job"),
+			],
+			"title" => "All cron jobs",
+			"alt" => "Manage cron jobs",
+			"hash" => [
+				"rel_table" => "cron_job",
+				"action" => "all",
+			],
+		];
+
+		$children[] = [
+			"icon" => Icon::get("log"),
+			"title" => "Cron job log",
+			"alt" => "View the cron job log",
+			"hash" => [
+				"rel_table" => "cron_log",
+				"action" => "all",
+			],
+		];
+
+		$this->levels[2]['items'][] = [
+			"icon" => [
+				"type" => "duotone",
+				"name" => Icon::get("cron_job"),
+			],
+			"title" => "Cron jobs",
+			"children" => $children
+		];
+	}
+
+	private function examples() : void
+	{
+		$this->levels[2]['items'][] = [
+			"icon" => Icon::get("example"),
+			"title" => "Examples",
+			"alt" => "Elements and how to build them",
+			"hash" => [
+				"rel_table" => "example",
+			],
+//			"children" => $children
+		];
 	}
 
 	private function issues() : void
@@ -55,7 +104,7 @@ class Admin extends \App\Common\Common implements NavigationInterface {
 		$children[] = [
 			"icon" => [
 				"type" => "thick",
-				"name" => "cog"
+				"name" => "cogs"
 			],
 			"title" => "Issue types",
 			"alt" => "Manage issue types",
@@ -116,6 +165,18 @@ class Admin extends \App\Common\Common implements NavigationInterface {
 			"hash" => [
 				"rel_table" => "error_log",
 				"action" => "all"
+			],
+		];
+		$children[] = [
+			"icon" => [
+				"type" => "thick",
+				"name" => "cogs"
+			],
+			"title" => "Manage error notifications",
+			"alt" => "See and alter the frequency of error notifications to admins",
+			"hash" => [
+				"rel_table" => "admin",
+				"action" => "error_notification"
 			],
 		];
 		$this->levels[2]['items'][] = [

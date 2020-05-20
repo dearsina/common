@@ -5,6 +5,7 @@ namespace App\Common\IssueTracker;
 
 
 use App\Common\Common;
+use App\Common\ErrorLog\ErrorLog;
 use App\Common\str;
 use App\UI\Icon;
 use App\UI\Page;
@@ -69,17 +70,39 @@ class IssueTracker extends Common {
 			return $this->accessDenied();
 		}
 
-		$this->sql->insert([
+		$issue_tracker_id = $this->sql->insert([
 			"table" => $rel_table,
 			"set" => $vars
 		]);
 
+		# Tie to error
+		if($vars['error_log_id']){
+			//If the issue was created on the back of an error
+
+			# Update the error
+			$this->sql->update([
+				"table" => "error_log",
+				"set" => [
+					"issue_tracker_id" => $issue_tracker_id
+				],
+				"id" => $vars['error_log_id']
+			]);
+			// Link the two together
+
+			# Get the updated error
+			$error = $this->sql->select([
+				"table" => "error_log",
+				"id" => $vars['error_log_id']
+			]);
+
+			# Update the buttons
+			$this->output->update($vars['button_id'], str::getButtons([
+				"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
+			]));
+		}
+
 		# Closes the (top-most) modal
 		$this->output->closeModal();
-
-//		if($vars['callback']){
-//			$this->hash->set($vars['callback']);
-//		}
 
 		# Give notice to user
 		$this->log->success([
@@ -117,35 +140,65 @@ class IssueTracker extends Common {
 		return true;
 	}
 
+	public function remove(array $a, $silent = NULL) : bool
+	{
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		if($notes = $this->sql->select([
+			"table" => "issue_note",
+			"where" => [
+				"issue_tracker_id" => $rel_id
+			]
+		])){
+			foreach($notes as $note){
+				$this->sql->remove([
+					"table" => "issue_note",
+					"id" => $note['issue_note_id']
+				]);
+			}
+		}
+
+		$this->sql->remove([
+			"table" => $rel_table,
+			"id" => $rel_id
+		]);
+
+		if($silent){
+			return true;
+		}
+
+		if($notes){
+			$message = "The issue and its ".str::pluralise_if($notes, "note", true)." were removed.";
+		} else {
+			$message = "The issue was removed.";
+		}
+
+		$this->log->info([
+			"title" => "Issue removed",
+			"message" => $message
+		]);
+
+		# Closes the (top-most) modal
+		$this->output->closeModal();
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		# Get the latest issue types
+		$this->updateIssueTrackerTable();
+
+		return true;
+	}
+
 	private function updateIssueTrackerTable() : void
 	{
-		$script = /** @lang JavaScript */
-			<<<EOF
-onDemandReset("all_issue_tracker");
-EOF;
-
-		$this->output->append("all_issue_tracker > .table-container",str::getScriptTag($script));
-
-//		$issues = $this->info("issue_tracker");
-//
-//		if($issues){
-//			foreach($issues as $issue){
-//				$rows[] = IssueTracker::rowHandler($issue);
-//			}
-//		} else {
-//			$rows[] = [
-//				"Issue Type" => [
-//					"icon" => Icon::get("new"),
-//					"html" => "New issue...",
-//					"hash" => [
-//						"rel_table" => "issue_tracker",
-//						"action" => "new"
-//					]
-//				]
-//			];
-//		}
-//
-//		$this->output->update("all_issue_tracker", Table::generate($rows));
+		$script = str::getScriptTag("onDemandReset(\"all_issue_tracker\");");
+		$this->output->append("all_issue_tracker > .table-container",$script);
 	}
 
 	public function all($a){

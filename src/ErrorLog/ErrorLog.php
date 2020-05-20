@@ -20,6 +20,13 @@ class ErrorLog extends Common {
 		return new Card($output_to_email);
 	}
 
+	/**
+	 * @return Modal
+	 */
+	public function modal(){
+		return new Modal();
+	}
+
 	public function unresolved($a){
 		extract($a);
 
@@ -140,6 +147,29 @@ class ErrorLog extends Common {
 		return true;
 	}
 
+	public function linkToExistingIssue($a){
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		$issue = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
+		]);
+
+		$a['vars'] = array_merge($a['vars'] ?:[], $issue ?:[]);
+
+		$this->output->modal($this->modal()->linkToExistingIssue($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
 	/**
 	 * An excellent example of how to use the Table::onDemand feature.
 	 *
@@ -168,6 +198,9 @@ class ErrorLog extends Common {
 				"on" => [
 					"user_id" => "`error_log`.`created_by`"
 				]
+//			],[
+//				"table" => "issue_tracker",
+//				"on" => "issue_tracker_id"
 			]],
 			"order_by" => [
 				"created" => "desc"
@@ -198,16 +231,29 @@ class ErrorLog extends Common {
 		$row["Date"] = [
 			"html" => str::ago($error['created']),
 			"class" => "text-flat",
-			"sm" => 2,
+			"sm" => 1,
+//			"header_style" => [
+//				"min-width" => "100px",
+//			],
+//			"style" => [
+//				"min-width" => "100px",
+//			],
 			"col_name" => "created"
 		];
 
+		$header = "<b>{$error['title']}</b> ".str::explode(["\r\n","\r","\n"], $error['message'])[0];
+		$body = str::pre(trim(substr( $error['message'], strpos($error['message'], "\n") +1)));
+
 		$row["Type"] = [
 			"accordion" => [
-				"header" => $error['title'],
-				"body" => str::pre($error['message'])
+				"header" => [
+					"class" => "text-flat",
+					"title" => $header,
+				],
+				"body" => $body
 			],
 			"sm" => 4,
+//			"class" => "text-flat",
 			"col_name" => "title"
 		];
 
@@ -230,10 +276,19 @@ class ErrorLog extends Common {
 			];
 		}
 		$row['Action']['col_name'] = "rel_table";
-		$row['Action']['sm'] = 2;
+		$row['Action']['class'] = "text-flat";
+//		$row['Action']['sm'] = 3;
 
 		str::addNames($error['user']);
 		$row['User'] = [
+			"sm" => 1,
+//			"header_style" => [
+//				"min-width" => "100px",
+//			],
+//			"style" => [
+//				"min-width" => "100px",
+//			],
+			"class" => "text-flat",
 			"col_name" => "`user`.`first_name`",
 			"html" => $error['user'][0]['full_name'] ?: "(Not logged in)",
 			"hash" => $error['user'][0]['user_id'] ? [
@@ -246,6 +301,13 @@ class ErrorLog extends Common {
 		$button_id = str::id("buttons");
 		$row['Actions'] = [
 			"sortable" => false,
+			"sm" => 1,
+			"header_style" => [
+				"min-width" => "180px",
+			],
+			"style" => [
+				"min-width" => "180px",
+			],
 			"id" => $button_id,
 			"button" => ErrorLog::getErrorButtons($error, $button_id)
 		];
@@ -272,15 +334,18 @@ class ErrorLog extends Common {
 			"id" => $rel_id
 		]);
 
-		$this->output->update($vars['id'], str::getButtons([
-			"button" => ErrorLog::getErrorButtons($error, $vars['id'])
+		$this->output->update($vars['button_id'], str::getButtons([
+			"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
 		]));
 
 		$this->log->success([
-			"icon" => Icon::get("resolve"),
-			"title" => "Updated",
+			"icon" => Icon::get("error"),
+			"title" => "Error updated",
 			"message" => "The error was updated."
 		]);
+
+		# Closes the (top-most) modal
+		$this->output->closeModal();
 
 		$this->hash->set(-1);
 		$this->hash->silent();
@@ -296,13 +361,15 @@ class ErrorLog extends Common {
 			return $this->accessDenied();
 		}
 
-		foreach($vars as $key => $val){
-			$vars[$key] = urldecode($val);
+		if($vars){
+			foreach($vars as $key => $val){
+				$vars[$key] = urldecode($val);
+			}
 		}
 
 		if($errors_to_resolve = $this->sql->select([
 			"table" => "error_log",
-			"where" => array_merge($vars,[
+			"where" => array_merge($vars ?:[] ,[
 				"resolved" => "NULL"
 			])
 		])){
@@ -335,11 +402,11 @@ class ErrorLog extends Common {
 	 * Generates buttons for a given error.
 	 *
 	 * @param array  $error
-	 * @param string $id
+	 * @param string $button_id
 	 *
 	 * @return array
 	 */
-	private static function getErrorButtons(array $error, string $id) : array
+	public static function getErrorButtons(array $error, string $button_id) : array
 	{
 		if($error['resolved']){
 			//if this error has been resolved
@@ -355,7 +422,7 @@ class ErrorLog extends Common {
 					"rel_id" => $error['error_log_id'],
 					"action" => "update",
 					"vars" => [
-						"id" => $id,
+						"button_id" => $button_id,
 						"resolved" => "NULL",
 						"silent" => true
 					]
@@ -375,7 +442,7 @@ class ErrorLog extends Common {
 					"rel_id" => $error['error_log_id'],
 					"action" => "update",
 					"vars" => [
-						"id" => $id,
+						"button_id" => $button_id,
 						"resolved" => "NOW()",
 						"silent" => true
 					]
@@ -391,7 +458,10 @@ class ErrorLog extends Common {
 				"hash" => [
 					"rel_table" => "error_log",
 					"rel_id" => $error['error_log_id'],
-					"action" => "edit_link_to_existing_issue",
+					"action" => "link_to_existing_issue",
+					"vars" => [
+						"button_id" => $button_id,
+					]
 				],
 				"icon" => "unlink",
 				"colour" => "info",
@@ -405,6 +475,7 @@ class ErrorLog extends Common {
 					"rel_table" => "issue_tracker",
 					"action" => "new",
 					"vars" => [
+						"button_id" => $button_id,
 						"error_log_id" => $error['error_log_id'],
 						"issue_type_id" => "908b20bb-ed0e-405e-858a-83682ba4533c" //bug
 					]
@@ -420,7 +491,10 @@ class ErrorLog extends Common {
 				"hash" => [
 					"rel_table" => "error_log",
 					"rel_id" => $error['error_log_id'],
-					"action" => "add_to_existing_issue",
+					"action" => "link_to_existing_issue",
+					"vars" => [
+						"button_id" => $button_id,
+					]
 				],
 				"icon" => "link",
 				"colour" => "info",

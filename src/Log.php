@@ -60,13 +60,13 @@ class Log {
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
 					$icon = Icon::getArray($alert['icon']);
-					$flat_error_array[] = array_merge($alert, [
+					$flat_error_array[] = str::array_filter_recursive(array_merge($alert, [
 						"type" => $type,
 						"title" => $alert['title'],
 						"message" => $alert['message'],
 						"icon" => "{$icon['type']} fa-{$icon['name']}",
 						"seconds" => $alert['seconds'],
-					]);
+					]));
 				}
 			}
 			return $flat_error_array;
@@ -213,10 +213,6 @@ class Log {
 
 		if(!$alert['icon']){
 			$alert['icon'] = Icon::DEFAULTS[$type];
-		}
-
-		if(!$alert['title']){
-			$alert['title'] = str::title($type);
 		}
 
 		$alert['seconds'] = $this->secondsSinceStart();

@@ -310,55 +310,6 @@ class User{
 	}
 
 	/**
-	 * Used once per project, to create the first admin.
-	 *
-	 * @param $a
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	public function insertFirstAdmin($a){
-		extract($a);
-
-		if(!$this->isLoggedIn()){
-			$this->accessDenied();
-		}
-
-		if($this->sql->select(["table" => "admin"])){
-			//if this app _has_ admins
-			throw new Exception("This app already has admins.");
-		}
-
-		global $user_id;
-
-		# Create a new admin role
-		$admin_id = $this->sql->insert([
-			"table" => "admin",
-		]);
-
-		# Tie the new admin role to the user
-		$this->sql->insert([
-			"table" => "user_role",
-			"set" => [
-				"rel_table" => "admin",
-				"rel_id" => $admin_id,
-				"user_id" => $user_id
-			]
-		]);
-
-		# Switch the user to the new role
-		$this->hash->set([
-			"rel_table" => "user_role",
-			"action" => "switch",
-			"vars" => [
-				"new_role" => "admin",
-			]
-		]);
-
-		return true;
-	}
-
-	/**
 	 * Insert new user.
 	 *
 	 * @param $a

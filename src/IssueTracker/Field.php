@@ -37,10 +37,10 @@ class Field {
 		$admins = $info->getInfo("admin");
 
 		foreach($admins as $admin){
-			$user_options[$admin['user_id']] = $admin['full_name'];
+			$user_options[$admin['user']['user_id']] = $admin['user']['full_name'];
 		}
 
-		$issue_tracker_fields = [
+		return [
 			[[
 				"type" => "select",
 				"name" => "issue_type_id",
@@ -90,55 +90,11 @@ class Field {
 				"type" => "hidden",
 				"name" => "error_log_id",
 				"value" => $error_log_id
+			],[
+				"type" => "hidden",
+				"name" => "button_id",
+				"value" => $button_id
 			]
 		];
-
-		if($error_log_id){
-			$error = $sql->select([
-				"table" => "error_log",
-				"left_join" => [[
-					"table" => "user",
-					"on" => [
-						"user_id" => "`error_log`.`created_by`"
-					]
-				]],
-				"id" => $error_log_id
-			]);
-
-			$row = ErrorLog::rowHandler($error);
-
-			$error_fields['style'] = [
-//				"border-left" => ".1px solid black",
-				"max-height" => "40vh",
-				"overflow-y" => "auto",
-				"overflow-x" => "hidden",
-				"overflow-wrap" => "anywhere",
-			];
-			$error_fields['class'] = ["vl"];
-			$error_fields['sm'] = 6;
-
-			foreach($row as $key => $val){
-				if($key == "Actions"){
-					continue;
-				}
-				$error_fields['html'][] = [
-					"class" => "h6",
-					"style" => [
-						"margin-top" => "1rem"
-					],
-					"html" => $key
-				];
-				if($val['accordion']){
-					$error_fields['html'][] = $val['accordion']['header'];
-					$error_fields['html'][] = $val['accordion']['body'];
-					continue;
-				}
-				$error_fields['html'][] = $val;
-			}
-
-			return [[$issue_tracker_fields,$error_fields]];
-		}
-
-		return $issue_tracker_fields;
 	}
 }

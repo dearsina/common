@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Common\Admin;
+namespace App\Common\IssueNote;
 
 
 use App\Common\str;
@@ -14,22 +14,9 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 	public function prepare (array &$a): void
 	{
 		$a['join'][] = [
-			"columns" => false,
-			"table" => "user_role",
-			"on" => [
-				"rel_id" => "`admin`.`admin_id`"
-			],
-			"where" => [
-				"rel_table" => "admin"
-			]
-		];
-		$a['join'][] = [
 			"table" => "user",
 			"on" => [
-				"user_id" => "`user_role`.`user_id`"
-			],
-			"where" => [
-				"user_id" => "`user_role`.`user_id`"
+				"user_id" => "`issue_note`.`created_by`"
 			]
 		];
 	}
@@ -39,10 +26,15 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 	 */
 	public static function format (array &$row): void
 	{
-		# There is only ever one user
+
 		$row['user'] = $row['user'][0];
 
 		# Add "name" and "full_name", and format first and last names
 		str::addNames($row['user']);
+
+		# Clean up email
+		$row['email'] = strtolower($row['user']['email']);
+		//email addresses must be parsed as lowercase
+		//because they're used in string comparisons
 	}
 }

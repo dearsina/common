@@ -150,16 +150,19 @@ class Card extends \App\Common\Common {
 					"Table" => [
 						"hash" => $rel_table_hash,
 						"html" => $row['rel_table'],
+						"class" => "text-flat",
 						"sm" => 4
 					],
 					"Action" => [
 						"hash" => $action_hash,
 						"html" => $row['action'],
+						"class" => "text-flat",
 						"sm" => 6
 					],
 					"Errors" => [
 						"hash" => $hash,
 						"html" => $row['Errors'],
+						"class" => "text-flat",
 						"sm" => 2
 					]
 				];
@@ -224,20 +227,51 @@ class Card extends \App\Common\Common {
 	public function errors($a){
 		extract($a);
 
-		$opposite_action = $action == "resolved" ? "unresolved" : $action;
-
-		$button[] = [
-			"colour" => "blue",
-			"alt" => "View {$opposite_action} errors",
-			"icon" => Icon::get("view"),
-			"hash" => [
-				"rel_table" => $rel_table,
-				"action" => $opposite_action,
-				"vars" => $vars
-			],
-			"size" => "xs",
-			"class" => "float-right"
-		];
+		if($action == "unresolved"){
+			//if you're currently seeing the unresolved
+			$icon = [
+				"type" => "thick",
+				"name" => "virus"
+			];
+			$button[] = [
+				"basic" => true,
+				"colour" => "blue",
+				"alt" => "View resolved errors",
+				"icon" => [
+					"type" => "thin",
+					"name" => "virus"
+				],
+				"hash" => [
+					"rel_table" => $rel_table,
+					"action" => "resolved",
+					"vars" => $vars
+				],
+				"size" => "xs",
+				"class" => "float-right"
+			];
+		} else {
+			//if you're currently seeing the resolved
+			$icon = [
+				"type" => "thin",
+				"name" => "virus"
+			];
+			$button[] = [
+				"basic" => true,
+				"colour" => "blue",
+				"alt" => "View unresolved errors",
+				"icon" => [
+					"type" => "thick",
+					"name" => "virus"
+				],
+				"hash" => [
+					"rel_table" => $rel_table,
+					"action" => "unresolved",
+					"vars" => $vars
+				],
+				"size" => "xs",
+				"class" => "float-right"
+			];
+		}
 
 		$button[] = [
 			"alt" => "Resolve all these errors...",
@@ -270,7 +304,7 @@ class Card extends \App\Common\Common {
 
 		$card = new \App\UI\Card([
 			"header" => [
-				"icon" => Icon::get("error"),
+				"icon" => $icon,
 				"title" => "Errors",
 				"button" => $button
 			],

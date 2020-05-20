@@ -548,7 +548,8 @@ class mySQL extends Grow {
 		$table = str::i($table);
 
 		# Take into account that on occasion, table names are from another database (?)
-		$table = end(explode(".",$table));
+		$table_array = explode(".", $table);
+		$table = end($table_array);
 
 		if($update) {
 			//If the user has requested an update to the index
@@ -571,7 +572,7 @@ class mySQL extends Grow {
 	 *
 	 * @return array
 	 */
-	protected function getTableColumnsUsersCannotUpdate($table){
+	public function getTableColumnsUsersCannotUpdate($table){
 		return [
 			"${table}_id",
 			"created",

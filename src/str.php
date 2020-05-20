@@ -454,6 +454,66 @@ class str {
 	}
 
 	/**
+	 * Given a folder path, returns an array
+	 * with all the classes found.
+	 *
+	 * @param string $path
+	 *
+	 * @return array
+	 */
+	public static function getClassesFromPath(string $path) : array
+	{
+		$finder = new \Symfony\Component\Finder\Finder;
+		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder->in($path));
+		return array_keys($iter->getClassMap());
+	}
+
+	/**
+	 * Given a class name (with its namespace),
+	 * return an array of all the methods that
+	 * qualify the modifier.
+	 *
+	 * @param string      $class
+	 * @param string|null $modifier Default modifier is PUBLIC
+	 *
+	 * @return array
+	 */
+	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC") : array
+	{
+		$modifier = strtoupper($modifier);
+		$cmd  = "go(function(){";
+		$cmd .= "require \"/var/www/html/app/settings.php\";";
+		$cmd .= "\$class = new \ReflectionClass(\"".str_replace("\\","\\\\",$class)."\");";
+		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
+		$cmd .= "});";
+
+		# Run the command
+		$json_output = shell_exec("php -r '{$cmd}' 2>&1");
+
+		# Return false if no methods matching are found
+		if(!$array = json_decode($json_output,true)) {
+			return [];
+		}
+
+		foreach($array as $method){
+			# We're not interested in inherited classes
+			if($class != $method['class']){
+				continue;
+			}
+
+			# We're not interested in magic methods
+			if(substr($method['name'],0,2) == "__"){
+				continue;
+			}
+
+			# Collect all the methods
+			$methods[] = $method;
+		}
+
+		return $methods;
+	}
+
+	/**
 	 * Converts snake_case to methodCase (camelCase).
 	 *
 	 * @param $snake
@@ -1202,18 +1262,9 @@ EOF;
 		if(is_array($str)){
 			$str = var_export($str, true);
 		}
-//		$str = htmlentities($str);
-		if(!$crop){
-			return /** @lang HTML */<<<EOF
-<xmp style="
-	font-family: 'Roboto Mono', monospace;
-	font-size: x-small;
-	white-space: pre-wrap;
-">{$str}</xmp>
-EOF;
-		}
 
-		return /** @lang HTML */<<<EOF
+		if($crop){
+			return /** @lang HTML */<<<EOF
 <xmp style="
 	font-size: x-small;
     white-space: normal;
@@ -1228,6 +1279,14 @@ EOF;
     max-height:80vh;
 ">$str</xmp>
 EOF;
+		}
+
+		$Parsedown = new \Parsedown();
+		$Parsedown->setSafeMode(true);
+		$str = "```\r\n{$str}\r\n```";
+		$str = $Parsedown->text($str);
+		$str = "<div class=\"code-mute\">{$str}</div>";
+		return $str;
 	}
 
 	/**
@@ -2269,6 +2328,7 @@ EOF;
 
 	/**
 	 * Add "name" and "full_name", and format first and last names.
+	 * And cleans up the email address.
 	 *
 	 * @param $row
 	 *
@@ -2290,6 +2350,7 @@ EOF;
 			$name = "{$user['first_name']} {$user['last_name']}";
 			$user['name'] = $name;
 			$user['full_name'] = $name;
+			$user['email'] = strtolower($user['email']);
 			$users[$id] = $user;
 		}
 

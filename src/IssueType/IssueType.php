@@ -3,11 +3,11 @@
 
 namespace App\Common\IssueType;
 
-
+use App\Common\Common;
 use App\UI\Icon;
 use App\UI\Table;
 
-class IssueType extends \App\Common\Common {
+class IssueType extends Common {
 	/**
 	 * @return Card
 	 */
@@ -34,7 +34,7 @@ class IssueType extends \App\Common\Common {
 		$this->output->modal($this->modal()->all($a));
 
 		# Get the latest issue types
-		$this->updateIssueTypeTable();
+		$this->updateRelTable($a);
 
 		$this->hash->set(-1);
 		$this->hash->silent();
@@ -42,10 +42,12 @@ class IssueType extends \App\Common\Common {
 		return true;
 	}
 
-	private function updateIssueTypeTable() : void
+	protected function updateRelTable(array $a) : void
 	{
+		extract($a);
+
 		$issue_types = $this->sql->select([
-			"table" => "issue_type",
+			"table" => $rel_table,
 			"order_by" => [
 				"title" => "ASC"
 			]
@@ -66,7 +68,7 @@ class IssueType extends \App\Common\Common {
 
 						"html" => $type['title'],
 						"hash" => [
-							"rel_table" => "issue_type",
+							"rel_table" => $rel_table,
 							"rel_id" => $type['issue_type_id'],
 							"action" => "edit"
 						]
@@ -78,7 +80,7 @@ class IssueType extends \App\Common\Common {
 						"button" => [[
 							"size" => "xs",
 							"hash" => [
-								"rel_table" => "issue_type",
+								"rel_table" => $rel_table,
 								"rel_id" => $type['issue_type_id'],
 								"action" => "remove",
 							],
@@ -101,7 +103,7 @@ class IssueType extends \App\Common\Common {
 					"icon" => Icon::get("new"),
 					"html" => "New issue type...",
 					"hash" => [
-						"rel_table" => "issue_type",
+						"rel_table" => $rel_table,
 						"action" => "new"
 					]
 				]
@@ -163,7 +165,7 @@ class IssueType extends \App\Common\Common {
 		$this->output->closeModal();
 
 		# Get the latest issue types
-		$this->updateIssueTypeTable();
+		$this->updateRelTable($a);
 
 		return true;
 	}
@@ -187,7 +189,7 @@ class IssueType extends \App\Common\Common {
 		$this->output->closeModal();
 
 		# Get the latest issue types
-		$this->updateIssueTypeTable();
+		$this->updateRelTable($a);
 
 		return true;
 	}
@@ -211,7 +213,7 @@ class IssueType extends \App\Common\Common {
 		}
 
 		# Get the latest issue types
-		$this->updateIssueTypeTable();
+		$this->updateRelTable($a);
 
 		return true;
 	}

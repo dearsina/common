@@ -72,7 +72,7 @@ class Home extends Common {
 		]);
 
 		# Make sure the app has at least one admin
-		if(!$this->sql->select(["table" => "admin"])){
+		if(!$this->info("admin")){
 			//if the app has no admins
 			$page->setGrid([
 				"html" => $this->user->card()->newAdmin()

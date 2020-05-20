@@ -10,7 +10,7 @@ use App\Common\SQL\Info\Info;
 use App\Common\User\User;
 
 
-class Common {
+abstract class Common {
 	/**
 	 * @var Log
 	 */
@@ -112,6 +112,88 @@ class Common {
 	 */
 	function accessDenied(){
 		return $this->user->accessDenied();
+	}
+
+	/**
+	 * Given a table name, will return the
+	 * next order number.
+	 *
+	 * @param $rel_table
+	 *
+	 * @return bool|int
+	 */
+	public function getOrder(string $rel_table){
+		# Ensure the table has an order column
+		if (!in_array("order", array_keys($this->sql->getTableMetadata($rel_table, true)))){
+			return false;
+		}
+
+		# Get the highest order
+		$$rel_table = $this->sql->select([
+			"columns" => [
+				"max_order" => "max(`{$rel_table}`.`order`)",
+			],
+			"table" => $rel_table,
+			"limit" => 1,
+		]);
+
+		# Return the number one higher
+		return ${$rel_table}['max_order'] + 1;
+	}
+
+	public function setOrder(array $a, $silent = NULL){
+		extract($a);
+
+		# No change to order
+		if($vars['old_index'] == $vars['new_index']){
+			//Nothing to do
+			return true;
+		}
+
+		# Up
+		if($vars['old_index'] > $vars['new_index']){
+			$end = (int) $vars['old_index'];
+			$beginning = (int) $vars['new_index'];
+			$end--;
+			$direction = "+";
+		}
+
+		# Down
+		if($vars['old_index'] < $vars['new_index']) {
+			$beginning = (int) $vars['old_index'];
+			$end = (int) $vars['new_index'];
+			$beginning++;
+			$direction = "-";
+		}
+
+		# Reorder all the other affected lines
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => [
+				"order" => "`{$rel_table}`.`order` {$direction} 1"
+			],
+			"where" => [
+				"`order` between {$beginning} and {$end}"
+			]
+		]);
+
+		# Reorder the dragged row
+		$this->sql->update([
+			"table" => $rel_table,
+			"id" => $rel_id,
+			"set" => [
+				"order" => $vars['new_index']
+			]
+		]);
+
+		if(!$silent){
+			$this->log->success([
+				"icon" => "random",
+				"message" => "Order updated"
+			]);
+		}
+
+		return true;
 	}
 
 //	/**
