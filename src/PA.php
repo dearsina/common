@@ -88,7 +88,7 @@ class PA {
 			if($recipients = $this->sql->select([
 				"table" => "connection",
 				"where" => [
-					"closed" => "NULL",
+					"closed" => NULL,
 					"session_id" => session_id()
 				]
 			])){

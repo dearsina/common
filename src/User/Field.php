@@ -169,5 +169,28 @@ class Field {
 		]];
 	}
 
+	public static function codeFor2FA($a = NULL)
+	{
+		if (is_array($a))
+			extract($a);
 
+		return [[
+			"name" => "code",
+			"label" => false,
+			"placeholder" => "Enter code here",
+			"required" => true,
+			"validation" => [
+				"minLength" => [
+					"rule" => 4,
+					"msg" => "Your code doesn't seem to be complete"
+				]
+			],
+			"desc" => "The code is case <i>in</i>sensitive.",
+			"autocomplete" => "off"
+		],[
+			"type" => "hidden",
+			"name" => "remember",
+			"value" => $remember
+		]];
+	}
 }

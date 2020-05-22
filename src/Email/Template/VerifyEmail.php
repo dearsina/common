@@ -21,41 +21,44 @@ class VerifyEmail extends TemplateConstructor implements TemplateInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public function getSubject (): string {
+	public function getSubject (): string
+	{
 		return "Welcome to {$_ENV['title']}";
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function getMessage (): string {
-		// TODO: Implement getMessage() method.
+	public function getMessage (): string
+	{
+		extract($this->variables);
+
 		$grid = new Grid();
 		$grid->set([
 			"style" => [
-				"font-weight" => "bold"
+				"font-weight" => "bold",
 			],
-			"html" => "Welcome to {$_ENV['title']}!"
+			"html" => "Welcome to {$_ENV['title']}!",
 		]);
 		$grid->set([
 			"html" => "
 				Thank you for registering with {$_ENV['title']}!<br/>
 				To complete your registration, please verify your email
 				address by clicking on the link below:
-			"
+			",
 		]);
-		$url  = "https://{$_SERVER['HTTP_HOST']}";
+		$url = "https://{$_SERVER['HTTP_HOST']}";
 		$url .= str::generate_uri([
 			"rel_table" => "user",
 			"rel_id" => $user_id,
 			"action" => "verify_email",
 			"vars" => [
 				"email" => $email,
-				"key" => $key
-			]
+				"key" => $key,
+			],
 		]);
 		$grid->set([
-			"html" => "<a href=\"{$url}\">{$url}</a>"
+			"html" => "<a href=\"{$url}\">{$url}</a>",
 		]);
 		return $grid->getHTML();
 	}

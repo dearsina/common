@@ -1054,8 +1054,8 @@ class str {
 		case 4: # Return the second section (4 characteres) of the UUID
 			return explode("-", $uuid)[1];
 			break;
-		case 8: # Return the first 8 characters
-			return explode("-", $uuid)[0];
+		case 8: # Return the second and penultimate sections (in total 8 characters)
+			return explode("-", $uuid)[1].explode("-", $uuid)[3];
 			break;
 		case 12: # Return the last section (12 characters) of the UUID
 			return explode("-", $uuid)[4];

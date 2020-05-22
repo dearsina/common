@@ -30,7 +30,7 @@ class Modal extends \App\Common\Common {
 					"rel_id" => $rel_id,
 					"action" => "update",
 					"vars" => [
-						"issue_tracker_id" => "NULL",
+						"issue_tracker_id" => NULL,
 						"id" => $vars['button_id']
 					]
 				],

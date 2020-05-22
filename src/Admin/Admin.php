@@ -208,7 +208,7 @@ class Admin extends Common {
 						"rel_id" => $admin['admin_id'],
 						"action" => "update",
 						"vars" => [
-							"notification_frequency" => "NULL"
+							"notification_frequency" => NULL
 						]
 					]
 				];

@@ -370,7 +370,7 @@ class ErrorLog extends Common {
 		if($errors_to_resolve = $this->sql->select([
 			"table" => "error_log",
 			"where" => array_merge($vars ?:[] ,[
-				"resolved" => "NULL"
+				"resolved" => NULL
 			])
 		])){
 			foreach($errors_to_resolve as $error){
@@ -423,7 +423,7 @@ class ErrorLog extends Common {
 					"action" => "update",
 					"vars" => [
 						"button_id" => $button_id,
-						"resolved" => "NULL",
+						"resolved" => NULL,
 						"silent" => true
 					]
 				]

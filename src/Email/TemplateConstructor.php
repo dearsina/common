@@ -6,6 +6,7 @@ namespace App\Common\Email;
 
 use App\Common\Common;
 use App\Common\str;
+use App\UI\Grid;
 
 class TemplateConstructor extends Common {
 	/**

@@ -519,7 +519,7 @@ class mySQL extends Grow {
 		}
 		$store[] = [
 			"col" => "removed",
-			"val" => "NULL",
+			"val" => NULL,
 			"tableName" => $table,
 			"tableAlias" => $tableAlias,
 			"not" => false
@@ -1207,6 +1207,13 @@ class mySQL extends Grow {
 			return [$eq, $val];
 		}
 
+		# "col" => NULL,
+		if($val === NULL){
+			$val = "NULL";
+			$eq = $not ? "IS NOT" : "IS";
+			return [$eq, $val];
+		}
+
 		# Tidy up the value
 		$val = str::i($val, $html);
 
@@ -1224,18 +1231,15 @@ class mySQL extends Grow {
 			return [$eq, $val];
 		}
 
-		# "col" => "NULL",
-		if($val == 'NULL'){
-			$eq = $not ? "IS NOT" : "IS";
-			return [$eq, $val];
-		}
-
 		# "col" => "NOT NULL",
-		if($val == 'NOT NULL'){
-			$val = "NULL";
-			$eq = $not ? "IS" : "IS NOT";
-			return [$eq, $val];
-		}
+//		if($val == "NOT NULL"){
+//			$val = "NULL";
+//			$eq = $not ? "IS" : "IS NOT";
+//			return [$eq, $val];
+//		}
+		/**
+		 * No longer allowed
+		 */
 
 		# "col" => "0", "col" => 0,
 		if ($val === "0" || $val === 0){
@@ -1271,13 +1275,13 @@ class mySQL extends Grow {
 	 * Handles formatting of the value and the function or format of the comparative element,
 	 * for SET values, and warns of any improper values.
 	 *
-	 * @param      $col string For reference use only if there is an error
-	 * @param      $val mixed The value itself
-	 * @param null $html bool If set to TRUE will allow HTML in the value
+	 * @param           $col  string For reference use only if there is an error
+	 * @param           $val  mixed The value itself
+	 * @param bool|null $html bool If set to TRUE will allow HTML in the value
 	 *
-	 * @return bool|mixed|string
+	 * @return bool|int|mixed|string
 	 */
-	private function setValHandler($col, $val, $html = NULL){
+	private function setValHandler(string $col, $val, ?bool $html = NULL){
 		# "col" => ["val", "val"],
 		if(is_array($val)){
 			if(empty($val)) {
@@ -1299,11 +1303,6 @@ class mySQL extends Grow {
 
 		# "col" => "NOW()",
 		if($val == "NOW()"){
-			return $val;
-		}
-
-		# "col" => "NULL",
-		if($val == "NULL"){
 			return $val;
 		}
 
@@ -1332,9 +1331,12 @@ class mySQL extends Grow {
 			return $val;
 		}
 
-		# If no val has been submitted
-		$val = "NULL";
-		return $val;
+		# All other types are not allowed
+		throw new \mysqli_sql_exception("An unknown type of value is being attempted inserted into the <code>{$col}</code> column. The value is ".var_export($val, true));
+
+//		# If no val has been submitted
+//		$val = "NULL";
+//		return $val;
 	}
 
 	/**
@@ -1394,13 +1396,15 @@ class mySQL extends Grow {
 		}
 
 		foreach($condition as $col => $val){
-			if ($val === FALSE || $val === NULL) {
+			if ($val === FALSE) {
 				continue;
 			}
 			/**
-			 * If the value is (truly) empty, ignore it, because SQL will anyway.
-			 * The reason why empty() cannot be used is that it also includes
-			 * zero values, which in *this* context is not empty.
+			 * The only value we're ignoring here, is if the value is set to
+			 * false. This can only be done by design.
+			 *
+			 * Values set to NULL or "" or 0 are all valid values,
+			 * thus we cannot use the empty() method here.
 			 */
 
 			# Option for one column, multiple OR values
@@ -2273,7 +2277,7 @@ class mySQL extends Grow {
 						"rel_table" => $table,
 						"rel_id" => $id,
 						"column" => $key,
-						"old_value" => "NULL",
+						"old_value" => NULL,
 						"new_value" => $val
 					]
 				])){
@@ -2597,41 +2601,41 @@ class mySQL extends Grow {
 	 *
 	 * @return array|bool
 	 */
-	private function generateWhereArray($data, $table){
-		if(!is_array($data)){
-			return false;
-		}
-
-		if(!$table){
-			$this->log->error("Table definition is missing");
-			return false;
-		}
-
-		if(!$tableMetadata = $this->getTableMetadata($table, true)){
-			return false;
-		}
-
-		foreach($data as $col => $val){
-			if(!$col){
-				//If for some reason the column is not defined
-				continue;
-			}
-			if(!in_array($col, array_column($tableMetadata, "COLUMN_NAME"))){
-				//If the column doesn't exist in the table
-				continue;
-			}
-			if($tableMetadata[$col]['DATA_TYPE'] == 'text'){
-				//Only columns that are of the TEXT type, can potentially contain HTML
-				//for all other column types, HTML tags are stripped
-				list($eq, $val) = $this->whereValHandler($val,false, true);
-			} else {
-				list($eq, $val) = $this->whereValHandler($val);
-			}
-			$outputArray[] = "`{$col}` {$eq} {$val}";
-		}
-
-		return $outputArray;
-	}
+//	private function generateWhereArray($data, $table){
+//		if(!is_array($data)){
+//			return false;
+//		}
+//
+//		if(!$table){
+//			$this->log->error("Table definition is missing");
+//			return false;
+//		}
+//
+//		if(!$tableMetadata = $this->getTableMetadata($table, true)){
+//			return false;
+//		}
+//
+//		foreach($data as $col => $val){
+//			if(!$col){
+//				//If for some reason the column is not defined
+//				continue;
+//			}
+//			if(!in_array($col, array_column($tableMetadata, "COLUMN_NAME"))){
+//				//If the column doesn't exist in the table
+//				continue;
+//			}
+//			if($tableMetadata[$col]['DATA_TYPE'] == 'text'){
+//				//Only columns that are of the TEXT type, can potentially contain HTML
+//				//for all other column types, HTML tags are stripped
+//				list($eq, $val) = $this->whereValHandler($val,false, true);
+//			} else {
+//				list($eq, $val) = $this->whereValHandler($val);
+//			}
+//			$outputArray[] = "`{$col}` {$eq} {$val}";
+//		}
+//
+//		return $outputArray;
+//	}
 
 	/**
 	 * @var string String that contains the `LIMIT n, n` clause.

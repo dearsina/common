@@ -4,6 +4,7 @@
 namespace App\Common\User;
 
 use App\Common\Common;
+use App\Common\fields;
 use App\Common\str;
 use App\UI\Form\Form;
 use App\UI\Form\Recaptcha;
@@ -23,7 +24,6 @@ class Card extends Common {
 		$form = new Form([
 			"action" => "insert",
 			"rel_table" => "user",
-			"rel_id" => NULL,
 			"callback" => $this->hash->getCallback(),
 			"fields" => Field::new($vars),
 			"buttons" => $buttons
@@ -172,7 +172,6 @@ class Card extends Common {
 		$form = new Form([
 			"action" => "verify_credentials",
 			"rel_table" => "user",
-			"rel_id" => NULL,
 			"callback" => $this->hash->getCallback() == "user//login" ? false : $this->hash->getCallback(),
 			// This is to prevent a loop
 			"fields" => Field::login($vars),
@@ -197,6 +196,54 @@ class Card extends Common {
 		return $html;
 	}
 
+	public function codeFor2FA($a, $user){
+		if(is_array($a))
+			extract($a);
+
+		$buttons = [[
+			"colour" => "primary",
+			"icon" => "key",
+			"title" => "Verify",
+			"type" => "submit",
+		],[
+			"title" => "Cancel",
+			"colour" => "grey",
+			"basic" => true,
+			"hash" => [
+				"rel_table" => "rel_table",
+				"action" => "login"
+			]
+		]];
+
+		$form = new Form([
+			"action" => "verify_2FA_code",
+			"rel_id" => $user['user_id'],
+			"callback" => $this->hash->getCallback(),
+			"fields" => Field::codeFor2FA($vars),
+			"buttons" => $buttons
+		]);
+
+		$card = new \App\UI\Card([
+			"draggable" => true,
+			"header" => "Two-factor authentication",
+			"body" => [[
+				"html" => "
+					Welcome, {$user['first_name']}!
+					Your account has enabled two factor authentication.
+					Please check your emails for an email with a two-factor authentication code.
+				"
+			],[
+				"html" => "The email may have landed in your spam or junk folder. If you still haven't received anything, try to re-log in."
+			],[
+				"html" => $form->getHTML()
+			]],
+		]);
+
+		$html = $card->getHTML();
+
+		return $html;
+	}
+
 	public function resetPassword($a = NULL){
 		extract($a);
 
@@ -210,7 +257,6 @@ class Card extends Common {
 		$form = new Form([
 			"action" => "send_reset_password_email",
 			"rel_table" => "user",
-			"rel_id" => NULL,
 			"callback" => $this->hash->getCallback(),
 			"fields" => Field::resetPassword($vars),
 			"buttons" => $buttons

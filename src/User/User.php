@@ -138,7 +138,7 @@ class User{
 					"user_id" => $_COOKIE['user_id'],
 				],
 				"where_not" => [
-					"session_id" => "NULL"
+					"session_id" => NULL
 				],
 				"limit" => 1
 			])) {
@@ -921,6 +921,143 @@ class User{
 			]);
 			return false;
 		}
+
+		# 2FA (if enabled)
+		if(!$user['2fa_enabled']){
+			return $this->prepare2FACode($a, $user);
+		}
+
+		$this->hash->set($vars['callback'] ? $vars['callback'] : "home");
+		//This prevents callback loops by forcing callback to home if none is set
+
+		# Log the verified user in
+		return $this->logUserIn($user, $vars['remember']);
+	}
+
+	/**
+	 * Prepare the 2FA code and send it in an email to the user.
+	 * Present the user with instructions and a form to enter
+	 * the code.
+	 *
+	 * @param $a
+	 * @param $user
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	private function prepare2FACode($a, $user) : bool
+	{
+		extract($a);
+
+		# Create the 2FA code
+		$code = str::uuid(4);
+
+		# Save the code in the key column
+		$this->sql->update([
+			"table" => "user",
+			"id" => $user['user_id'],
+			"set" => [
+				"key" => $code,
+				"session_id" => session_id()
+			],
+			"user_id" => $user['user_id']
+		]);
+
+		# Prepare variables for the template
+		$variables = [
+			"code" => $code,
+		];
+
+		# Prepare the template to place in an email and send
+		$email = new Email();
+		$email->template("email2FACode", $variables)
+			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
+			->send();
+
+		# Set up the page with the code form
+		$page = new Page();
+
+		$page->setGrid([
+			"class" => "justify-content-md-center",
+			"style" => [
+				"height" => "85% !important"
+			],
+			"html" => [
+				"sm" => 4,
+				"class" => "fixed-width-column my-auto",
+				"html" => $this->card()->codeFor2FA($a, $user)
+			]
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	/**
+	 * Verifies the 2FA code the user has entered.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function verify2FACode($a) : bool
+	{
+		extract($a);
+
+		# If no user ID has been provided
+		if(!$rel_id){
+			throw new \Exception("No user ID was provided for the 2FA verification");
+		}
+
+		# Remove all characters (including spaces) except A to F and 0 to 9
+		$vars['code'] = (string) preg_replace("/[^A-F0-9]/i", '', $vars['code']);
+
+		# Make sure something remains
+		if(!$vars['code']){
+			throw new \Exception("An invalid 2FA verification code was provided.");
+		}
+
+		if(!$user = $this->sql->select([
+			"table" => "user",
+			"id" => $rel_id,
+			"where" => [
+				"key" => $vars['code'],
+				"session_id" => session_id()
+			]
+		])){
+			$this->log->error([
+				"title" => 'Incorrect key',
+				"message" => "The two-factor authentication key you provided was incorrect. Please ensure you have entered the right key.",
+			]);
+			return false;
+		}
+
+		/**
+		 * Calculate the difference of time between the last update
+		 * (when the key was set), and now, make sure it's less
+		 * than 15 minutes.
+		 */
+		if(floor((strtotime("now") - strtotime($user['updated'])) / 60) >= 15){
+			//If more than 15 minutes has passed
+
+			$this->log->error([
+				"title" => 'Expired key',
+				"message" => "The two-factor authentication key you provided has expired. Please log in again.",
+			]);
+
+			$this->hash->set([
+				"action" => "login",
+				"variables" => [
+					"email" => $user['email']
+				]
+			]);
+
+			return true;
+		}
+
+		# At this point the 2FA code has been successfully validated
 
 		$this->hash->set($vars['callback'] ? $vars['callback'] : "home");
 		//This prevents callback loops by forcing callback to home if none is set
