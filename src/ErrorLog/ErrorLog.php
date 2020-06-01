@@ -32,7 +32,7 @@ class ErrorLog extends Common {
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
-			return $this->accessDenied();
+			return $this->accessDenied($a);
 		}
 
 		$page = new Page([
@@ -72,7 +72,7 @@ class ErrorLog extends Common {
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
-			return $this->accessDenied();
+			return $this->accessDenied($a);
 		}
 
 		$page = new Page([
@@ -112,7 +112,7 @@ class ErrorLog extends Common {
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
-			return $this->accessDenied();
+			return $this->accessDenied($a);
 		}
 
 		$page = new Page([
@@ -180,6 +180,7 @@ class ErrorLog extends Common {
 	 */
 	public function getErrors($a){
 		extract($a);
+		unset($a['vars']['resolved']);
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
@@ -202,6 +203,12 @@ class ErrorLog extends Common {
 //				"table" => "issue_tracker",
 //				"on" => "issue_tracker_id"
 			]],
+			"where" => [
+				"resolved" => $vars['resolved'] == 'unresolved' ? NULL : false
+			],
+			"where_not" => [
+				"resolved" => $vars['resolved'] == 'resolved' ? NULL : false
+			],
 			"order_by" => [
 				"created" => "desc"
 			]
@@ -266,7 +273,7 @@ class ErrorLog extends Common {
 		if($error['vars']){
 			$row['Action'] = [
 				"accordion" => [
-					"header" => $hash,
+					"header" => $hash ?: "<span class=\"text-silent\">(None)</span>",
 					"body" => str::pre(json_encode(json_decode($error['vars'], true), JSON_PRETTY_PRINT))
 				],
 			];

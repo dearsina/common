@@ -39,8 +39,7 @@ class Log {
 	final public static function getInstance () {
 		static $instance;
 		if(!isset($instance)) {
-			$calledClass = get_called_class();
-			$instance = new $calledClass();
+			$instance = new Log();
 		}
 
 		return $instance;
@@ -157,7 +156,7 @@ class Log {
 			foreach($alerts as $alert){
 				$icon = Icon::getArray($alert['icon']);
 
-				$alert_array = [
+				$alert_array = array_filter([
 					"type" => $type,
 					"title" => $alert['title'],
 					"message" => implode("\r\n\r\n", array_filter([$alert['message'], $alert['backtrace']])),
@@ -168,19 +167,57 @@ class Log {
 					"rel_id" => $_REQUEST['rel_id'],
 					"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
 					"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
-				];
+				]);
 
 				# Insert the error in the DB
-				if(!$insert_id = $sql->insert([
+				$sql->insert([
 					"table" => 'error_log',
 					"set" => $alert_array
-				])){
-					return false;
-				}
+				]);
 			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * A unique method only called by the error.php file
+	 * in the root of the project, when an error occurs
+	 * on the ajax.php pathway.
+	 */
+	public static function connectionError() : void
+	{
+		# Load up SQL
+		$sql = Factory::getInstance();
+		// Has to be initiated "locally" to prevent an infinite loop
+
+		foreach($_REQUEST as $key => $val){
+			# We're only interested in a limited set of keys
+			if(!in_array($key, ["rel_table", "rel_id", "action", "vars", "title", "message"])){
+				continue;
+			}
+			# If the val is marked as "false", treat it as a FALSE
+			if($val == "false"){
+				continue;
+			}
+			# If the val is an array, convert it to a (JSON) string
+			if(is_array($val)){
+				$val = json_encode($val);
+			}
+			# Set the values in an array to load into SQL
+			$set[$key] = $val;
+		}
+
+		# Insert the error in the DB
+		if(!$sql->insert([
+			"table" => 'error_log',
+			"set" => $set
+		])){
+			echo "There was a problem logging your error.";
+		}
+
+		# Exit stage right
+		exit;
 	}
 
 	/**

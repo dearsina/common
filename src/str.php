@@ -278,6 +278,16 @@ class str {
 	}
 
 	/**
+	 * Returns TRUE if script is run from the command line (CLI),
+	 * or false if it's run from a browser (http).
+	 *
+	 * @return bool
+	 */
+	static function runFromCLI(){
+		return (PHP_SAPI == "cli");
+	}
+
+	/**
 	 * Formats strings and ensures that they won't break SQL.
 	 * If a string is not a float, int or string,
 	 * it will be outright rejected.
@@ -1063,29 +1073,30 @@ class str {
 		default: # Return the entire 36 character string
 			return $uuid; break;
 		}
-	} 
+	}
 
 	/**
 	 * Returns a green check if $value is TRUE.
 	 * Returns a red cross if $cross is TRUE and $value is FALSE.
+	 * Settings allow for further style and class overrides.
 	 *
-	 * @param      $value
-	 * @param bool $cross
+	 * @param            $value
+	 * @param bool       $cross
+	 * @param array|null $settings Additional settings fed to the icon generator
 	 *
-	 * @return string
+	 * @return string|bool
 	 */
-	static function check($value, $cross=false){
+	static function check($value, $cross = false, ?array $settings = []){
 		if($value){
-			return <<<EOF
-<i class="fa fa-check fa-fw text-success" aria-hidden="true"></i>
-EOF;
+			$settings['name'] = "check";
+			$settings['colour'] = "success";
+			return Icon::generate($settings);
+		} else if($cross){
+			$settings['name'] = "times";
+			$settings['colour'] = "danger";
+			return Icon::generate($settings);
 		}
-		if($cross){
-			return <<<EOF
-<i class="fa fa-times fa-fw text-danger" aria-hidden="true"></i>
-EOF;
-		}
-		return '';
+		return false;
 	}
 
 	/**
@@ -1119,6 +1130,23 @@ EOF;
 <time id="{$id}" class="timeago" datetime="{$then->format('c')}">{$datetime_or_time}</time> [{$then->format('j M Y')}]
 <script>{$future}$("time.timeago").timeago();</script>
 EOF;
+	}
+
+	static function countdown(?string $datetime, ?string $modify = NULL, ?string $on_stop = NULL) : string
+	{
+		$dt = new \DateTime($datetime);
+
+		if($modify){
+			$dt->modify($modify);
+		}
+
+		$id = str::id("countdown");
+
+		$final_date = $dt->format("Y/m/d H:i:s");
+
+
+
+
 	}
 
 	/**
@@ -1194,6 +1222,29 @@ EOF;
 		case 1: return "tomorrow"; break;
 		default: return "{$days_away} days"; break;
 		}
+	}
+
+	/**
+	 *
+	 * Checks if the number of minutes between a given
+	 * point in time in the `$since` variable expressed
+	 * as any value that the `strtotime()` function can
+	 * interpret, and now, and whether it's more than
+	 * `$minutes`.
+	 * <code>
+	 * if(str::moreThanMinutesSince(15, $user['updated'])){
+	 * 	//If more than 15 minutes has passed since the user profile was last updated
+	 * }
+	 * </code>
+	 *
+	 * @param float  $minutes
+	 * @param string $since
+	 *
+	 * @return bool
+	 */
+	static function moreThanMinutesSince(float $minutes, string $since) : bool
+	{
+		return (floor((strtotime("now") - strtotime($since)) / 60) >= $minutes);
 	}
 
 	/**

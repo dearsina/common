@@ -21,5 +21,8 @@ class Info extends Common implements InfoInterface {
 		$row['email'] = strtolower($row['email']);
 		//email addresses must be parsed as lowercase
 		//because they're used in string comparisons
+
+		# If no role hs been allocated, assume user
+		$row['last_role'] =	$row['last_role'] ?: "user";
 	}
 }

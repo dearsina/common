@@ -9,6 +9,9 @@ use App\Common\str;
 use App\UI\Form\Form;
 use App\UI\Form\Recaptcha;
 use App\UI\Grid;
+use App\UI\Icon;
+use App\UI\ListGroup;
+use App\UI\Table;
 
 class Card extends Common {
 	public function new($a = NULL){
@@ -134,7 +137,8 @@ class Card extends Common {
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
 			"fields" => Field::newPassword($vars),
-			"buttons" => $buttons
+			"buttons" => $buttons,
+			"encrypt" => ["new_password", "repeat_new_password"]
 		]);
 
 		$card = new \App\UI\Card([
@@ -175,7 +179,8 @@ class Card extends Common {
 			"callback" => $this->hash->getCallback() == "user//login" ? false : $this->hash->getCallback(),
 			// This is to prevent a loop
 			"fields" => Field::login($vars),
-			"buttons" => $buttons
+			"buttons" => $buttons,
+			"encrypt" => ["password"],
 		]);
 
 		$card = new \App\UI\Card([
@@ -210,12 +215,13 @@ class Card extends Common {
 			"colour" => "grey",
 			"basic" => true,
 			"hash" => [
-				"rel_table" => "rel_table",
+				"rel_table" => $rel_table,
 				"action" => "login"
 			]
 		]];
 
 		$form = new Form([
+			"rel_table" => $rel_table,
 			"action" => "verify_2FA_code",
 			"rel_id" => $user['user_id'],
 			"callback" => $this->hash->getCallback(),
@@ -223,20 +229,34 @@ class Card extends Common {
 			"buttons" => $buttons
 		]);
 
-		$card = new \App\UI\Card([
-			"draggable" => true,
-			"header" => "Two-factor authentication",
-			"body" => [[
-				"html" => "
+		$body = [[
+			"html" => "
 					Welcome, {$user['first_name']}!
-					Your account has enabled two factor authentication.
-					Please check your emails for an email with a two-factor authentication code.
+					Your account is protected with two-factor authentication.
+					Please check your emails for an email with an authentication code.
 				"
-			],[
-				"html" => "The email may have landed in your spam or junk folder. If you still haven't received anything, try to re-log in."
-			],[
-				"html" => $form->getHTML()
-			]],
+		],[
+			"row_style" => [
+				"margin-top" => "1rem"
+			],
+			"html" => "The email may have landed in your spam or junk folder. If you still haven't received anything, try to re-log in."
+		],[
+			"row_style" => [
+				"margin-top" => "1rem"
+			],
+			"html" => $form->getHTML(),
+		]];
+
+		$body = ["html" => $body];
+
+		$card = new \App\UI\Card([
+//			"draggable" => true,
+			"header" => "Two-factor authentication",
+			"body" => $body,
+			"footer" => [
+				"class" => "small text-silent",
+				"html" => "Two-factor authentication can be disabled in your account settings."
+			]
 		]);
 
 		$html = $card->getHTML();
@@ -287,7 +307,6 @@ class Card extends Common {
 			"body" => "No admins have been assigned for this application. The app needs admins to manage it. Click on the buttom below to set this user as the first.",
 			"footer" => [
 				"button" => [
-					"type" => "submit",
 					"colour" => "red",
 					"icon" => "user-plus",
 					"title" => "Create admin",
@@ -302,5 +321,102 @@ class Card extends Common {
 		$html = $card->getHTML();
 
 		return $html;
+	}
+
+	public function user($user) : string
+	{
+		$rows = [
+			"First Name" => $user['first_name'],
+			"Last Name" => $user['last_name'],
+			"Phone" => $user['phone'],
+			"Email" => [
+				"html" => $user['email'],
+				"copy" => true
+			],
+			"Two-factor authentication" => str::check($user['2fa_enabled'], true, [
+				"alt" => "Two factor authentication is " . ($user['2fa_enabled'] ? "enabled" : "disabled"),
+				"style" => ["margin" => ".3rem 0 -.3rem 0"]
+			])
+		];
+
+		$header_buttons[] = [
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "edit",
+				"vars" => [
+					"callback" => str::generate_uri([
+						"rel_table" => "user",
+						"rel_id" => $user['user_id']
+					], true)
+				]
+			],
+			"title" => "Edit...",
+			"icon" => Icon::get("edit")
+		];
+
+		$header_buttons[] = [
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "edit_email",
+			],
+			"title" => "Edit email address...",
+			"icon" => "envelope",
+		];
+
+		if($user['2fa_enabled']){
+			$title = "Disable two-factor authentication...";
+			$approve = [
+				"icon" => Icon::get("2fa"),
+				"colour" => "warning",
+				"title" => "Disable two-factor authentication?",
+				"message" => "Your account is more secure when you need a password and a verification code to sign in. If you remove this extra layer of security, you will only be asked for a password when you sign in. It might be easier for someone to break into your account."
+			];
+		} else {
+			$title = "Enable two-factor authentication...";
+			$approve = false;
+		}
+		$header_buttons[] = [
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "toggle_2FA",
+			],
+			"title" => $title,
+			"approve" => $approve,
+			"icon" => Icon::get("2fa"),
+		];
+
+		$header_buttons[] = [
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "remove",
+				"variables" => [
+					"callback" => "logout"
+				]
+			],
+			"title" => "Close account...",
+			"icon" => "times",
+			"approve" => [
+				"colour" => "red",
+				"title" => "Close your account",
+				"message" => "Are you sure you want to close your account? All your data will be removed immediately. This cannot be undone."
+			]
+		];
+
+		$card = new \App\UI\Card([
+			"header" => [
+				"title" => "Account",
+				"buttons" => $header_buttons
+			],
+			"rows" => [
+				"sm" => 3,
+				"rows" => $rows
+			]
+		]);
+
+		return $card->getHTML();
 	}
 }

@@ -6,6 +6,7 @@ namespace App\Common\User;
 use App\Common\Common;
 use App\Common\str;
 use App\UI\Button;
+use App\UI\Form\Form;
 use App\UI\Icon;
 
 class Modal extends Common {
@@ -49,6 +50,72 @@ class Modal extends Common {
 			"body" => $buttons,
 			"draggable" => true,
 //			"resizable" => true,
+		]);
+
+		return $modal->getHTML();
+	}
+
+	public function edit(array $a): string
+	{
+		extract($a);
+
+		$$rel_table = $this->info($rel_table, $rel_id);
+
+		$buttons = ["save","cancel_md"];
+
+		$form = new Form([
+			"action" => "update",
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"callback" => $vars['callback'],
+			"fields" => Field::edit($$rel_table),
+			"buttons" => $buttons,
+			"modal" => true
+		]);
+
+		$modal = new \App\UI\Modal([
+//			"size" => "xl",
+			"icon" => Icon::get("edit"),
+			"header" => str::title("Edit {$rel_table}"),
+			"body" => $form->getHTML(),
+			"approve" => "change",
+			"draggable" => true,
+			"resizable" => true,
+		]);
+
+		return $modal->getHTML();
+	}
+
+	public function editEmail(array $a): string
+	{
+		extract($a);
+
+		$$rel_table = $this->info($rel_table, $rel_id);
+
+		$buttons = [[
+			"type" => "submit",
+			"title" => "Update",
+			"icon" => Icon::get("save"),
+			"colour" => "primary",
+		],"cancel_md"];
+
+		$form = new Form([
+			"action" => "send_email_update_email",
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"callback" => $vars['callback'],
+			"fields" => Field::editEmail($$rel_table),
+			"buttons" => $buttons,
+			"modal" => true
+		]);
+
+		$modal = new \App\UI\Modal([
+//			"size" => "xl",
+			"icon" => Icon::get("edit"),
+			"header" => str::title("Update email address"),
+			"body" => $form->getHTML(),
+			"draggable" => true,
+			"resizable" => true,
 		]);
 
 		return $modal->getHTML();

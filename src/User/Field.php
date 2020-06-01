@@ -4,6 +4,9 @@
 namespace App\Common\User;
 
 
+use App\Common\str;
+use App\UI\Countdown;
+
 class Field {
 	/**
 	 * Minimum password length
@@ -77,7 +80,7 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure a valid email address."
+					"msg" => "Please ensure you've entered a valid email address."
 				],
 			],
 			"value" => $email
@@ -112,7 +115,90 @@ class Field {
 			],
 			"value" => $tnc
 		]];
+	}
 
+	public static function edit($a = NULL) {
+		if (is_array($a))
+			extract($a);
+
+		return [[
+			"name" => "first_name",
+			"autocomplete" => "name given-name",
+			"label" => false,
+			"placeholder" => "First name",
+			"validation" => [
+				"required" => [
+					"rule" => true,
+					"msg" => "Please ensure you have written your first name in full."
+				],
+				"minLength" => 2
+			],
+			"value" => $first_name
+		],[
+			"name" => "last_name",
+			"autocomplete" => "name family-name",
+			"label" => false,
+			"placeholder" => "Last name",
+			"validation" => [
+				"required" => [
+					"rule" => true,
+					"msg" => "Please ensure you have written your last name in full."
+				],
+				"minLength" => 2
+			],
+			"value" => $last_name
+		],[
+			"type" => "email",
+			"icon" => "envelope",
+			"label" => false,
+			"placeholder" => "Email address",
+			"disabled" => true,
+			"desc" => "There is a separate process for changing your email address.",
+			"value" => $email
+		],[
+			"type" => "tel",
+			"autocomplete" => "tel",
+			"name" => "phone",
+			"placeholder" => false,
+//			"icon" => "phone",
+			"validation" => [
+				"tel" => [
+					"rule" => true,
+					"msg" => "Please ensure you enter your full mobile number."
+				],
+			],
+			"label" => false,
+			"value" => $phone
+		]];
+	}
+
+	public static function editEmail($a = NULL): array
+	{
+		if (is_array($a))
+			extract($a);
+
+		return [[
+			"type" => "email",
+			"autocomplete" => "off",
+			"name" => "new_email",
+			"icon" => "envelope",
+			"label" => false,
+			"placeholder" => "New email address",
+			"validation" => [
+				"required" => [
+					"rule" => true,
+					"msg" => "Please ensure you've entered a valid email address."
+				],
+			],
+		],[
+			"icon" => "key",
+			"type" => "password",
+			"name" => "password",
+			"placeholder" => "Current password",
+			"label" => false,
+			"required" => "For added security, please enter your current password.",
+			"autocomplete" => "new-password"
+		]];
 	}
 
 	public static function newPassword($a = NULL) {
@@ -185,7 +271,12 @@ class Field {
 					"msg" => "Your code doesn't seem to be complete"
 				]
 			],
-			"desc" => "The code is case <i>in</i>sensitive.",
+			"desc" => Countdown::generate([
+				"modify" => "+15 minutes",
+				"stop" => "Your code has expired, please cancel and log in again.",
+				"pre" => "The code is case <i>in</i>sensitive and will expire in ",
+				"post" => "."
+			]),
 			"autocomplete" => "off"
 		],[
 			"type" => "hidden",

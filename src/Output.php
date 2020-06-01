@@ -137,6 +137,20 @@ class Output {
 	}
 
 	/**
+	 * Will change the value of an element, based on their ID.
+	 * It will not touch the element itself.
+	 * Is predominantly for form elements that have a value="" attribute.
+	 *
+	 * @param $id
+	 * @param $data
+	 *
+	 * @return bool
+	 */
+	public function val($id, $data){
+		return $this->set_data("val", $id, $data);
+	}
+
+	/**
 	 * Will prepend a given div with data.
 	 *
 	 * @param $id
@@ -339,7 +353,7 @@ class Output {
 			} else {
 				unset($this->output[$type]);
 			}
-		} else if ($data){
+		} else {
 			//If data has been submitted
 
 			# Data is *appended* to the array, NOT replaced
@@ -348,10 +362,8 @@ class Output {
 			} else {
 				$this->output[$type] .= $data;
 			}
-		} else {
-			//if no data has been submitted, just return the existing
-			return $this->get_data($type, $id);
 		}
+
 		return true;
 	}
 

@@ -45,7 +45,6 @@ class Home extends Common {
 			# Ensure the method is available
 			if(!str::methodAvailable($classInstance, $method)){
 				throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
-				return false;
 			}
 
 			# Use the app method

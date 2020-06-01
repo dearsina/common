@@ -104,9 +104,8 @@ class Hash {
 	function get($urlencode = NULL){
 		if($urlencode){
 			return str::urlencode($this->hash);
-		} else {
-			return urldecode($this->hash);
 		}
+		return $this->hash;
 	}
 
 	/**

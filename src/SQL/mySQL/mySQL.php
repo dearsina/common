@@ -1214,6 +1214,13 @@ class mySQL extends Grow {
 			return [$eq, $val];
 		}
 
+		# "col" => true,
+		if($val === TRUE){
+			$val = 1;
+			$eq = $not ? "<>" : "=";
+			return [$eq, $val];
+		}
+
 		# Tidy up the value
 		$val = str::i($val, $html);
 
@@ -1230,16 +1237,6 @@ class mySQL extends Grow {
 			$eq = $not ? "!=" : "=";
 			return [$eq, $val];
 		}
-
-		# "col" => "NOT NULL",
-//		if($val == "NOT NULL"){
-//			$val = "NULL";
-//			$eq = $not ? "IS" : "IS NOT";
-//			return [$eq, $val];
-//		}
-		/**
-		 * No longer allowed
-		 */
 
 		# "col" => "0", "col" => 0,
 		if ($val === "0" || $val === 0){
@@ -1282,6 +1279,11 @@ class mySQL extends Grow {
 	 * @return bool|int|mixed|string
 	 */
 	private function setValHandler(string $col, $val, ?bool $html = NULL){
+		# "col" => false,
+		if($val === false){
+			return false;
+		}
+
 		# "col" => ["val", "val"],
 		if(is_array($val)){
 			if(empty($val)) {
@@ -1331,12 +1333,9 @@ class mySQL extends Grow {
 			return $val;
 		}
 
-		# All other types are not allowed
-		throw new \mysqli_sql_exception("An unknown type of value is being attempted inserted into the <code>{$col}</code> column. The value is ".var_export($val, true));
-
-//		# If no val has been submitted
-//		$val = "NULL";
-//		return $val;
+		# If no val has been submitted
+		$val = "NULL";
+		return $val;
 	}
 
 	/**
@@ -2340,8 +2339,7 @@ class mySQL extends Grow {
 	 */
 	public function remove($a) {
 		if(!is_array($a)){
-			$this->log->error("SQL remove calls must be in array format.");
-			return false;
+			throw new \mysqli_sql_exception("SQL remove calls must be in array format.");
 		} else {
 			extract($a);
 		}
@@ -2350,14 +2348,12 @@ class mySQL extends Grow {
 			// The user ID requirement can be overridden by setting user_id = FALSE
 			global $user_id;
 			if(!$user_id){
-				$this->log->error('Removing without a user_id is not allowed.');
-				return false;
+				throw new \mysqli_sql_exception('Removing without a user_id is not allowed.');
 			}
 		}
 
-		if(!$id){
-			$this->log->error('Removing without an id is too dangerous.');
-			return false;
+		if(!$id && !$where && !$where_not){
+			throw new \mysqli_sql_exception('Removing rows without an id or a where clause is too dangerous.');
 		}
 
 		# The user should not be sending any values with the restore request
@@ -2560,7 +2556,10 @@ class mySQL extends Grow {
 				if(is_numeric($val)){
 					$val = date_create('@' . $val)->format("Y-m-d H:i:s");
 				}
-				$val = $this->setValHandler($col, $val);
+				if(($val = $this->setValHandler($col, $val)) === FALSE){
+					//A legit value can be "0" or NULL
+					continue;
+				}
 			} else if($tableMetadata[$col]['DATA_TYPE'] == 'tinyint'){
 				/**
 				 * The assumption here is that if the data type is tinyint,
@@ -2584,7 +2583,10 @@ class mySQL extends Grow {
 				}
 				$val = $this->setValHandler($col, $val);
 			} else {
-				$val = $this->setValHandler($col, $val);
+				if(($val = $this->setValHandler($col, $val)) === FALSE){
+					//A legit value can be "0" or NULL
+					continue;
+				}
 			}
 			$outputArray[] = "`{$table}`.`{$col}` = {$val}";
 		}

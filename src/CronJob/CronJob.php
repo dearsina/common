@@ -4,6 +4,8 @@
 namespace App\Common\CronJob;
 
 use App\Common\Common;
+use App\Common\Request;
+use App\Common\SQL\Factory;
 use App\Common\str;
 use App\UI\Badge;
 use App\UI\Icon;
@@ -24,6 +26,14 @@ class CronJob extends Common {
 		return new Modal();
 	}
 
+	/**
+	 * View all Cron jobs. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function all(array $a) : bool
 	{
 		extract($a);
@@ -44,6 +54,14 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * Edit one cron job. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function edit(array $a) : bool
 	{
 		extract($a);
@@ -61,6 +79,14 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * New cron job form. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function new(array $a) : bool
 	{
 		extract($a);
@@ -78,6 +104,15 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * Insert a new cron job.
+	 *
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function insert(array $a, $silent = NULL) : bool
 	{
 		extract($a);
@@ -103,6 +138,15 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * Update a cron job.
+	 *
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function update(array $a, $silent = NULL) : bool
 	{
 		extract($a);
@@ -127,6 +171,44 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * Same as update, but won't close the modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function pause(array $a) : bool
+	{
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => $vars,
+			"id" => $rel_id
+		]);
+
+		# Get the latest issue types
+		$this->updateRelTable($a);
+
+		return true;
+	}
+
+	/**
+	 * Removes a cron job.
+	 *
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function remove(array $a, $silent = NULL) : bool
 	{
 		extract($a);
@@ -151,6 +233,16 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * Given a class name, will return a list of all class methods.
+	 * Is designed to work as a callback for whenever someone
+	 * changes the value of the class dropdown.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function getClassMethods($a) : bool
 	{
 		extract($a);
@@ -183,10 +275,18 @@ class CronJob extends Common {
 		return true;
 	}
 
+	/**
+	 * Reorders cron jobs.
+	 * Checks credentials, then sends user off to
+	 * generic setOrder method.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function reorder($a) : bool
 	{
-		extract($a);
-
 		if(!$this->user->is("admin")){
 			//Only admins have access
 			return $this->accessDenied();
@@ -195,6 +295,14 @@ class CronJob extends Common {
 		return $this->setOrder($a);
 	}
 
+	/**
+	 * Is called by various methods to refresh
+	 * the table of rows.
+	 *
+	 * @param $a
+	 *
+	 * @throws \Exception
+	 */
 	protected function updateRelTable($a) : void
 	{
 		extract($a);
@@ -228,6 +336,39 @@ class CronJob extends Common {
 						"message" => "Start running this job? Depending on the job, this could take a while."
 					]
 				];
+
+				if($job['paused']){
+					$buttons[] = [
+						"hash" => [
+							"rel_table" => $rel_table,
+							"rel_id" => $job["cron_job_id"],
+							"action" => "pause",
+							"vars" => [
+								"paused" => "false"
+							]
+						],
+						"alt" => "Unpause and resume running this job on schedule",
+						"icon" => "pause",
+						"colour" => "primary",
+						"size" => "xs",
+					];
+				} else {
+					$buttons[] = [
+						"hash" => [
+							"rel_table" => $rel_table,
+							"rel_id" => $job["cron_job_id"],
+							"action" => "pause",
+							"vars" => [
+								"paused" => 1
+							]
+						],
+						"alt" => "Pause this job from running on schedule",
+						"icon" => "pause",
+						"colour" => "primary",
+						"size" => "xs",
+						"basic" => true
+					];
+				}
 
 				$buttons[] = [
 					"hash" => [
@@ -288,7 +429,9 @@ EOF;
 					"Action" => [
 						"sortable" => false,
 						"sm" => 3,
-						"class" => "float-right",
+						"header_style" => [
+							"opacity" => 0
+						],
 						"button" => $buttons
 					]
 				];
@@ -310,5 +453,116 @@ EOF;
 			"rel_table" => $rel_table,
 			"order" => true
 		]));
+	}
+
+	public function runScheduled() : bool
+	{
+		if(!str::runFromCLI()){
+			throw new \Exception("You can only run this method from the command line.");
+		}
+
+		# Set the user ID to be zero, the system user ID
+		global $user_id;
+		$user_id = "0";
+		$_SESSION['user_id'] = $user_id;
+
+		# Get all active (non-paused) cron jobs
+		if(!$cron_jobs = $this->sql->select([
+			"table" => "cron_job",
+			"where" => [
+				"paused" => NULL
+			]
+		])){
+			//if no cron jobs are scheduled, close up shop
+			return true;
+		}
+
+		// Create a new scheduler
+		$scheduler = new \GO\Scheduler();
+
+		foreach($cron_jobs as $cron_job) {
+			//for each cron job scheduled
+			$func = function($a){
+				$request = new Request();
+				return $request->handler($a);
+			};
+			$args = [[
+				"rel_table" => end(explode("\\", $cron_job['class'])),
+				"action" => $cron_job['method'],
+				"cron_job" => $cron_job,
+			]];
+
+			$scheduler
+			->call($func, $args, $cron_job['cron_job_id'])
+			->at($cron_job['interval']) //at the intervals determined
+			->before(function() {
+				$this->log->clearAlerts();
+				$this->log->startTimer();
+			})
+			->then(function($output) use ($cron_job){
+				$this->sql->insert([
+					"table" => "cron_log",
+					"set" => [
+						"cron_job_id" => $cron_job['cron_job_id'],
+						"status" => $this->log->getStatus(),
+						"duration" => $this->log->getDuration(),
+						"output" => $output
+					]
+				]);
+			});
+		}
+		$scheduler->run();
+		return true;
+	}
+
+	public function run($a){
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		if(!$cron_job = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
+		])){
+			throw new \Exception("The cron job cannot be found.");
+		}
+
+		// Create a new scheduler
+		$scheduler = new \GO\Scheduler();
+
+		$func = function($a){
+			$request = new Request();
+			return $request->handler($a);
+		};
+		$args = [[
+			"rel_table" => end(explode("\\", $cron_job['class'])),
+			"action" => $cron_job['method'],
+			"cron_job" => $cron_job,
+		]];
+
+		$scheduler
+			->call($func, $args, $cron_job['cron_job_id'])
+			// We're ignoring the ->at() method, because we're going to run it irrespective of schedule
+			->before(function() {
+				$this->log->clearAlerts();
+				$this->log->startTimer();
+			})
+			->then(function($output) use ($cron_job){
+				$this->sql->insert([
+					"table" => "cron_log",
+					"set" => [
+						"cron_job_id" => $cron_job['cron_job_id'],
+						"status" => $this->log->getStatus(),
+						"duration" => $this->log->getDuration(),
+						"output" => $output
+					]
+				]);
+			});
+
+		$scheduler->run();
+		return true;
 	}
 }

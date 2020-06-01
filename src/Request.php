@@ -12,29 +12,29 @@ class Request {
 	 * Where title, body, footer for the modal are stored.
 	 * @var array
 	 */
-	protected $modal;
+	public $modal;
 
 	/**
 	 * Classes.
 	 *
 	 * @var log
 	 */
-	protected $log;
+	public $log;
 
 	/**
 	 * @var hash
 	 */
-	protected $hash;
+	public $hash;
 
 	/**
 	 * @var output
 	 */
-	protected $output;
+	public $output;
 
 	/**
 	 * @var sql
 	 */
-	protected $sql;
+	public $sql;
 
 	function __construct () {
 		$this->loadSessionVars();
@@ -171,6 +171,11 @@ class Request {
 	 * @throws \Exception
 	 */
 	private function preventCSRF($a){
+		# CLI commands are exempt from CSRF checks
+		if(str::runFromCLI()){
+			return true;
+		}
+
 		# Ensure the request was sent from our domain
 		if(substr($_SERVER["HTTP_ORIGIN"],strlen($_ENV['domain']) * -1) != $_ENV['domain']){
 			//if this request wasn't done from our own domain
@@ -269,6 +274,7 @@ class Request {
 
 		if(!$classPath = str::findClass($rel_table)){
 			//if a class doesn't exist
+			unset($a['vars']);
 			throw new \Exception("No matching class for <code>".str::generate_uri($a)."</code> can be found.");
 		}
 
@@ -280,6 +286,7 @@ class Request {
 
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
+			unset($a['vars']);
 			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
 		}
 
@@ -324,9 +331,10 @@ class Request {
 
 		if($this->hash->get()){
 			$output['hash'] = $this->hash->get();
-		} else if($this->hash->getCallback()){
-			$output['hash'] = $this->hash->getCallback();
 		}
+//		else if($this->hash->getCallback()){
+//			$output['hash'] = $this->hash->getCallback();
+//		}
 		$output['silent'] = $this->hash->getSilent();
 		# TEMP I think we can send a hash always
 		# No, otherwise the silent flag means nothing
@@ -354,7 +362,15 @@ class Request {
 			$output['success'] = true;
 		}
 
-		$this->sql->disconnect();
+		# Close the database connection
+		if(!str::runFromCLI()){
+			/**
+			 * CLI commands (cron jobs, etc) are exempt,
+			 * as they keep using the connection, after
+			 * the request has been handled.
+			 */
+			$this->sql->disconnect();
+		}
 
 		return json_encode($output, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK);
 	}

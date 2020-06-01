@@ -95,7 +95,8 @@ class App extends \App\Common\Common implements NavigationInterface {
 	private function allUsers(): void
 	{
 		$this->levels[1]['title'] = [
-			"title" => $_ENV['title']
+			"title" => $_ENV['title'],
+			"uri" => "/"
 		];
 
 		$this->levels[1]['items'][] = [

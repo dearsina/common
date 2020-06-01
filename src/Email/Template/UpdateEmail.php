@@ -3,27 +3,18 @@
 
 namespace App\Common\Email\Template;
 
-use App\Common\Email\TemplateConstructor;
-use App\Common\Email\TemplateInterface;
+
 use App\Common\str;
 use App\UI\Grid;
 
-/**
- * Class VerifyEmail
- *
- * Email sent to anyone who registers, to verify
- * their email address.
- *
- * @package App\Common\Email\Template
- */
-class VerifyEmail extends TemplateConstructor implements TemplateInterface {
+class UpdateEmail extends \App\Common\Email\TemplateConstructor implements \App\Common\Email\TemplateInterface {
 
 	/**
 	 * @inheritDoc
 	 */
 	public function getSubject (): string
 	{
-		return "Welcome to {$_ENV['title']}";
+		return "Change of email address";
 	}
 
 	/**
@@ -38,23 +29,21 @@ class VerifyEmail extends TemplateConstructor implements TemplateInterface {
 			"style" => [
 				"font-weight" => "bold",
 			],
-			"html" => "Welcome to {$_ENV['title']}!",
+			"html" => "Updating your email address",
 		]);
 		$grid->set([
 			"html" => "
-				Thank you for registering with {$_ENV['title']}!<br/>
-				To complete your registration, please verify your email
-				address by clicking on the link below:
+				Follow the link below to update your email address to {$new_email}:
 			",
 		]);
 		$url = "https://{$_SERVER['HTTP_HOST']}/";
 		$url .= str::generate_uri([
 			"rel_table" => "user",
 			"rel_id" => $user_id,
-			"action" => "verify_email",
+			"action" => "update_email",
 			"vars" => [
-				"email" => $email,
-				"key" => $key,
+				"new_email" => $new_email,
+				"checksum" => $checksum,
 			],
 		]);
 		$grid->set([

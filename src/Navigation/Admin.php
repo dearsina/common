@@ -4,6 +4,7 @@
 namespace App\Common\Navigation;
 
 
+use App\Common\str;
 use App\UI\Icon;
 
 class Admin extends \App\Common\Common implements NavigationInterface {
@@ -19,8 +20,73 @@ class Admin extends \App\Common\Common implements NavigationInterface {
 		$this->errors();
 		$this->issues();
 		$this->cron();
+		$this->permissions();
 		$this->examples();
 		return $this->levels;
+	}
+
+	private function permissions() : void
+	{
+
+		$children[] = [
+			"icon" => Icon::get("user_permission"),
+			"title" => "User permissions",
+			"alt" => "Manage each user's permissions",
+			"hash" => [
+				"rel_table" => "user_permission",
+			],
+		];
+
+		if($roles = $this->sql->select([
+			"table" => "role",
+			"order_by" => [
+				"role" => "ASC"
+			]
+		])){
+			foreach($roles as $role){
+				$grandchildren[] = [
+					"icon" => $role['icon'],
+					"title" => str::title($role['role']),
+					"hash" => [
+						"rel_table" => "role_permission",
+						"vars" => [
+							"role_id" => $role['role_id']
+						]
+					]
+				];
+			}
+		}
+
+		$children[] = [
+			"icon" => Icon::get("role_permission"),
+			"title" => "Role permissions",
+			"alt" => "Manage each role's permissions",
+//			"hash" => [
+//				"rel_table" => "role_permission",
+//			],
+			"children" => $grandchildren
+		];
+
+		$children[] = [
+			"icon" => [
+				"name" => Icon::get("role"),
+			],
+			"title" => "Roles",
+			"alt" => "Roles and their icons",
+			"hash" => [
+				"rel_table" => "role",
+				"action" => "all",
+			],
+		];
+
+		$this->levels[2]['items'][] = [
+			"icon" => [
+				"type" => "duotone",
+				"name" => Icon::get("permission"),
+			],
+			"title" => "Permissions",
+			"children" => $children
+		];
 	}
 
 	private function cron() : void

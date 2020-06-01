@@ -4,6 +4,8 @@
 namespace App\Common\ErrorLog;
 
 
+use App\Common\str;
+use App\UI\Countdown;
 use App\UI\Icon;
 use App\UI\Table;
 
@@ -23,8 +25,11 @@ class Card extends \App\Common\Common {
 			],
 			"table" => $rel_table,
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => $this->getResolvedStatus($a['action'])
+				"resolved" => $a['action'] == 'unresolved' ? NULL : false
 			]),
+			"where_not" => [
+				"resolved" => $a['action'] == 'resolved' ? NULL : false
+			],
 			"order_by" => [
 				"Errors" => "DESC"
 			]
@@ -74,8 +79,11 @@ class Card extends \App\Common\Common {
 				]
 			]],
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => $this->getResolvedStatus($a['action'])
+				"resolved" => $a['action'] == 'unresolved' ? NULL : false
 			]),
+			"where_not" => [
+				"resolved" => $a['action'] == 'resolved' ? NULL : false
+			],
 			"order_by" => [
 				"error_log_id_count" => "DESC"
 			]
@@ -115,8 +123,11 @@ class Card extends \App\Common\Common {
 			],
 			"table" => "error_log",
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => $this->getResolvedStatus($a['action'])
+				"resolved" => $a['action'] == 'unresolved' ? NULL : false
 			]),
+			"where_not" => [
+				"resolved" => $a['action'] == 'resolved' ? NULL : false
+			],
 			"order_by" => [
 				"Errors" => "DESC"
 			]
@@ -291,15 +302,29 @@ class Card extends \App\Common\Common {
 			"class" => "float-right"
 		];
 
-		$vars['resolved'] = $this->getResolvedStatus($action);
+		$id = str::id("on_demand_table");
+
+		$vars['resolved'] = $action;
 
 		$body = Table::onDemand([
+			"id" => $id,
 			"hash" => [
 				"rel_table" => $rel_table,
 				"action" => "get_errors",
 				"vars" => $vars
 			],
 			"length" => 10
+		]);
+
+		$countdown = Countdown::generate([
+			"modify" => "+5 minutes", //A string modifying the datetime
+			"pre" => "Refreshing in ", //Text that goes before the timer
+			"post" => ".",
+			"callback" => "onDemandReset", //The name of a function to call at zero
+			"vars" => $id, //Variables to send to the callback function,
+			"restart" => [
+				"minutes" => 5
+			]
 		]);
 
 		$card = new \App\UI\Card([
@@ -309,7 +334,11 @@ class Card extends \App\Common\Common {
 				"button" => $button
 			],
 			"body" => $body,
-			"footer" => true
+			"footer" => true,
+			"post" => [
+				"class" => "text-center text-muted smaller",
+				"html" => $countdown
+			]
 		]);
 
 		return $card->getHTML();
@@ -324,9 +353,9 @@ class Card extends \App\Common\Common {
 	 */
 	private function getResolvedStatus(string $action){
 		switch($action){
-		case 'unresolved': return "NULL"; break;
+		case 'unresolved': return NULL; break;
 		case 'resolved': return "NOT NULL"; break;
-		default: return NULL; break;
+		default: return false; break;
 		}
 	}
 }

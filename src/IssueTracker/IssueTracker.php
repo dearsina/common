@@ -206,7 +206,7 @@ class IssueTracker extends Common {
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
-			return $this->accessDenied();
+			return $this->accessDenied($a);
 		}
 
 		$page = new Page([

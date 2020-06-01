@@ -3,7 +3,6 @@
 
 namespace App\Common;
 
-
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
@@ -41,13 +40,22 @@ abstract class Common {
 	 */
 	public $user;
 
-
 	function __construct () {
 		$this->hash = Hash::getInstance();
 		$this->log = Log::getInstance();
 		$this->pa = PA::getInstance();
 		$this->output = Output::getInstance();
 		$this->sql = Factory::getInstance();
+
+		/**
+		 * To avoid short-circuiting the script,
+		 * classes that are extended by Common(),
+		 * but that also are initiated in Common(),
+		 * are excused.
+		 */
+		if(in_array(end(explode("\\", get_called_class())), ["User"])){
+			return true;
+		}
 
 		$this->user = new User();
 	}
@@ -106,12 +114,24 @@ abstract class Common {
 	}
 
 	/**
+	 * Get and set permissions for users.
+	 *
+	 * @return Permission
+	 */
+	protected function permission(){
+		$permission = new Permission();
+		return $permission;
+	}
+
+	/**
 	 * Shortcut for the user->accessDenied method.
+	 *
+	 * @param array|null $a The current URL (for the callback)
 	 *
 	 * @return bool
 	 */
-	function accessDenied(){
-		return $this->user->accessDenied();
+	function accessDenied(?array $a = NULL){
+		return $this->user->accessDenied($a);
 	}
 
 	/**

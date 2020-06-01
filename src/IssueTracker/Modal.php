@@ -169,9 +169,6 @@ class Modal extends Common {
 				"class" => "col-scroll",
 				"html" => [[
 					"html" => [[
-							"style" => [
-								"width" => "50%",
-							],
 							"html" => $issue_form->getHTML(),
 						],[
 							"class" => ["vl","col-scroll"],

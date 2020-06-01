@@ -7,7 +7,7 @@ namespace App\Common\Email\Template;
 use App\Common\str;
 use App\UI\Grid;
 
-class email2FACode extends \App\Common\Email\TemplateConstructor implements \App\Common\Email\TemplateInterface {
+class Email2FACode extends \App\Common\Email\TemplateConstructor implements \App\Common\Email\TemplateInterface {
 
 	/**
 	 * @inheritDoc

@@ -3,15 +3,14 @@
 
 namespace App\Common\User;
 
+use App\Common\Common;
 use App\Common\Email\Email;
-use App\Common\Hash;
-use App\Common\Log;
 use App\Common\Navigation\Navigation;
-use App\Common\Output;
-use App\Common\PA;
-use App\Common\SQL\Factory;
-use App\Common\SQL\mySQL\mySQL;
+use App\Common\Permission;
 use App\Common\str;
+use App\Common\UserRole\UserRole;
+use App\UI\Form\Form;
+use App\UI\Icon;
 use App\UI\Page;
 use Exception;
 
@@ -22,51 +21,12 @@ use Exception;
  *
  * @package App\Common\User
  */
-class User{
+class User extends Common {
 	/**
 	 * The threshold where which a user's action is ignored.
 	 * The recommended default is 0.5.
 	 */
 	const recaptchaThreshold = 0.5;
-
-	/**
-	 * @var mySQL
-	 */
-	private $sql;
-
-	/**
-	 * @var Log
-	 */
-	private $log;
-
-	/**
-	 * @var Hash
-	 */
-	private $hash;
-
-	/**
-	 * @var Output
-	 */
-	private $output;
-
-	/**
-	 * @var PA
-	 */
-	private $pa;
-
-	/**
-	 * User constructor.
-	 *
-	 * Can't be an extension of Common, cause that
-	 * class uses an instance of User.
-	 */
-	function __construct() {
-		$this->sql = Factory::getInstance();
-		$this->log = Log::getInstance();
-		$this->hash = Hash::getInstance();
-		$this->output = Output::getInstance();
-		$this->pa = PA::getInstance();
-	}
 
 	/**
 	 * @return Card
@@ -83,6 +43,166 @@ class User{
 	}
 
 	/**
+	 * @return UserRole
+	 */
+	public function userRole(){
+		return new UserRole();
+	}
+
+	public function view(array $a) : bool
+	{
+		extract($a);
+
+		# rel_id is optional, use global if not found
+		if(!$rel_id){
+			global $user_id;
+			$rel_id = $user_id;
+		}
+
+		if(!$this->permission()->get($rel_table, $rel_id, "crud")){
+			return $this->accessDenied($a);
+		}
+
+		$user = $this->info("user", $rel_id);
+
+		$page = new Page([
+			"icon" => Icon::get($user['last_role']),
+			"alt" => "You are currently logged in as a {$user['last_role']}",
+			"title" => str::title($user['name'], true),
+			"subtitle" => "You first registered on {$_ENV['title']} ".str::ago($user['created']),
+		]);
+
+		$page->setGrid([[
+			"html"=> $this->card()->user($user),
+			"sm" => 4
+		]]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	/**
+	 * Edit one cron job. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function edit(array $a) : bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->output->modal($this->modal()->edit($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	/**
+	 * Edit one cron job. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function editEmail(array $a) : bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->output->modal($this->modal()->editEmail($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	/**
+	 * Update a user's details (except email, password).
+	 *
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function update(array $a, $silent = NULL) : bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => [
+				"first_name" => $vars['first_name'],
+				"last_name" => $vars['last_name'],
+				"phone" => $vars['phone'],
+			],
+			"id" => $rel_id
+		]);
+
+		# Closes the (top-most) modal
+		$this->output->closeModal();
+
+		# If there is a callback, use it
+		$this->hash->set($this->hash->getCallback());
+
+		return true;
+	}
+
+	/**
+	 * Toggle a user's 2FA setting
+	 *
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function toggle2FA(array $a, $silent = NULL) : bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		if($user['2fa_enabled']){
+			$set = ["2fa_enabled" => NULL];
+		} else {
+			$set = ["2fa_enabled" => true];
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => $set,
+			"id" => $rel_id
+		]);
+
+		$this->hash->set(-1);
+
+		return true;
+	}
+
+	/**
 	 * Login form
 	 * Presented to the user when wanting to log in, or when credentials have expired.
 	 *
@@ -96,8 +216,8 @@ class User{
 		$page = new Page();
 
 		$page->setGrid([
-			"class" => "justify-content-md-center",
-			"style" => [
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
 				"height" => "85% !important"
 			],
 			"html" => [
@@ -220,7 +340,10 @@ class User{
 		]);
 
 		$page->setGrid([
-			"class" => "justify-content-md-center",
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
+				"height" => "85% !important"
+			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
@@ -346,8 +469,8 @@ class User{
 		# Ensure the email address is valid
 		if(!str::isValidEmail($vars['email'])){
 			$this->log->error([
-				"headline" => 'Invalid E-mail Address',
-				"msg" => "This email address [<code>{$vars['email']}</code>] is invalid. Please ensure you've written the correct address."
+				"title" => 'Invalid E-mail Address',
+				"message" => "This email address [<code>{$vars['email']}</code>] is invalid. Please ensure you've written the correct address."
 			]);
 			return false;
 		}
@@ -402,9 +525,14 @@ class User{
 				"last_name" => $vars['last_name'],
 				"email" => $vars['email'],
 				"phone" => $vars['phone'],
+				"last_role" => "user",
+				"2fa_enabled" => true,
 				"key" => $key
 			],
 		]);
+
+		# Give the user permission to their own account
+		$this->permission()->set($rel_table, $user_id, "rud", $user_id);
 
 		# Create the link between the user and the user type
 		$this->sql->insert([
@@ -423,13 +551,14 @@ class User{
 	/**
 	 * Sends a verification email.
 	 *
-	 * @param      $a
+	 * @param array $a Needs to include a rel_table/rel_id
 	 * @param null $internal
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function sendVerificationEmail($a, $internal = NULL){
+	public function sendVerificationEmail(array $a, ?bool $internal = NULL) : bool
+	{
 		extract($a);
 
 		if(!$internal){
@@ -496,6 +625,170 @@ class User{
 		return true;
 	}
 
+	public function sendEmailUpdateEmail(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		# Ensure the new email is valid
+		if(!str::isValidEmail($vars['new_email'])){
+			$this->log->error([
+				"container" => ".modal-body",
+				"reset" => true,
+				"title" => 'Invalid E-mail Address',
+				"message" => "Your new email address [<code>{$vars['new_email']}</code>] is invalid. Please ensure you've written the correct address."
+			]);
+			return false;
+		}
+
+		# Ensure the new email is different from the last one
+		if($user['email'] == $vars['new_email']){
+			$this->log->warning([
+				"container" => ".modal-body",
+				"reset" => true,
+				"title" => "Same as existing email",
+				"message" => "If you wish to change your email address, enter the new email address, not your existing one.",
+			]);
+			return false;
+		}
+
+		# Check to see if the password is correct, compared to the password on file
+		if (!$this->validatePassword($vars['password'], $user['password'])) {
+			$this->log->error([
+				"container" => ".modal-body",
+				"title" => 'Incorrect password',
+				"message" => 'Please ensure you have written the correct password.',
+			]);
+			return false;
+		}
+
+		# Create a random key
+		$key = str::uuid();
+
+		# Store the key for reference
+		if(!$this->sql->update([
+			"table" => "user",
+			"id" => $user['user_id'],
+			"set" => [
+				"key" => $key
+			]
+		])){
+			return false;
+		}
+
+		$variables = [
+			"user_id" => $rel_id,
+			"email" => $user['email'],
+			"new_email" => $vars['new_email'],
+			"checksum" => $this->createChecksum([$vars['new_email'], $key]),
+		];
+
+		# Send an email to the current email address warning about the update
+		$email = new Email();
+		$email->template("update_email_warning", $variables)
+			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
+			->send();
+
+		# Send an email to the new email with a link to change email
+		$email = new Email();
+		$email->template("update_email", $variables)
+			->to([$vars['new_email'] => "{$user['first_name']} {$user['last_name']}"])
+			->send();
+
+		# Closes the (top-most) modal
+		$this->output->closeModal();
+
+		$this->log->success([
+			"container" => ".headsup",
+			"title" => 'Update request email sent',
+			"message" => "
+			An email has been sent to <code>{$vars['new_email']}</code>
+			with a link to update your email address. Once you change it,
+			you can start using this new address to log in to {$_ENV['title']}.",
+		]);
+
+		return true;
+	}
+
+	public function updateEmail($a): bool
+	{
+		extract($a);
+
+		if(!$rel_id || !$vars['new_email'] || !$vars['checksum']){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "The email update link is incomplete. Please ensure you are using the entire URL.",
+			]);
+			return false;
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		# Make sure the checksum is valid (aka, the key hasn't expired or the email tampered with)
+		if(!$this->validateChecksum([$vars['new_email'], $user['key']], $vars['checksum'])){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "The email update link is incorrect or it has expired. Please try again.",
+			]);
+			return false;
+		}
+
+		# Now that email is verified, update the email
+		$this->sql->update([
+			"table" => $rel_table,
+			"id" => $rel_id,
+			"set" => [
+				"email" => $vars['new_email'],
+				"verified" => "NOW()"
+			]
+		]);
+
+		$this->log->success([
+			"title" => "Email updated",
+			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to log in from now on."
+		]);
+
+		$this->hash->set("home");
+		return true;
+	}
+
+	/**
+	 * Given two or more strings
+	 * (or a whole multidimensional array of data),
+	 * create a checksum that can be used to
+	 * validate the completeness of the data.
+	 *
+	 * @param array $a Array order doesn't matter, as the array will be sorted before the CRC32 checksum is created
+	 *
+	 * @return int the CRC32 checksum
+	 */
+	private function createChecksum(array $a): int
+	{
+		array_multisort($a);
+		return crc32(implode("",str::flatten($a)));
+	}
+
+	/**
+	 * Given an array of data and its checksum,
+	 * compare it and return the results.
+	 *
+	 * @param array  $a Array of data
+	 * @param string $checksum Checksum belonging to the data
+	 *
+	 * @return bool Returns TRUE if the data is complete, FALSE if not.
+	 */
+	private function validateChecksum(array $a, string $checksum): bool
+	{
+		return ($checksum == $this->createChecksum($a));
+	}
+
 	/**
 	 * Reset password form
 	 * Presented to the user if they wish to reset their password.
@@ -511,7 +804,10 @@ class User{
 		$page = new Page();
 
 		$page->setGrid([
-			"class" => "justify-content-md-center",
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
+				"height" => "85% !important"
+			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
@@ -551,6 +847,20 @@ class User{
 			throw new Exception("Unable to store connection details");
 		}
 		$this->output->set_var("token", $connection_id);
+		return true;
+	}
+
+	public function sampler($a){
+		extract($a);
+		$cron_jobs_count = $this->sql->select([
+			"count" => true,
+			"table" => "cron_job"
+		]);
+		$this->output->set_var("key", $cron_jobs_count);
+		$seconds = rand(4,7);
+		sleep($seconds);
+		$this->output->set_var("seconds", $seconds);
+		$this->log->success("That took {$seconds}.");
 		return true;
 	}
 
@@ -879,11 +1189,14 @@ class User{
 	function verifyCredentials($a){
 		extract($a);
 
+		# Decrypt any encrypted variables
+		Form::decryptVars($vars);
+
 		# Check to see if the given email address can be found
 		if(!$user = $this->sql->select([
 			"table" => "user",
 			"where" => [
-				"email" => $vars['email']
+				"email" => $vars['email'],
 			],
 			"limit" => 1
 		])){
@@ -923,7 +1236,7 @@ class User{
 		}
 
 		# 2FA (if enabled)
-		if(!$user['2fa_enabled']){
+		if($user['2fa_enabled']){
 			return $this->prepare2FACode($a, $user);
 		}
 
@@ -978,8 +1291,8 @@ class User{
 		$page = new Page();
 
 		$page->setGrid([
-			"class" => "justify-content-md-center",
-			"style" => [
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
 				"height" => "85% !important"
 			],
 			"html" => [
@@ -1034,13 +1347,8 @@ class User{
 			return false;
 		}
 
-		/**
-		 * Calculate the difference of time between the last update
-		 * (when the key was set), and now, make sure it's less
-		 * than 15 minutes.
-		 */
-		if(floor((strtotime("now") - strtotime($user['updated'])) / 60) >= 15){
-			//If more than 15 minutes has passed
+		if(str::moreThanMinutesSince(15, $user['updated'])){
+			//If more than 15 minutes has passed since the user profile was last updated
 
 			$this->log->error([
 				"title" => 'Expired key',
@@ -1127,10 +1435,7 @@ class User{
 
 		if(count($roles) == 1){
 			//if they only have one role to play, use it
-			$_SESSION['role'] = $roles[0]['rel_table'];
-			global $role;
-			$role = $_SESSION['role'];
-			return true;
+			return $this->userRole()->performSwitch($user['user_id'], $roles[0]['rel_table']);
 		}
 
 		# If the user needs to decide on a role first
@@ -1187,7 +1492,7 @@ class User{
 	function verifyEmail($a){
 		extract($a);
 
-		if(!$rel_id || !$vars['email'] || !$vars['key']){
+		if(!$rel_id || !$vars['key']){
 			$this->log->error([
 				"container" => "#ui-view",
 				'title' => "Verification failed",
@@ -1212,17 +1517,6 @@ class User{
 			return false;
 		}
 
-		# Make sure the email and key match the ID
-		if($user['email'] != $vars['email']
-		|| $user['key'] != $vars['key']){
-			$this->log->error([
-				"container" => "#ui-view",
-				'title' => "Verification failed",
-				'message' => "Invalid or expired verification code.",
-			]);
-			return false;
-		}
-
 		# Check and see if this user has already been verified
 		if($user['verified'] && $user['password']){
 			//if the user address has already been verified (and password has been set)
@@ -1235,6 +1529,29 @@ class User{
 				]
 			]);
 			return true;
+		}
+
+		# Make sure the key matches the ID
+		if($user['key'] != $vars['key']){
+			/**
+			 * If the keys don't match up,
+			 * resend the verification email.
+			 * Keep in mind that at this point
+			 * the user has yet to be verified
+			 * and doesn't have a password set:
+			 * It's an empty account.
+			 */
+			$this->sendVerificationEmail([
+				"rel_table" => "user",
+				"rel_id" => $user['user_id']
+			], true);
+
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "Invalid or expired verification code. A new verification code has been emailed to you.",
+			]);
+			return false;
 		}
 
 		# Verify the user
@@ -1263,7 +1580,10 @@ class User{
 		$page = new Page();
 
 		$page->setGrid([
-			"class" => "justify-content-md-center",
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
+				"height" => "85% !important"
+			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
@@ -1290,6 +1610,9 @@ class User{
 	public function updatePassword(array $a) : bool
 	{
 		extract($a);
+
+		# Passwords will be encrypted
+		Form::decryptVars($vars);
 
 		# Get the user
 		if(!$user = $this->sql->select([
@@ -1350,13 +1673,12 @@ class User{
 	}
 
 	/**
-	 * Generate a secure hash for a given password. The cost is passed
-	 * to the blowfish algorithm. Check the PHP manual page for crypt to
-	 * find more information about this setting.
+	 * Generate a secure hash for a given password.
+	 * Uses the blowfish algorithm.
 	 *
 	 * @param string $password
 	 * @param int    $cost
-	 *
+	 * @link https://www.php.net/manual/en/function.crypt.php#114060
 	 * @return string|null
 	 */
 	private function generatePasswordHash(string $password, $cost=11){
@@ -1391,7 +1713,7 @@ class User{
 	 *
 	 * @param string $password
 	 * @param string $hash
-	 *
+	 * @link https://www.php.net/manual/en/function.crypt.php#114060
 	 * @return bool
 	 */
 	private function validatePassword(string $password, string $hash){
@@ -1415,7 +1737,10 @@ class User{
 		$page = new Page();
 
 		$page->setGrid([
-			"class" => "justify-content-md-center",
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
+				"height" => "85% !important"
+			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
@@ -1593,9 +1918,11 @@ class User{
 	 *
 	 * Should only be used as a last resort if the user is logged in.
 	 *
+	 * @param array|null $a The current URL for the callback
+	 *
 	 * @return bool Returns FALSE to ensure the JS recipients understand what's going on.
 	 */
-	public function accessDenied(){
+	public function accessDenied(?array $a = NULL){
 		global $user_id;
 
 		if($user_id){
@@ -1619,10 +1946,52 @@ class User{
 			"rel_table" => "user",
 			"action" => "login",
 			"vars" => [
-				"callback" => $this->hash->getCallback(true)
+				"callback" => str::generate_uri($a, true)
 			]
 		]);
 
 		return false;
+	}
+
+
+	public function getOptions(array $a) : bool
+	{
+		extract($a);
+
+		if(!$this->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		if($vars['term']){
+			$term = preg_replace("/[^a-z0-9-'\. ]/i", "", $vars['term']);
+			$or = [
+				"first_name" => "%{$term}%",
+				"last_name" => "%{$term}%",
+			];
+		}
+
+		$results = $this->info([
+			"rel_table" => "user",
+			"or" => $or,
+			"order_by" => [
+				"first_name" => "ASC",
+				"last_name" => "ASC"
+			]
+		]);
+
+		if($results) {
+			foreach($results as $row){
+				$users[] = [
+					"id" => $row['user_id'],
+					"text" => $row['full_name']
+				];
+			}
+		} else {
+			$users = [];
+		}
+
+		$this->output->set_var("results", $users);
+		return true;
 	}
 }

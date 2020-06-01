@@ -64,7 +64,7 @@ class UserRole extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private function performSwitch(string $user_id, string $new_role){
+	public function performSwitch(string $user_id, string $new_role){
 		# Ensure the user has been assigned this role
 		if(!$this->sql->select([
 			"table" => "user_role",

@@ -33,10 +33,13 @@ class IssueNote extends \App\Common\Common {
 			return $this->accessDenied();
 		}
 
-		$issue_note_id = $this->sql->insert([
+		$this->sql->insert([
 			"table" => $rel_table,
 			"set" => $vars
 		]);
+
+		# Remove the text that is currently in the note textarea field
+		$this->output->val($vars['textarea_id'], "");
 
 		# Get the latest issue types
 		$this->updateIssueNoteTable($vars['issue_tracker_id']);
