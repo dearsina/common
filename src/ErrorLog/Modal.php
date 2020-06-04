@@ -7,7 +7,16 @@ namespace App\Common\ErrorLog;
 use App\UI\Form\Form;
 use App\UI\Icon;
 
+/**
+ * Class Modal
+ * @package App\Common\ErrorLog
+ */
 class Modal extends \App\Common\Common {
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function linkToExistingIssue($a){
 		extract($a);
 

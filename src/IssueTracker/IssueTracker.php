@@ -12,6 +12,10 @@ use App\UI\Page;
 use App\UI\Progress;
 use App\UI\Table;
 
+/**
+ * Class IssueTracker
+ * @package App\Common\IssueTracker
+ */
 class IssueTracker extends Common {
 	/**
 	 * @return Card
@@ -61,7 +65,7 @@ class IssueTracker extends Common {
 		return true;
 	}
 
-	public function insert(array $a, $silent = NULL) : bool
+	public function insert(array $a) : bool
 	{
 		extract($a);
 
@@ -116,7 +120,7 @@ class IssueTracker extends Common {
 		return true;
 	}
 
-	public function update(array $a, $silent = NULL) : bool
+	public function update(array $a) : bool
 	{
 		extract($a);
 
@@ -140,6 +144,13 @@ class IssueTracker extends Common {
 		return true;
 	}
 
+	/**
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function remove(array $a, $silent = NULL) : bool
 	{
 		extract($a);
@@ -201,6 +212,12 @@ class IssueTracker extends Common {
 		$this->output->append("all_issue_tracker > .table-container",$script);
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function all($a){
 		extract($a);
 

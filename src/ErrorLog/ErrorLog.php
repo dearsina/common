@@ -9,6 +9,10 @@ use App\UI\Icon;
 use App\UI\Page;
 use App\UI\Table;
 
+/**
+ * Class ErrorLog
+ * @package App\Common\ErrorLog
+ */
 class ErrorLog extends Common {
 
 	/**
@@ -27,6 +31,12 @@ class ErrorLog extends Common {
 		return new Modal();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function unresolved($a){
 		extract($a);
 
@@ -67,6 +77,12 @@ class ErrorLog extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function resolved($a){
 		extract($a);
 
@@ -107,6 +123,12 @@ class ErrorLog extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function all($a){
 		extract($a);
 
@@ -147,6 +169,12 @@ class ErrorLog extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function linkToExistingIssue($a){
 		extract($a);
 
@@ -234,6 +262,12 @@ class ErrorLog extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $error
+	 *
+	 * @return mixed
+	 * @throws \Exception
+	 */
 	public static function rowHandler($error){
 		$row["Date"] = [
 			"html" => str::ago($error['created']),
@@ -322,6 +356,12 @@ class ErrorLog extends Common {
 		return $row;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function update($a){
 		extract($a);
 
@@ -360,6 +400,12 @@ class ErrorLog extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function resolveAll($a){
 		extract($a);
 

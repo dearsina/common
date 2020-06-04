@@ -4,8 +4,13 @@
 namespace App\Common\SQL\Info;
 
 use App\Common\SQL\Factory;
+use App\Common\SQL\mySQL\mySQL;
 use App\Common\str;
 
+/**
+ * Class Info
+ * @package App\Common\SQL\Info
+ */
 class Info {
 	/**
 	 * The Info() instance.
@@ -20,9 +25,9 @@ class Info {
 	protected $info;
 
 	/**
-	 * @var mySQL\mySQL
+	 * @var mySQL
 	 */
-	protected static $sql;
+	protected $sql;
 
 	/**
 	 * The constructor is private so that the class
@@ -51,6 +56,13 @@ class Info {
 		return self::$instance;
 	}
 
+	/**
+	 * @param      $a
+	 * @param null $rel_id
+	 *
+	 * @return bool|mixed
+	 * @throws \Exception
+	 */
 	public function getInfo($a, $rel_id = NULL){
 		if(is_string($a)){
 			$a = [
@@ -99,6 +111,11 @@ class Info {
 		return $a['rel_id'] ? reset($rows) : $rows;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return mixed
+	 */
 	private function cleanVars($a){
 		if($a['table']){
 			$a['rel_table'] = $a['table'];
@@ -123,6 +140,11 @@ class Info {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return mixed
+	 */
 	private function getCachedResults($a){
 		return $this->info[$this->fingerprint($a)];
 	}
@@ -132,6 +154,8 @@ class Info {
 	 * are for the same data, the cached results are returned instead.
 	 *
 	 * @param $request
+	 *
+	 * @param $results
 	 *
 	 * @return mixed
 	 */

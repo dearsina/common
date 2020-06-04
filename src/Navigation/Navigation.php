@@ -9,18 +9,23 @@ use App\Common\User\User;
 
 use App\UI\Navigation\Factory;
 
+/**
+ * Class Navigation
+ * @package App\Common\Navigation
+ */
 class Navigation {
 	/**
 	 * Public facing method.
 	 * All it does is to call the static method.
 	 * Allows for AJAX calls to generate/update the navigation.
 	 *
-	 * @param null $a
+	 * @param array|null $a
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function generate($a = NULL){
+	public function generate(?array $a = NULL){
+		extract($a);
 		return Navigation::update();
 	}
 
@@ -76,6 +81,12 @@ class Navigation {
 		return true;
 	}
 
+	/**
+	 * @param $levels
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	private static function getAppLevels(&$levels) : bool
 	{
 		# Uses the Common class if it cannot find the App class
@@ -90,7 +101,6 @@ class Navigation {
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
 			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
-			return false;
 		}
 
 		$levels = $classInstance->$method([
@@ -103,6 +113,12 @@ class Navigation {
 		return true;
 	}
 
+	/**
+	 * @param $levels
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	private static function getRoleLevels(&$levels) : bool
 	{
 		global $role;
@@ -124,7 +140,6 @@ class Navigation {
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
 			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
-			return false;
 		}
 
 		# Get the levels for this role
@@ -141,6 +156,12 @@ class Navigation {
 		return true;
 	}
 
+	/**
+	 * @param $footers
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	private static function getAppFooters(&$footers) : bool
 	{
 		# Uses the Common class if it cannot find the App class
@@ -155,7 +176,6 @@ class Navigation {
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
 			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
-			return false;
 		}
 
 		$footers = $classInstance->$method([
@@ -168,6 +188,12 @@ class Navigation {
 		return true;
 	}
 
+	/**
+	 * @param $footers
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	private static function getRoleFooters(&$footers) : bool
 	{
 		global $role;
@@ -189,11 +215,10 @@ class Navigation {
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
 			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
-			return false;
 		}
 
 		# Get the footers for this role
-		$role_footers = $classInstance->$method([
+		$footers = $classInstance->$method([
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,

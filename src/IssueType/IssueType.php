@@ -7,6 +7,10 @@ use App\Common\Common;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class IssueType
+ * @package App\Common\IssueType
+ */
 class IssueType extends Common {
 	/**
 	 * @return Card
@@ -147,7 +151,7 @@ class IssueType extends Common {
 		return true;
 	}
 
-	public function insert(array $a, $silent = NULL) : bool
+	public function insert(array $a) : bool
 	{
 		extract($a);
 
@@ -170,7 +174,15 @@ class IssueType extends Common {
 		return true;
 	}
 
-	public function update(array $a, $silent = NULL) : bool
+	/**
+	 * Update an issue type.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function update(array $a) : bool
 	{
 		extract($a);
 
@@ -194,6 +206,13 @@ class IssueType extends Common {
 		return true;
 	}
 
+	/**
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function remove(array $a, $silent = NULL) : bool
 	{
 		extract($a);

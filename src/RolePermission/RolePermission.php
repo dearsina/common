@@ -9,6 +9,10 @@ use App\Common\str;
 use App\UI\Icon;
 use App\UI\Page;
 
+/**
+ * Class RolePermission
+ * @package App\Common\RolePermission
+ */
 class RolePermission extends Permission {
 	/**
 	 * @return Card
@@ -24,6 +28,12 @@ class RolePermission extends Permission {
 		return new Modal();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function view($a){
 		extract($a);
 

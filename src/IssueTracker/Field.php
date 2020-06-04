@@ -4,12 +4,20 @@
 namespace App\Common\IssueTracker;
 
 
-use App\Common\ErrorLog\ErrorLog;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
-use App\Common\str;
 
+/**
+ * Class Field
+ * @package App\Common\IssueTracker
+ */
 class Field {
+	/**
+	 * @param null $a
+	 *
+	 * @return array
+	 * @throws \Exception
+	 */
 	public static function issueTracker($a = NULL){
 		if(is_array($a))
 			extract($a);

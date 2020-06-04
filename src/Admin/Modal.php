@@ -4,9 +4,16 @@
 namespace App\Common\Admin;
 
 
-use App\UI\Icon;
-
+/**
+ * Class Modal
+ * @package App\Common\Admin
+ */
 class Modal extends \App\Common\Common {
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function error_notification($a){
 		extract($a);
 

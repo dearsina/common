@@ -5,9 +5,11 @@ namespace App\Common\Email;
 
 
 use App\Common\Common;
-use App\Common\str;
-use App\UI\Grid;
 
+/**
+ * Class TemplateConstructor
+ * @package App\Common\Email
+ */
 class TemplateConstructor extends Common {
 	/**
 	 * An array with all the variables to be used
@@ -16,7 +18,14 @@ class TemplateConstructor extends Common {
 	 * @var array
 	 */
 	protected $variables;
+
+	/**
+	 * TemplateConstructor constructor.
+	 *
+	 * @param $a
+	 */
 	public function __construct ($a) {
+		parent::__construct();
 		$this->variables = $a;
 	}
 
@@ -38,12 +47,18 @@ class TemplateConstructor extends Common {
 EOF;
 	}
 
+	/**
+	 * @return string
+	 */
 	private function getHeader(){
 		return <<<EOF
 
 EOF;
 	}
 
+	/**
+	 * @return string
+	 */
 	private function getFooter(){
 		return <<<EOF
 

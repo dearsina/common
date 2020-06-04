@@ -11,6 +11,38 @@ namespace App\Common;
  */
 class href {
 	/**
+	 * Given an array, returns a completed <a> tag.
+	 *
+	 * @param array $a
+	 *
+	 * @return string
+	 */
+	static function a(?array $a){
+		if(!$a){
+			return false;
+		}
+		extract($a);
+
+		# ID (optional)
+		$id = str::getAttrTag("id", $id);
+
+		# Class
+		$class = str::getAttrTag("class", $class);
+
+		# Style
+		$style = str::getAttrTag("style", $style);
+
+		# Target
+		$target = str::getAttrTag("target", $target);
+
+		# Alt
+		$alt = str::getAttrTag("title", $alt);
+
+		$href = href::generate($a);
+
+		return "{$pre}<a{$id}{$class}{$style}{$href}{$target}{$alt}>{$html}</a>{$post}";
+	}
+	/**
 	 * Distinguishes between onClick, hash or an URL.
 	 * Returns HTML to put in a button or an a-tag.
 	 *

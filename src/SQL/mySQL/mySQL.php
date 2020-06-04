@@ -2,7 +2,6 @@
 
 namespace App\Common\SQL\mySQL;
 
-use App\Common\Log;
 use App\Common\str;
 
 use Ramsey\Uuid\Codec\TimestampFirstCombCodec;
@@ -48,8 +47,6 @@ class mySQL extends Grow {
 	 */
 	private function __construct()
 	{
-		$this->log = Log::getInstance();
-
 		$driver = new \mysqli_driver();
 		$driver->report_mode = MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR;
 
@@ -450,7 +447,7 @@ class mySQL extends Grow {
 		# Merge rows at the current level that belong together (have the same key/values)
 		foreach($data as $id => $row){
 			if(!in_array("{$table}_id", array_keys($row))){
-
+				//Do nothing?
 			} else if($id && ($originalId = array_search(serialize($row), $serialisedRows)) !== FALSE) {
 				$mergedNextLevel[$originalId][$id] = $nextLevel[$id];
 				unset($data[$id]);
@@ -808,6 +805,12 @@ class mySQL extends Grow {
 		return $table.$this->tablesInUse[$table];
 	}
 
+	/**
+	 * @param      $t
+	 * @param null $a
+	 *
+	 * @return array|bool
+	 */
 	private function formatTableName($t, $a = NULL){
 		if(is_array($t)){
 			/**
@@ -1485,6 +1488,9 @@ class mySQL extends Grow {
 		return true;
 	}
 
+	/**
+	 * @return mixed
+	 */
 	private function getDistinct(){
 		return $this->distinct;
 	}
@@ -1637,8 +1643,7 @@ class mySQL extends Grow {
 				return $results['rows'];
 			}
 		} else if(!is_array($a)){
-			$this->log->error("SQL select calls must be either in string or array format.");
-			return false;
+			throw new \mysqli_sql_exception("SQL select calls must be either in string or array format.");
 		} else {
 			extract($a);
 		}
@@ -2088,6 +2093,8 @@ class mySQL extends Grow {
 	 * @param null $return_query
 	 *
 	 * @return bool
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	public function update($a, $return_query = NULL){
 		if(!is_array($a)){
@@ -2104,7 +2111,6 @@ class mySQL extends Grow {
 		# Make sure the column or columns are identified
 		if (!$id && !$where) {
 			throw new \Exception("An update request was sent with no WHERE clause or column ID to identify what to update.");
-			return false;
 		}
 
 		# Reconnect (for long running scripts)
@@ -2388,8 +2394,7 @@ class mySQL extends Grow {
 	 */
 	public function delete($a){
 		if(!is_array($a)){
-			$this->log->error("SQL delete calls must be in array format.");
-			return false;
+			throw new \mysqli_sql_exception("SQL delete calls must be in array format.");
 		} else {
 			extract($a);
 		}
@@ -2415,8 +2420,7 @@ class mySQL extends Grow {
 		$this->setCondition("or", $or_not, NULL, NULL, true);
 
 		if(!$this->where){
-			$this->log->error('Removing without any valid where clauses (essentially truncating the table) is not allowed.');
-			return false;
+			throw new \mysqli_sql_exception('Removing without any valid where clauses (essentially truncating the table) is not allowed.');
 		}
 
 		$query[] = "DELETE FROM `{$this->table['name']}`";
@@ -2446,21 +2450,18 @@ class mySQL extends Grow {
 	 */
 	public function restore($a){
 		if(!is_array($a)){
-			$this->log->error("SQL restore calls must be in array format.");
-			return false;
+			throw new \mysqli_sql_exception("SQL restore calls must be in array format.");
 		} else {
 			extract($a);
 		}
 
 		global $user_id;
 		if(!$user_id){
-			$this->log->error('Updating without a user_id is not allowed.');
-			return false;
+			throw new \mysqli_sql_exception('Updating without a user_id is not allowed.');
 		}
 
 		if(!$id){
-			$this->log->error('Restoring without an id is too dangerous.');
-			return false;
+			throw new \mysqli_sql_exception('Restoring without an id is too dangerous.');
 		}
 
 		# The user should not be sending any values with the restore request
@@ -2776,8 +2777,7 @@ class mySQL extends Grow {
 		}
 
 		if(is_array($j) && !is_int(key($j))) {
-			$this->log->error("Ensure the join array is double bracketed.");
-			return false;
+			throw new \mysqli_sql_exception("Ensure the join array is double bracketed.");
 		} else if(is_string($j)){
 			$joins[] = ["table" => $j];
 		} else {
@@ -2793,8 +2793,7 @@ class mySQL extends Grow {
 			}
 
 			if (!$join['table']) {
-				$this->log->error("A join was requested without a table name.");
-				return false;
+				throw new \mysqli_sql_exception("A join was requested without a table name.");
 			}
 
 			$j = $this->formatTableName($join['table'], $join['alias']);
@@ -3156,7 +3155,7 @@ class mySQL extends Grow {
 					"columnWithAlias" => NULL,
 				];
 			} else {
-				$this->log->warning("The <code>{$gb}</code> column isn't being selected, thus cannot be used as a group by.");
+				throw new \mysqli_sql_exception("The <code>{$gb}</code> column isn't being selected, thus cannot be used as a group by.");
 			}
 			return true;
 		}
@@ -3176,7 +3175,7 @@ class mySQL extends Grow {
 						"columnWithAlias" => NULL,
 					];
 				} else {
-					$this->log->warning("The <code>{$gb}</code> column isn't being selected, thus cannot be used as a group by.");
+					throw new \mysqli_sql_exception("The <code>{$gb}</code> column isn't being selected, thus cannot be used as a group by.");
 				}
 				return true;
 			}

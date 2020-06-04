@@ -3,8 +3,6 @@
 
 namespace App\Common\SQL\Info;
 
-use App\Common\str;
-
 /**
  * Class Common
  * 

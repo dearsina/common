@@ -64,6 +64,9 @@ class WebSocketServer{
 		$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);
 	}
 
+	/**
+	 * @param $msg
+	 */
 	private function log($msg){
 		echo date("Y-m-d H:i:s")." | ".$msg."\r\n";
 	}
@@ -125,10 +128,15 @@ class WebSocketServer{
 	 * [fd] => array containing one or more connections to send the message to
 	 * [data] => array containing data to send to the connection(s)
 	 * </code>
+	 *
 	 * @param \Swoole\WebSocket\Server $server
 	 * @param \Swoole\WebSocket\Frame  $frame
+	 *
+	 * @return bool
+	 * @return bool
 	 */
-	public function onInternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame) {
+	public function onInternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame):bool
+	{
 		$this->log("Internal message from connection [{$frame->fd}]: {$frame->data}");
 
 		# Break open the data string into an array
@@ -143,6 +151,8 @@ class WebSocketServer{
 		foreach($data_array['fd'] as $id => $fd){
 			$server->push($fd, json_encode($data_array['data']));
 		}
+
+		return true;
 	}
 
 	/**
@@ -172,8 +182,10 @@ class WebSocketServer{
 	 * @param \Swoole\Http\Request     $request
 	 *
 	 * @return bool
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
-	public function onExternalOpen(\Swoole\WebSocket\Server $server, \Swoole\Http\Request $request) {
+	public function onExternalOpen(\Swoole\WebSocket\Server $server, \Swoole\Http\Request $request): bool {
 		# The browser will send along the connection ID
 		$connection_id = substr($request->server['request_uri'],1);
 		//The request_uri includes a prefixed "/"
@@ -201,6 +213,8 @@ class WebSocketServer{
 		}
 
 		$this->log("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$connection_id}]");
+
+		return true;
 	}
 
 	/**
@@ -215,7 +229,14 @@ class WebSocketServer{
 		$this->log("External message from connection [{$frame->fd}]: {$frame->data}");
 	}
 
-	public function onExternalClose (\Swoole\WebSocket\Server $server, int $fd) {
+	/**
+	 * @param \Swoole\WebSocket\Server $server
+	 * @param int                      $fd
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function onExternalClose (\Swoole\WebSocket\Server $server, int $fd): bool {
 
 		# Mark the connection as closed on the database
 		if(!$this->sql->update([
@@ -238,6 +259,8 @@ class WebSocketServer{
 		}
 
 		$this->log("External connection [{$fd}] closed.");
+
+		return true;
 	}
 }
 

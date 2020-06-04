@@ -3,15 +3,23 @@
 
 namespace App\Common;
 
-use App\Common\log;
 use App\Common\SQL\Factory;
-use App\Common\SQL\mySQL;
+use App\Common\SQL\mySQL\mySQL;
 
+/**
+ * Class PA
+ * @package App\Common
+ */
 class PA {
 	/**
 	 * @var log
 	 */
 	private $log;
+
+	/**
+	 * @var mySQL
+	 */
+	private $sql;
 
 	private static $instance = null;
 	/**
@@ -80,6 +88,11 @@ class PA {
 
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return bool
+	 */
 	public function speak($a = NULL){
 		if(!$a['fd']){
 			//if no recipients have been identified,

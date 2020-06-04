@@ -4,9 +4,12 @@
 namespace App\Common\Email\Template;
 
 
-use App\Common\str;
 use App\UI\Grid;
 
+/**
+ * Class Email2FACode
+ * @package App\Common\Email\Template
+ */
 class Email2FACode extends \App\Common\Email\TemplateConstructor implements \App\Common\Email\TemplateInterface {
 
 	/**

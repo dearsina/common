@@ -7,7 +7,17 @@ namespace App\Common\IssueTracker;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class Card
+ * @package App\Common\IssueTracker
+ */
 class Card extends \App\Common\Common {
+	/**
+	 * @param null $a
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function issues($a = NULL){
 		extract($a);
 

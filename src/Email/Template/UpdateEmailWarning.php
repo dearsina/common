@@ -8,6 +8,10 @@ use App\Common\Email\TemplateConstructor;
 use App\Common\Email\TemplateInterface;
 use App\UI\Grid;
 
+/**
+ * Class UpdateEmailWarning
+ * @package App\Common\Email\Template
+ */
 class UpdateEmailWarning extends TemplateConstructor implements TemplateInterface {
 
 	/**

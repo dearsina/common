@@ -20,8 +20,6 @@ class Output {
 	 */
 	private $is_modal = false;
 
-	protected static $instance = false;
-
 	/**
 	 * Classes.
 	 *
@@ -47,9 +45,10 @@ class Output {
 	 * @return Output
 	 * @link http://stackoverflow.com/questions/3126130/extending-singletons-in-php
 	 */
-	final public static function getInstance () {
-		static $instance;
-		if(!isset($instance)) {
+	final public static function getInstance(): Output
+	{
+		static $instance = null;
+		if (!$instance) {
 			$instance = new Output();
 		}
 		return $instance;
@@ -77,7 +76,7 @@ class Output {
 				foreach($ids_or_data as $id => $data){
 					$this->$type($id, $data);
 				}
-			} else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "doc_title", "page_title"])) {
+			} else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "page_title", "page_title"])) {
 				//these types do not require an ID
 				$this->$type($ids_or_data);
 			} else {
@@ -88,11 +87,17 @@ class Output {
 		return true;
 	}
 
+	/**
+	 * @return bool
+	 */
 	public function uri(){
 		$this->output['uri'] = true;
 		return true;
 	}
 
+	/**
+	 * @return array
+	 */
 	public function get(){
 		return $this->output;
 	}
@@ -111,7 +116,7 @@ class Output {
 	 * "div_id" => "div_id_n"
 	 * </code>
 	 *
-	 * @param $direction
+	 * @param $vars
 	 *
 	 * @return bool
 	 */
@@ -191,21 +196,19 @@ class Output {
 	 *
 	 * <code>
 	 * $this->output->modal([
-	 * 	//"id" => str::id("modal"),
-	 * 	//"size" => "xl",
-	 * 	"header" => "Modal header",
-	 * 	"body" => "Modal body",
-	 * 	"footer" => "Modal footer",
-	 * 	//"dismissable" => false,
-	 * 	"draggable" => true,
-	 * 	"resizable" => true,
-	 * 	"approve" => true,
+	 *    //"id" => str::id("modal"),
+	 *    //"size" => "xl",
+	 *    "header" => "Modal header",
+	 *    "body" => "Modal body",
+	 *    "footer" => "Modal footer",
+	 *    //"dismissible" => false,
+	 *    "draggable" => true,
+	 *    "resizable" => true,
+	 *    "approve" => true,
 	 * ]);
 	 * </code>
 	 *
-	 * @param $id
-	 * @param $data
-	 *
+	 * @param $a
 	 * @return bool
 	 */
 	public function modal($a){
@@ -221,6 +224,9 @@ class Output {
 		return false;
 	}
 
+	/**
+	 * @return mixed
+	 */
 	public function closeModal(){
 		return $this->set_var("modal", "close");
 	}
@@ -302,25 +308,14 @@ class Output {
 	}
 
 	/**
-	 * Will alter the document title in the browser window
+	 * Set the title of the page.
 	 *
-	 * @param bool $true_or_false
-	 *
-	 * @return bool
-	 */
-	public function doc_title($doc_title){
-		return $this->set_data("doc_title", NULL, $doc_title);
-	}
-
-	/**
-	 * Alias of doc_title().
-	 *
-	 * @param $doc_title
+	 * @param $page_title
 	 *
 	 * @return bool
 	 */
-	public function page_title($doc_title){
-		return $this->set_data("doc_title", NULL, $doc_title);
+	public function pageTitle($page_title){
+		return $this->set_data("page_title", NULL, $page_title);
 	}
 
 	/**
@@ -368,14 +363,14 @@ class Output {
 	}
 
 	/**
-	 * Request a certain kind of data stored to be outputted.
+	 * Request a certain kind of output data.
 	 *
 	 * @param $type
 	 * @param $id
 	 *
 	 * @return mixed
 	 */
-	private function get_data($type, $id){
+	private function getOutput($type, $id){
 		if($id){
 			return $this->output[$type][$id];
 		} else {

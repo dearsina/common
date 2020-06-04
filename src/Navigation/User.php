@@ -5,6 +5,10 @@ namespace App\Common\Navigation;
 
 use App\Common\Common;
 
+/**
+ * Class User
+ * @package App\Common\Navigation
+ */
 class User extends Common implements NavigationInterface {
 	private $levels = [];
 	private $footers = [];

@@ -3,9 +3,12 @@
 
 namespace App\Common;
 
-use App\Common\User\User;
 use App\UI\Icon;
 
+/**
+ * Class Permission
+ * @package App\Common
+ */
 class Permission extends Common {
 	/**
 	 * Combines role and user permissions and checks
@@ -52,11 +55,20 @@ class Permission extends Common {
 		// Otherwise return true
 	}
 
-	private function getUserPermission (string $user_id,string $rel_table, ?string $rel_id): array
+	/**
+	 * What kind of permissions does this user have on this rel_table/id?
+	 *
+	 * @param string      $user_id
+	 * @param string      $rel_table
+	 * @param string|null $rel_id
+	 *
+	 * @return array A single row of CRUDs from the user_permission table.
+	 */
+	private function getUserPermission (string $user_id, string $rel_table, ?string $rel_id): array
 	{
 		$where = [
+			"user_id" => $user_id,
 			"rel_table" => $rel_table,
-			"role" => $role
 		];
 
 		/**
@@ -82,6 +94,7 @@ class Permission extends Common {
 			],
 			"table" => "user_permission",
 			"where" => $where,
+			"or" => $or,
 			"limit" => 1
 		])) {
 			//if this user in particular has the access
@@ -91,6 +104,15 @@ class Permission extends Common {
 		return [];
 	}
 
+	/**
+	 * What permission does this _role_ have on this rel_table/id?
+	 *
+	 * @param string|null $role
+	 * @param string      $rel_table
+	 * @param string|null $rel_id
+	 *
+	 * @return array A single row of CRUDs from the role_permission table
+	 */
 	private function getRolePermission (?string $role, string $rel_table, ?string $rel_id): array
 	{
 
@@ -207,7 +229,7 @@ class Permission extends Common {
 	 * @param array $a
 	 * @param null  $silent
 	 *
-	 * @return bool
+	 * @return array|bool
 	 * @throws \Exception
 	 */
 	public function update (array $a, $silent = NULL): bool

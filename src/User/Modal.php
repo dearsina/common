@@ -9,7 +9,18 @@ use App\UI\Button;
 use App\UI\Form\Form;
 use App\UI\Icon;
 
+/**
+ * Class Modal
+ * @package App\Common\User
+ */
 class Modal extends Common {
+	/**
+	 * @param string $user_id
+	 * @param array  $roles
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function selectRole(string $user_id, array $roles){
 		if(is_array($a))
 			extract($a);

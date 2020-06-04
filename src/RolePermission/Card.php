@@ -10,13 +10,24 @@ use App\UI\Form\Form;
 use App\UI\Icon;
 use App\UI\ListGroup;
 
+/**
+ * Class Card
+ * @package App\Common\RolePermission
+ */
 class Card extends \App\Common\Common {
+	/**
+	 * @param array      $roles
+	 * @param array|null $selected_role
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function selectRole(array $roles, ?array $selected_role = []){
 		foreach ($roles as $role) {
 			$items[] = [
 				"icon" => $role['icon'],
 				"html" => str::title($role['role']),
-				"active" => $role['role'] == $selected_role['role'] ? true : false,
+				"active" => $role['role'] == $selected_role['role'],
 				"hash" => [
 					"rel_table" => "role_permission",
 					"vars" => [

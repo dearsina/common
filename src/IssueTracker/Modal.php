@@ -8,9 +8,12 @@ use App\Common\Common;
 use App\Common\ErrorLog\ErrorLog;
 use App\Common\IssueNote\IssueNote;
 use App\UI\Form\Form;
-use App\UI\Grid;
 use App\UI\Icon;
 
+/**
+ * Class Modal
+ * @package App\Common\IssueTracker
+ */
 class Modal extends Common {
 	public function new($a){
 		extract($a);
@@ -61,12 +64,18 @@ class Modal extends Common {
 			"resizable" => [
 				"minHeight" => 650
 			],
-//			"dismissable" => false,
+//			"dismissible" => false,
 		]);
 
 		return $modal->getHTML();
 	}
 
+	/**
+	 * @param null $error_log_id
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	private function getError($error_log_id = NULL){
 		if(!$error_log_id) {
 			return false;
@@ -109,6 +118,13 @@ class Modal extends Common {
 		return $error_fields;
 
 	}
+
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function edit($a){
 		extract($a);
 
@@ -191,7 +207,7 @@ class Modal extends Common {
 			"resizable" => [
 				"minHeight" => 650
 			],
-//			"dismissable" => false,
+//			"dismissible" => false,
 		]);
 
 		return $modal->getHTML();

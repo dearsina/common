@@ -9,6 +9,10 @@ use App\Common\str;
 use App\UI\Icon;
 use App\UI\Page;
 
+/**
+ * Class UserPermission
+ * @package App\Common\UserPermission
+ */
 class UserPermission extends Permission {
 	/**
 	 * @return Card
@@ -26,6 +30,12 @@ class UserPermission extends Permission {
 		return new Modal();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function view($a) : bool
 	{
 		extract($a);
@@ -70,8 +80,6 @@ class UserPermission extends Permission {
 
 		# Closes the (top-most) modal
 		$this->output->closeModal();
-
-		return true;
 
 		return true;
 	}

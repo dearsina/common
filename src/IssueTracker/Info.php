@@ -6,6 +6,10 @@ namespace App\Common\IssueTracker;
 
 use App\Common\str;
 
+/**
+ * Class Info
+ * @package App\Common\IssueTracker
+ */
 class Info implements \App\Common\SQL\Info\InfoInterface {
 
 	/**

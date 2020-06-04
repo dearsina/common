@@ -6,7 +6,16 @@ namespace App\Common\ErrorLog;
 
 use App\Common\SQL\Factory;
 
+/**
+ * Class Field
+ * @package App\Common\ErrorLog
+ */
 class Field {
+	/**
+	 * @param null $a
+	 *
+	 * @return array[]
+	 */
 	public static function existingIssues($a = NULL){
 		if(is_array($a))
 			extract($a);

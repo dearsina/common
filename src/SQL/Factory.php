@@ -14,6 +14,11 @@ use App\Common\SQL\mySQL\mySQL;
  * @package App\Common\SQL
  */
 class Factory {
+	/**
+	 * @param string $type
+	 *
+	 * @return mySQL
+	 */
 	public static function getInstance($type = "mySQL"){
 		switch(strtolower($type)){
 		case 'mysql':

@@ -6,6 +6,10 @@ namespace App\Common\IssueNote;
 
 use App\Common\str;
 
+/**
+ * Class Info
+ * @package App\Common\IssueNote
+ */
 class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterface {
 
 	/**

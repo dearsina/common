@@ -47,6 +47,9 @@ class str {
 	private function __clone() {}
 	private function __wakeup() {}
 
+	/**
+	 * @return str|null
+	 */
 	public static function getInstance() {
 
 		// Check if instance is already exists
@@ -100,8 +103,10 @@ class str {
 	 *
 	 * You may need to adapt the lists in "$all_uppercase" and "$all_lowercase" to suit the data that you are working with.
 	 *
-	 * @param $str
+	 * @param      $str
 	 * @param bool $is_name
+	 * @param bool $all_words
+	 *
 	 * @return mixed
 	 * @link http://www.php.net/manual/en/function.ucwords.php#60064
 	 */
@@ -212,6 +217,9 @@ class str {
 	 * str::title("name",true);
 	 * str::title("not only first word",false,true);
 	 * </code>
+	 * @param      $string
+	 * @param bool $is_name
+	 * @param bool $all_words
 	 * @return mixed
 	 */
 	static function title($string, $is_name = false, $all_words = false){
@@ -241,6 +249,8 @@ class str {
 	 *
 	 * Just by running this line at whichever point the backtrace is required
 	 * <code>str::backtrace();</code>
+	 * @param null $return
+	 * @return string
 	 */
 	static function backtrace($return = NULL){
 		$steps = [];
@@ -265,17 +275,20 @@ class str {
 		exit;
 	}
 
-	/**
-	 * Backtraces the function and gives dumps the trail
-	 * <code>
-	 * str::trace();
-	 * </code>
-	 * @return mixed
-	 */
-	static function trace(){
-		array_walk(debug_backtrace(),create_function('$a,$b','print "{$a[\'function\']}()(".basename($a[\'file\']).":{$a[\'line\']});\r\n";'));
-		exit;
-	}
+//	/**
+//	 * Backtraces the function and gives dumps the trail
+//	 * <code>
+//	 * str::trace();
+//	 * </code>
+//	 * @return mixed
+//	 */
+//	static function trace(){
+////		array_walk(debug_backtrace(),create_function('$a,$b','print "{$a[\'function\']}()(".basename($a[\'file\']).":{$a[\'line\']});\r\n";'));
+//		array_walk(debug_backtrace(),function($a){
+//			print "{$a['function']}()(".basename($a['file']).":{$a['line']});\r\n";
+//		});
+//		exit;
+//	}
 
 	/**
 	 * Returns TRUE if script is run from the command line (CLI),
@@ -363,7 +376,7 @@ class str {
 	 * @return bool
 	 */
 	public static function isValidPhoneNumber($number){
-		$number = preg_replace("/[^0-9\\+]/","",$number);
+		$number = preg_replace("/[^0-9+]/","",$number);
 		if(strlen($number) < self::MINIMUM_PHONE_NUMBER_LENGTH){
 			return false;
 		}
@@ -372,9 +385,10 @@ class str {
 
 	/**
 	 * @link http://php.net/manual/en/function.mysql-real-escape-string.php#101248
-	 * @param float|int|string $inp
 	 *
-	 * @return float|int|string
+	 * @param array|float|int|string $inp
+	 *
+	 * @return array|float|int|string
 	 */
 	public static function mysql_escape_mimic($inp) {
 		if(is_array($inp))
@@ -417,7 +431,8 @@ class str {
 	 * public
 	 * </code>
 	 *
-	 * @param        $method
+	 * @param object $class
+	 * @param string $method
 	 *
 	 * @param string $modifier The minimum accepted modifier level. (Default: public)
 	 * @return bool
@@ -527,6 +542,9 @@ class str {
 	 * Converts snake_case to methodCase (camelCase).
 	 *
 	 * @param $snake
+	 *
+	 * @return string
+	 * @return string
 	 */
 	public static function getMethodCase($snake){
 		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
@@ -565,6 +583,9 @@ class str {
 	 * Will also convert \app\common\rel_table to \App\Common\RelTable
 	 *
 	 * @param $snake
+	 *
+	 * @return string|string[]
+	 * @return string|string[]
 	 */
 	public static function getClassCase($snake){
 		return str_replace("_", "", ucwords($snake, "_\\"));
@@ -751,7 +772,7 @@ class str {
 	 *
 	 * @param $a
 	 *
-	 * @return array
+	 * @return array|string
 	 */
 	static function urldecode($a){
 		if(!$a){
@@ -763,7 +784,7 @@ class str {
 			}
 			return $a;
 		}
-		urldecode($a);
+		return urldecode($a);
 	}
 
 	/**
@@ -771,7 +792,7 @@ class str {
 	 *
 	 * Not to confused with a hash URI.
 	 *
-	 * @param $start
+	 * @param $url
 	 * @param $hash_array
 	 *
 	 * @return string
@@ -794,7 +815,7 @@ class str {
 	 * @param array|string $delimiters
 	 * @param array|string $string
 	 *
-	 * @return array
+	 * @return array|bool
 	 */
 	static function explode($delimiters, $string){
 		if(!is_array(($delimiters)) && !is_array($string)){
@@ -816,6 +837,7 @@ class str {
 			}
 			return $string_array;
 		}
+		return false;
 	}
 
 	/**
@@ -1006,6 +1028,8 @@ class str {
 	 * @param array|null $a
 	 *
 	 * @return string
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	static function getButtons(?array $a){
 		# Dropdown buttons
@@ -1132,23 +1156,6 @@ class str {
 EOF;
 	}
 
-	static function countdown(?string $datetime, ?string $modify = NULL, ?string $on_stop = NULL) : string
-	{
-		$dt = new \DateTime($datetime);
-
-		if($modify){
-			$dt->modify($modify);
-		}
-
-		$id = str::id("countdown");
-
-		$final_date = $dt->format("Y/m/d H:i:s");
-
-
-
-
-	}
-
 	/**
 	 * Input:
 	 * <code>
@@ -1167,8 +1174,10 @@ EOF;
 	 * @param      $datetime
 	 * @param bool $full
 	 *
-	 * @link https://stackoverflow.com/a/18602474/429071
 	 * @return string
+	 * @throws \Exception
+	 * @throws \Exception
+	 * @link https://stackoverflow.com/a/18602474/429071
 	 */
 	static function time_elapsed_string($datetime, $full = false) {
 		$now = new \DateTime;
@@ -1392,8 +1401,7 @@ EOF;
 	/**
 	 * Returns an array as a CSV string with the keys as a header row.
 	 *
-	 * @param $a
-	 *
+	 * @param $array
 	 * @return bool
 	 */
 	public static function get_array_as_csv($array){
@@ -1411,10 +1419,10 @@ EOF;
 
 	/**
 	 * AU for when you want to capitalise the first letter (only)
-	 * because it's placed in the beginning of a sentance.
-	 * @param type $input
-	 * @param type $count
-	 * @return type
+	 * because it's placed in the beginning of a sentence.
+	 * @param string $input
+	 * @param int $count
+	 * @return string
 	 */
 	public static function AU($input, $count=1){
 		return ucfirst(self::A($input, $count));
@@ -1432,6 +1440,12 @@ EOF;
 		return self::A($input, $count);
 	}
 
+	/**
+	 * @param     $input
+	 * @param int $count
+	 *
+	 * @return string
+	 */
 	public static function A($input, $count=1) {
 		$matches = array();
 		$matchCount = preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
@@ -1466,6 +1480,12 @@ EOF;
 
 	private static $A_ordinal_a = "[bcdgjkpqtuvwyz]-?th";
 
+	/**
+	 * @param $word
+	 * @param $count
+	 *
+	 * @return string
+	 */
 	private static function _indef_article($word, $count) {
 		if($count != 1) // TO DO: Check against $PL_count_one instead
 			return "$count $word";
@@ -1548,7 +1568,7 @@ EOF;
 
 	 * @link https://stackoverflow.com/a/10424516/429071
 	 *
-	 * @return array
+	 * @return array|bool
 	 */
 	public static function flatten($array, $glue = '.'){
 		if(!is_array($array)){
@@ -1744,6 +1764,11 @@ EOF;
 		return $string;
 	}
 
+	/**
+	 * @param $string
+	 *
+	 * @return string|string[]|null
+	 */
 	public static function singularise( $string )
 	{
 		// save some time in the case that singular and plural are the same
@@ -1786,10 +1811,11 @@ EOF;
 	 * //boat
 	 * </code>
 	 *
-	 * @param      $array array|int|string The array to count, or int to check or string to convert to number to check
-	 * @param      $rel_table string The word to pluralise
+	 * @param      $array         array|int|string The array to count, or int to check or string to convert to number to check
+	 * @param      $rel_table     string The word to pluralise
 	 * @param null $include_count bool If set to TRUE, will include the count as a prefix in the string returned.
 	 *
+	 * @param null $include_is_are
 	 * @return bool|null|string|string[]
 	 */
 	public static function pluralise_if($array, $rel_table, $include_count = NULL, $include_is_are = NULL){
@@ -1797,7 +1823,7 @@ EOF;
 			$count = count($array);
 		} else if(is_int($array) && $array){
 			$count = $array;
-		} else if(is_string($array) && $string = preg_replace("/[^0-9\\.]/","",$array)){
+		} else if(is_string($array) && $string = preg_replace("/[^0-9.]/","",$array)){
 			$count = $string;
 		} else {
 			$count = 0;
@@ -1865,7 +1891,7 @@ EOF;
 		// sanitize filename
 		$filename = preg_replace(
 			'~
-        [<>:"/\\|?*]|            # file system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+        [<>:"/|?*]|            # file system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
         [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
         [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
         [#\[\]@!$&\'()+,;=]|     # URI reserved https://tools.ietf.org/html/rfc3986#section-2.2
@@ -2146,6 +2172,11 @@ EOF;
 		return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
 	}
 
+	/**
+	 * @param $colour
+	 *
+	 * @return bool
+	 */
 	static function is_hex_colour($colour){
 		if(!is_string($colour)){
 			return false;

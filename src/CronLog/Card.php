@@ -9,7 +9,17 @@ use App\UI\Countdown;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class Card
+ * @package App\Common\CronLog
+ */
 class Card extends \App\Common\Common {
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function cronLog($a){
 		extract($a);
 
@@ -74,6 +84,11 @@ class Card extends \App\Common\Common {
 		return $card->getHTML();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function cronLogByStatus($a){
 		extract($a);
 
@@ -115,6 +130,11 @@ class Card extends \App\Common\Common {
 		return $this->cronLogBreakdown($a, ["status"], $rows, "Cron jobs by status", "traffic-light");
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function cronLogByJob($a){
 		extract($a);
 

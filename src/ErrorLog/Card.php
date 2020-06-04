@@ -9,13 +9,29 @@ use App\UI\Countdown;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class Card
+ * @package App\Common\ErrorLog
+ */
 class Card extends \App\Common\Common {
+	private $output_to_email;
+
+	/**
+	 * Card constructor.
+	 *
+	 * @param $output_to_email
+	 */
 	public function __construct ($output_to_email)
 	{
 		parent::__construct();
 		$this->output_to_email = $output_to_email;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function errorsByType($a){
 		extract($a);
 		$results = $this->sql->select([
@@ -59,6 +75,11 @@ class Card extends \App\Common\Common {
 		return $this->errorBreakdown($a, "title", $errors, "Unresolved errors by type", "object-group");
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function errorsByUser($a){
 		extract($a);
 		$results = $this->sql->select([
@@ -113,6 +134,11 @@ class Card extends \App\Common\Common {
 		return $this->errorBreakdown($a, "created_by", $errors, "Unresolved errors by user", Icon::get("user"));
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function errorsByReltable($a){
 		extract($a);
 		$results = $this->sql->select([
@@ -235,6 +261,12 @@ class Card extends \App\Common\Common {
 		return $card->getHTML();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function errors($a){
 		extract($a);
 
@@ -342,20 +374,5 @@ class Card extends \App\Common\Common {
 		]);
 
 		return $card->getHTML();
-	}
-
-	/**
-	 * Given an action, returns the value of the resolved where clause.
-	 *
-	 * @param string $action
-	 *
-	 * @return bool|string
-	 */
-	private function getResolvedStatus(string $action){
-		switch($action){
-		case 'unresolved': return NULL; break;
-		case 'resolved': return "NOT NULL"; break;
-		default: return false; break;
-		}
 	}
 }

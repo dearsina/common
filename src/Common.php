@@ -9,6 +9,10 @@ use App\Common\SQL\Info\Info;
 use App\Common\User\User;
 
 
+/**
+ * Class Common
+ * @package App\Common
+ */
 abstract class Common {
 	/**
 	 * @var Log
@@ -19,11 +23,6 @@ abstract class Common {
 	 * @var Output
 	 */
 	public $output;
-
-	/**
-	 * @var str
-	 */
-	public $str;
 
 	/**
 	 * @var Hash
@@ -39,8 +38,13 @@ abstract class Common {
 	 * @var User
 	 */
 	public $user;
+	/**
+	 * @var PA
+	 */
+	public $pa;
 
-	function __construct () {
+	function __construct ()
+	{
 		$this->hash = Hash::getInstance();
 		$this->log = Log::getInstance();
 		$this->pa = PA::getInstance();
@@ -58,6 +62,8 @@ abstract class Common {
 		}
 
 		$this->user = new User();
+
+		return true;
 	}
 
 	/**
@@ -119,7 +125,10 @@ abstract class Common {
 	 * @return Permission
 	 */
 	protected function permission(){
-		$permission = new Permission();
+		static $permission = NULL;
+		if(!$permission){
+			$permission = new Permission();
+		}
 		return $permission;
 	}
 
@@ -161,6 +170,13 @@ abstract class Common {
 		return ${$rel_table}['max_order'] + 1;
 	}
 
+	/**
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function setOrder(array $a, $silent = NULL){
 		extract($a);
 

@@ -27,12 +27,7 @@ class Hash {
 	 */
 	private $callback;
 
-	/**
-	 * The Hash() instance.
-	 *
-	 * @var Hash
-	 */
-	private static $instance;
+	private $hash;
 
 	/**
 	 * The constructor is private so that the class
@@ -54,11 +49,13 @@ class Hash {
 	 *
 	 * @return Hash
 	 */
-	public static function getInstance() {
-		if(!self::$instance) {
-			self::$instance = new Hash();
+	final public static function getInstance(): Hash
+	{
+		static $instance = null;
+		if (!$instance) {
+			$instance = new Hash();
 		}
-		return self::$instance;
+		return $instance;
 	}
 
 	/**
@@ -120,6 +117,9 @@ class Hash {
 		$this->silent = $silent;
 	}
 
+	/**
+	 * @return bool
+	 */
 	function getSilent(){
 		return $this->silent;
 	}

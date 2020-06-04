@@ -4,8 +4,11 @@
 namespace App\Common;
 
 use App\Common\SQL\Factory;
-use App\Common\SQL\mySQL;
 
+/**
+ * Class Request
+ * @package App\Common
+ */
 class Request {
 
 	/**
@@ -230,6 +233,8 @@ class Request {
 	 * @param $a
 	 *
 	 * @return bool
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	private function input($a){
 		# Extract the vars
@@ -304,13 +309,16 @@ class Request {
 
 	/**
 	 * Returns the output as a json-encoded array.
+	 *
+	 * @param $success
+	 *
 	 * @return string
 	 */
 	private function output($success) {
-		if($_SESSION['database_calls']){
+//		if($_SESSION['database_calls']){
 //			$this->log->info("{$_SESSION['database_calls']} database calls.");
 //			print_r($_SESSION['queries']);exit;
-		}
+//		}
 
 		$output = $this->output->get();
 

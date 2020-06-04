@@ -9,6 +9,10 @@ use App\UI\Icon;
 use App\UI\Page;
 use App\UI\Table;
 
+/**
+ * Class CronLog
+ * @package App\Common\CronLog
+ */
 class CronLog extends \App\Common\Common {
 	/**
 	 * @param bool|null $output_to_email
@@ -16,9 +20,18 @@ class CronLog extends \App\Common\Common {
 	 * @return Card
 	 */
 	public function card(?bool $output_to_email = NULL){
-		return new Card($output_to_email);
+		if($output_to_email){
+//			return new EmailCard();
+		}
+		return new Card();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function all($a){
 		extract($a);
 
@@ -56,6 +69,12 @@ class CronLog extends \App\Common\Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function removeAll($a){
 		extract($a);
 

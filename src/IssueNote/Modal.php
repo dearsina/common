@@ -8,7 +8,16 @@ use App\Common\str;
 use App\UI\Form\Form;
 use App\UI\Icon;
 
+/**
+ * Class Modal
+ * @package App\Common\IssueNote
+ */
 class Modal extends \App\Common\Common {
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function edit($a){
 		extract($a);
 

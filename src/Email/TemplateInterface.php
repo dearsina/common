@@ -3,6 +3,10 @@
 
 namespace App\Common\Email;
 
+/**
+ * Interface TemplateInterface
+ * @package App\Common\Email
+ */
 interface TemplateInterface {
 	/**
 	 * Returns the email subject line.

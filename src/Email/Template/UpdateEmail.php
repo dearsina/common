@@ -7,6 +7,10 @@ namespace App\Common\Email\Template;
 use App\Common\str;
 use App\UI\Grid;
 
+/**
+ * Class UpdateEmail
+ * @package App\Common\Email\Template
+ */
 class UpdateEmail extends \App\Common\Email\TemplateConstructor implements \App\Common\Email\TemplateInterface {
 
 	/**

@@ -6,9 +6,17 @@ namespace App\Common\IssueType;
 
 use App\UI\Form\Form;
 use App\UI\Icon;
-use App\UI\Table;
 
+/**
+ * Class Modal
+ * @package App\Common\IssueType
+ */
 class Modal extends \App\Common\Common {
+	/**
+	 * @param array $a
+	 *
+	 * @return string
+	 */
 	public function all(array $a){
 		extract($a);
 
@@ -42,6 +50,11 @@ class Modal extends \App\Common\Common {
 		return $modal->getHTML();
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return string
+	 */
 	public function edit($a){
 		extract($a);
 

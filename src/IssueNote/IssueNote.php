@@ -5,10 +5,13 @@ namespace App\Common\IssueNote;
 
 
 use App\Common\str;
-use App\UI\Button;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class IssueNote
+ * @package App\Common\IssueNote
+ */
 class IssueNote extends \App\Common\Common {
 	/**
 	 * @return Card
@@ -24,7 +27,7 @@ class IssueNote extends \App\Common\Common {
 		return new Modal();
 	}
 
-	public function insert(array $a, $silent = NULL) : bool
+	public function insert(array $a) : bool
 	{
 		extract($a);
 
@@ -64,7 +67,7 @@ class IssueNote extends \App\Common\Common {
 		return true;
 	}
 
-	public function update(array $a, $silent = NULL) : bool
+	public function update(array $a) : bool
 	{
 		extract($a);
 
@@ -88,6 +91,13 @@ class IssueNote extends \App\Common\Common {
 		return true;
 	}
 
+	/**
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function remove(array $a, $silent = NULL) : bool
 	{
 		extract($a);
@@ -112,6 +122,11 @@ class IssueNote extends \App\Common\Common {
 		return true;
 	}
 
+	/**
+	 * @param $issue_tracker_id
+	 *
+	 * @throws \Exception
+	 */
 	public function updateIssueNoteTable($issue_tracker_id) : void
 	{
 		if(!is_string($issue_tracker_id)){

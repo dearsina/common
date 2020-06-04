@@ -3,6 +3,10 @@
 
 namespace App\Common\SQL\mySQL;
 
+/**
+ * Class Grow
+ * @package App\Common\SQL\mySQL
+ */
 class Grow{
 	/**
 	 * Given a table name, check if all the columns in the $data array
@@ -90,7 +94,7 @@ class Grow{
 		}
 
 		# DECIMAL
-		else if(preg_replace("/[^0-9\.-]/", "", $val) == $val
+		else if(preg_replace("/[^0-9.-]/", "", $val) == $val
 			&& substr($val, 0,1) != "0"
 			&& substr_count($val, ".") == 1){
 			//Only numbers

@@ -7,7 +7,17 @@ namespace App\Common\Permission;
 use App\Common\SQL\Factory;
 use App\Common\str;
 
+/**
+ * Class Field
+ * @package App\Common\Permission
+ */
 class Field {
+	/**
+	 * @param array|null $permissions
+	 * @param array|null $override_permissions
+	 *
+	 * @return mixed
+	 */
 	static function Permission(?array $permissions, ?array $override_permissions = []){
 		$sql = Factory::getInstance();
 

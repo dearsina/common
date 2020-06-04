@@ -5,12 +5,15 @@ namespace App\Common\CronJob;
 
 use App\Common\Common;
 use App\Common\Request;
-use App\Common\SQL\Factory;
 use App\Common\str;
 use App\UI\Badge;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class CronJob
+ * @package App\Common\CronJob
+ */
 class CronJob extends Common {
 	/**
 	 * @return Card
@@ -108,12 +111,11 @@ class CronJob extends Common {
 	 * Insert a new cron job.
 	 *
 	 * @param array $a
-	 * @param null  $silent
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function insert(array $a, $silent = NULL) : bool
+	public function insert (array $a) : bool
 	{
 		extract($a);
 
@@ -142,12 +144,11 @@ class CronJob extends Common {
 	 * Update a cron job.
 	 *
 	 * @param array $a
-	 * @param null  $silent
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function update(array $a, $silent = NULL) : bool
+	public function update (array $a) : bool
 	{
 		extract($a);
 
@@ -515,6 +516,12 @@ EOF;
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function run($a){
 		extract($a);
 

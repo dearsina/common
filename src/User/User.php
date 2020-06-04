@@ -6,7 +6,6 @@ namespace App\Common\User;
 use App\Common\Common;
 use App\Common\Email\Email;
 use App\Common\Navigation\Navigation;
-use App\Common\Permission;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
 use App\UI\Form\Form;
@@ -88,7 +87,7 @@ class User extends Common {
 	 * @param array $a
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function edit(array $a) : bool
 	{
@@ -112,7 +111,7 @@ class User extends Common {
 	 * @param array $a
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function editEmail(array $a) : bool
 	{
@@ -134,12 +133,11 @@ class User extends Common {
 	 * Update a user's details (except email, password).
 	 *
 	 * @param array $a
-	 * @param null  $silent
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
-	public function update(array $a, $silent = NULL) : bool
+	public function update(array $a) : bool
 	{
 		extract($a);
 
@@ -170,12 +168,11 @@ class User extends Common {
 	 * Toggle a user's 2FA setting
 	 *
 	 * @param array $a
-	 * @param null  $silent
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
-	public function toggle2FA(array $a, $silent = NULL) : bool
+	public function toggle2FA(array $a) : bool
 	{
 		extract($a);
 
@@ -363,7 +360,7 @@ class User extends Common {
 	 *
 	 * @param array $fields Numerical array of variable key names
 	 * @param array $vars Variable key-value pairs to look for fields in
-	 * @param null  $silent If set to TRUE, will supress any errors on error.
+	 * @param null  $silent If set to TRUE, will suppress any errors on error.
 	 *
 	 * @return bool Returns TRUE if all fields are present, FALSE if otherwise
 	 */
@@ -504,7 +501,7 @@ class User extends Common {
 			# The user has an unverified account
 			$this->log->warning([
 				"title" => "Registered but not verified yet",
-				"message" => "You have already reigstered with {$_ENV['title']}, but your email address has yet to be verified."
+				"message" => "You have already registered with {$_ENV['title']}, but your email address has yet to be verified."
 			]);
 			$this->hash->set([
 				"rel_table" => $rel_table,
@@ -551,8 +548,8 @@ class User extends Common {
 	/**
 	 * Sends a verification email.
 	 *
-	 * @param array $a Needs to include a rel_table/rel_id
-	 * @param null $internal
+	 * @param array     $a Needs to include a rel_table/rel_id
+	 * @param bool|null $internal
 	 *
 	 * @return bool
 	 * @throws Exception
@@ -715,6 +712,12 @@ class User extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	public function updateEmail($a): bool
 	{
 		extract($a);
@@ -850,6 +853,11 @@ class User extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 */
 	public function sampler($a){
 		extract($a);
 		$cron_jobs_count = $this->sql->select([
@@ -902,7 +910,7 @@ class User extends Common {
 	 * Given an IP address,
 	 * returns geolocation details.
 	 *
-	 * Is public because, problamatically, it's called from elsewhere also.
+	 * Is public because, problematically, it's called from elsewhere also.
 	 * 
 	 * @param string|null $ip
 	 *
@@ -968,7 +976,7 @@ class User extends Common {
 	}
 
 	/**
-	 * Confirms the reCAPTCHA resposne with Google,
+	 * Confirms the reCAPTCHA responce with Google,
 	 * and returns a score between 0 and 1, or NULL
 	 * if no score has been received.
 	 *
@@ -1321,7 +1329,7 @@ class User extends Common {
 
 		# If no user ID has been provided
 		if(!$rel_id){
-			throw new \Exception("No user ID was provided for the 2FA verification");
+			throw new Exception("No user ID was provided for the 2FA verification");
 		}
 
 		# Remove all characters (including spaces) except A to F and 0 to 9
@@ -1329,7 +1337,7 @@ class User extends Common {
 
 		# Make sure something remains
 		if(!$vars['code']){
-			throw new \Exception("An invalid 2FA verification code was provided.");
+			throw new Exception("An invalid 2FA verification code was provided.");
 		}
 
 		if(!$user = $this->sql->select([
@@ -1873,7 +1881,7 @@ class User extends Common {
 
 	/**
 	 * Checks the current session ID with the user table, to see if
-	 * it belongs to a user that is not the curren tuser, and that user
+	 * it belongs to a user that is not the current user, and that user
 	 * is an admin.
 	 *
 	 * Assumes the admin has cookies stored.
@@ -1964,7 +1972,7 @@ class User extends Common {
 		}
 
 		if($vars['term']){
-			$term = preg_replace("/[^a-z0-9-'\. ]/i", "", $vars['term']);
+			$term = preg_replace("/[^a-z0-9-'. ]/i", "", $vars['term']);
 			$or = [
 				"first_name" => "%{$term}%",
 				"last_name" => "%{$term}%",

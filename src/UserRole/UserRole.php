@@ -8,6 +8,10 @@ use App\Common\Navigation\Navigation;
 use App\Common\str;
 use App\UI\Icon;
 
+/**
+ * Class UserRole
+ * @package App\Common\UserRole
+ */
 class UserRole extends \App\Common\Common {
 	public function switch($a){
 		extract($a);

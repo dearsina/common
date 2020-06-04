@@ -4,7 +4,16 @@
 namespace App\Common\IssueType;
 
 
+/**
+ * Class Field
+ * @package App\Common\IssueType
+ */
 class Field {
+	/**
+	 * @param null $a
+	 *
+	 * @return array[]
+	 */
 	public static function issueType($a = NULL){
 		if(is_array($a))
 			extract($a);

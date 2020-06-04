@@ -18,6 +18,11 @@ class Process {
 	private $pid;
 	private $command;
 
+	/**
+	 * Process constructor.
+	 *
+	 * @param bool $cl
+	 */
 	public function __construct ($cl = false)
 	{
 		if ($cl != false) {
@@ -33,6 +38,9 @@ class Process {
 		$this->pid = (int)$op[0];
 	}
 
+	/**
+	 * @param $pid
+	 */
 	public function setPid ($pid)
 	{
 		$this->pid = $pid;
@@ -43,6 +51,9 @@ class Process {
 		return $this->pid;
 	}
 
+	/**
+	 * @return bool
+	 */
 	public function status ()
 	{
 		$command = 'ps -p ' . $this->pid;
@@ -51,12 +62,18 @@ class Process {
 		else return true;
 	}
 
+	/**
+	 * @return bool
+	 */
 	public function start ()
 	{
 		if ($this->command != '') $this->runCom();
 		else return true;
 	}
 
+	/**
+	 * @return bool
+	 */
 	public function stop ()
 	{
 		$command = 'kill ' . $this->pid;

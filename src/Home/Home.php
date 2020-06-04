@@ -7,10 +7,13 @@ namespace App\Common\Home;
 use App\Common\Common;
 use App\Common\str;
 use App\UI\Card;
-use App\UI\Grid;
 use App\UI\Icon;
 use App\UI\Page;
 
+/**
+ * Class Home
+ * @package App\Common\Home
+ */
 class Home extends Common {
 
 	/**
@@ -22,6 +25,8 @@ class Home extends Common {
 	 * @param $a
 	 *
 	 * @return bool
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	public function view($a) : bool
 	{
@@ -60,8 +65,16 @@ class Home extends Common {
 		return $this->genericView($a);
 	}
 
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	private function genericView($a) : bool
 	{
+		extract($a);
+
 		global $role;
 
 		$page = new Page([

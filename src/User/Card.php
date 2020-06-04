@@ -10,9 +10,11 @@ use App\UI\Form\Form;
 use App\UI\Form\Recaptcha;
 use App\UI\Grid;
 use App\UI\Icon;
-use App\UI\ListGroup;
-use App\UI\Table;
 
+/**
+ * Class Card
+ * @package App\Common\User
+ */
 class Card extends Common {
 	public function new($a = NULL){
 		extract($a);
@@ -42,15 +44,25 @@ class Card extends Common {
 			]
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
+
+	/**
+	 * @param $role
+	 *
+	 * @return mixed
+	 */
 	public function selectRole($role){
 
 
 		return $html;
 	}
+
+	/**
+	 * @param null $a
+	 *
+	 * @return string
+	 */
 	public function verificationEmailSent($a = NULL){
 		extract($a);
 
@@ -109,10 +121,14 @@ class Card extends Common {
 			]
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
+
+	/**
+	 * @param null $a
+	 *
+	 * @return string
+	 */
 	public function newPassword($a = NULL){
 		if(is_array($a))
 			extract($a);
@@ -150,10 +166,14 @@ class Card extends Common {
 			]
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
+
+	/**
+	 * @param null $a
+	 *
+	 * @return string
+	 */
 	public function login($a = NULL){
 		if(is_array($a))
 			extract($a);
@@ -196,11 +216,15 @@ class Card extends Common {
 			],
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
 
+	/**
+	 * @param $a
+	 * @param $user
+	 *
+	 * @return string
+	 */
 	public function codeFor2FA($a, $user){
 		if(is_array($a))
 			extract($a);
@@ -259,11 +283,14 @@ class Card extends Common {
 			]
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return string
+	 */
 	public function resetPassword($a = NULL){
 		extract($a);
 
@@ -293,18 +320,21 @@ class Card extends Common {
 			]
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return string
+	 */
 	public function newAdmin($a = NULL){
 		$card = new \App\UI\Card([
 			"header" => [
 				"icon" => "exclamation-triangle",
 				"title" => "No admins assigned"
 			],
-			"body" => "No admins have been assigned for this application. The app needs admins to manage it. Click on the buttom below to set this user as the first.",
+			"body" => "No admins have been assigned for this application. The app needs admins to manage it. Click on the button below to set this user as the first.",
 			"footer" => [
 				"button" => [
 					"colour" => "red",
@@ -318,11 +348,14 @@ class Card extends Common {
 			]
 		]);
 
-		$html = $card->getHTML();
-
-		return $html;
+		return $card->getHTML();
 	}
 
+	/**
+	 * @param $user
+	 *
+	 * @return string
+	 */
 	public function user($user) : string
 	{
 		$rows = [

@@ -12,7 +12,17 @@ use App\UI\Icon;
 use App\UI\ListGroup;
 use App\UI\Page;
 
+/**
+ * Class Example
+ * @package App\Common\Example
+ */
 class Example extends Common {
+	/**
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function view($a){
 		extract($a);
 

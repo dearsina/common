@@ -4,6 +4,10 @@
 namespace App\Common\Role;
 
 
+/**
+ * Class Field
+ * @package App\Common\Role
+ */
 class Field {
 	public static function role(?array $a = NULL) : array
 	{

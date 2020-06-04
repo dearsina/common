@@ -6,15 +6,13 @@ namespace App\Common\Admin;
 use App\Common\Common;
 use App\UI\Icon;
 use App\UI\Table;
+use Exception;
 
+/**
+ * Class Admin
+ * @package App\Common\Admin
+ */
 class Admin extends Common {
-	/**
-	 * @return Card
-	 */
-	public function card(){
-		return new Card();
-	}
-
 	/**
 	 * @return Modal
 	 */
@@ -22,6 +20,15 @@ class Admin extends Common {
 		return new Modal();
 	}
 
+	/**
+	 * Insert a new admin. Can only be done by other admins.
+	 * Or insert the first admin. Can only be done once.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	public function insert($a){
 		extract($a);
 
@@ -45,17 +52,17 @@ class Admin extends Common {
 
 		# Make sure user ID was sent
 		if(!$vars['user_id']){
-			throw new \Exception("No user ID was supplied for the new admin.");
+			throw new Exception("No user ID was supplied for the new admin.");
 		}
 
 		# Make sure the user ID is valid
-		if(count($this->sql->select([
-			"table" => "user",
-			"where" => [
-				"user_id" => $vars['user_id']
-			]
-		])) !== 1){
-			throw new \Exception("An invalid user ID was supplied for the new admin.");
+		if(!$user = $this->info("user", $vars['user_id'])){
+			throw new Exception("An invalid user ID was supplied for the new admin.");
+		}
+
+		# Make sure the user isn't already an admin
+		if(in_array("admin", $user['user_role'])){
+			throw new Exception("This user is already an admin.");
 		}
 
 		# Create a new admin role
@@ -97,7 +104,15 @@ class Admin extends Common {
 		return true;
 	}
 
-	public function update(array $a, $silent = NULL) : bool
+	/**
+	 * Update admin details.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function update(array $a) : bool
 	{
 		extract($a);
 
@@ -121,6 +136,14 @@ class Admin extends Common {
 		return true;
 	}
 
+	/**
+	 * A modal showing how frequently each admin wants to be notified.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	public function errorNotification($a) : bool
 	{
 		extract($a);

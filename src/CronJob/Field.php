@@ -6,6 +6,10 @@ namespace App\Common\CronJob;
 
 use App\Common\str;
 
+/**
+ * Class Field
+ * @package App\Common\CronJob
+ */
 class Field {
 
 

@@ -4,6 +4,10 @@
 namespace App\Common\SQL\Info;
 
 
+/**
+ * Interface InfoInterface
+ * @package App\Common\SQL\Info
+ */
 interface InfoInterface {
 	/**
 	 * Add joins, order, column definitions, etc.

@@ -23,7 +23,16 @@ class Email extends Common {
 	 * @var \Swift_Message
 	 */
 	private $envelope;
+	/**
+	 * @var bool
+	 */
+	private $silent;
 
+	/**
+	 * Email constructor.
+	 *
+	 * @param null $a
+	 */
 	public function __construct ($a = NULL) {
 		parent::__construct();
 
@@ -42,6 +51,13 @@ class Email extends Common {
 		return true;
 	}
 
+	/**
+	 * @param $template
+	 * @param $variables
+	 *
+	 * @return $this
+	 * @throws \Exception
+	 */
 	public function template($template, $variables){
 		if(!$TemplateClass = str::getClassCase($template)){
 			throw new \Exception("No template provided");
@@ -67,9 +83,12 @@ class Email extends Common {
 
 	/**
 	 * Set the subject
+	 *
 	 * @param string $subject
 	 *
 	 * @return $this|bool
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	public function subject(string $subject){
 		if(!$subject){
@@ -84,9 +103,12 @@ class Email extends Common {
 
 	/**
 	 * Set the message
+	 *
 	 * @param string $message
 	 *
 	 * @return $this|bool
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	public function message(string $message){
 		if(!$message){
@@ -94,7 +116,7 @@ class Email extends Common {
 		}
 
 		# Hack to ensure that base64 embedded photos are converted to CIDs so that Gmail will display them
-		$pattern = '/<img src="data:([^;]+);base64,([^"]+)">/m';
+		$pattern = /** @lang PhpRegExp */'/<img src="data:([^;]+);base64,([^"]+)">/m';
 		if(preg_match_all($pattern, $message, $matches)){
 			//if there are embedded images
 			foreach($matches[2] as $id => $base64){
@@ -120,7 +142,7 @@ class Email extends Common {
 	 * Can be a string to a path, or an array of paths,
 	 * or an array of "path" and "filename" key/value pairs.
 	 *
-	 * @param null $a
+	 * @param array|string|null $a
 	 *
 	 * @return $this
 	 */
@@ -145,7 +167,7 @@ class Email extends Common {
 		}
 
 		foreach($attachments as $attachment){
-			$this->envelope->attach(\Swift_Attachment::fromPath($att['path'])->setFilename($att['filename']));
+			$this->envelope->attach(\Swift_Attachment::fromPath($attachment['path'])->setFilename($attachment['filename']));
 		}
 
 		return $this;
@@ -153,9 +175,12 @@ class Email extends Common {
 
 	/**
 	 * Set the TO recipients
+	 *
 	 * @param array|string $to
 	 *
 	 * @return $this
+	 * @throws \Exception
+	 * @throws \Exception
 	 */
 	public function to($to){
 		if(is_string($to) && !empty($to)){
@@ -201,8 +226,8 @@ class Email extends Common {
 	 */
 	public function bcc($bcc){
 		if(is_string($bcc) && !empty($bcc)){
-			$bcc_array = [$bcc => $bcc];
-		} else if(str::isAssociativeArray()){
+			$this->envelope->setBcc([$bcc => $bcc]);
+		} else if(str::isAssociativeArray($bcc)){
 			$this->envelope->setBcc($bcc);
 		} else if(str::isNumericArray($bcc)){
 			foreach($bcc as $t){

@@ -4,10 +4,15 @@
 namespace App\Common\Navigation;
 
 
+use App\Common\Common;
 use App\Common\str;
 use App\UI\Icon;
 
-class Admin extends \App\Common\Common implements NavigationInterface {
+/**
+ * Class Admin
+ * @package App\Common\Navigation
+ */
+class Admin extends Common implements NavigationInterface {
 	private $levels = [];
 	private $footers = [];
 

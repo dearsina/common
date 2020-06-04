@@ -5,11 +5,20 @@ namespace App\Common\UserPermission;
 
 
 use App\Common\Permission\Field;
-use App\Common\str;
 use App\UI\Form\Form;
 use App\UI\Icon;
 
+/**
+ * Class Card
+ * @package App\Common\UserPermission
+ */
 class Card extends \App\Common\Common {
+	/**
+	 * @param array|null $user
+	 *
+	 * @return string
+	 * @throws \Exception
+	 */
 	public function selectUser(?array $user = []){
 		# The script called every time the select2 value changes
 		$script = "ajaxCall(null, \"user_permission\", null, {user_id: $(this).val()});";

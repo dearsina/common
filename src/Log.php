@@ -5,7 +5,6 @@ namespace App\Common;
 
 
 use App\Common\SQL\Factory;
-use App\Common\SQL\mySQL;
 use App\UI\Icon;
 
 /**
@@ -13,8 +12,6 @@ use App\UI\Icon;
  * @package App\Common
  */
 class Log {
-
-	protected static $instance = false;
 	private $alerts = [];
 	private $script_start_time;
 
@@ -36,12 +33,12 @@ class Log {
 	 * @return Log
 	 * @link http://stackoverflow.com/questions/3126130/extending-singletons-in-php
 	 */
-	final public static function getInstance () {
-		static $instance;
-		if(!isset($instance)) {
+	final public static function getInstance(): Log
+	{
+		static $instance = null;
+		if (!$instance) {
 			$instance = new Log();
 		}
-
 		return $instance;
 	}
 
@@ -234,14 +231,16 @@ class Log {
 	 * Log an message of any type
 	 * <code>
 	 * $this->log([
-	 * 	"type" => "",
-	 * 	"icon" => $icon,
-	 * 	"title" => $title,
-	 * 	"message" => $message
+	 *    "type" => "",
+	 *    "icon" => $icon,
+	 *    "title" => $title,
+	 *    "message" => $message
 	 * ]);
 	 * </code>
 	 *
-	 * @param $a array
+	 * @param        $a array
+	 *
+	 * @param string $type
 	 *
 	 * @return bool
 	 */

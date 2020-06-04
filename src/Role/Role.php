@@ -5,10 +5,13 @@ namespace App\Common\Role;
 
 use App\Common\Common;
 use App\Common\str;
-use App\UI\Badge;
 use App\UI\Icon;
 use App\UI\Table;
 
+/**
+ * Class Role
+ * @package App\Common\Role
+ */
 class Role extends Common {
 	/**
 	 * @return Card
@@ -106,12 +109,11 @@ class Role extends Common {
 	 * Insert a new role.
 	 *
 	 * @param array $a
-	 * @param null  $silent
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function insert(array $a, $silent = NULL) : bool
+	public function insert(array $a) : bool
 	{
 		extract($a);
 
@@ -138,12 +140,10 @@ class Role extends Common {
 	 * Update a role.
 	 *
 	 * @param array $a
-	 * @param null  $silent
-	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function update(array $a, $silent = NULL) : bool
+	public function update(array $a) : bool
 	{
 		extract($a);
 

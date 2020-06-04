@@ -6,7 +6,16 @@ namespace App\Common\IssueNote;
 
 use App\Common\str;
 
+/**
+ * Class Field
+ * @package App\Common\IssueNote
+ */
 class Field {
+	/**
+	 * @param null $a
+	 *
+	 * @return array[]
+	 */
 	public static function issueNote($a = NULL)
 	{
 		if (is_array($a))

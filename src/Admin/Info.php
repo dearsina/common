@@ -6,6 +6,10 @@ namespace App\Common\Admin;
 
 use App\Common\str;
 
+/**
+ * Class Info
+ * @package App\Common\Admin
+ */
 class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterface {
 
 	/**

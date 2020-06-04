@@ -4,9 +4,10 @@
 namespace App\Common\RolePermission;
 
 
-use App\Common\str;
-use App\UI\ListGroup;
-
+/**
+ * Class Modal
+ * @package App\Common\RolePermission
+ */
 class Modal extends \App\Common\Common {
 
 }

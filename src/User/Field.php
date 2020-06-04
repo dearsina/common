@@ -4,15 +4,24 @@
 namespace App\Common\User;
 
 
-use App\Common\str;
+use App\Common\href;
 use App\UI\Countdown;
 
+/**
+ * Class Field
+ * @package App\Common\User
+ */
 class Field {
 	/**
 	 * Minimum password length
 	 */
 	const minimumPasswordLength = 8;
 
+	/**
+	 * @param null $a
+	 *
+	 * @return array[]
+	 */
 	public static function login($a = NULL){
 		if(is_array($a))
 			extract($a);
@@ -105,8 +114,16 @@ class Field {
 			"type" => "checkbox",
 			"name" => "tnc",
 			"checked" => $tnc,
-			"label" => "I accept the <a href=\"#terms_and_conditions\">Terms and Conditions</a>",
-
+			"label" => href::a([
+					"pre" => "I accept the ",
+					"html" => "Terms and Conditions",
+					"post" => ".",
+					"target" => "_blank",
+					"alt" => "Will open a new window",
+					"hash" => [
+						"rel_table" => "terms_and_conditions"
+					]
+				]),
 			"validation" => [
 				"required" => [
 					"rule" => true,
@@ -117,6 +134,11 @@ class Field {
 		]];
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return array[]
+	 */
 	public static function edit($a = NULL) {
 		if (is_array($a))
 			extract($a);
@@ -172,6 +194,11 @@ class Field {
 		]];
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return array|array[]
+	 */
 	public static function editEmail($a = NULL): array
 	{
 		if (is_array($a))
@@ -201,6 +228,11 @@ class Field {
 		]];
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return array
+	 */
 	public static function newPassword($a = NULL) {
 		if (is_array($a))
 			extract($a);
@@ -237,6 +269,11 @@ class Field {
 		]];
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return array
+	 */
 	public static function resetPassword($a = NULL) {
 		if (is_array($a))
 			extract($a);
@@ -255,6 +292,12 @@ class Field {
 		]];
 	}
 
+	/**
+	 * @param null $a
+	 *
+	 * @return array[]
+	 * @throws \Exception
+	 */
 	public static function codeFor2FA($a = NULL)
 	{
 		if (is_array($a))
