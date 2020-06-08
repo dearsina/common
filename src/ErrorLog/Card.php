@@ -33,7 +33,16 @@ class Card extends \App\Common\Common {
 	 * @return string
 	 */
 	public function errorsByType($a){
+		# Replace "NULL" with NULL values
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				if($val == "NULL"){
+					$a['vars'][$key] = NULL;
+				}
+			}
+		}
 		extract($a);
+
 		$results = $this->sql->select([
 			"columns" => [
 				"Type" => "title",
@@ -57,13 +66,13 @@ class Card extends \App\Common\Common {
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
-						"title" => urlencode($row['Type'])
+						"title" => $row['Type'] ? urlencode($row['Type']) : "NULL"
 					])
 				];
 				$errors[] = [
 					"Type" => [
 						"hash" => $hash,
-						"html" => $row['Type']
+						"html" => $row['Type'] ?: "(None)"
 					],
 					"Errors" => [
 						"hash" => $hash,
@@ -81,6 +90,14 @@ class Card extends \App\Common\Common {
 	 * @return string
 	 */
 	public function errorsByUser($a){
+		# Replace "NULL" with NULL values
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				if($val == "NULL"){
+					$a['vars'][$key] = NULL;
+				}
+			}
+		}
 		extract($a);
 		$results = $this->sql->select([
 			"flat" => true,
@@ -140,6 +157,14 @@ class Card extends \App\Common\Common {
 	 * @return string
 	 */
 	public function errorsByReltable($a){
+		# Replace "NULL" with NULL values
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				if($val == "NULL"){
+					$a['vars'][$key] = NULL;
+				}
+			}
+		}
 		extract($a);
 		$results = $this->sql->select([
 			"columns" => [
@@ -337,6 +362,13 @@ class Card extends \App\Common\Common {
 		$id = str::id("on_demand_table");
 
 		$vars['resolved'] = $action;
+
+		# NULL values have to be translated back to "NULL" strings otherwise they get lost
+		foreach($vars as $key => $val){
+			if($val === NULL){
+				$vars[$key] = "NULL";
+			}
+		}
 
 		$body = Table::onDemand([
 			"id" => $id,

@@ -256,12 +256,14 @@ class Output {
 	 * @return bool
 	 */
 	public function html($data){
-		if($this->is_modal){
-			return $this->modal($data);
-		}
-		if($this->direction){
-			return $this->set_data($this->direction["type"], $this->direction["id"], $data);
-		}
+//		if($this->is_modal){
+//			return $this->modal($data);
+//		}
+//		if($this->direction){
+//			return $this->set_data($this->direction["type"], $this->direction["id"], $data);
+//		}
+		# I don't think we need these things any more, kept for reference only
+
 		return $this->set_data("update", "ui-view", $data);
 	}
 

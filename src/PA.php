@@ -58,35 +58,35 @@ class PA {
 		return self::$instance;
 	}
 
-	/**
-	 * Append a recipient of the msg.
-	 *
-	 * @param array|string $a If a string is passed,
-	 *                        it's assumed to be an id,
-	 *                        if it's an array,
-	 *                        it's assumed to be a hash.
-	 */
-	public function to($a){
-		if(is_array($a)){
-
-		} else {
-
-		}
-	}
-
-	/**
-	 * @param $a
-	 */
-	public function msg($a){
-
-	}
-
-	/**
-	 * @param $a
-	 */
-	public function listen($a){
-
-	}
+//	/**
+//	 * Append a recipient of the msg.
+//	 *
+//	 * @param array|string $a If a string is passed,
+//	 *                        it's assumed to be an id,
+//	 *                        if it's an array,
+//	 *                        it's assumed to be a hash.
+//	 */
+//	public function to($a){
+//		if(is_array($a)){
+//
+//		} else {
+//
+//		}
+//	}
+//
+//	/**
+//	 * @param $a
+//	 */
+//	public function msg($a){
+//
+//	}
+//
+//	/**
+//	 * @param $a
+//	 */
+//	public function listen($a){
+//
+//	}
 
 	/**
 	 * @param null $a
@@ -94,32 +94,99 @@ class PA {
 	 * @return bool
 	 */
 	public function speak($a = NULL){
-		if(!$a['fd']){
-			//if no recipients have been identified,
-			//assume only the person kicking off the
-			//ajax is to be notified
-			if($recipients = $this->sql->select([
-				"table" => "connection",
-				"where" => [
-					"closed" => NULL,
-					"session_id" => session_id()
-				]
-			])){
-				foreach($recipients as $recipient){
-					$a['fd'][] = $recipient['fd'];
-				}
-			}
+		if(!$recipients = $this->getRecipients($a)){
+			$this->log->warning("No recipients found for the broadcast.");
+			return false;
 		}
 
 		try {
-			$this->push($a['fd'], $a['data']);
+			$this->push($recipients, $a['data']);
 		}
 		catch (\Exception $e){
 			$this->log->error($e);
 			return false;
 		}
+		//
 
 		return true;
+	}
+
+	/**
+	 * Given the array from speak,
+	 * builds a list of recipients.
+	 * If no recipients are found,
+	 * returns bool FALSE.
+	 *
+	 * @param array $a
+	 *
+	 * @return array|bool
+	 */
+	private function getRecipients(array $a)
+	{
+		# If a list of recipients was explicitly sent
+		if(is_array($a['fd'])){
+			return $a['fd'];
+		}
+		//TODO decide between "fd" and "recipients"
+
+		# If a list of recipients was explicitly sent
+		if(is_array($a['recipients'])){
+			return $a['recipients'];
+		}
+
+		# Assume we have to generate recipients
+
+		# The where clause is how we identify recipients
+		$where = ["closed" => NULL];
+
+		# User permissions based recipients
+		if($a['rel_table']){
+			//if all active users who have permissions over a particular rel_table/id should get the message
+			$join[] = [
+				"table" => "user_permission",
+				"on" => "user_id",
+				"where" => [
+					"rel_table" => $a['rel_table'],
+					"rel_id" => $a['rel_id'],
+					"r" => true
+					// The user needs to at least have read access
+				]
+			];
+		}
+
+		# Role based recipients
+		else if($a['role']){
+			//if all logged on users of a particular role should get the message
+			$join[] = [
+				"table" => "user_role",
+				"on" => "user_id",
+				"where" => [
+					"rel_table" => $a['role']
+				]
+			];
+		}
+
+		else {
+			//if no recipients have been identified,
+			//assume only the person kicking off the
+			//ajax is the only person to be notified
+			$where["session_id"] = session_id();
+		}
+
+		if(!$connections = $this->sql->select([
+			"table" => "connection",
+			"join" => $join,
+			"where" => $where
+		])){
+			//if no connections are found
+			return false;
+		}
+
+		foreach($connections as $connection){
+			$recipients[] = $connection['fd'];
+		}
+
+		return $recipients;
 	}
 
 	/**

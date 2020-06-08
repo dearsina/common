@@ -4,10 +4,12 @@
 namespace App\Common\CronJob;
 
 use App\Common\Common;
+use App\Common\Process;
 use App\Common\Request;
 use App\Common\str;
 use App\UI\Badge;
 use App\UI\Icon;
+use App\UI\Page;
 use App\UI\Table;
 
 /**
@@ -46,13 +48,23 @@ class CronJob extends Common {
 			return $this->accessDenied();
 		}
 
-		$this->output->modal($this->modal()->all($a));
+		$page = new Page([
+			"title" => "Cron jobs",
+			"icon" => Icon::get("cron_job")
+		]);
+
+		$page->setGrid([
+			"html" => $this->card()->all($a)
+		]);
+
+		$page->setGrid([
+			"html" => $this->card()->running($a)
+		]);
+
+		$this->output->html($page->getHTML());
 
 		# Get the latest issue types
 		$this->updateRelTable($a);
-
-		$this->hash->set(-1);
-		$this->hash->silent();
 
 		return true;
 	}
@@ -439,6 +451,7 @@ EOF;
 			}
 		} else {
 			$rows[] = [
+				"id" => true,
 				"Cron jobs" => [
 					"icon" => Icon::get("new"),
 					"html" => "New cron job...",
@@ -541,12 +554,61 @@ EOF;
 		$scheduler = new \GO\Scheduler();
 
 		$func = function($a){
-			$request = new Request();
-			return $request->handler($a);
+//			$request = new Request();
+//			return $request->handler($a);
+			extract($a);
+
+			$cron_job_json = str_replace('"','\\"',json_encode($cron_job));
+
+			$cmd  = "go(function(){";
+			$cmd .= "require \"/var/www/html/app/settings.php\";";
+			$cmd .= "var_dump(\$_ENV);";
+			$cmd .= "var_dump(\$_SERVER);";
+			$cmd .= "\$cron_job = new \App\Common\CronJob\CronJob();";
+			$cmd .= "\$cron_job->execute(\"{$cron_job_json}\");";
+			$cmd .= "});";
+
+			$json_output = shell_exec("php -r '{$cmd}' 2>&1");
+			$this->log->warning($json_output);
+//			$process = new Process("php -r '{$cmd}'");
+//			echo $process->getPid();
+//			$this->log->info($process->getPid(), true);
+			return true;
+
+			/*
+			# Create a new instance of the class
+			$classInstance = new $cron_job['class']($this);
+
+			# Ensure the method is available
+			if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
+				throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
+			}
+
+			# Run the method
+			$success = $classInstance->{$cron_job['method']}();
+
+			# Analyse the result
+			if($success === true){
+				//not sure if this will have unintended consequences
+				$output['success'] = true;
+			} else if($this->log->hasFailures()){
+				//if there are any errors
+				$this->log->logFailures();
+				//log them for posterity
+				$output['success'] = false;
+			} else if($success === false) {
+				$output['success'] = false;
+			} else {
+				//otherwise, everything is fantastic
+				$output['success'] = true;
+			}
+
+			return true;*/
 		};
+
 		$args = [[
-			"rel_table" => end(explode("\\", $cron_job['class'])),
-			"action" => $cron_job['method'],
+//			"rel_table" => end(explode("\\", $cron_job['class'])),
+//			"action" => $cron_job['method'],
 			"cron_job" => $cron_job,
 		]];
 
@@ -569,7 +631,30 @@ EOF;
 				]);
 			});
 
+		ini_set('max_execution_time', 0);
 		$scheduler->run();
+
+		$this->hash->set(-1);
+
+		return true;
+	}
+
+	public function execute(string $cron_job_json)
+	{
+		$cron_job = json_decode($cron_job_json, true);
+
+		# Create a new instance of the class
+		$classInstance = new $cron_job['class']($this);
+
+		# Ensure the method is available
+		if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
+			throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
+		}
+
+		# Run the method
+		$success = $classInstance->{$cron_job['method']}();
+
+		echo "Execute is done";
 		return true;
 	}
 }

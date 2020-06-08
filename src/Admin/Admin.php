@@ -164,6 +164,11 @@ class Admin extends Common {
 		return true;
 	}
 
+	/**
+	 * Updates the error notification frequency table.
+	 *
+	 * @throws Exception
+	 */
 	private function updateErrorNotificationTable() : void
 	{
 		$admins = $this->info("admin");

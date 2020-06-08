@@ -83,7 +83,7 @@ class mySQL extends Grow {
 					"message" => $e->getMessage()
 				]]
 			]);
-			exit;
+			exit();
 			//There is no point in continuing
 		}
 	}
@@ -2869,7 +2869,7 @@ class mySQL extends Grow {
 	 *
 	 * Columns that don't exist will be removed to prevent SQL errors.
 	 *
-	 * @param      $ob array List of columns as an array, "column" => "direction", to sort
+	 * @param      $ob array Sanctions of columns as an array, "column" => "direction", to sort
 	 * @param null $table string The table where the columns are being taken from
 	 * @param null $alias string The table alias belonging to the columns
 	 *

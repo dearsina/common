@@ -37,7 +37,7 @@ class Grow{
 			}
 			
 			if(is_array($val)){
-				//If array valeus have accidentally been included, ignore them.
+				//If array values have accidentally been included, ignore them.
 			}
 
 			# Get the column data type based on the current value
@@ -125,9 +125,14 @@ class Grow{
 	 *
 	 * @return bool|string
 	 */
-	private function getQuery(string $table, string $col, $val, string $type, $tableMetadata = []){
+	private function getQuery(string $table, string $col, $val, string $type, ?array $tableMetadata = []){
 		# Get the key for the existing column, if it exists
-		$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
+		if(is_array($tableMetadata)){
+			$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
+		} else {
+			$key = false;
+		}
+
 		
 		# If the column doesn't exist
 		if($key === false){
@@ -155,7 +160,7 @@ class Grow{
 	 *
 	 * @return string
 	 */
-	private function getNewColumnQuery(string $table, string $col, $val, string $type, array $tableMetadata){
+	private function getNewColumnQuery(string $table, string $col, $val, string $type, ?array $tableMetadata = []){
 		# Get the key for the last column, if it cannot be found, assume table contains no (editable) columns
 		if(!$key = array_key_last($tableMetadata)){
 			$last_column = "{$table}_id";

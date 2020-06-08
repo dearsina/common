@@ -215,6 +215,15 @@ class ErrorLog extends Common {
 			return $this->accessDenied();
 		}
 
+		# Replace "NULL" with NULL values
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				if($val == "NULL"){
+					$a['vars'][$key] = NULL;
+				}
+			}
+		}
+
 		/**
 		 * The base query is the base of the search
 		 * query to run to get the results, it will
@@ -362,7 +371,17 @@ class ErrorLog extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function update($a){
+	public function update($a): bool
+	{
+		# Replace "NULL" with NULL values
+		if($a['vars']){
+			foreach($a['vars'] as $key => $val){
+				if($val == "NULL"){
+					$a['vars'][$key] = NULL;
+				}
+			}
+		}
+
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -416,6 +435,10 @@ class ErrorLog extends Common {
 
 		if($vars){
 			foreach($vars as $key => $val){
+				if($val == "NULL"){
+					$vars[$key] = NULL;
+					continue;
+				}
 				$vars[$key] = urldecode($val);
 			}
 		}
@@ -476,7 +499,7 @@ class ErrorLog extends Common {
 					"action" => "update",
 					"vars" => [
 						"button_id" => $button_id,
-						"resolved" => NULL,
+						"resolved" => "NULL",
 						"silent" => true
 					]
 				]

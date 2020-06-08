@@ -55,19 +55,32 @@ class Log {
 		if(!empty($this->alerts)){
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
-					$icon = Icon::getArray($alert['icon']);
-					$flat_error_array[] = str::array_filter_recursive(array_merge($alert, [
-						"type" => $type,
-						"title" => $alert['title'],
-						"message" => $alert['message'],
-						"icon" => "{$icon['type']} fa-{$icon['name']}",
-						"seconds" => $alert['seconds'],
-					]));
+					$flat_error_array[] = str::array_filter_recursive(
+						array_merge($alert,$this->prepareAlert($type, $alert))
+					);
 				}
 			}
 			return $flat_error_array;
 		}
 		return false;
+	}
+
+	/**
+	 * Given an array type and the particulars,
+	 * prepare an array for the front end.
+	 *
+	 * @param string $type
+	 * @param array  $alert
+	 *
+	 * @return array
+	 */
+	public function prepareAlert (string $type, array $alert): array
+	{
+		$icon = Icon::getArray($alert['icon']);
+		$alert["type"] = $type;
+		$alert["icon"] = "{$icon['type']} fa-{$icon['name']}";
+		unset($alert['backtrace']);
+		return $alert;
 	}
 
 	public function clearAlerts(){
@@ -143,38 +156,49 @@ class Log {
 			return false;
 		}
 
-		$sql = Factory::getInstance();
-		// Has to be initiated "locally" to prevent an infiniate loop
-
 		foreach($this->alerts as $type => $alerts){
 			if(!in_array($type,$this->failure_error_types)){
 				continue;
 			}
 			foreach($alerts as $alert){
-				$icon = Icon::getArray($alert['icon']);
-
-				$alert_array = array_filter([
-					"type" => $type,
-					"title" => $alert['title'],
-					"message" => implode("\r\n\r\n", array_filter([$alert['message'], $alert['backtrace']])),
-					"icon" => "{$icon['type']} fa-{$icon['name']}",
-					"seconds" => $alert['seconds'],
-					"action" => $_REQUEST['action'],
-					"rel_table" => $_REQUEST['rel_table'],
-					"rel_id" => $_REQUEST['rel_id'],
-					"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
-					"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
-				]);
-
-				# Insert the error in the DB
-				$sql->insert([
-					"table" => 'error_log',
-					"set" => $alert_array
-				]);
+				$this->logAlert($type, $alert);
 			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * Logs a single alert.
+	 *
+	 * @param string $type
+	 * @param array  $alert
+	 */
+	private function logAlert (string $type, array $alert): void
+	{
+		$icon = Icon::getArray($alert['icon']);
+
+		$sql = Factory::getInstance();
+		// Has to be initiated "locally" to prevent an infinite loop
+
+		$alert_array = array_filter([
+			"type" => $type,
+			"title" => $alert['title'],
+			"message" => implode("\r\n\r\n", array_filter([$alert['message'], $alert['backtrace']])),
+			"icon" => "{$icon['type']} fa-{$icon['name']}",
+			"seconds" => $alert['seconds'],
+			"action" => $_REQUEST['action'],
+			"rel_table" => $_REQUEST['rel_table'],
+			"rel_id" => $_REQUEST['rel_id'],
+			"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
+			"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
+		]);
+
+		# Insert the error in the DB
+		$sql->insert([
+			"table" => 'error_log',
+			"set" => $alert_array
+		]);
 	}
 
 	/**
@@ -238,13 +262,15 @@ class Log {
 	 * ]);
 	 * </code>
 	 *
-	 * @param        $a array
+	 * @param string|array $a
 	 *
 	 * @param string $type
 	 *
+	 * @param mixed   $immediately
+	 *
 	 * @return bool
 	 */
-	private function log($a, string $type){
+	public function log($a, string $type, $immediately){
 		$alert = is_array($a) ? $a : ["message" => $a];
 
 		if(!$alert['icon']){
@@ -253,8 +279,43 @@ class Log {
 
 		$alert['seconds'] = $this->secondsSinceStart();
 		$alert['backtrace'] = str::backtrace(true);
+
+		# If the alert is to be shared with the user immediately
+		if($immediately){
+			return $this->alertImmediately($type, $alert, $immediately);
+		}
 		$this->alerts[$type][] = $alert;
 		return true;
+	}
+
+	/**
+	 * Logs and sends an alert out immediately
+	 * to one or many users via WebSockets.
+	 *
+	 * @param string     $type
+	 * @param array      $alert
+	 * @param mixed $immediately
+	 *
+	 * @return bool
+	 */
+	private function alertImmediately(string $type, array $alert, $immediately = NULL){
+		# Log the alert (if of a failure type)
+		if(in_array($type,$this->failure_error_types)){
+			$this->logAlert($type, $alert);
+		}
+
+		# Prepare the alert for sharing with users
+		$alert = $this->prepareAlert($type, $alert);
+
+		# Prepare the message
+		if(is_array($immediately)){
+			$speak = $immediately;
+		}
+		$speak['data']['alerts'][] = $alert;
+
+		# Send the message to the recipients
+		$pa = PA::getInstance();
+		return $pa->speak($speak);
 	}
 
 	/**
@@ -262,17 +323,19 @@ class Log {
 	 * <code>
 	 * $this->log->error("Error message");
 	 * $this->log->error([
-	 * 	"title" => "Error title",
-	 * 	"message" => "Error message"
+	 *    "title" => "Error title",
+	 *    "message" => "Error message"
 	 * ]);
 	 * </code>
 	 *
-	 * @param $a
+	 * @param           $a
+	 *
+	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function error($a){
-		return $this->log($a, __FUNCTION__);
+	function error($a, $immediately = NULL){
+		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
 	/**
@@ -280,17 +343,19 @@ class Log {
 	 * <code>
 	 * $this->log->warning("Warning message");
 	 * $this->log->warning([
-	 * 	"title" => "Warning title",
-	 * 	"message" => "Warning message"
+	 *    "title" => "Warning title",
+	 *    "message" => "Warning message"
 	 * ]);
 	 * </code>
 	 *
-	 * @param $a
+	 * @param      $a
+	 *
+	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function warning($a){
-		return $this->log($a, __FUNCTION__);
+	function warning($a, $immediately = NULL){
+		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
 	/**
@@ -298,17 +363,19 @@ class Log {
 	 * <code>
 	 * $this->log->info("Info message");
 	 * $this->log->info([
-	 * 	"title" => "Info title",
-	 * 	"message" => "Info message"
+	 *    "title" => "Info title",
+	 *    "message" => "Info message"
 	 * ]);
 	 * </code>
 	 *
-	 * @param $a
+	 * @param      $a
+	 *
+	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function info($a) {
-		return $this->log($a, __FUNCTION__);
+	function info($a, $immediately = NULL){
+		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
 	/**
@@ -316,17 +383,19 @@ class Log {
 	 * <code>
 	 * $this->log->success("Success message");
 	 * $this->log->success([
-	 * 	"title" => "Success title",
-	 * 	"message" => "Info message"
+	 *    "title" => "Success title",
+	 *    "message" => "Info message"
 	 * ]);
 	 * </code>
 	 *
-	 * @param $a
+	 * @param      $a
+	 *
+	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function success($a) {
-		return $this->log($a, __FUNCTION__);
+	function success($a, $immediately = NULL){
+		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
 }

@@ -498,6 +498,9 @@ class str {
 	 * return an array of all the methods that
 	 * qualify the modifier.
 	 *
+	 * This depends on the root namespaces being in the composer.json
+	 * and that the `composer update autoload` command has been run.
+	 *
 	 * @param string      $class
 	 * @param string|null $modifier Default modifier is PUBLIC
 	 *
@@ -686,6 +689,38 @@ class str {
 	}
 
 	/**
+	 * Given two or more strings
+	 * (or a whole multidimensional array of data),
+	 * create a checksum that can be used to
+	 * validate the completeness of the data.
+	 *
+	 * @param array $a Array order doesn't matter, as the array will be sorted before the CRC32 checksum is created
+	 *
+	 * @return int the CRC32 checksum
+	 */
+	public static function generateChecksum(array $a): int
+	{
+		array_multisort($a);
+		return crc32(implode("",str::flatten($a)));
+	}
+
+	/**
+	 * Given an array of data and its checksum,
+	 * compare it and return the results.
+	 *
+	 * @param array  $a Array of data
+	 * @param string $checksum Checksum belonging to the data
+	 *
+	 * @return bool Returns TRUE if the data is complete, FALSE if not.
+	 */
+	public static function validateChecksum(array $a, string $checksum): bool
+	{
+		return ($checksum == str::generateChecksum($a));
+	}
+
+
+
+	/**
 	 * Given an array of rel_table/id and action, and an array of vars,
 	 * creates a hash string and returns it.
 	 *
@@ -780,6 +815,9 @@ class str {
 		}
 		if(is_array($a)){
 			foreach($a as $key => $val){
+				if($val === NULL){
+					continue;
+				}
 				$a[$key] = urldecode($val);
 			}
 			return $a;
@@ -1039,6 +1077,7 @@ class str {
 
 		# Button(s) in a row
 		if(str::isNumericArray($a['button'])){
+			$a['button'] = array_reverse($a['button']);
 			foreach($a['button'] as $b){
 				$button .= Button::generate($b);
 			}

@@ -12,44 +12,6 @@ use App\UI\Icon;
  * @package App\Common\CronJob
  */
 class Modal extends \App\Common\Common {
-	/**
-	 * @param array $a
-	 *
-	 * @return string
-	 */
-	public function all(array $a){
-		extract($a);
-
-		$modal = new \App\UI\Modal([
-			"size" => "l",
-			"icon" => Icon::get("cron_job"),
-			"header" => "All cron jobs",
-			"body" => [
-				"style" => [
-					"overflow-y" => "auto",
-					"overflow-x" => "hidden",
-				],
-				"id" => "all_cron_job",
-			],
-			"footer" => [
-				"button" => ["close_md",[
-					"hash" => [
-						"rel_table" => $rel_table,
-						"action" => "new"
-					],
-					"title" => "New",
-					"icon" => Icon::get("new"),
-					"colour" => "primary",
-//					"class" => "float-right"
-				]]
-			],
-			"draggable" => true,
-			"resizable" => true,
-		]);
-
-		return $modal->getHTML();
-	}
-
 	public function new($a){
 		extract($a);
 

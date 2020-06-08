@@ -232,6 +232,7 @@ abstract class Common {
 		return true;
 	}
 
+
 //	/**
 //	 * Generic insert function that inserts a new row with data
 //	 * into a table and returns the new id.

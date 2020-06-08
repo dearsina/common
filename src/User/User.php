@@ -682,7 +682,7 @@ class User extends Common {
 			"user_id" => $rel_id,
 			"email" => $user['email'],
 			"new_email" => $vars['new_email'],
-			"checksum" => $this->createChecksum([$vars['new_email'], $key]),
+			"checksum" => str::generateChecksum([$vars['new_email'], $key]),
 		];
 
 		# Send an email to the current email address warning about the update
@@ -734,7 +734,7 @@ class User extends Common {
 		$user = $this->info($rel_table, $rel_id);
 
 		# Make sure the checksum is valid (aka, the key hasn't expired or the email tampered with)
-		if(!$this->validateChecksum([$vars['new_email'], $user['key']], $vars['checksum'])){
+		if(!str::validateChecksum([$vars['new_email'], $user['key']], $vars['checksum'])){
 			$this->log->error([
 				"container" => "#ui-view",
 				'title' => "Verification failed",
@@ -760,36 +760,6 @@ class User extends Common {
 
 		$this->hash->set("home");
 		return true;
-	}
-
-	/**
-	 * Given two or more strings
-	 * (or a whole multidimensional array of data),
-	 * create a checksum that can be used to
-	 * validate the completeness of the data.
-	 *
-	 * @param array $a Array order doesn't matter, as the array will be sorted before the CRC32 checksum is created
-	 *
-	 * @return int the CRC32 checksum
-	 */
-	private function createChecksum(array $a): int
-	{
-		array_multisort($a);
-		return crc32(implode("",str::flatten($a)));
-	}
-
-	/**
-	 * Given an array of data and its checksum,
-	 * compare it and return the results.
-	 *
-	 * @param array  $a Array of data
-	 * @param string $checksum Checksum belonging to the data
-	 *
-	 * @return bool Returns TRUE if the data is complete, FALSE if not.
-	 */
-	private function validateChecksum(array $a, string $checksum): bool
-	{
-		return ($checksum == $this->createChecksum($a));
 	}
 
 	/**
