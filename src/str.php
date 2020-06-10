@@ -1031,7 +1031,15 @@ class str {
 			} else {
 				//if keys do matter
 				foreach($val_array as $k => $v){
-					$val .= "{$k}:{$v};";
+					if(is_numeric($k) && is_array($v)){
+						foreach($v as $vk => $vv){
+							$val .= "{$vk}:{$vv};";
+						}
+					} else {
+						if($k && $v){
+							$val .= "{$k}:{$v};";	
+						}
+					}
 				}
 			}
 		}
@@ -1664,8 +1672,8 @@ EOF;
 	public static function were($array, $rel_table, $include_count = false){
 		if(is_array($array)){
 			$count = count($array);
-		} else if(is_int($array)){
-			$count = $array;
+		} else if(is_int($array) || is_string($array)){
+			$count = (int) $array;
 		} else {
 			$count = 0;
 		}
@@ -2285,6 +2293,7 @@ EOF;
 		case 'warning'  : return 'warning'; break;
 		case 'yellow'   : return 'warning'; break;
 		case 'orange'   : return 'warning'; break;
+		case 'error'    : return 'danger'; break;
 		case 'danger'   : return 'danger'; break;
 		case 'red'      : return 'danger'; break;
 		case 'info'     : return 'info'; break;

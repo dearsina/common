@@ -114,6 +114,38 @@ class CronLog extends \App\Common\Common {
 		return true;
 	}
 
+	/**
+	 * Removes a cron job.
+	 *
+	 * @param array $a
+	 * @param null  $silent
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function remove(array $a, $silent = NULL) : bool
+	{
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		$this->sql->remove([
+			"table" => $rel_table,
+			"id" => $rel_id
+		]);
+
+		if($silent){
+			return true;
+		}
+
+		$this->hash->set(-1);
+
+		return true;
+	}
+
 
 
 	/**
@@ -216,7 +248,7 @@ class CronLog extends \App\Common\Common {
 		$row['Job'] = [
 			"accordion" => [
 				"header" => $item['cron_job'][0]['title'],
-				"body" => str::pre($item['output'])
+				"body" => $item['output']
 			]
 		];
 
@@ -233,8 +265,8 @@ class CronLog extends \App\Common\Common {
 			"title" => "Remove log entry...",
 			"icon" => "trash",
 			"hash" => [
-				"rel_table" => "cron_job",
-				"rel_id" => $item['cron_job_id'],
+				"rel_table" => "cron_log",
+				"rel_id" => $item['cron_log_id'],
 				"action" => "remove"
 			],
 			"approve" => true,

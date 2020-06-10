@@ -63,8 +63,8 @@ class CronJob extends Common {
 
 		$this->output->html($page->getHTML());
 
-		# Get the latest issue types
-		$this->updateRelTable($a);
+		# Get the latest update of the CronJobs table
+		$this->updateCronJobs($a);
 
 		return true;
 	}
@@ -146,8 +146,8 @@ class CronJob extends Common {
 		# Closes the (top-most) modal
 		$this->output->closeModal();
 
-		# Get the latest issue types
-		$this->updateRelTable($a);
+		# Get the latest update of the CronJobs table
+		$this->updateCronJobs($a);
 
 		return true;
 	}
@@ -178,8 +178,8 @@ class CronJob extends Common {
 		# Closes the (top-most) modal
 		$this->output->closeModal();
 
-		# Get the latest issue types
-		$this->updateRelTable($a);
+		# Get the latest update of the CronJobs table
+		$this->updateCronJobs($a);
 
 		return true;
 	}
@@ -207,8 +207,8 @@ class CronJob extends Common {
 			"id" => $rel_id
 		]);
 
-		# Get the latest issue types
-		$this->updateRelTable($a);
+		# Get the latest update of the CronJobs table
+		$this->updateCronJobs($a);
 
 		return true;
 	}
@@ -240,8 +240,8 @@ class CronJob extends Common {
 			return true;
 		}
 
-		# Get the latest issue types
-		$this->updateRelTable($a);
+		# Get the latest update of the CronJobs table
+		$this->updateCronJobs($a);
 
 		return true;
 	}
@@ -310,15 +310,20 @@ class CronJob extends Common {
 
 	/**
 	 * Is called by various methods to refresh
-	 * the table of rows.
+	 * the table of rows of Cron Jobs.
 	 *
-	 * @param $a
+	 * @param array $a
 	 *
 	 * @throws \Exception
 	 */
-	protected function updateRelTable($a) : void
+	public function updateCronJobs(array $a) : bool
 	{
 		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
 
 		$cron_jobs = $this->sql->select([
 			"table" => $rel_table,
@@ -331,24 +336,65 @@ class CronJob extends Common {
 			foreach($cron_jobs as $job){
 				$buttons = [];
 
-				$buttons[] = [
-					"alt" => "Execute this job...",
-					"colour" => "yellow",
-					"size" => "xs",
-					"basic" => true,
-					"icon" => "play",
-					"hash" => [
-						"rel_table" => $rel_table,
-						"rel_id" => $job["cron_job_id"],
-						"action" => "run"
-					],
-					"approve" => [
+				# Check to see if the job is still running
+				if($job['pid']) {
+					$process = new Process();
+					$process->setPid($job['pid']);
+					if (!$process->status()) {
+						//if the process is no longer active
+						$this->sql->update([
+							"table" => "cron_job",
+							"id" => $job['cron_job_id'],
+							"set" => [
+								"pid" => NULL
+							]
+						]);
+					}
+					$job = $this->sql->select([
+						"table" => "cron_job",
+						"id" => $job['cron_job_id'],
+					]);
+				}
+
+				if($job['pid']) {
+					$buttons[] = [
+						"alt" => "Stop this job...",
+						"colour" => "red",
+						"size" => "xs",
+						"icon" => "stop",
+						"hash" => [
+							"rel_table" => $rel_table,
+							"rel_id" => $job["cron_job_id"],
+							"action" => "kill"
+						],
+						"approve" => [
+							"colour" => "red",
+							"icon" => "stop-circle",
+							"title" => "Kill cron job?",
+							"message" => "This may have unintended consequences."
+						]
+					];
+				} else {
+					$buttons[] = [
+						"alt" => "Execute this job...",
 						"colour" => "yellow",
+						"size" => "xs",
+						"basic" => true,
 						"icon" => "play",
-						"title" => "Execute cron job?",
-						"message" => "Start running this job? Depending on the job, this could take a while."
-					]
-				];
+						"hash" => [
+							"rel_table" => $rel_table,
+							"rel_id" => $job["cron_job_id"],
+							"action" => "run"
+						],
+						"approve" => [
+							"colour" => "yellow",
+							"icon" => "play",
+							"title" => "Execute cron job?",
+							"message" => "Start running this job? Depending on the job, this could take a while."
+						]
+					];
+				}
+
 
 				if($job['paused']){
 					$buttons[] = [
@@ -467,6 +513,8 @@ EOF;
 			"rel_table" => $rel_table,
 			"order" => true
 		]));
+
+		return true;
 	}
 
 	public function runScheduled() : bool
@@ -491,45 +539,16 @@ EOF;
 			return true;
 		}
 
-		// Create a new scheduler
-		$scheduler = new \GO\Scheduler();
+		# Execute all jobs (at their scheduled interval)
+		$this->execute($cron_jobs);
 
-		foreach($cron_jobs as $cron_job) {
-			//for each cron job scheduled
-			$func = function($a){
-				$request = new Request();
-				return $request->handler($a);
-			};
-			$args = [[
-				"rel_table" => end(explode("\\", $cron_job['class'])),
-				"action" => $cron_job['method'],
-				"cron_job" => $cron_job,
-			]];
-
-			$scheduler
-			->call($func, $args, $cron_job['cron_job_id'])
-			->at($cron_job['interval']) //at the intervals determined
-			->before(function() {
-				$this->log->clearAlerts();
-				$this->log->startTimer();
-			})
-			->then(function($output) use ($cron_job){
-				$this->sql->insert([
-					"table" => "cron_log",
-					"set" => [
-						"cron_job_id" => $cron_job['cron_job_id'],
-						"status" => $this->log->getStatus(),
-						"duration" => $this->log->getDuration(),
-						"output" => $output
-					]
-				]);
-			});
-		}
-		$scheduler->run();
 		return true;
 	}
 
+
 	/**
+	 * Runs a single cron job, ad-hoc.
+	 *
 	 * @param $a
 	 *
 	 * @return bool
@@ -550,111 +569,254 @@ EOF;
 			throw new \Exception("The cron job cannot be found.");
 		}
 
-		// Create a new scheduler
-		$scheduler = new \GO\Scheduler();
+		# Both \ and " must be escaped or else the command will fail
+		$cron_job_json = str_replace(["\\", '"'],["\\\\",'\\"'],json_encode($cron_job));
 
-		$func = function($a){
-//			$request = new Request();
-//			return $request->handler($a);
-			extract($a);
+		# Build the command that executes the execute method
+		$cmd  = "go(function(){";
+		$cmd .= "require \"/var/www/html/app/settings.php\";";
+		$cmd .= "\$cron_job = new \App\Common\CronJob\CronJob();";
+		$cmd .= "\$cron_job->execute(\"{$cron_job_json}\", true);";
+		$cmd .= "});";
 
-			$cron_job_json = str_replace('"','\\"',json_encode($cron_job));
+		# Use the Process class to execute it with a pID that can be checked
+		$process = new Process("php -r '{$cmd}'");
 
-			$cmd  = "go(function(){";
-			$cmd .= "require \"/var/www/html/app/settings.php\";";
-			$cmd .= "var_dump(\$_ENV);";
-			$cmd .= "var_dump(\$_SERVER);";
-			$cmd .= "\$cron_job = new \App\Common\CronJob\CronJob();";
-			$cmd .= "\$cron_job->execute(\"{$cron_job_json}\");";
-			$cmd .= "});";
+		# Attach the pID to the job
+		$this->sql->update([
+			"table" => "cron_job",
+			"id" => $cron_job['cron_job_id'],
+			"set" => [
+				"pid" => $process->getPid()
+			]
+		]);
 
-			$json_output = shell_exec("php -r '{$cmd}' 2>&1");
-			$this->log->warning($json_output);
-//			$process = new Process("php -r '{$cmd}'");
-//			echo $process->getPid();
-//			$this->log->info($process->getPid(), true);
-			return true;
-
-			/*
-			# Create a new instance of the class
-			$classInstance = new $cron_job['class']($this);
-
-			# Ensure the method is available
-			if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
-				throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
-			}
-
-			# Run the method
-			$success = $classInstance->{$cron_job['method']}();
-
-			# Analyse the result
-			if($success === true){
-				//not sure if this will have unintended consequences
-				$output['success'] = true;
-			} else if($this->log->hasFailures()){
-				//if there are any errors
-				$this->log->logFailures();
-				//log them for posterity
-				$output['success'] = false;
-			} else if($success === false) {
-				$output['success'] = false;
-			} else {
-				//otherwise, everything is fantastic
-				$output['success'] = true;
-			}
-
-			return true;*/
-		};
-
-		$args = [[
-//			"rel_table" => end(explode("\\", $cron_job['class'])),
-//			"action" => $cron_job['method'],
-			"cron_job" => $cron_job,
-		]];
-
-		$scheduler
-			->call($func, $args, $cron_job['cron_job_id'])
-			// We're ignoring the ->at() method, because we're going to run it irrespective of schedule
-			->before(function() {
-				$this->log->clearAlerts();
-				$this->log->startTimer();
-			})
-			->then(function($output) use ($cron_job){
-				$this->sql->insert([
-					"table" => "cron_log",
-					"set" => [
-						"cron_job_id" => $cron_job['cron_job_id'],
-						"status" => $this->log->getStatus(),
-						"duration" => $this->log->getDuration(),
-						"output" => $output
-					]
-				]);
-			});
-
-		ini_set('max_execution_time', 0);
-		$scheduler->run();
+		$this->log->info([
+			"icon" => "play",
+			"title" => "Cron job started",
+			"message" => "The <b>{$cron_job['title']}</b> cron job has been started."
+		]);
 
 		$this->hash->set(-1);
 
 		return true;
 	}
 
-	public function execute(string $cron_job_json)
+	public function kill(array $a): bool
 	{
-		$cron_job = json_decode($cron_job_json, true);
+		extract($a);
 
-		# Create a new instance of the class
-		$classInstance = new $cron_job['class']($this);
-
-		# Ensure the method is available
-		if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
-			throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
 		}
 
-		# Run the method
-		$success = $classInstance->{$cron_job['method']}();
+		$cron_job = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id,
+		]);
 
-		echo "Execute is done";
+		$process = new Process();
+		$process->setPid($cron_job['pid']);
+
+		# Ensure process is still active
+		if (!$process->status()) {
+			//if the process is no longer active
+			$this->sql->update([
+				"table" => $rel_table,
+				"id" => $rel_id,
+				"set" => [
+					"pid" => NULL
+				]
+			]);
+			$this->log->warning([
+				"icon" => "tombstone",
+				"title" => "Inactive job",
+				"message" => "The <b>{$cron_job['title']}</b> job was no longer running."
+			]);
+
+			$this->hash->set(-1);
+
+			return true;
+		}
+
+		# Kill
+		if(!$process->stop()){
+			//if the job could not be killed
+			$this->log->error([
+				"icon" => "ghost",
+				"title" => "Unable to stop job",
+				"message" => "Unable to stop the <b>{$cron_job['title']}</b> job. The process ID is {$cron_job['pid']}."
+			]);
+			return false;
+		}
+
+		# Remove the process ID
+		$this->sql->update([
+			"table" => $rel_table,
+			"id" => $rel_id,
+			"set" => [
+				"pid" => NULL
+			]
+		]);
+
+		$this->log->success([
+			"icon" => "dizzy",
+			"title" => "Job killed",
+			"message" => "The <b>{$cron_job['title']}</b> job was successfully killed."
+		]);
+
+		$this->hash->set(-1);
+
 		return true;
+	}
+
+	/**
+	 * The method that actually executes the cron jobs.
+	 * Can only be run from the command line.
+	 * Access it either by scheduling a job or running an ad-hoc job
+	 * with the run() method.
+	 *
+	 * @param           $a
+	 * @param bool|null $ignore_interval
+	 */
+	public function execute($a, bool $ignore_interval = NULL): void
+	{
+		# Ensure this method is only run from the command line
+		if(!str::runFromCLI()){
+			die("You can only run this method from the command line.");
+		}
+
+		# Some cron jobs will run for a long while
+		ini_set('max_execution_time', 0);
+
+		# Load the cron job(s) to run
+		if(is_string($a)){
+			//If a single, ad hoc job is sent to run
+			$cron_jobs[] = json_decode($a, true);
+		} else if(str::isNumericArray($a)){
+			//If scheduled jobs are sent to run
+			$cron_jobs = $a;
+		} else {
+			die("No cron job sent to execute.");
+		}
+
+		# Create a new scheduler
+		$scheduler = new \GO\Scheduler();
+
+		# For each job (even if only one is supplied)
+		foreach($cron_jobs as $cron_job) {
+
+			# Function to run
+			$func = function($a){
+				# Extract the $cron_job array
+				extract($a);
+
+				global $user_id;
+				$user_id = 0;
+				$_SESSION['user_id'] = 0;
+
+				global $SESSION;
+				$SESSION = [];
+
+				# Run the method
+				try{
+					# Create a new instance of the class
+					$classInstance = new $cron_job['class']($this);
+
+					# Ensure the method is available
+					if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
+						throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
+					}
+
+					$output = $classInstance->{$cron_job['method']}();
+				}
+
+				# Catch SQL errors
+				catch(\mysqli_sql_exception $e){
+					$last_query = $SESSION['query'];
+					//If this query isn't moved over to a local one, it is overwritten
+					$this->log->error([
+						"icon" => "database",
+						"title" => "mySQL error",
+						"message" => $e->getMessage()
+					], ["role" => "admin"]);
+					$this->log->error([
+						"icon" => "code",
+						"title" => "Query",
+						"message" => $last_query
+					], ["role" => "admin"]);
+				}
+
+				# Catch type errors
+				catch(\TypeError $e){
+					$this->log->error([
+						"icon" => "code",
+						"title" => "Type error",
+						"message" => $e->getMessage()
+					], ["role" => "admin"]);
+				}
+
+				# Catch all other exceptions
+				catch(\Exception $e){
+					$this->log->error([
+						"icon" => "ethernet",
+						"title" => "System error",
+						"message" => $e->getMessage()
+					], ["role" => "admin"]);
+				}
+
+				# Return the string (or boolean) output
+				return $output;
+			};
+
+			$before = function(){
+				$this->log->clearAlerts();
+				$this->log->startTimer();
+			};
+
+			$then = function($output) use ($cron_job){
+				$this->sql->insert([
+					"table" => "cron_log",
+					"set" => [
+						"cron_job_id" => $cron_job['cron_job_id'],
+						"status" => $this->log->getStatus(),
+						"duration" => $this->log->getDuration(),
+						"output" => $this->log->getAlertMessages().str::pre($output)
+					]
+				]);
+
+				# Remove the (optional) pID
+				$this->sql->update([
+					"table" => "cron_job",
+					"id" => $cron_job['cron_job_id'],
+					"set" => [
+						"pid" => NULL
+					],
+					"user_id" => NULL
+				]);
+			};
+
+			$args = [[
+				"cron_job" => $cron_job
+			]];
+
+			if($ignore_interval){
+				//If the job is to be run right now
+				$scheduler
+					->call($func, $args, $cron_job['cron_job_id'])
+					->before($before)
+					->then($then);
+			} else {
+				//If the job is only to be run at its scheduled interval
+				$scheduler
+					->call($func, $args, $cron_job['cron_job_id'])
+					->at($cron_job['interval'])
+					->before($before)
+					->then($then);
+			}
+		}
+
+		$scheduler->run();
 	}
 }

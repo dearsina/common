@@ -183,10 +183,11 @@ class ExceptionHandler {
 	 * @param string     $origin
 	 * @param            $e
 	 * @param array|null $alert
+	 * @param mixed      $immediately
 	 *
 	 * @return bool
 	 */
-	public static function alertUser(string $origin, $e, ?array $alert = []): bool
+	public static function alertUser(string $origin, $e, ?array $alert = [], $immediately = NULL): bool
 	{
 		$log = Log::getInstance();
 
@@ -214,7 +215,7 @@ class ExceptionHandler {
 		# Type (default is error)
 		$type = $alert['type'] ?: "error";
 
-		$log->log($alert, $type, true);
+		$log->log($alert, $type, $immediately);
 
 		return true;
 	}

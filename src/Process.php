@@ -33,7 +33,7 @@ class Process {
 
 	private function runCom ()
 	{
-		$command = 'nohup ' . $this->command . ' > /tmp/cron_job.log 2>&1 & echo $!';
+		$command = 'nohup ' . $this->command . ' > /tmp/process.log 2>&1 & echo $!';
 		exec($command, $op);
 		$this->pid = (int)$op[0];
 	}

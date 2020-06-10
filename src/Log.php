@@ -65,6 +65,26 @@ class Log {
 		return false;
 	}
 
+	public function getAlertMessages(): string
+	{
+		if(!empty($this->alerts)){
+			foreach($this->alerts as $type => $alerts){
+				$colour = str::getColour($type);
+				$type = strtoupper($type);
+				foreach($alerts as $alert){
+					$str .= <<<EOF
+<p>
+	<span class="{$colour}"><b>{$alert['title']}</b> <small>{$type}</small></span><br/>
+	{$alert['message']}
+</p>	
+EOF;
+				}
+			}
+			return $str;
+		}
+		return false;
+	}
+
 	/**
 	 * Given an array type and the particulars,
 	 * prepare an array for the front end.
@@ -283,6 +303,7 @@ class Log {
 		# If the alert is to be shared with the user immediately
 		if($immediately){
 			return $this->alertImmediately($type, $alert, $immediately);
+			//Messages that are sent immediately are not logged
 		}
 		$this->alerts[$type][] = $alert;
 		return true;

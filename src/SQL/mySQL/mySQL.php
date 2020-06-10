@@ -227,10 +227,18 @@ class mySQL extends Grow {
 		}
 
 		# Store the query in a session variable
-		$_SESSION['query'] = $query;
+//		$_SESSION['query'] = $query;
+
+		if(str::runFromCLI()){
+			//When run from the command line, the session super global doesn't work
+			global $SESSION;
+			$SESSION['query'] = $query;
+			$SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
+		}
 
 		# Run the query and store the results in an array
 		$result = $this->mysqli->query($query);
+
 		if(is_object($result)){
 			while ($row = $result->fetch_assoc()) {
 				$rows[] = $row;
@@ -2019,7 +2027,7 @@ class mySQL extends Grow {
 		if(is_array($a)){
 			extract($a);
 		} else {
-			throw new Exception("SQL insert calls must be in an array format.");
+			throw new \mysqli_sql_exception("SQL insert calls must be in an array format.");
 		}
 
 		# Reconnect (for long running scripts)
@@ -2116,6 +2124,13 @@ class mySQL extends Grow {
 		# Reconnect (for long running scripts)
 		if($reconnect){
 			$this->reconnect();
+		}
+
+		# Grow the columns of the if they don't exist / are too small for the data
+		if($grow){
+			if(!$this->growTable($table, $set)){
+				return false;
+			}
 		}
 
 		# If the user_id has not been set (most common)

@@ -126,7 +126,9 @@ EOF;
 					'@yearly' => 'Yearly',
 					'@monthly' => 'Monthly',
 					'@weekly' => 'Weekly',
-					'@daily' => 'Daily',
+					'@daily' => 'Daily, at midnight GMT',
+					'* 2 * * *' => 'Daily, at 2am GMT',
+					'* 4 * * *' => 'Daily, at 4am GMT',
 					'@hourly' => 'Hourly',
 					'* * * * *' => "Every minute"
 				],
@@ -140,7 +142,7 @@ EOF;
 				"title" => "Paused",
 				"desc" => "When a job is paused, it will not run as scheduled.",
 				"value" => 1,
-				"checked" => $paused === NULL ? true : $paused
+				"checked" => $paused
 			]
 		];
 
