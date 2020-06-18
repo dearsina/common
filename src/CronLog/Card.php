@@ -90,6 +90,9 @@ class Card extends \App\Common\Common {
 	 * @return string
 	 */
 	public function cronLogByStatus($a){
+		# Replace "NULL" with NULL values
+		str::replaceNullStrings($a);
+
 		extract($a);
 
 		$results = $this->sql->select([
@@ -110,14 +113,14 @@ class Card extends \App\Common\Common {
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
-						"status" => urlencode($row['status'])
+						"status" => urlencode($row['status']) ?: "NULL"
 					])
 				];
 				$rows[] = [
 					"Status" => [
-						"icon" => Icon::DEFAULTS[$row['status']],
+						"icon" => Icon::DEFAULTS[$row['status']] ?: "question-circle",
 						"hash" => $hash,
-						"html" => str::title($row['status'])
+						"html" => str::title($row['status']) ?: "(Unknown)"
 					],
 					"Jobs" => [
 						"hash" => $hash,
@@ -136,6 +139,9 @@ class Card extends \App\Common\Common {
 	 * @return string
 	 */
 	public function cronLogByJob($a){
+		# Replace "NULL" with NULL values
+		str::replaceNullStrings($a);
+
 		extract($a);
 
 		$results = $this->sql->select([

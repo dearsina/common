@@ -27,7 +27,7 @@ class PA {
 	 *
 	 */
 	private function __construct () {
-		# Set up an internal log
+		# Set up an internal alert
 		$this->log = Log::getInstance();
 		$this->sql = Factory::getInstance();
 	}
@@ -95,7 +95,8 @@ class PA {
 	 */
 	public function speak($a = NULL){
 		if(!$recipients = $this->getRecipients($a)){
-			$this->log->warning("No recipients found for the broadcast.");
+//			$this->log->warning("No recipients found for the broadcast.");
+			//Not sure if this is necessary as it will create an alert unneccesarily
 			return false;
 		}
 

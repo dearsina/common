@@ -21,7 +21,7 @@ class Modal extends \App\Common\Common {
 	public function all(array $a){
 		extract($a);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 //			"size" => "l",
 			"icon" => Icon::get("role"),
 			"header" => "All roles",
@@ -66,7 +66,7 @@ class Modal extends \App\Common\Common {
 			"modal" => true
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "s",
 			"header" => [
 				"icon" => Icon::get("new"),
@@ -106,7 +106,7 @@ class Modal extends \App\Common\Common {
 			"modal" => true
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "s",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Edit {$rel_table}"),

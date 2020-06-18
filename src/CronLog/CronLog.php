@@ -41,7 +41,7 @@ class CronLog extends \App\Common\Common {
 		}
 
 		$page = new Page([
-			"title" => "Cron job log",
+			"title" => "Cron job alert",
 			"icon" => Icon::get("log")
 		]);
 
@@ -85,6 +85,10 @@ class CronLog extends \App\Common\Common {
 
 		if($vars){
 			foreach($vars as $key => $val){
+				if($val == "NULL"){
+					$vars[$key] = NULL;
+					continue;
+				}
 				$vars[$key] = urldecode($val);
 			}
 		}
@@ -102,8 +106,8 @@ class CronLog extends \App\Common\Common {
 
 		$this->log->success([
 			"icon" => Icon::get("trash"),
-			"title" => str::pluralise_if($removed_count, "log", true)." removed",
-			"message" => str::were($removed_count, "log", true)." removed successfully."
+			"title" => str::pluralise_if($removed_count, "alert", true)." removed",
+			"message" => str::were($removed_count, "alert", true)." removed successfully."
 		]);
 
 		$this->hash->set([
@@ -157,6 +161,9 @@ class CronLog extends \App\Common\Common {
 	 * @throws \Exception
 	 */
 	public function getCronLog($a){
+		# Replace "NULL" with NULL values
+		str::replaceNullStrings($a);
+
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -242,7 +249,8 @@ class CronLog extends \App\Common\Common {
 				"name" => $name,
 				"colour" => $colour,
 				"size" => "2x"
-			]
+			],
+			"sm" => 1
 		];
 
 		$row['Job'] = [
@@ -262,7 +270,7 @@ class CronLog extends \App\Common\Common {
 		];
 
 		$buttons[] = [
-			"title" => "Remove log entry...",
+			"title" => "Remove alert entry...",
 			"icon" => "trash",
 			"hash" => [
 				"rel_table" => "cron_log",

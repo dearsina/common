@@ -201,7 +201,7 @@ class User extends Common {
 
 	/**
 	 * Login form
-	 * Presented to the user when wanting to log in, or when credentials have expired.
+	 * Presented to the user when wanting to alert in, or when credentials have expired.
 	 *
 	 * @param null $a
 	 *
@@ -486,7 +486,7 @@ class User extends Common {
 			if($user['verified']){
 				$this->log->info([
 					"title" => "You have already registered",
-					"message" => "You already have an account with {$_ENV['title']}. No need to re-register, just log in."
+					"message" => "You already have an account with {$_ENV['title']}. No need to re-register, just alert in."
 				]);
 				$this->hash->set([
 					"rel_table" => $rel_table,
@@ -585,7 +585,7 @@ class User extends Common {
 			//if the user is already verified
 			$this->log->info([
 				"title" => "Already verified",
-				"message" => "You do not need to verify this email address again. Next time just log in.",
+				"message" => "You do not need to verify this email address again. Next time just alert in.",
 			]);
 			$this->hash->set("login");
 			return true;
@@ -706,7 +706,7 @@ class User extends Common {
 			"message" => "
 			An email has been sent to <code>{$vars['new_email']}</code>
 			with a link to update your email address. Once you change it,
-			you can start using this new address to log in to {$_ENV['title']}.",
+			you can start using this new address to alert in to {$_ENV['title']}.",
 		]);
 
 		return true;
@@ -755,7 +755,7 @@ class User extends Common {
 
 		$this->log->success([
 			"title" => "Email updated",
-			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to log in from now on."
+			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to alert in from now on."
 		]);
 
 		$this->hash->set("home");
@@ -804,9 +804,16 @@ class User extends Common {
 	 */
 	public function getSessionToken()
 	{
+		# Get the user's geolocation
 		$geolocation = $this->getGeolocation();
+
+		# Get the user's user agent ID
 		$user_agent_id = $this->getUserAgentId();
+
+		# If the user is logged in, get their user ID
 		global $user_id;
+
+		# Create a new connection
 		if(!$connection_id = $this->sql->insert([
 			"table" => "connection",
 			"set" => [
@@ -819,7 +826,10 @@ class User extends Common {
 			//The new connection was not saved
 			throw new Exception("Unable to store connection details");
 		}
+
+		# The connection UUID is the CSRF token, return it to the user
 		$this->output->set_var("token", $connection_id);
+
 		return true;
 	}
 
@@ -984,7 +994,7 @@ class User extends Common {
 			->verify($response, $_SERVER['REMOTE_ADDR']);
 
 		$resp_array = $resp->toArray();
-//		$this->log->info(str::pre($resp_array));
+//		$this->alert->info(str::pre($resp_array));
 
 		if ($resp_array['success']) {
 			//If the recapcha was a success
@@ -1330,7 +1340,7 @@ class User extends Common {
 
 			$this->log->error([
 				"title" => 'Expired key',
-				"message" => "The two-factor authentication key you provided has expired. Please log in again.",
+				"message" => "The two-factor authentication key you provided has expired. Please alert in again.",
 			]);
 
 			$this->hash->set([
@@ -1354,7 +1364,7 @@ class User extends Common {
 
 	/**
 	 * After the credentials of a user has been verified,
-	 * log the user in.
+	 * alert the user in.
 	 *
 	 * @param $user
 	 * @param $remember
@@ -1387,7 +1397,7 @@ class User extends Common {
 
 	/**
 	 * Assigns a role to a user.
-	 * Part of the log in process.
+	 * Part of the alert in process.
 	 *
 	 * @param $user
 	 *
@@ -1544,7 +1554,7 @@ class User extends Common {
 
 		# If an existing user (with an existing password) is verifying a new email address
 		if($user['password']){
-			$this->log->success("Your new email address has been verified, thanks. From now on, please use <b>{$user['email']}</b> to log in.");
+			$this->log->success("Your new email address has been verified, thanks. From now on, please use <b>{$user['email']}</b> to alert in.");
 			$this->hash->set([
 				"rel_table" => "user",
 				"action" => "login",
@@ -1891,7 +1901,7 @@ class User extends Common {
 
 	/**
 	 * Checks to see whether the user is logged in or not.
-	 * If not logged in, assumes they need to log in before accessing the resource.
+	 * If not logged in, assumes they need to alert in before accessing the resource.
 	 * If logged in, assumes they do not have access to the resource.
 	 *
 	 * Should only be used as a last resort if the user is logged in.
@@ -1917,7 +1927,7 @@ class User extends Common {
 		$this->log->warning([
 			"icon" => "lock-alt",
 			"title" => 'Credentials required',
-			"message" => 'Please log in to continue.',
+			"message" => 'Please alert in to continue.',
 		]);
 
 		$this->hash->set([

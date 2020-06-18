@@ -11,7 +11,9 @@ namespace App\Common;
  */
 class href {
 	/**
-	 * Given an array, returns a completed <a> tag.
+	 * A complete `<a href=url>html</a>` tag.
+	 *
+	 * Given an array, returns the completed tag.
 	 *
 	 * @param array $a
 	 *

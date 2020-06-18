@@ -34,13 +34,8 @@ class Card extends \App\Common\Common {
 	 */
 	public function errorsByType($a){
 		# Replace "NULL" with NULL values
-		if($a['vars']){
-			foreach($a['vars'] as $key => $val){
-				if($val == "NULL"){
-					$a['vars'][$key] = NULL;
-				}
-			}
-		}
+		str::replaceNullStrings($a);
+
 		extract($a);
 
 		$results = $this->sql->select([
@@ -91,13 +86,8 @@ class Card extends \App\Common\Common {
 	 */
 	public function errorsByUser($a){
 		# Replace "NULL" with NULL values
-		if($a['vars']){
-			foreach($a['vars'] as $key => $val){
-				if($val == "NULL"){
-					$a['vars'][$key] = NULL;
-				}
-			}
-		}
+		str::replaceNullStrings($a);
+
 		extract($a);
 		$results = $this->sql->select([
 			"flat" => true,
@@ -158,13 +148,8 @@ class Card extends \App\Common\Common {
 	 */
 	public function errorsByReltable($a){
 		# Replace "NULL" with NULL values
-		if($a['vars']){
-			foreach($a['vars'] as $key => $val){
-				if($val == "NULL"){
-					$a['vars'][$key] = NULL;
-				}
-			}
-		}
+		str::replaceNullStrings($a);
+
 		extract($a);
 		$results = $this->sql->select([
 			"columns" => [
@@ -190,34 +175,34 @@ class Card extends \App\Common\Common {
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
-						"rel_table" => $row['rel_table']
+						"rel_table" => $row['rel_table'] ?:"NULL"
 					])
 				];
 				$action_hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
-						"action" => $row['action']
+						"action" => $row['action'] ?:"NULL"
 					])
 				];
 				$hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars']?:[], [
-						"rel_table" => $row['rel_table'],
-						"action" => $row['action']
+						"rel_table" => $row['rel_table'] ?:"NULL",
+						"action" => $row['action'] ?:"NULL"
 					])
 				];
 				$errors[] = [
 					"Table" => [
 						"hash" => $rel_table_hash,
-						"html" => $row['rel_table'],
+						"html" => $row['rel_table'] ?: "(None)",
 						"class" => "text-flat",
 						"sm" => 4
 					],
 					"Action" => [
 						"hash" => $action_hash,
-						"html" => $row['action'],
+						"html" => $row['action'] ?: "(None)",
 						"class" => "text-flat",
 						"sm" => 6
 					],

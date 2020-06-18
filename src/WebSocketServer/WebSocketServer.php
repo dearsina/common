@@ -3,11 +3,17 @@
 
 namespace App\Common\WebSocketServer;
 
+use App\Common\Common;
+use App\Common\Log;
+use App\Common\SQL\Factory;
+use App\Common\str;
 
 /**
  * Class WebSocketServer
  * Run as a service to provide WebSocket support.
  * Is based on Swoole.
+ *
+ * Needs to be executed from the command line.
  *
  * Requries the following $_ENV variables to be set:
  *
@@ -18,7 +24,7 @@ namespace App\Common\WebSocketServer;
  * websocket_internal_ip="127.0.0.1"                      # Should always be set to 127.0.0.1
  * websocket_internal_port="8080"                         # The internal port, can be anything
  */
-class WebSocketServer{
+class WebSocketServer extends Common {
 	/**
 	 * Holds the actual server object.
 	 *
@@ -40,38 +46,62 @@ class WebSocketServer{
 	 */
 	private $server_id;
 
-	private $sql;
-	private $log;
+	public function __construct ()
+	{
+		# Ensure this class is only accessed from the command line
+		if(!str::runFromCLI()){
+			//If it's not accessed from the command line, abort.
+			die("You cannot access the WebSocket Server from the browser.");
+		}
+		return parent::__construct();
+	}
 
-	public function __construct () {
+	/**
+	 * Eventually this needs to be changed to direct the message to the front end,
+	 * because right now, it's just screaming it into a void.
+	 *
+	 * @param $msg
+	 */
+	private function alert($msg){
+		echo date("Y-m-d H:i:s")." | ".$msg."\r\n";
+	}
+
+	/**
+	 * Run this method to kickstart the webserver.
+	 * It is running as a daemon, so the script will complete,
+	 * even if the server continues.
+	 *
+	 * @return bool
+	 */
+	public function start(){
+		# Ensure the server isn't already running
+		if($this->serverAlreadyRunning()) {
+			$this->log->success("The server is already running.");
+			return true;
+		}
+
+		# Set up the server
 		$this->external_server = new \Swoole\WebSocket\Server($_ENV['websocket_external_ip'], $_ENV['websocket_external_port'],SWOOLE_BASE, SWOOLE_SOCK_TCP | SWOOLE_SSL);
 
 		# Set the SSL keys
 		$this->external_server->set([
 			# SSL keys
 			'ssl_cert_file' => $_ENV['local_cert'],
-			'ssl_key_file' => $_ENV['local_pk']
+			'ssl_key_file' => $_ENV['local_pk'],
+
+			# Log file
+			"log_file" => "/var/log/swoole.alert",
+
+			# Run as daemon
+			"daemonize" => true
 		]);
 
 		# Generate the server ID
 		$this->server_id = date("YmdHis");
 
-		# Load Common scripts
-		$this->sql = \App\Common\SQL\Factory::getInstance();
-		$this->log = \App\Common\Log::getInstance();
-
 		# The internal port
 		$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);
-	}
 
-	/**
-	 * @param $msg
-	 */
-	private function log($msg){
-		echo date("Y-m-d H:i:s")." | ".$msg."\r\n";
-	}
-
-	public function start(){
 		# Server start
 		$this->external_server->on("start", [$this, 'onStart']);
 
@@ -92,12 +122,33 @@ class WebSocketServer{
 	}
 
 	/**
+	 * Checks to see whether a given socket is occupied or not.
+	 *
+	 * @return bool
+	 */
+	private function serverAlreadyRunning(): bool
+	{
+		@stream_socket_client("tcp://{$_ENV['websocket_external_ip']}:{$_ENV['websocket_external_port']}", $errno, $errstr, 5);
+		return !$errstr;
+	}
+
+	/**
 	 * On Server start.
 	 *
 	 * @param \Swoole\WebSocket\Server $server
 	 */
 	public function onStart(\Swoole\WebSocket\Server $server){
-		$this->log("Swoole WebSocket Server [{$this->server_id}] is started at wss://{$_ENV['websocket_external_ip']}:{$_ENV['websocket_external_port']}");
+		$message = "Swoole WebSocket Server [{$this->server_id}] has started at wss://{$_ENV['websocket_external_ip']}:{$_ENV['websocket_external_port']}";
+
+		# Log it to the admins
+		$this->alert($message);
+
+		# Log it internally. Set to info so that it triggers a log entry.
+		$this->log->info([
+			"icon" => "server",
+			"title" => "Swoole WebSocket Server",
+			"message" => $message
+		]);
 	}
 
 	/**
@@ -107,7 +158,7 @@ class WebSocketServer{
 	 * @param int                      $fd
 	 */
 	public function onInternalConnect(\Swoole\WebSocket\Server $server, int $fd) {
-		$this->log("Internal connection [{$fd}] attempt.");
+		$this->alert("Internal connection [{$fd}] attempt.");
 	}
 
 	/**
@@ -117,7 +168,7 @@ class WebSocketServer{
 	 * @param \Swoole\Http\Request     $request
 	 */
 	public function onInternalOpen(\Swoole\WebSocket\Server $server, \Swoole\Http\Request $request) {
-		$this->log("Internal connection [{$request->fd}] opened.");
+		$this->alert("Internal connection [{$request->fd}] opened.");
 	}
 
 	/**
@@ -137,13 +188,13 @@ class WebSocketServer{
 	 */
 	public function onInternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame):bool
 	{
-		$this->log("Internal message from connection [{$frame->fd}]: {$frame->data}");
+		$this->alert("Internal message from connection [{$frame->fd}]: {$frame->data}");
 
 		# Break open the data string into an array
 		$data_array = json_decode($frame->data, true);
 
 		if(!$data_array['fd']){
-			$this->log("No recipients identified.");
+			$this->alert("No recipients identified.");
 			return true;
 		}
 
@@ -162,7 +213,7 @@ class WebSocketServer{
 	 * @param int                      $fd
 	 */
 	public function onInternalClose(\Swoole\WebSocket\Server $server, int $fd){
-		$this->log("Internal connection [{$fd}] closed.");
+		$this->alert("Internal connection [{$fd}] closed.");
 	}
 
 	/**
@@ -172,7 +223,7 @@ class WebSocketServer{
 	 * @param int                      $fd
 	 */
 	public function onExternalConnect(\Swoole\WebSocket\Server $server, int $fd) {
-		$this->log("External connection [{$fd}] attempt.");
+		$this->alert("External connection [{$fd}] attempt.");
 	}
 
 	/**
@@ -212,7 +263,7 @@ class WebSocketServer{
 			return false;
 		}
 
-		$this->log("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$connection_id}]");
+		$this->alert("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$connection_id}]");
 
 		return true;
 	}
@@ -226,7 +277,7 @@ class WebSocketServer{
 	 * @param \Swoole\WebSocket\Frame  $frame
 	 */
 	public function onExternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame) {
-		$this->log("External message from connection [{$frame->fd}]: {$frame->data}");
+		$this->alert("External message from connection [{$frame->fd}]: {$frame->data}");
 	}
 
 	/**
@@ -258,7 +309,7 @@ class WebSocketServer{
 			return false;
 		}
 
-		$this->log("External connection [{$fd}] closed.");
+		$this->alert("External connection [{$fd}] closed.");
 
 		return true;
 	}

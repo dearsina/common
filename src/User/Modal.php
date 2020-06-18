@@ -55,7 +55,7 @@ class Modal extends Common {
 
 		$buttons = Button::multi($options);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "xs",
 			"header" => "Log in as",
 			"body" => $buttons,
@@ -84,7 +84,7 @@ class Modal extends Common {
 			"modal" => true
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 //			"size" => "xl",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Edit {$rel_table}"),
@@ -120,7 +120,7 @@ class Modal extends Common {
 			"modal" => true
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 //			"size" => "xl",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Update email address"),

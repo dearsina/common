@@ -110,8 +110,8 @@ class Admin extends Common implements NavigationInterface {
 
 		$children[] = [
 			"icon" => Icon::get("log"),
-			"title" => "Cron job log",
-			"alt" => "View the cron job log",
+			"title" => "Cron job alert",
+			"alt" => "View the cron job alert",
 			"hash" => [
 				"rel_table" => "cron_log",
 				"action" => "all",

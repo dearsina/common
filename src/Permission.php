@@ -22,7 +22,7 @@ class Permission extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function get (string $rel_table, ?string $rel_id, ?string $crud = NULL): bool
+	public function get (string $rel_table, ?string $rel_id = NULL, ?string $crud = NULL): bool
 	{
 		# If no CRUD is specified = ALL access
 		if (!strlen($crud)) {
@@ -351,7 +351,7 @@ class Permission extends Common {
 			$narrative[] = str::were($counts['same'], "permission", true) . " kept the same";
 			$narrative[] = str::were($counts['removed'], "permission", true) . " removed";
 			$this->log->success([
-				"log" => Icon::get("permission"),
+				"alert" => Icon::get("permission"),
 				"title" => str::title("{$rel} permissions updated"),
 				"message" => str::title(str::oxford_implode($narrative)) . ".",
 			]);

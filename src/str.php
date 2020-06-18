@@ -402,22 +402,22 @@ class str {
 	}
 
 	/**
-	 * DEPRECIATED, USE `str::UUID()` instead
+	 * Given a classic $a array, replaces
+	 * all the "NULL" string vars with NULL values.
+	 * Use with care to avoid hacking SQL queries.
 	 *
-	 * Generate a random token of $length character length.
-	 *
-	 * @param int $length
-	 *
-	 * @return string
+	 * @param $a
 	 */
-//	public static function token($length = 32){
-//		try{
-//			return bin2hex(random_bytes(round($length/2)));
-//		}
-//		catch(\Exception $e){
-//			return substr(md5(rand()), 0, $length);
-//		}
-//	}
+	public static function replaceNullStrings(&$a): void
+	{
+		if(is_array($a['vars'])){
+			foreach($a['vars'] as $key => $val){
+				if($val == "NULL"){
+					$a['vars'][$key] = NULL;
+				}
+			}
+		}
+	}
 
 	/**
 	 * Checks to see if a given method is available in the current scope.
@@ -592,6 +592,20 @@ class str {
 	 */
 	public static function getClassCase($snake){
 		return str_replace("_", "", ucwords($snake, "_\\"));
+	}
+
+	/**
+	 * Given a camelCase string returns snake_case.
+	 *
+	 * @param string $string
+	 * @param string $us
+	 * @link https://stackoverflow.com/a/40514305/429071
+	 * @return string
+	 */
+	public static function camelToSnakeCase (string $string, string $us = "_"): string
+	{
+		return strtolower(preg_replace(
+			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string));
 	}
 
 	/**
@@ -1462,6 +1476,40 @@ EOF;
 		rewind($f);
 		$csv_line = stream_get_contents($f);
 		return rtrim($csv_line);
+	}
+
+	/**
+	 * Given the file name of a CSV file,
+	 * returns an array with the values, where each row's keys
+	 * are the CSV column names.
+	 *
+	 * @param string      $file
+	 * @param string|null $delimiter
+	 * @param int|null    $skip_rows
+	 *
+	 * @return array
+	 */
+	public static function csvAsArray (string $file, ?string $delimiter = ",", ?int $skip_rows = 0): array
+	{
+		$all_rows = array();
+
+		$header = null;//null; // has header
+		if (($handle = fopen($file, "r")) !== FALSE) {
+			while (($row = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+				if($skip_rows && $skip_rows > $rows_skipped){
+					$rows_skipped++;
+					continue;
+				}
+				if ($header === null) {
+					$header = $row;
+					continue;
+				}
+				$all_rows[] = array_combine($header, $row);
+			}
+
+			fclose($handle);
+		}
+		return $all_rows;
 	}
 
 	/**
@@ -2409,6 +2457,37 @@ EOF;
 	}
 
 	/**
+	 * Returns all keys that exist in more than one array child,
+	 * but that contain different values across the children.
+	 *
+	 * @param array $rows
+	 * @link https://stackoverflow.com/a/58811601/429071
+	 * @return array
+	 */
+	public static function getFieldsNonIdentical(array $rows) : array
+	{
+		if(!str::isNumericArray($rows)){
+			throw new \InvalidArgumentException("A non numeric array was passed: ".print_r($rows, true));
+		}
+		if (count($rows) < 2) {
+			throw new \InvalidArgumentException("You should pass at least 2 rows to compare");
+		}
+
+		$compareArr = [];
+		$keyDifferentArr = [];
+		foreach ($rows as $row) {
+			foreach($row as $key => $val) {
+				if (!key_exists($key, $compareArr)) {
+					$compareArr[$key] = $val;
+				} elseif ($compareArr[$key] !== $val) {
+					$keyDifferentArr[$key] = true;
+				}
+			}
+		}
+		return array_keys($keyDifferentArr);
+	}
+
+	/**
 	 * Given a key-value array,
 	 * returns a string of `data-key=val`,
 	 * to be fed into a tag.
@@ -2417,13 +2496,10 @@ EOF;
 	 * will `json_encode()` the `val`.
 	 *
 	 * @param array|null $a
-	 *
 	 * @param bool|null  $keep_empty If set to TRUE, will keep the keys with empty vals, otherwise those keys will be removed.
-	 *
-	 * @return string|bool
 	 * @link https://stackoverflow.com/a/1081581/429071
-	 *
 	 * @link https://stackoverflow.com/questions/13705473/escaping-quotes-and-html-in-a-data-attribute-json-object
+	 * @return string|bool
 	 */
 	static function getDataAttr(?array $a, ?bool $keep_empty = NULL) : ?string
 	{

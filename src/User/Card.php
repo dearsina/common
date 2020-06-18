@@ -143,7 +143,7 @@ class Card extends Common {
 			],
 			"approve" => [
 				"title" => "No password?",
-				"message" => "If you don't set a password, you will not be able to log in to {$_ENV['title']}.",
+				"message" => "If you don't set a password, you will not be able to alert in to {$_ENV['title']}.",
 				"colour" => "danger",
 			]
 		]];
@@ -263,7 +263,7 @@ class Card extends Common {
 			"row_style" => [
 				"margin-top" => "1rem"
 			],
-			"html" => "The email may have landed in your spam or junk folder. If you still haven't received anything, try to re-log in."
+			"html" => "The email may have landed in your spam or junk folder. If you still haven't received anything, try to re-alert in."
 		],[
 			"row_style" => [
 				"margin-top" => "1rem"

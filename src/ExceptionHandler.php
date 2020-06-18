@@ -209,13 +209,20 @@ class ExceptionHandler {
 		$origin = str::title($origin);
 
 		# The below values will overwrite existing values in the potential alert array
-		$alert['title'] = "{$origin} {$type}: {$error} [{$code}]";
-		$alert['message'] = $response;
+		$alert['title'] = "{$origin} {$type} [{$code}]";
+//		$alert['message'] = str::pre($response);
+		$alert['message'] = $error;
 
 		# Type (default is error)
 		$type = $alert['type'] ?: "error";
 
 		$log->log($alert, $type, $immediately);
+
+		if($immediately && str::runFromCLI()){
+			//if this command is run from the command line (most probably as a cron job)
+			$log->log($alert, $type);
+			//this way, it will be logged in the cron job logs also
+		}
 
 		return true;
 	}

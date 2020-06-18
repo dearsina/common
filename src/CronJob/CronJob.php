@@ -270,7 +270,7 @@ class CronJob extends Common {
 			"text" => ""
 		];
 
-		if(!$methods = str::getMethodsFromClass($vars['class_name'])){
+		if(!$methods = str::getMethodsFromClass($vars['class'])){
 			$this->output->set_var("options", $options);
 			$this->output->set_var("placeholder", "No methods exist for this class.");
 			return true;
@@ -284,7 +284,7 @@ class CronJob extends Common {
 		}
 
 		$this->output->set_var("options", $options);
-		$this->output->set_var("placeholder", "Select a method for the ".end(explode("\\",$vars['class_name']))." class.");
+		$this->output->set_var("placeholder", "Select a method for the ".end(explode("\\",$vars['class']))." class.");
 		return true;
 	}
 
@@ -356,121 +356,8 @@ class CronJob extends Common {
 					]);
 				}
 
-				if($job['pid']) {
-					$buttons[] = [
-						"alt" => "Stop this job...",
-						"colour" => "red",
-						"size" => "xs",
-						"icon" => "stop",
-						"hash" => [
-							"rel_table" => $rel_table,
-							"rel_id" => $job["cron_job_id"],
-							"action" => "kill"
-						],
-						"approve" => [
-							"colour" => "red",
-							"icon" => "stop-circle",
-							"title" => "Kill cron job?",
-							"message" => "This may have unintended consequences."
-						]
-					];
-				} else {
-					$buttons[] = [
-						"alt" => "Execute this job...",
-						"colour" => "yellow",
-						"size" => "xs",
-						"basic" => true,
-						"icon" => "play",
-						"hash" => [
-							"rel_table" => $rel_table,
-							"rel_id" => $job["cron_job_id"],
-							"action" => "run"
-						],
-						"approve" => [
-							"colour" => "yellow",
-							"icon" => "play",
-							"title" => "Execute cron job?",
-							"message" => "Start running this job? Depending on the job, this could take a while."
-						]
-					];
-				}
-
-
-				if($job['paused']){
-					$buttons[] = [
-						"hash" => [
-							"rel_table" => $rel_table,
-							"rel_id" => $job["cron_job_id"],
-							"action" => "pause",
-							"vars" => [
-								"paused" => "false"
-							]
-						],
-						"alt" => "Unpause and resume running this job on schedule",
-						"icon" => "pause",
-						"colour" => "primary",
-						"size" => "xs",
-					];
-				} else {
-					$buttons[] = [
-						"hash" => [
-							"rel_table" => $rel_table,
-							"rel_id" => $job["cron_job_id"],
-							"action" => "pause",
-							"vars" => [
-								"paused" => 1
-							]
-						],
-						"alt" => "Pause this job from running on schedule",
-						"icon" => "pause",
-						"colour" => "primary",
-						"size" => "xs",
-						"basic" => true
-					];
-				}
-
-				$buttons[] = [
-					"hash" => [
-						"rel_table" => "cron_log",
-						"action" => "all",
-						"vars" => [
-							"cron_job_id" => $job["cron_job_id"],
-						]
-					],
-					"alt" => "See log",
-					"icon" => Icon::get("log"),
-					"colour" => "info",
-					"size" => "xs",
-					"basic" => true
-				];
-				$buttons[] = [
-					"hash" => [
-						"rel_table" => $rel_table,
-						"rel_id" => $job["cron_job_id"],
-						"action" => "remove"
-					],
-					"alt" => "Remove..",
-					"icon" => Icon::get("trash"),
-					"colour" => "danger",
-					"size" => "xs",
-					"basic" => true,
-					"approve" => true
-				];
-
-				if($job['paused']){
-					$badge = Badge::generate([
-						"title" => "PAUSED",
-						"colour" => "blue"
-					]);
-				} else {
-					$badge = Badge::generate([
-						"title" => $job['interval'],
-						"colour" => "red"
-					]);
-				}
-
 				$title = <<<EOF
-<span class="text-header">{$job['title']} {$badge}</span><br/>
+<span class="text-header">{$job['title']} {$this->getCronJobTableBadges($job)}</span><br/>
 <span class="text-desc">{$job['desc']}</span>
 EOF;
 
@@ -485,13 +372,17 @@ EOF;
 							"action" => "edit"
 						]
 					],
-					"Action" => [
+					"Last run" => [
+						"html" => $job['last_run'] ?: "(Never)",
+						"sm" => 2
+					],
+					"" => [
 						"sortable" => false,
 						"sm" => 3,
 						"header_style" => [
 							"opacity" => 0
 						],
-						"button" => $buttons
+						"button" => $this->getCronJobTableButtons($job)
 					]
 				];
 			}
@@ -517,6 +408,144 @@ EOF;
 		return true;
 	}
 
+	private function getCronJobTableBadges(array $job): string
+	{
+		if($job['paused']){
+			$badges[] = [
+				"title" => "PAUSED",
+				"colour" => "blue"
+			];
+		} else {
+			$badges[] = [
+				"title" => $job['interval'],
+				"colour" => "red"
+			];
+		}
+		if($job['silent']){
+			$badges[] = [
+				"icon" => "volume-slash",
+				"alt" => "This cron job will not be logged unless there is an error",
+				"colour" => "black"
+			];
+		}
+
+		return Badge::generate($badges);
+	}
+
+	private function getCronJobTableButtons(array $job): array
+	{
+		if($job['pid']) {
+			$buttons[] = [
+				"alt" => "Stop this job...",
+				"colour" => "red",
+				"size" => "xs",
+				"icon" => "stop",
+				"hash" => [
+					"rel_table" => "cron_job",
+					"rel_id" => $job["cron_job_id"],
+					"action" => "kill"
+				],
+				"approve" => [
+					"colour" => "red",
+					"icon" => "stop-circle",
+					"title" => "Kill cron job?",
+					"message" => "This may have unintended consequences."
+				]
+			];
+		} else {
+			$buttons[] = [
+				"alt" => "Execute this job...",
+				"colour" => "yellow",
+				"size" => "xs",
+				"basic" => true,
+				"icon" => "play",
+				"hash" => [
+					"rel_table" => "cron_job",
+					"rel_id" => $job["cron_job_id"],
+					"action" => "run"
+				],
+				"approve" => [
+					"colour" => "yellow",
+					"icon" => "play",
+					"title" => "Execute cron job?",
+					"message" => "Start running this job? Depending on the job, this could take a while."
+				]
+			];
+		}
+
+
+		if($job['paused']){
+			$buttons[] = [
+				"hash" => [
+					"rel_table" => "cron_job",
+					"rel_id" => $job["cron_job_id"],
+					"action" => "pause",
+					"vars" => [
+						"paused" => "false"
+					]
+				],
+				"alt" => "Unpause and resume running this job on schedule",
+				"icon" => "pause",
+				"colour" => "primary",
+				"size" => "xs",
+			];
+		} else {
+			$buttons[] = [
+				"hash" => [
+					"rel_table" => "cron_job",
+					"rel_id" => $job["cron_job_id"],
+					"action" => "pause",
+					"vars" => [
+						"paused" => 1
+					]
+				],
+				"alt" => "Pause this job from running on schedule",
+				"icon" => "pause",
+				"colour" => "primary",
+				"size" => "xs",
+				"basic" => true
+			];
+		}
+
+		$buttons[] = [
+			"hash" => [
+				"rel_table" => "cron_log",
+				"action" => "all",
+				"vars" => [
+					"cron_job_id" => $job["cron_job_id"],
+				]
+			],
+			"alt" => "See alert",
+			"icon" => Icon::get("log"),
+			"colour" => "info",
+			"size" => "xs",
+			"basic" => true
+		];
+		$buttons[] = [
+			"hash" => [
+				"rel_table" => "cron_job",
+				"rel_id" => $job["cron_job_id"],
+				"action" => "remove"
+			],
+			"alt" => "Remove..",
+			"icon" => Icon::get("trash"),
+			"colour" => "danger",
+			"size" => "xs",
+			"basic" => true,
+			"approve" => true
+		];
+
+		return $buttons;
+	}
+
+	/**
+	 * This is the function run every minute
+	 * by an _actual_ cron job, to see what
+	 * jobs to run.
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
 	public function runScheduled() : bool
 	{
 		if(!str::runFromCLI()){
@@ -528,11 +557,14 @@ EOF;
 		$user_id = "0";
 		$_SESSION['user_id'] = $user_id;
 
-		# Get all active (non-paused) cron jobs
+		# Get all active (non-paused) cron jobs, in the order they appear
 		if(!$cron_jobs = $this->sql->select([
 			"table" => "cron_job",
 			"where" => [
 				"paused" => NULL
+			],
+			"order_by" => [
+				"order" => "ASC"
 			]
 		])){
 			//if no cron jobs are scheduled, close up shop
@@ -729,13 +761,15 @@ EOF;
 						throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
 					}
 
+					# Run the cron job method
 					$output = $classInstance->{$cron_job['method']}();
+					// If the cron job method exits, this script stops here. No logs will be saved.
 				}
 
 				# Catch SQL errors
 				catch(\mysqli_sql_exception $e){
 					$last_query = $SESSION['query'];
-					//If this query isn't moved over to a local one, it is overwritten
+					//If this variable isn't moved over to a local one, it is overwritten
 					$this->log->error([
 						"icon" => "database",
 						"title" => "mySQL error",
@@ -776,6 +810,31 @@ EOF;
 			};
 
 			$then = function($output) use ($cron_job){
+				/**
+				 * Update the cron job:
+				 * 1. Set the last run datetime
+				 * 2. Remove the pID if one was set
+				 */
+				$this->sql->update([
+					"table" => "cron_job",
+					"id" => $cron_job['cron_job_id'],
+					"set" => [
+						"last_run" => "NOW()",
+						"pid" => NULL
+					],
+					"user_id" => NULL
+				]);
+
+				/**
+				 * If the cron job is set to silent,
+				 * it will not be logged if it's
+				 * successful.
+				 */
+				if($cron_job['silent'] && ($this->log->getStatus() == "success")){
+					return true;
+				}
+
+				# Log the job as complete
 				$this->sql->insert([
 					"table" => "cron_log",
 					"set" => [
@@ -785,16 +844,6 @@ EOF;
 						"output" => $this->log->getAlertMessages().str::pre($output)
 					]
 				]);
-
-				# Remove the (optional) pID
-				$this->sql->update([
-					"table" => "cron_job",
-					"id" => $cron_job['cron_job_id'],
-					"set" => [
-						"pid" => NULL
-					],
-					"user_id" => NULL
-				]);
 			};
 
 			$args = [[
@@ -802,19 +851,21 @@ EOF;
 			]];
 
 			if($ignore_interval){
-				//If the job is to be run right now
+				//If the job interval is to be ignored and the job to be run right now
 				$scheduler
 					->call($func, $args, $cron_job['cron_job_id'])
 					->before($before)
 					->then($then);
-			} else {
-				//If the job is only to be run at its scheduled interval
-				$scheduler
-					->call($func, $args, $cron_job['cron_job_id'])
-					->at($cron_job['interval'])
-					->before($before)
-					->then($then);
+				continue;
 			}
+
+			# Otherwise, the job will only be run at its scheduled interval
+			$scheduler
+				->call($func, $args, $cron_job['cron_job_id'])
+				->at($cron_job['interval'])
+				->before($before)
+				->then($then);
+
 		}
 
 		$scheduler->run();

@@ -20,7 +20,7 @@ class Modal extends \App\Common\Common {
 	public function all(array $a){
 		extract($a);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "m",
 			"icon" => "cog",
 			"header" => "All issue types",
@@ -74,7 +74,7 @@ class Modal extends \App\Common\Common {
 			"buttons" => $buttons
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "xs",
 			"icon" => Icon::get("edit"),
 			"header" => "Edit issue type",
@@ -101,7 +101,7 @@ class Modal extends \App\Common\Common {
 			"buttons" => $buttons
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "xs",
 			"icon" => Icon::get("new"),
 			"header" => "New issue type",

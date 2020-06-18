@@ -58,7 +58,7 @@ class Modal extends \App\Common\Common {
 			"modal" => true
 		]);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "xl",
 			"icon" => Icon::get("link"),
 			"header" => "Link to existing issue",

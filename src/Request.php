@@ -122,10 +122,17 @@ class Request {
 	 * @return bool
 	 */
 	public function handler($a){
-//		var_dump($_SERVER);exit;
 		/**
 		 * The method is placed in a try/catch
 		 * to catch any exceptions thrown by system errors.
+		 *
+		 * This way, we don't need to place any try/catch
+		 * structures anywhere in the code as everything will
+		 * ultimately be caught here.
+		 *
+		 * Errors that are due to abuse, hacking, code errors,
+		 * and anything else that isn't business as usual,
+		 * should be reported as a system error.
 		 *
 		 * System errors are different from user errors,
 		 * as they're not the fault of the user unless
@@ -316,7 +323,7 @@ class Request {
 	 */
 	private function output($success) {
 //		if($_SESSION['database_calls']){
-//			$this->log->info("{$_SESSION['database_calls']} database calls.");
+//			$this->alert->info("{$_SESSION['database_calls']} database calls.");
 //			print_r($_SESSION['queries']);exit;
 //		}
 
@@ -361,7 +368,7 @@ class Request {
 		} else if($this->log->hasFailures()){
 			//if there are any errors
 			$this->log->logFailures();
-			//log them for posterity
+			//alert them for posterity
 			$output['success'] = false;
 		} else if($success === false) {
 			$output['success'] = false;

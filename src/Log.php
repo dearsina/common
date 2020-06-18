@@ -8,7 +8,7 @@ use App\Common\SQL\Factory;
 use App\UI\Icon;
 
 /**
- * Class log
+ * Class alert
  * @package App\Common
  */
 class Log {
@@ -151,7 +151,7 @@ EOF;
 	];
 
 	/**
-	 * Checks to see if the log contain alerts that are considered failures (show stoppers).
+	 * Checks to see if the alert contain alerts that are considered failures (show stoppers).
 	 * Returns boolean true if so.
 	 *
 	 * @return bool
@@ -217,7 +217,8 @@ EOF;
 		# Insert the error in the DB
 		$sql->insert([
 			"table" => 'error_log',
-			"set" => $alert_array
+			"set" => $alert_array,
+			"reconnect" => true // Reconnects in case the error was caused by a long running script
 		]);
 	}
 
@@ -274,7 +275,7 @@ EOF;
 	/**
 	 * Log an message of any type
 	 * <code>
-	 * $this->log([
+	 * $this->alert([
 	 *    "type" => "",
 	 *    "icon" => $icon,
 	 *    "title" => $title,
@@ -290,7 +291,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public function log($a, string $type, $immediately){
+	public function log($a, string $type, $immediately = NULL){
 		$alert = is_array($a) ? $a : ["message" => $a];
 
 		if(!$alert['icon']){
@@ -342,8 +343,8 @@ EOF;
 	/**
 	 * Raise an error
 	 * <code>
-	 * $this->log->error("Error message");
-	 * $this->log->error([
+	 * $this->alert->error("Error message");
+	 * $this->alert->error([
 	 *    "title" => "Error title",
 	 *    "message" => "Error message"
 	 * ]);
@@ -362,8 +363,8 @@ EOF;
 	/**
 	 * Raise an warning
 	 * <code>
-	 * $this->log->warning("Warning message");
-	 * $this->log->warning([
+	 * $this->alert->warning("Warning message");
+	 * $this->alert->warning([
 	 *    "title" => "Warning title",
 	 *    "message" => "Warning message"
 	 * ]);
@@ -382,10 +383,13 @@ EOF;
 	/**
 	 * Raise an info
 	 * <code>
-	 * $this->log->info("Info message");
-	 * $this->log->info([
+	 * $this->alert->info("Info message");
+	 * $this->alert->info([
 	 *    "title" => "Info title",
 	 *    "message" => "Info message"
+	 *    "container" => "#id", //If the message is to go to particular DOM element
+	 *    "reset" => bool, //If set to TRUE, will remove all other messages in the DOM
+	 *    "closeInSeconds" => int, //The number of seconds before the DOM message will be removed
 	 * ]);
 	 * </code>
 	 *
@@ -402,8 +406,8 @@ EOF;
 	/**
 	 * Raise an success
 	 * <code>
-	 * $this->log->success("Success message");
-	 * $this->log->success([
+	 * $this->alert->success("Success message");
+	 * $this->alert->success([
 	 *    "title" => "Success title",
 	 *    "message" => "Info message"
 	 * ]);

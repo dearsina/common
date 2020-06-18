@@ -14,6 +14,10 @@ use App\UI\Table;
  * @package App\Common\ErrorLog
  */
 class ErrorLog extends Common {
+	/**
+	 * Maximum number of characters to display of an error message.
+	 */
+	const MAX_ERROR_BODY_LENGTH = 1000;
 
 	/**
 	 * @param bool|null $output_to_email
@@ -207,21 +211,13 @@ class ErrorLog extends Common {
 	 * @throws \Exception
 	 */
 	public function getErrors($a){
+		str::replaceNullStrings($a);
 		extract($a);
 		unset($a['vars']['resolved']);
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
 			return $this->accessDenied();
-		}
-
-		# Replace "NULL" with NULL values
-		if($a['vars']){
-			foreach($a['vars'] as $key => $val){
-				if($val == "NULL"){
-					$a['vars'][$key] = NULL;
-				}
-			}
 		}
 
 		/**
@@ -291,8 +287,18 @@ class ErrorLog extends Common {
 			"col_name" => "created"
 		];
 
-		$header = "<b>{$error['title']}</b> ".str::explode(["\r\n","\r","\n"], $error['message'])[0];
-		$body = str::pre(trim(substr( $error['message'], strpos($error['message'], "\n") +1)));
+		$first_line = str::explode(["\r\n","\n"], $error['message'])[0];
+		$first_line = strip_tags($first_line);
+		$header = "<b>{$error['title']}</b> ".$first_line;
+
+		$body = trim($error['message']);
+		$message_len = strlen($body);
+		if($message_len > self::MAX_ERROR_BODY_LENGTH){
+			$body = substr($body, 0, self::MAX_ERROR_BODY_LENGTH);
+			$body = str::pre($body). "<small class=\"text-muted\">(Truncated. Whole error ".str::number($message_len)." characters.)</small>";
+		} else {
+			$body = str::pre($body);
+		}
 
 		$row["Type"] = [
 			"accordion" => [

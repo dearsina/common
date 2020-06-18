@@ -316,7 +316,7 @@ class Field {
 			],
 			"desc" => Countdown::generate([
 				"modify" => "+15 minutes",
-				"stop" => "Your code has expired, please cancel and log in again.",
+				"stop" => "Your code has expired, please cancel and alert in again.",
 				"pre" => "The code is case <i>in</i>sensitive and will expire in ",
 				"post" => "."
 			]),

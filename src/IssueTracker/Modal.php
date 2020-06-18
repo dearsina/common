@@ -49,7 +49,7 @@ class Modal extends Common {
 			];
 		}
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "lg",
 			"icon" => Icon::get("new"),
 			"header" => "New issue",
@@ -177,7 +177,7 @@ class Modal extends Common {
 		$in = new IssueNote();
 		$in->updateIssueNoteTable($rel_id);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "xl",
 			"icon" => Icon::get("edit"),
 			"header" => "Edit issue",

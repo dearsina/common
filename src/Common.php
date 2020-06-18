@@ -144,6 +144,28 @@ abstract class Common {
 	}
 
 	/**
+	 * Reorders items.
+	 *
+	 * Checks credentials, then sends user off to
+	 * generic setOrder method.
+	 *
+	 * @param $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function reorder($a) : bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		return $this->setOrder($a);
+	}
+
+	/**
 	 * Given a table name, will return the
 	 * next order number.
 	 *
@@ -225,7 +247,7 @@ abstract class Common {
 		if(!$silent){
 			$this->log->success([
 				"icon" => "random",
-				"message" => "Order updated"
+				"message" => "Reordered"
 			]);
 		}
 
@@ -294,7 +316,7 @@ abstract class Common {
 //
 //		# Notify user
 //		if(!$silent){
-//			$this->log->success([
+//			$this->alert->success([
 //				"icon" => "indent",
 //				"title" => str::title("Great success!"),
 //				"message" => str::title("Created a new {$rel_table} record.")

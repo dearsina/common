@@ -42,46 +42,6 @@ class Field {
 			}
 		}
 
-		# Create a parent child dependency
-		$onChange = /** @lang JavaScript */<<<EOF
-let class_name = $(this).val();
-
-//If the user has chosen to erase the parent select
-if(!class_name.length){
-    // Remove all existing values
-	$('#class-method option[value]').remove();
-	
-	// Add a relevant placeholder
-	$('#class-method').setSelect2Placeholder("Select a class first.");
-	return true;
-}
-
-// If the user has selected a parent, call for updated options for the child
-ajaxCall("get_class_methods", "cron_job", false, {class_name: class_name}, function(data){
-    //Remove the current values
-    $('#class-method option[value]').remove();
-    
-    //If the parent has children
-    if(typeof data.options === "object"){
-        
-        // For each child
-		$.each(data.options, function(index, e){
-		    
-		    // Add them as an option to the child
-			var newOption = new Option(e.text, e.id, false, false);
-			$('#class-method').append(newOption).trigger('change');
-			
-		});        
-    }    
-    
-    //If there is a new placeholder for the child
-    if(typeof data.placeholder === "string"){
-		$('#class-method').setSelect2Placeholder(data.placeholder);        
-    }    
-});
-EOF;
-
-
 		$title_fields = [
 			[ //Row
 				"name" => "title",
@@ -109,7 +69,14 @@ EOF;
 				"value" => $class,
 				"title" => "Class",
 				"desc" => "In which class does your method reside?",
-				"onChange" => $onChange
+				"parent" => [
+					"child" => "#class-method",
+					"child_placeholder" => "Select a class first.",
+					"ajax" => [
+						"rel_table" => "cron_job",
+						"action" => "get_class_methods"
+					]
+				]
 			],[
 				"id" => "class-method",
 				"type" => "select",
@@ -127,8 +94,8 @@ EOF;
 					'@monthly' => 'Monthly',
 					'@weekly' => 'Weekly',
 					'@daily' => 'Daily, at midnight GMT',
-					'* 2 * * *' => 'Daily, at 2am GMT',
-					'* 4 * * *' => 'Daily, at 4am GMT',
+					'0 2 * * *' => 'Daily, at 2am GMT',
+					'0 4 * * *' => 'Daily, at 4am GMT',
 					'@hourly' => 'Hourly',
 					'* * * * *' => "Every minute"
 				],
@@ -136,14 +103,21 @@ EOF;
 				"value" => $interval,
 				"title" => "Interval",
 				"desc" => "How often do you want the cron job to run?"
-			],[
+			],[[
 				"type" => "checkbox",
 				"name" => "paused",
 				"title" => "Paused",
 				"desc" => "When a job is paused, it will not run as scheduled.",
 				"value" => 1,
 				"checked" => $paused
-			]
+			],[
+				"type" => "checkbox",
+				"name" => "silent",
+				"title" => "silent",
+				"desc" => "Silent jobs will not be logged if they are successful. Useful for high frequency jobs.",
+				"value" => 1,
+				"checked" => $silent
+			]]
 		];
 
 		// Wrapper / Switch / Col (if switch is present, otherwise Row) / Row (if switch is present, otherwise Col)

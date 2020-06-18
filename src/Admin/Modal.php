@@ -17,7 +17,7 @@ class Modal extends \App\Common\Common {
 	public function error_notification($a){
 		extract($a);
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"size" => "m",
 			"icon" => "cog",
 			"header" => "Error notification schedules",

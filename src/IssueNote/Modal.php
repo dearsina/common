@@ -44,7 +44,7 @@ class Modal extends \App\Common\Common {
 
 		$id = str::id("modal");
 
-		$modal = new \App\UI\Modal([
+		$modal = new \App\UI\Modal\Modal([
 			"id" => $id,
 			"size" => "l",
 			"icon" => Icon::get("edit"),

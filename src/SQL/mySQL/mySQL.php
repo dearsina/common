@@ -227,7 +227,7 @@ class mySQL extends Grow {
 		}
 
 		# Store the query in a session variable
-//		$_SESSION['query'] = $query;
+		$_SESSION['query'] = $query;
 
 		if(str::runFromCLI()){
 			//When run from the command line, the session super global doesn't work
@@ -235,6 +235,8 @@ class mySQL extends Grow {
 			$SESSION['query'] = $query;
 			$SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
 		}
+
+//		echo str_replace(["\r\n"]," ",$query)."\r\n";
 
 		# Run the query and store the results in an array
 		$result = $this->mysqli->query($query);
@@ -1621,7 +1623,7 @@ class mySQL extends Grow {
 	/**
 	 * SQL select statement. Accepts the following:
 	 *
-	 * @param array $a <code>"count" => TRUE,</code>
+	 * @param array|string $a <code>"count" => TRUE,</code>
 	 *                 Either a boolean TRUE or a column name from the main table.
 	 *                 If a column name is selected, a column with an alias as <i>column_count</i>
 	 *                 is created, containing the count when all other columns are grouped.
@@ -1901,7 +1903,7 @@ class mySQL extends Grow {
 			return $and_strings ?: [];
 		}
 
-		if($and_strings){
+		if(is_array($and_strings) && array_filter($and_strings)){
 			return "{$prefix} ".implode("\r\nAND ", array_filter($and_strings));
 		}
 
@@ -2225,7 +2227,7 @@ class mySQL extends Grow {
 			 *
 			 * The audit trail is run first. Two considerations:
 			 * 1. The last SQL query (var_dump(query)) will still be the update SQL query
-			 * 2. If the update fails, the audit log entry will be removed.
+			 * 2. If the update fails, the audit alert entry will be removed.
 			 */
 			if(($audit_trail_ids = $this->addToAuditTrail($table, $id, $set)) === false){
 				return false;
@@ -2262,7 +2264,7 @@ class mySQL extends Grow {
 		//Prevents infinite loops
 
 		if($table == "error_log"){return true;}
-		//No need to log errors in the audit trail
+		//No need to alert errors in the audit trail
 
 		if(!$insert){
 			//if this is NOT an insert query
@@ -2434,12 +2436,12 @@ class mySQL extends Grow {
 		$this->setCondition("or", $or);
 		$this->setCondition("or", $or_not, NULL, NULL, true);
 
-		if(!$this->where){
-			throw new \mysqli_sql_exception('Removing without any valid where clauses (essentially truncating the table) is not allowed.');
+		if(!$where = $this->getConditions("WHERE", $this->where, $this->or)){
+			throw new \mysqli_sql_exception("Deleting without any valid where clauses (essentially truncating the table) is not allowed. You were about to do that with the <code>{$this->table['name']}</code> table.");
 		}
 
 		$query[] = "DELETE FROM `{$this->table['name']}`";
-		$query[] = $this->getConditions("WHERE", $this->where, $this->or);
+		$query[] = $where;
 
 		if (!($sql = $this->run(implode($query, "\r\n")))) {
 			return false;
@@ -2625,7 +2627,7 @@ class mySQL extends Grow {
 //		}
 //
 //		if(!$table){
-//			$this->log->error("Table definition is missing");
+//			$this->alert->error("Table definition is missing");
 //			return false;
 //		}
 //

@@ -3,6 +3,8 @@
 
 namespace App\Common\SQL\mySQL;
 
+use App\Common\str;
+
 /**
  * Class Grow
  * @package App\Common\SQL\mySQL
@@ -20,7 +22,11 @@ class Grow{
 	 */
 	public function growTable(string $table, array $data){
 		# Get the table metadata
-		$tableMetadata = $this->getTableMetadata($table);
+		if((!$tableMetadata = $this->getTableMetadata($table)) && !$this->tableExists($table)){
+			//if table doesn't exist
+			$tableMetadata = $this->createTable($table);
+			//create it
+		}
 
 		# Get the columns a user cannot alter
 		$columns_to_ignore = $this->getTableColumnsUsersCannotUpdate($table);
@@ -64,6 +70,43 @@ class Grow{
 	}
 
 	/**
+	 * Creates a blank table based on a table name alone.
+	 *
+	 * @param string $table
+	 *
+	 * @return array|null
+	 */
+	private function createTable (string $table): ?array
+	{
+		# Clean the table name, just in case
+		$table = str::i($table);
+
+		$query = /** @lang MySQL */"
+		CREATE TABLE `{$table}` (
+			`{$table}_id` CHAR(36) NOT NULL COLLATE 'utf8mb4_unicode_ci',
+			`created` DATETIME NULL DEFAULT NULL,
+			`created_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+			`updated` DATETIME NULL DEFAULT NULL,
+			`updated_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+			`removed` DATETIME NULL DEFAULT NULL,
+			`removed_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+			PRIMARY KEY (`{$table}_id`) USING BTREE
+		)
+		COLLATE='utf8mb4_unicode_ci'
+		ENGINE=InnoDB
+		;
+		";
+
+		# Run the create query
+		$this->run($query);
+
+		# Update the metadata
+		$tableMetadata = $this->getTableMetadata($table, false, true);
+
+		return $tableMetadata;
+	}
+
+	/**
 	 * Given a value, tries to identify what data type it is.
 	 * It will try to recognise the following types:
 	 * 	- int
@@ -81,10 +124,11 @@ class Grow{
 		if(preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $val)){
 			return 'varchar';
 		}
+
 		# INT, BIGINT
-		if(preg_replace("/[^0-9-]/", "", $val) == $val
+		if(preg_match("/^-?[0-9]$/", $val)
 			&& substr($val, 0,1) != "0"){
-			//Only (positive or negative) numbers
+			//Only (positive or negative) integers
 			//and cannot start with a zero
 
 			# Get the type of int
@@ -99,12 +143,10 @@ class Grow{
 		}
 
 		# DECIMAL
-		else if(preg_replace("/[^0-9.-]/", "", $val) == $val
-			&& substr($val, 0,1) != "0"
-			&& substr_count($val, ".") == 1){
+		else if(preg_match("/^-?[0-9](\.[0-9]+)?$/", $val)
+			&& substr($val, 0,1) != "0"){
 			//Only numbers
 			//and cannot start with a zero
-			// and a single decimal breaker point
 			return "decimal";
 		}
 
