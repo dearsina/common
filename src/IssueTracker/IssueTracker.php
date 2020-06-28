@@ -228,10 +228,7 @@ class IssueTracker extends Common {
 
 		$page = new Page([
 			"title" => "All issues",
-			"icon" => [
-				"type" => "duotone",
-				"name" => Icon::get("issue")
-			],
+			"icon" => Icon::get("issue")
 		]);
 
 		# UrlDEcode the variables

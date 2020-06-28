@@ -41,15 +41,13 @@ class Card extends \App\Common\Common {
 		$results = $this->sql->select([
 			"columns" => [
 				"Type" => "title",
-				"Errors" => "count(error_log_id)",
+				"Errors" => ["count", "error_log_id"],
 			],
 			"table" => $rel_table,
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => $a['action'] == 'unresolved' ? NULL : false
+				["resolved", "=",  $a['action'] == 'unresolved' ? NULL : false],
+				["resolved", "<>", $a['action'] == 'resolved'   ? NULL : false]
 			]),
-			"where_not" => [
-				"resolved" => $a['action'] == 'resolved' ? NULL : false
-			],
 			"order_by" => [
 				"Errors" => "DESC"
 			]
@@ -92,7 +90,7 @@ class Card extends \App\Common\Common {
 		$results = $this->sql->select([
 			"flat" => true,
 			"columns" => [
-				"Errors" => "count(error_log_id)",
+				"Errors" => ["count", "error_log_id"],
 			],
 			"table" => "error_log",
 			"left_join" => [[
@@ -107,11 +105,9 @@ class Card extends \App\Common\Common {
 				]
 			]],
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => $a['action'] == 'unresolved' ? NULL : false
+				["resolved", "=",  $a['action'] == 'unresolved' ? NULL : false],
+				["resolved", "<>", $a['action'] == 'resolved'   ? NULL : false]
 			]),
-			"where_not" => [
-				"resolved" => $a['action'] == 'resolved' ? NULL : false
-			],
 			"order_by" => [
 				"error_log_id_count" => "DESC"
 			]
@@ -155,15 +151,13 @@ class Card extends \App\Common\Common {
 			"columns" => [
 				"rel_table",
 				"action",
-				"Errors" => "count(error_log_id)",
+				"Errors" => ["count", "error_log_id"],
 			],
 			"table" => "error_log",
 			"where" => array_merge($a['vars']?:[], [
-				"resolved" => $a['action'] == 'unresolved' ? NULL : false
+				["resolved", "=",  $a['action'] == 'unresolved' ? NULL : false],
+				["resolved", "<>", $a['action'] == 'resolved'   ? NULL : false]
 			]),
-			"where_not" => [
-				"resolved" => $a['action'] == 'resolved' ? NULL : false
-			],
 			"order_by" => [
 				"Errors" => "DESC"
 			]

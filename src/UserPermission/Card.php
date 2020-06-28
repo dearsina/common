@@ -49,13 +49,14 @@ class Card extends \App\Common\Common {
 	{
 		# Get this user's permissions
 		if($results = $this->sql->select([
+			"distinct" => true,
 			"columns" => [
 				"rel_table",
 				"c",
 				"r",
 				"u",
 				"d",
-				"count_rel_id" => "COUNT(DISTINCT `rel_id`)"
+				"count_rel_id" => ["count", "rel_id"]
 			],
 			"table" => "user_permission",
 			"where" => [
@@ -69,13 +70,14 @@ class Card extends \App\Common\Common {
 		}
 		# Get the user _role_ permissions
 		if($results = $this->sql->select([
+			"distinct" => true,
 			"columns" => [
 				"rel_table",
 				"c",
 				"r",
 				"u",
 				"d",
-				"count_rel_id" => "COUNT(DISTINCT `rel_id`)"
+				"count_rel_id" => ["count", "rel_id"]
 			],
 			"table" => "role_permission",
 			"join" => [[

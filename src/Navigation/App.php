@@ -11,10 +11,7 @@ use App\UI\Icon;
  * Class App
  * @package App\Common\Navigation
  */
-class App extends \App\Common\Common implements NavigationInterface {
-	private $levels = [];
-	private $footers = [];
-
+class App extends Common implements NavigationInterface {
 	/**
 	 * @inheritDoc
 	 */

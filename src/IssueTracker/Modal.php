@@ -59,7 +59,7 @@ class Modal extends Common {
 					"html" => $body
 				]
 			],
-//			"approve" => true,
+			"approve" => "change",
 			"draggable" => true,
 			"resizable" => [
 				"minHeight" => 650
@@ -86,7 +86,7 @@ class Modal extends Common {
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => "`error_log`.`created_by`"
+					"user_id" => ["error_log", "created_by"]
 				]
 			]],
 			"id" => $error_log_id

@@ -30,13 +30,21 @@ class Example extends Common {
 			$page = new Page([
 				"title" => str::title($rel_id),
 				"icon" => Icon::get($rel_id),
-			]);
-			$page->setGrid([
-				"html" => Button::generate("return"),
-				"style" => [
-					"margin-bottom" => "1rem"
+				"button" => [
+					"icon" => "chevron-left",
+					"title" => "Return",
+					"basic" => true,
+					"hash" => -1,
+					"style" => [
+						"margin-bottom" => "1rem"
+					]
 				]
 			]);
+
+//			$page->setGrid([
+//
+//			]);
+
 			$this->output->html($page->getHTML());
 
 			$class_path = str::getClassCase("\\App\\UI\\Examples\\{$rel_id}");
@@ -70,7 +78,10 @@ class Example extends Common {
 			])
 		]);
 
-		$page->setGrid($card->getHTML());
+		$page->setGrid([[
+			"sm" => 3,
+			"html" => $card->getHTML()
+		]]);
 
 		$this->output->html($page->getHTML());
 		return true;

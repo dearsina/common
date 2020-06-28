@@ -238,7 +238,10 @@ class Field {
 			extract($a);
 
 		return [[
-			"html" => "<p>Please enter a new password for your account.</p>",
+			"html" => "
+				<p>Thank you for verifying your email address.<br/>
+				Please enter a new password for your account.</p>
+			",
 		],[
 			"type" => "password",
 			"icon" => "key",

@@ -24,8 +24,8 @@ class Field {
 
 		if($issues = $sql->select([
 			"table" => "issue_tracker",
-			"where_not" => [
-				"progress" => 1
+			"where" => [
+				["progress", "<>", 1]
 			]
 		])){
 			foreach($issues as $issue){

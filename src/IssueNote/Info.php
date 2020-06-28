@@ -20,7 +20,7 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 		$a['join'][] = [
 			"table" => "user",
 			"on" => [
-				"user_id" => "`issue_note`.`created_by`"
+				"user_id" => ["issue_note", "created_by"]
 			]
 		];
 	}

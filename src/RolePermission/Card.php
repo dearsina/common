@@ -50,13 +50,14 @@ class Card extends \App\Common\Common {
 	public function rolePermission(array $role) : string
 	{
 		if($results = $this->sql->select([
+			"distinct" => true,
 			"columns" => [
 				"rel_table",
 				"c",
 				"r",
 				"u",
 				"d",
-				"count_rel_id" => "COUNT(DISTINCT `rel_id`)"
+				"count_rel_id" => ["count", "rel_id"],
 			],
 			"table" => "role_permission",
 			"where" => [

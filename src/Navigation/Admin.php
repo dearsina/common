@@ -85,10 +85,7 @@ class Admin extends Common implements NavigationInterface {
 		];
 
 		$this->levels[2]['items'][] = [
-			"icon" => [
-				"type" => "duotone",
-				"name" => Icon::get("permission"),
-			],
+			"icon" => Icon::get("permission"),
 			"title" => "Permissions",
 			"children" => $children
 		];
@@ -119,10 +116,7 @@ class Admin extends Common implements NavigationInterface {
 		];
 
 		$this->levels[2]['items'][] = [
-			"icon" => [
-				"type" => "duotone",
-				"name" => Icon::get("cron_job"),
-			],
+			"icon" => Icon::get("cron_job"),
 			"title" => "Cron jobs",
 			"children" => $children
 		];
@@ -186,10 +180,7 @@ class Admin extends Common implements NavigationInterface {
 		];
 
 		$this->levels[2]['items'][] = [
-			"icon" => [
-				"type" => "duotone",
-				"name" => Icon::get("issue")
-			],
+			"icon" => Icon::get("issue"),
 			"title" => "Issues",
 			"alt" => "Development issues and bugs",
 //			"hash" => [
@@ -251,10 +242,7 @@ class Admin extends Common implements NavigationInterface {
 			],
 		];
 		$this->levels[2]['items'][] = [
-			"icon" => [
-				"type" => "full",
-				"name" => Icon::get("error")
-			],
+			"icon" => Icon::get("error"),
 			"title" => "Errors",
 			"alt" => "All unresolved errors",
 //			"hash" => [

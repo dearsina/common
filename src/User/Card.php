@@ -158,7 +158,7 @@ class Card extends Common {
 		]);
 
 		$card = new \App\UI\Card([
-			"header" => "Thank you for verifying your email address",
+			"header" => "New password",
 			"body" => $form->getHTML(),
 			"footer" => [
 				"html" => "Your password must be ".Field::minimumPasswordLength." characters or longer.",

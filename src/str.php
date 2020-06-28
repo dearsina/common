@@ -321,7 +321,12 @@ class str {
 	 * @return mixed|string
 	 */
 	public static function i($i, $html_accepted = NULL){
-		if(!is_string($i) && !is_int($i) && !is_float($i)){
+		# We don't really care about stuff that looks like numbers
+		if(is_numeric($i)){
+			return $i;
+		}
+
+		if(!is_string($i)){
 			return false;
 		}
 
@@ -773,7 +778,8 @@ class str {
 			if (count($vars) == count($vars, COUNT_RECURSIVE)){
 				//if the vars array is NOT multi-dimensional
 				foreach($vars as $key => $val){
-					if(!$val){
+					if($val === NULL){
+						//Only if they're literally NULL, shall they be ignored
 						continue;
 					}
 					$hash .= "/$key/$val";
@@ -1371,15 +1377,36 @@ EOF;
 		return "<span style=\"font-family:'Roboto Mono',monospace;font-size:smaller;\">{$str}</span>";
 	}
 
+
+	/**
+	 * var_export() with square brackets and indented 4 spaces.
+	 *
+	 * @param      $expression
+	 * @param bool $return
+	 * @link https://www.php.net/manual/en/function.var-export.php#122853
+	 * @return string
+	 */
+	public static function var_export ($expression, $return = false)
+	{
+		$export = var_export($expression, true);
+		$export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
+		$array = preg_split("/\r\n|\n|\r/", $export);
+		$array = preg_replace(["/\s*array\s\($/", "/\)(,)?$/", "/\s=>\s$/"], [NULL, ']$1', ' => ['], $array);
+		$export = join(PHP_EOL, array_filter(["["] + $array));
+		if ((bool)$return)
+			return $export; else echo $export;
+	}
+
 	/**
 	 * Return text strings in a "raw" format.
 	 *
 	 * @param string|array $str
 	 * @param bool         $crop If set to TRUE, will crop the output length.
+	 * @param null         $language If a language is given, will become formatted with PrismJS
 	 *
 	 * @return string
 	 */
-	public static function pre($str, $crop = NULL){
+	public static function pre($str, $crop = NULL, $language = NULL){
 		if(is_array($str)){
 			$str = var_export($str, true);
 		}
@@ -1406,6 +1433,12 @@ EOF;
 		$Parsedown->setSafeMode(true);
 		$str = "```\r\n{$str}\r\n```";
 		$str = $Parsedown->text($str);
+
+		if($language){
+			$class = str::getAttrTag("class", "language-{$language}");
+			$str = str_replace("<code>", "<code{$class}>", $str);
+		}
+
 		$str = "<div class=\"code-mute\">{$str}</div>";
 		return $str;
 	}

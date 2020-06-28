@@ -80,9 +80,7 @@ class Permission extends Common {
 		 * and NULL.
 		 */
 		if($rel_id){
-			$or = [
-				"rel_id" => [$rel_id, NULL]
-			];
+			$where['rel_id'] = [$rel_id, NULL];
 		}
 
 		if ($permission = $this->sql->select([
@@ -94,7 +92,6 @@ class Permission extends Common {
 			],
 			"table" => "user_permission",
 			"where" => $where,
-			"or" => $or,
 			"limit" => 1
 		])) {
 			//if this user in particular has the access
@@ -135,9 +132,7 @@ class Permission extends Common {
 		 * and NULL.
 		 */
 		if($rel_id){
-			$or = [
-				"rel_id" => [$rel_id, NULL]
-			];
+			$where['rel_id'] = [$rel_id, NULL];
 		}
 
 		if ($permission = $this->sql->select([
@@ -149,7 +144,6 @@ class Permission extends Common {
 			],
 			"table" => "role_permission",
 			"where" => $where,
-			"or" => $or,
 			"limit" => 1
 		])) {
 			//if the role this user currently has, gives them access
@@ -262,13 +256,14 @@ class Permission extends Common {
 
 		# Get existing permissions
 		if (!$results = $this->sql->select([
+			"distinct" => true,
 			"columns" => [
 				"rel_table",
 				"c",
 				"r",
 				"u",
 				"d",
-				"count_rel_id" => "COUNT(DISTINCT `rel_id`)",
+				"count_rel_id" => ["COUNT", "rel_id"]
 			],
 			"table" => $rel_table,
 			"where" => [

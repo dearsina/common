@@ -24,20 +24,20 @@ class Field {
 
 		$sql = Factory::getInstance();
 
-		$issue_types = $sql->select([
+		if($issue_types = $sql->select([
 			"table" => "issue_type"
-		]);
-
-		foreach($issue_types as $type){
-			$issue_type_options[$type['issue_type_id']] = $type['title'];
+		])){
+			foreach($issue_types as $type){
+				$issue_type_options[$type['issue_type_id']] = $type['title'];
+			}
 		}
 
-		$issue_priorities = $sql->select([
+		if($issue_priorities = $sql->select([
 			"table" => "issue_priority"
-		]);
-
-		foreach($issue_priorities as $priority){
-			$issue_priority_options[$priority['issue_priority_id']] = $priority['title'];
+		])){
+			foreach($issue_priorities as $priority){
+				$issue_priority_options[$priority['issue_priority_id']] = $priority['title'];
+			}
 		}
 
 		$info = Info::getInstance();

@@ -210,6 +210,9 @@ class CronJob extends Common {
 		# Get the latest update of the CronJobs table
 		$this->updateCronJobs($a);
 
+		# Return
+		$this->hash->set(-1);
+
 		return true;
 	}
 

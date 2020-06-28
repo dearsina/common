@@ -253,9 +253,7 @@ class User extends Common {
 				"where" => [
 					"session_id" => $_COOKIE['session_id'],
 					"user_id" => $_COOKIE['user_id'],
-				],
-				"where_not" => [
-					"session_id" => NULL
+					["session_id", "IS NOT", NULL]
 				],
 				"limit" => 1
 			])) {
@@ -765,6 +763,9 @@ class User extends Common {
 	/**
 	 * Reset password form
 	 * Presented to the user if they wish to reset their password.
+	 * If the email address is valid, will send a reset email
+	 * from the ResetPassword() class.
+	 *
 	 *
 	 * @param null $a
 	 *
@@ -1452,7 +1453,7 @@ class User extends Common {
 			"id" => $user_id,
 			"set" => [
 				"session_id" => session_id(),
-				"last_logged_in" => "`user`.logged_in",
+				"last_logged_in" => ["user", "logged_in"],
 				"logged_in" => "NOW()"
 			],
 		]);
@@ -1563,6 +1564,63 @@ class User extends Common {
 				]
 			]);
 			return true;
+		}
+
+		$page = new Page();
+
+		$page->setGrid([
+			"row_class" => "justify-content-md-center",
+			"row_style" => [
+				"height" => "85% !important"
+			],
+			"html" => [
+				"sm" => 4,
+				"class" => "fixed-width-column",
+				"html" => $this->card()->newPassword($a)
+			]
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	public function newPassword(array $a): bool
+	{
+		extract($a);
+
+		# Ensure both the user ID and the key hsa been sent
+		if(!$rel_id || !$vars['key']){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => 'Please ensure you have entered the entire verification code.',
+			]);
+			return false;
+		}
+
+		# Find the user
+		if(!$user = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id
+		])){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "Cannot find the user in question.",
+			]);
+			return false;
+		}
+
+		# Make sure the key matches the ID, and that the key hasn't expired
+		if(($user['key'] != $vars['key'])
+		|| str::moreThanMinutesSince(15, $user['updated'])){
+			$this->log->error([
+				"container" => "#ui-view",
+				'title' => "Verification failed",
+				'message' => "Invalid or expired password reset link. If you still need to reset your password, fill out the reset password form again.",
+			]);
+			return false;
 		}
 
 		$page = new Page();
@@ -1764,9 +1822,7 @@ class User extends Common {
 			"table" => "user",
 			"where" => [
 				"session_id" => $_COOKIE['session_id'],
-			],
-			"where_not" => [
-				"session_id" => NULL
+				["session_id", "IS NOT", NULL]
 			],
 			"id" => $_COOKIE['user_id'],
 		])) {
@@ -1883,10 +1939,8 @@ class User extends Common {
 				]
 			]],
 			"where" => [
-				"session_id" => session_id()
-			],
-			"where_not" => [
-				"user_id" => $user_id
+				"session_id" => session_id(),
+				["user_id", "<>", $user_id]
 			],
 			"limit" => 1
 		])){

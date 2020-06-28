@@ -182,7 +182,7 @@ abstract class Common {
 		# Get the highest order
 		$$rel_table = $this->sql->select([
 			"columns" => [
-				"max_order" => "max(`{$rel_table}`.`order`)",
+				"max_order" => ["max", "order"],
 			],
 			"table" => $rel_table,
 			"limit" => 1,
@@ -228,10 +228,10 @@ abstract class Common {
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => [
-				"order" => "`{$rel_table}`.`order` {$direction} 1"
+				"order" => [NULL, $rel_table, "order", "{$direction} 1"]
 			],
 			"where" => [
-				"`order` between {$beginning} and {$end}"
+				["order", "between", $beginning, $end]
 			]
 		]);
 

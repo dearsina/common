@@ -4,32 +4,33 @@
 namespace App\Common\SQL\mySQL;
 
 use App\Common\str;
+use TypeError;
 
 /**
  * Class Grow
  * @package App\Common\SQL\mySQL
  */
-class Grow{
+class Grow extends Common {
 	/**
 	 * Given a table name, check if all the columns in the $data array
 	 * exist in the table, and that the table columns are wide enough.
 	 * If not, create the column, make sure it's wide enough.
 	 *
-	 * @param string $table
+	 * @param array $table
 	 * @param array  $data
 	 *
 	 * @return bool
 	 */
-	public function growTable(string $table, array $data){
+	public function growTable(array $table, array $data){
 		# Get the table metadata
-		if((!$tableMetadata = $this->getTableMetadata($table)) && !$this->tableExists($table)){
+		if((!$tableMetadata = $this->getTableMetadata($table)) && !$this->tableExists($table['db'], $table['name'])){
 			//if table doesn't exist
 			$tableMetadata = $this->createTable($table);
 			//create it
 		}
 
 		# Get the columns a user cannot alter
-		$columns_to_ignore = $this->getTableColumnsUsersCannotUpdate($table);
+		$columns_to_ignore = $this->getTableColumnsUsersCannotUpdate($table['name']);
 
 		# For each column of data that is to be inserted
 		foreach($data as $col => $val) {
@@ -44,7 +45,7 @@ class Grow{
 			
 			if(is_array($val)){
 				//If array values have accidentally been included, ignore them.
-				throw new \TypeError("The <code>{$col}</code> column in <code>{$table}</code> table has array data as its value.".print_r($data,true));
+				throw new TypeError("The <code>{$col}</code> column in <code>{$table}</code> table has array data as its value.".print_r($data,true));
 			}
 
 			# Get the column data type based on the current value
@@ -57,9 +58,8 @@ class Grow{
 			}
 
 			# Run the update query
-			if(!$this->run($query)){
-				return false;
-			}
+			$sql = new Run($this->mysqli);
+			$sql->run($query);
 
 			# Update the metadata (as a new/altered column has just been added)
 			if(!$tableMetadata = $this->getTableMetadata($table, false, true)){
@@ -72,25 +72,22 @@ class Grow{
 	/**
 	 * Creates a blank table based on a table name alone.
 	 *
-	 * @param string $table
+	 * @param array $table
 	 *
 	 * @return array|null
 	 */
-	private function createTable (string $table): ?array
+	private function createTable (array $table): ?array
 	{
-		# Clean the table name, just in case
-		$table = str::i($table);
-
 		$query = /** @lang MySQL */"
-		CREATE TABLE `{$table}` (
-			`{$table}_id` CHAR(36) NOT NULL COLLATE 'utf8mb4_unicode_ci',
+		CREATE TABLE `{$table['db']}`.`{$table['name']}` (
+			`{$table['name']}_id` CHAR(36) NOT NULL COLLATE 'utf8mb4_unicode_ci',
 			`created` DATETIME NULL DEFAULT NULL,
 			`created_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
 			`updated` DATETIME NULL DEFAULT NULL,
 			`updated_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
 			`removed` DATETIME NULL DEFAULT NULL,
 			`removed_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
-			PRIMARY KEY (`{$table}_id`) USING BTREE
+			PRIMARY KEY (`{$table['name']}_id`) USING BTREE
 		)
 		COLLATE='utf8mb4_unicode_ci'
 		ENGINE=InnoDB
@@ -98,7 +95,8 @@ class Grow{
 		";
 
 		# Run the create query
-		$this->run($query);
+		$sql = new Run($this->mysqli);
+		$sql->run($query);
 
 		# Update the metadata
 		$tableMetadata = $this->getTableMetadata($table, false, true);
@@ -172,7 +170,7 @@ class Grow{
 	 *
 	 * @return bool|string
 	 */
-	private function getQuery(string $table, string $col, $val, string $type, ?array $tableMetadata = []){
+	private function getQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []){
 		# Get the key for the existing column, if it exists
 		if(is_array($tableMetadata)){
 			$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
@@ -199,7 +197,7 @@ class Grow{
 	/**
 	 * Generates the new column query.
 	 *
-	 * @param string $table
+	 * @param array $table
 	 * @param string $col
 	 * @param        $val
 	 * @param string $type
@@ -207,10 +205,10 @@ class Grow{
 	 *
 	 * @return string
 	 */
-	private function getNewColumnQuery(string $table, string $col, $val, string $type, ?array $tableMetadata = []){
+	private function getNewColumnQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []){
 		# Get the key for the last column, if it cannot be found, assume table contains no (editable) columns
 		if(!$key = array_key_last($tableMetadata)){
-			$last_column = "{$table}_id";
+			$last_column = $table['id_col'];
 		} else {
 			$last_column = $tableMetadata[$key]['COLUMN_NAME'];
 		}
@@ -219,13 +217,13 @@ class Grow{
 		$type = $this->prepareType($type, $val);
 
 		# Write the query to create a new column
-		return "ALTER TABLE `{$table}` ADD COLUMN `{$col}` {$type} NULL DEFAULT NULL AFTER `$last_column`;";
+		return "ALTER TABLE `{$table['db']}`.`{$table['name']}` ADD COLUMN `{$col}` {$type} NULL DEFAULT NULL AFTER `$last_column`;";
 	}
 
 	/**
 	 * Query for when the column has to (potentially) change data type.
 	 *
-	 * @param string $table
+	 * @param array $table
 	 * @param string $col
 	 * @param        $val
 	 * @param string $type
@@ -233,7 +231,7 @@ class Grow{
 	 *
 	 * @return bool|string
 	 */
-	private function getChangeColumnQuery(string $table, string $col, $val, string $type, array $tableMetadata){
+	private function getChangeColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata){
 		# Get the key for the (existing) column
 		$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
 
@@ -281,14 +279,14 @@ class Grow{
 		$type = $this->prepareType($type, $val, $tableMetadata[$key]);
 
 		# Return the query
-		return "ALTER TABLE `{$table}` CHANGE COLUMN `{$col}` `{$col}` {$type};";
+		return "ALTER TABLE `{$table['db']}`.`{$table['name']}` CHANGE COLUMN `{$col}` `{$col}` {$type};";
 	}
 
 
 	/**
 	 * Query for when the column (potentially) has to grow.
 	 *
-	 * @param string $table
+	 * @param array $table
 	 * @param string $col
 	 * @param        $val
 	 * @param string $type
@@ -296,7 +294,7 @@ class Grow{
 	 *
 	 * @return bool|string
 	 */
-	private function getGrowColumnQuery(string $table, string $col, $val, string $type, array $tableMetadata){
+	private function getGrowColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata){
 		if(in_array($type, ["int", "bigint", "text"])){
 			//If the column data type is any of these, leave them alone
 			return false;
@@ -329,7 +327,7 @@ class Grow{
 		$type = $this->prepareType($type, $val, $tableMetadata[$key]);
 
 		# Return the query
-		return "ALTER TABLE `{$table}` CHANGE COLUMN `{$col}` `{$col}` {$type};";
+		return "ALTER TABLE `{$table['db']}`.`{$table['name']}` CHANGE COLUMN `{$col}` `{$col}` {$type};";
 	}
 
 	/**

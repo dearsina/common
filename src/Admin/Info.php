@@ -21,7 +21,7 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 			"columns" => false,
 			"table" => "user_role",
 			"on" => [
-				"rel_id" => "`admin`.`admin_id`"
+				"rel_id" => ["admin", "admin_id"]
 			],
 			"where" => [
 				"rel_table" => "admin"
@@ -30,10 +30,10 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 		$a['join'][] = [
 			"table" => "user",
 			"on" => [
-				"user_id" => "`user_role`.`user_id`"
+				"user_id" => ["user_role", "user_id"]
 			],
 			"where" => [
-				"user_id" => "`user_role`.`user_id`"
+				"user_id" => ["user_role", "user_id"]
 			]
 		];
 	}
@@ -44,7 +44,7 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 	public static function format (array &$row): void
 	{
 		# There is only ever one user
-		$row['user'] = $row['user'][0];
+		$row['user'] = $row['user_role'][0]['user'][0];
 
 		# Add "name" and "full_name", and format first and last names
 		str::addNames($row['user']);

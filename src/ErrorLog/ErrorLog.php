@@ -230,17 +230,12 @@ class ErrorLog extends Common {
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => "`error_log`.`created_by`"
+					"user_id" => ["error_log", "created_by"]
 				]
-//			],[
-//				"table" => "issue_tracker",
-//				"on" => "issue_tracker_id"
 			]],
 			"where" => [
-				"resolved" => $vars['resolved'] == 'unresolved' ? NULL : false
-			],
-			"where_not" => [
-				"resolved" => $vars['resolved'] == 'resolved' ? NULL : false
+				["resolved", "IS", $vars['resolved'] == 'unresolved' ? NULL : false],
+				["resolved", "IS NOT", $vars['resolved'] == 'resolved'? NULL : false]
 			],
 			"order_by" => [
 				"created" => "desc"

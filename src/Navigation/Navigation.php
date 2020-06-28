@@ -218,7 +218,7 @@ class Navigation {
 		}
 
 		# Get the footers for this role
-		$footers = $classInstance->$method([
+		$role_footers = $classInstance->$method([
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
@@ -226,7 +226,8 @@ class Navigation {
 		]);
 
 		# Merge role footers into app footers
-//		$footers = array_merge_recursive($footers, $role_footers);
+		$footers[1] = array_merge_recursive($footers[1] ?:[], $role_footers[1] ?:[]);
+		$footers[2] = array_merge_recursive($footers[2] ?:[], $role_footers[2] ?:[]);
 
 		return true;
 	}

@@ -46,13 +46,12 @@ class ResetPassword extends TemplateConstructor implements TemplateInterface {
 		$grid->set([
 			"html" => "To reset your password, please click on the link below:"
 		]);
-		$url  = "https://{$_SERVER['HTTP_HOST']}";
+		$url  = "https://{$_SERVER['HTTP_HOST']}/";
 		$url .= str::generate_uri([
 			"rel_table" => "user",
 			"rel_id" => $user_id,
 			"action" => "new_password",
 			"vars" => [
-				"email" => $email,
 				"key" => $key
 			]
 		]);

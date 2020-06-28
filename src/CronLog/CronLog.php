@@ -185,7 +185,7 @@ class CronLog extends \App\Common\Common {
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => "`{$rel_table}`.`created_by`"
+					"user_id" => [$rel_table, "created_by"]
 				]
 			]],
 			"order_by" => [
