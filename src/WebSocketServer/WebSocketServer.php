@@ -251,7 +251,7 @@ class WebSocketServer extends Common {
 			],
 			"where" => [
 				"closed" => NULL,
-				"ip_address" => $request->server['remote_addr'],
+				"ip" => $request->server['remote_addr'],
 			],
 			"id" => $connection_id,
 			"reconnect" => true,

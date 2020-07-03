@@ -147,8 +147,11 @@ class App extends Common implements NavigationInterface {
 			]
 		];
 
+		global $role;
+
 		$this->levels[1]['items'][] = [
-			"icon" => "user",
+			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
+			"alt" => "You are currently in the {$role} role",
 			"children" => $children
 		];
 	}
@@ -185,7 +188,7 @@ class App extends Common implements NavigationInterface {
 			$children[] = [
 				"title" => str::title($user_role['rel_table']),
 				"badge" => $badge,
-				"icon" => Icon::get($user_role['rel_table']),
+				"icon" => $user_role['icon'],
 				"hash" => [
 					"rel_table" => "user_role",
 					"action" => "switch",

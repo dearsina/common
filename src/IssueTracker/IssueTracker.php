@@ -329,13 +329,13 @@ class IssueTracker extends Common {
 			],
 			"style" => ["margin" => "0.3rem 0"],
 			"sm" => 1,
-			"col_name" => "`issue_type`.`title`"
+			"col_alias" => "issue_type.title"
 		];
 
 		$row["Created"] = [
 			"html" => str::ago($issue['created']),
 			"class" => "text-flat",
-			"col_name" => "created"
+			"col_alias" => "created"
 		];
 
 		$row["Issue"] = [
@@ -347,20 +347,20 @@ class IssueTracker extends Common {
 			"html" => $issue['title'],
 			"style" => ["font-weight" => 500],
 			"sm" => 4,
-			"col_name" => "title"
+			"col_alias" => "title"
 		];
 
 
 		$row["Assigned to"] = [
 			"html" => $issue['user']['full_name'] ?: "(Not assigned)",
 			"class" => "text-flat",
-			"col_name" => "`user`.`first_name`"
+			"col_alias" => "user.first_name"
 		];
 
 		$row["Priority"] = [
 			"html" => $issue['issue_priority']['title'],
 			"alt" => $issue['issue_priority']['desc'],
-			"col_name" => "`issue_priority`.`title`"
+			"col_alias" => "issue_priority.title"
 		];
 
 		switch($issue['progress']){
@@ -374,7 +374,7 @@ class IssueTracker extends Common {
 				"colour" => $colour
 			]),
 			"style" => ["margin" => "0.2rem 0"],
-			"col_name" => "progress"
+			"col_alias" => "progress"
 		];
 
 		return $row;

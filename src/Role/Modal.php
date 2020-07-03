@@ -23,7 +23,7 @@ class Modal extends \App\Common\Common {
 
 		$modal = new \App\UI\Modal\Modal([
 //			"size" => "l",
-			"icon" => Icon::get("role"),
+			"icon" => Icon::get("roles"),
 			"header" => "All roles",
 			"body" => [
 				"style" => [

@@ -41,6 +41,13 @@ abstract class Common {
 	protected bool $distinct = false;
 
 	/**
+	 * Used exclusively by GROUP_CONCAT().
+	 *
+	 * @var string|null
+	 */
+	protected ?string $separator;
+
+	/**
 	 * An array where the keys are the table name (prefixed with database if not the same database as the main table)
 	 * and values are the number of times that combo is being used by this query.
 	 *
@@ -459,6 +466,10 @@ abstract class Common {
 	 */
 	protected function getColumn(array $table, $col_alias, $col): ?array
 	{
+		if($this->isGroupConcat($col)){
+			return $this->formatGroupConcatCol($table, $col_alias, $col);
+		}
+
 		# "c" => ["count", "last_name"] (Aggregate functions)
 		if(is_array($col) && (count($col) == 2) && $this->isAggregateFunction($col[0])){
 			# Break it open
@@ -487,6 +498,18 @@ abstract class Common {
 			"alias" => $col_alias,
 			"agg" => $agg
 		];
+	}
+
+	protected function formatGroupConcatCol(array $table, ?string $col_alias, array $col): ?array
+	{
+		[$agg, $a] = $col;
+		$sql = new Select($this->mysqli);
+		return $sql->groupConcat($table, $col_alias, $a);
+	}
+
+	protected function isGroupConcat($col):bool
+	{
+		return is_array($col) && (count($col) == 2) && (strtoupper($col[0]) == "GROUP_CONCAT");
 	}
 
 	/**
@@ -527,7 +550,7 @@ abstract class Common {
 	 */
 	protected function isAggregateFunction(string $function): bool
 	{
-		return in_array(strtoupper($function), ["COUNT", "MAX", "MIN", "AVG", "SUM"]);
+		return in_array(strtoupper($function), ["COUNT", "MAX", "MIN", "AVG", "SUM", "GROUP_CONCAT"]);
 	}
 
 	/**
@@ -562,7 +585,7 @@ abstract class Common {
 
 		# If a particular ID has been asked for
 		if($table['id']){
-			$conditions["and"][] = "`{$table['alias']}`.`{$table['id_col']}` = '{$table['id']}'";
+			$conditions["and"][] = "`{$table['alias']}`.`{$table["id_col"]}` = '{$table['id']}'";
 		}
 
 		if(is_array($and)){
@@ -620,9 +643,9 @@ abstract class Common {
 			 * it's assumed that the join is on the main table's ID column,
 			 * if it exists in both tables.
 			 */
-			if($this->columnExists($table['db'], $table['name'], $this->table['id_col'])){
+			if($this->columnExists($table['db'], $table['name'], $this->table["id_col"])){
 				//if the joined table also has a column the same name as the main table's ID column
-				$conditions["and"][] = "`{$table['alias']}`.`{$this->table['id_col']}` = `{$this->table['alias']}`.`{$this->table['id_col']}`";
+				$conditions["and"][] = "`{$table['alias']}`.`{$this->table["id_col"]}` = `{$this->table['alias']}`.`{$this->table["id_col"]}`";
 			}
 		}
 
@@ -1080,10 +1103,15 @@ abstract class Common {
 	 *
 	 *
 	 * @param array|null $set
+	 * @param array|null $html
+	 * @param bool|null  $ignore_empty If set to TRUE, will not throw an exception if no columns are to be set
 	 */
-	protected function setSet(?array $set, ?array $html): void
+	protected function setSet(?array $set, ?array $html, ?bool $ignore_empty = NULL): void
 	{
 		if(!$set){
+			if($ignore_empty){
+				return;
+			}
 			throw new mysqli_sql_exception("No data was given to set in the <code>{$this->table['name']}</code> table.");
 		}
 		if(!str::isNumericArray($set)){
@@ -1228,10 +1256,14 @@ abstract class Common {
 			 * Thus, string true/false values are translated to 1/NULL values.
 			 */
 			if ($val == "true"){
-				$val = (int) 1;
+				return (int) 1;
 			}
 			if ($val == "false"){
-				$val = "NULL";
+				return "NULL";
+			}
+			if (!$val) {
+				//"", "0", 0
+				return "NULL";
 			}
 		}
 
@@ -1268,9 +1300,6 @@ abstract class Common {
 			return "(".implode(",", array_unique($vals)).")";
 		}
 
-		# Tidy up the value
-		$val = str::i($val, $html);
-
 		if($val === NULL){
 			//If the val is actual NULL, switch it to the mySQL string equivalent
 			return "NULL";
@@ -1285,6 +1314,9 @@ abstract class Common {
 			//if the value is a boolean FALSE, ignore it completely
 			return NULL;
 		}
+
+		# Tidy up the value (after we've checked it's not boolean or NULL)
+		$val = str::i($val, $html);
 
 		if($val == "NOW()"){
 			//If it's a datetime function
@@ -1363,8 +1395,8 @@ abstract class Common {
 			return $this->table_column_names_all[$table["db"]][$table["name"]];
 		}
 
-		# Return only the columns they can update
-		return $this->table_column_names[$table["db"]][$table["name"]];
+		# Return only the columns they can update (that can be no columns)
+		return $this->table_column_names[$table["db"]][$table["name"]] ?:[];
 	}
 
 	/**
@@ -1468,6 +1500,12 @@ abstract class Common {
 	protected function getSetSQL(): string
 	{
 		foreach (reset($this->set) as $col => $val){
+
+			# Make sure the column is part of the accepted set
+			if(is_string($col) && !in_array($col, $this->columns)){
+				continue;
+			}
+
 			# "col" => ["tbl_alias", "tbl_col"]
 			if (is_string($col) && is_array($val) && (count($val) == 2)){
 				[$tbl_alias, $tbl_col] = $val;
@@ -1590,7 +1628,7 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	protected function tableExists(string $db, string $table): bool
+	public function tableExists(string $db, string $table): bool
 	{
 		# Clean the database name
 		$db = str::i($db);

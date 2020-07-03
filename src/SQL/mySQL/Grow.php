@@ -17,55 +17,64 @@ class Grow extends Common {
 	 * If not, create the column, make sure it's wide enough.
 	 *
 	 * @param array $table
-	 * @param array  $data
+	 * @param array $set
 	 *
 	 * @return bool
 	 */
-	public function growTable(array $table, array $data){
+	public function growTable(array $table, array $set){
 		# Get the table metadata
-		if((!$tableMetadata = $this->getTableMetadata($table)) && !$this->tableExists($table['db'], $table['name'])){
+		if($this->tableExists($table['db'], $table['name'])){
+			//if table exists
+			$tableMetadata = $this->getTableMetadata($table, true, false);
+		} else {
 			//if table doesn't exist
 			$tableMetadata = $this->createTable($table);
-			//create it
 		}
 
 		# Get the columns a user cannot alter
 		$columns_to_ignore = $this->getTableColumnsUsersCannotUpdate($table['name']);
 
-		# For each column of data that is to be inserted
-		foreach($data as $col => $val) {
-			if(in_array($col, $columns_to_ignore)){
-				//If the column to check cannot be updated by the user, ignore it
-				continue;
-			}
-			if(!$val){
-				//If the $val has no value, ignore this column
-				continue;
-			}
-			
-			if(is_array($val)){
-				//If array values have accidentally been included, ignore them.
-				throw new TypeError("The <code>{$col}</code> column in <code>{$table}</code> table has array data as its value.".print_r($data,true));
-			}
+		# The $set array can be one or many rows of data
+		$data = str::isNumericArray($set) ? $set : [$set];
 
-			# Get the column data type based on the current value
-			$datatype = $this->identifyValDatatype($val);
+		# For each row
+		foreach($data as $row){
+			# For each column of data that is to be inserted
+			foreach($row as $col => $val) {
+				if(in_array($col, $columns_to_ignore)){
+					//If the column to check cannot be updated by the user, ignore it
+					continue;
+				}
+				if(!$val){
+					//If the $val has no value, ignore this column
+					continue;
+				}
 
-			# Get the column add/change query
-			if(!$query = $this->getQuery($table, $col, $val, $datatype, $tableMetadata)){
-				//if no change is required
-				continue;
-			}
+				if(is_array($val)){
+					//If array values have accidentally been included, ignore them.
+					throw new TypeError("The <code>{$col}</code> column in <code>{$table}</code> table has array data as its value.".print_r($data,true));
+				}
 
-			# Run the update query
-			$sql = new Run($this->mysqli);
-			$sql->run($query);
+				# Get the column data type based on the current value
+				$datatype = $this->identifyValDatatype($val);
 
-			# Update the metadata (as a new/altered column has just been added)
-			if(!$tableMetadata = $this->getTableMetadata($table, false, true)){
-				return false;
+				# Get the column add/change query
+				if(!$query = $this->getQuery($table, $col, $val, $datatype, $tableMetadata)){
+					//if no change is required
+					continue;
+				}
+
+				# Run the update query
+				$sql = new Run($this->mysqli);
+				$sql->run($query);
+
+				# Update the metadata (as a new/altered column has just been added)
+				if(!$tableMetadata = $this->getTableMetadata($table, true, false)){
+					return false;
+				}
 			}
 		}
+
 		return true;
 	}
 
@@ -99,7 +108,7 @@ class Grow extends Common {
 		$sql->run($query);
 
 		# Update the metadata
-		$tableMetadata = $this->getTableMetadata($table, false, true);
+		$tableMetadata = $this->getTableMetadata($table, true, false);
 
 		return $tableMetadata;
 	}
@@ -177,7 +186,6 @@ class Grow extends Common {
 		} else {
 			$key = false;
 		}
-
 		
 		# If the column doesn't exist
 		if($key === false){
@@ -207,8 +215,8 @@ class Grow extends Common {
 	 */
 	private function getNewColumnQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []){
 		# Get the key for the last column, if it cannot be found, assume table contains no (editable) columns
-		if(!$key = array_key_last($tableMetadata)){
-			$last_column = $table['id_col'];
+		if(($key = array_key_last($tableMetadata)) === NULL){
+			$last_column = $table["id_col"];
 		} else {
 			$last_column = $tableMetadata[$key]['COLUMN_NAME'];
 		}

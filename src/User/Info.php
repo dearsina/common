@@ -18,6 +18,17 @@ class Info extends Common implements InfoInterface {
 	public function prepare(&$a) : void
 	{
 		$a['left_join'][] = "user_role";
+		$a['left_join'][] = [
+			"columns" => [
+				"role_id",
+				"role",
+				"icon"
+			],
+			"table" => "role",
+			"on" => [
+				"role" => ["user_role", "rel_table"]
+			]
+		];
 	}
 	public static function format(array &$row) : void
 	{
@@ -31,5 +42,10 @@ class Info extends Common implements InfoInterface {
 
 		# If no role hs been allocated, assume user
 		$row['last_role'] =	$row['last_role'] ?: "user";
+
+		# Grabs the role ID, title and icon and places it along the user role data
+		foreach($row['user_role'] as $id => $role){
+			$row['user_role'][$id] = array_merge($row['user_role'][$id], $role['role'][0]);
+		}
 	}
 }

@@ -160,7 +160,7 @@ class IssueType extends Common {
 			return $this->accessDenied();
 		}
 
-		$issue_type_id = $this->sql->insert([
+		$this->sql->insert([
 			"table" => $rel_table,
 			"set" => $vars
 		]);

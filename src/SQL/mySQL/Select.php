@@ -128,7 +128,7 @@ class Select extends Common {
 		# Generate query (with sub-query)
 		$query[] = "SELECT";
 		$query[] = $this->getDistinctSQL();
-		$query[] = $this->getColumnsSQL();
+		$query[] = $this->getColumnsSQL(NULL, NULL, $this->table['alias']);
 		$query[] = $this->getTableSQL(implode("\r\n\t", array_filter($table)));
 		$query[] = $this->getJoinsSQL();
 		$query[] = $this->getWhereSQL(NULL, $this->table['alias']);
@@ -155,6 +155,45 @@ class Select extends Common {
 		$query[] = $this->getOrderBySQL();
 		$query[] = $this->getLimitSQL();
 		return implode("\r\n", array_filter($query));
+	}
+
+	public function groupConcat(array $table, ?string $col_alias, array $a): array
+	{
+		extract($a);
+
+		$this->table = $table;
+
+		# Set distinct (optional)
+		$this->setDistinct($distinct);
+
+		# Set columns
+		$this->setColumns($columns);
+
+		# Set order by
+		$this->setOrderBy($order_by);
+
+		# Set separator
+		$this->setSeparator($separator);
+
+		$query[] = $this->getDistinctSQL();
+		$query[] = $this->getColumnsSQL();
+		$query[] = $this->getOrderBySQL();
+		$query[] = $this->getSeparatorSQL();
+
+		return [
+			"table_alias" => $table['alias'],
+			"name" => implode(" ", array_filter($query)),
+			"alias" => $col_alias,
+			"agg" => "GROUP_CONCAT"
+		];
+	}
+
+	private function getSeparatorSQL(): ?string
+	{
+		if(!$this->separator){
+			return NULL;
+		}
+		return "SEPARATOR '{$this->separator}'";
 	}
 
 	private function getOrderBySQL(?string $alias_only = NULL, ?string $except_alias = NULL): ?string
@@ -228,19 +267,22 @@ class Select extends Common {
 	 * Collects all the columns from the main table and any joined tables and creates
 	 * a single block of text with a column on each line.
 	 *
-	 * @param string|null $alias_only Can be limited to a certain table alias
-	 * @param string|null $except_alias A certain table alias can be excluded
+	 * @param string|null $table_alias_only   Can be limited to a certain table alias
+	 * @param string|null $except_table_alias A certain table alias can be excluded
+	 * @param string|null $alias_only
 	 *
 	 * @return string
 	 */
-	private function getColumnsSQL(?string $alias_only = NULL, ?string $except_alias = NULL)
+	private function getColumnsSQL(?string $table_alias_only = NULL,
+								   ?string $except_table_alias = NULL,
+								   ?string $alias_only = NULL)
 	{
 		# Get all columns
-		$columns = $this->getAllColumns($alias_only, $except_alias);
+		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
 
 		# Format all the columns
-		if(!$formatted_columns = array_filter($this->formatColumns($columns))){
-			if(!$alias_only && !$except_alias){
+		if(!$formatted_columns = array_filter($this->formatColumns($columns, $alias_only))){
+			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
 				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated.");
 			}
@@ -249,9 +291,11 @@ class Select extends Common {
 		return implode(",\r\n", $formatted_columns);
 	}
 
-	private function getAllColumns(?string $alias_only = NULL, ?string $except_alias = NULL): array
+	private function getAllColumns(?string $alias_only = NULL, ?string $except_alias = NULL): ?array
 	{
 		$alias_columns = [];
+		$columns = [];
+
 		$alias_columns[$this->table['alias']] = $this->columns;
 		if(is_array($this->join)){
 			foreach($this->join as $type => $joins){
@@ -288,23 +332,39 @@ class Select extends Common {
 	/**
 	 * Given a batch of columns from a single table, format them and return an array of column strings.
 	 *
-	 * @param array|null $columns
+	 * @param array|null  $columns
+	 * @param string|null $alias_only
 	 *
 	 * @return array|null
 	 */
-	private function formatColumns(?array $columns): ?array
+	private function formatColumns(?array $columns, ?string $alias_only = NULL): ?array
 	{
 		if(!is_array($columns)){
 			return NULL;
 		}
 
 		foreach($columns as $id => $column){
-			$strings[$id] .= $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
+			$strings[$id] = $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
+
+			if($alias_only && ($column['table_alias'] == $alias_only)){
+				/**
+				 * If the table has already been formatted in a sub-query,
+				 * and all we need to do is reference the alias only.
+				 */
+				$strings[$id] .= $column['alias'] ? "`{$column['alias']}`" : "`{$column['name']}`";
+				//If there is no alias, just use the column name
+				continue;
+			}
 
 			# Column name
-			if($column['name'] == "*"){
+			if($column['agg'] == "GROUP_CONCAT"){
+				//GROUP_CONCAT columns have already been formatted
+				$strings[$id] = $column['name'];
+			} else if($column['name'] == "*"){
+				//* value does not need to be enclosed in `
 				$strings[$id] .= $column['name'];
 			} else if($column['name']){
+				//For everyone else, enclose in `
 				$strings[$id] .= "`{$column['name']}`";
 			}
 
@@ -362,6 +422,14 @@ class Select extends Common {
 	private function setDistinct (?bool $distinct): void
 	{
 		$this->distinct = (bool) $distinct;
+	}
+
+	/**
+	 * @param string|null $separator
+	 */
+	private function setSeparator (?string $separator): void
+	{
+		$this->separator = $separator;
 	}
 
 	/**

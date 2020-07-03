@@ -191,6 +191,18 @@ class Output {
 	}
 
 	/**
+	 * Will remove a given div, including the div tag itself.
+	 *
+	 * @param $id
+	 * @param $data
+	 *
+	 * @return bool
+	 */
+	public function remove($id){
+		return $this->set_data("remove", $id, NULL);
+	}
+
+	/**
 	 * Output a modal. Can either be a modal array
 	 * or modal HTML.
 	 *

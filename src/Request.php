@@ -227,7 +227,7 @@ class Request {
 		}
 
 		# Ensure token belongs to this IP address
-		if($connection['ip_address'] != $_SERVER['REMOTE_ADDR']){
+		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			throw new \Exception("IP address does not match CSRF token supplied.");
 		}
 

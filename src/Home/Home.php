@@ -77,11 +77,13 @@ class Home extends Common {
 		extract($a);
 
 		global $role;
+		
+		$role = $this->sql->select(["table" => "role", "where" => ["role" => $role], "limit" => 1]);
 
 		$page = new Page([
-			"title" => "Generic {$role} home",
-			"subtitle" => "Create a <code>".str::getClassCase("\\App\\Home\\{$role}")."</code> class to avoid this screen.",
-			"icon" => Icon::get($role)
+			"title" => "Generic {$role['role']} home",
+			"subtitle" => "Create a <code>".str::getClassCase("\\App\\Home\\{$role['role']}")."</code> class to avoid this screen.",
+			"icon" => $role['icon']
 		]);
 
 		# Make sure the app has at least one admin
@@ -97,7 +99,7 @@ class Home extends Common {
 		$rows["Cookies"] =  str::pre(print_r($_COOKIE, true));
 
 		$card = new Card([
-			"header" => "This is the generic home for ".str::A($role),
+			"header" => "This is the generic home for ".str::A($role['role']),
 			"rows" => [
 				"sm" => 3,
 				"rows" => $rows,

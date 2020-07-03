@@ -819,7 +819,7 @@ class User extends Common {
 			"table" => "connection",
 			"set" => [
 				"session_id" => session_id(),
-				"ip_address" => $geolocation['ip'],
+				"ip" => $geolocation['ip'],
 				"user_agent_id" => $user_agent_id,
 				"user_id" => $user_id
 			],
@@ -1822,7 +1822,6 @@ class User extends Common {
 			"table" => "user",
 			"where" => [
 				"session_id" => $_COOKIE['session_id'],
-				["session_id", "IS NOT", NULL]
 			],
 			"id" => $_COOKIE['user_id'],
 		])) {

@@ -98,7 +98,7 @@ class Card extends \App\Common\Common {
 		$results = $this->sql->select([
 			"columns" => [
 				"status",
-				"Jobs" => "count(cron_log_id)",
+				"Jobs" => ["count", "cron_log_id"]
 			],
 			"table" => "cron_log",
 			"where" => $vars,

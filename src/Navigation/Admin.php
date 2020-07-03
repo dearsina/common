@@ -76,6 +76,18 @@ class Admin extends Common implements NavigationInterface {
 			"icon" => [
 				"name" => Icon::get("role"),
 			],
+			"title" => "User roles",
+			"alt" => "Manage a given user's roles",
+			"hash" => [
+				"rel_table" => "user_role",
+				"action" => "all",
+			],
+		];
+
+		$children[] = [
+			"icon" => [
+				"name" => Icon::get("roles"),
+			],
 			"title" => "Roles",
 			"alt" => "Roles and their icons",
 			"hash" => [

@@ -34,7 +34,7 @@ class Insert extends Common {
 		}
 
 		# Set the columns that are going to be SET into this table
-		$this->setSet($set, $html);
+		$this->setSet($set, $html, $ignore_empty);
 
 		# Add ID, created by and time
 		$this->addRowMetadata();
@@ -52,7 +52,7 @@ class Insert extends Common {
 		$sql->run($query);
 
 		# Returns the FIRST id (only)
-		return reset($this->set)[$this->table['id_col']];
+		return reset($this->set)[$this->table["id_col"]];
 	}
 	/**
 	 * Build a standard INSERT query.
@@ -108,9 +108,13 @@ class Insert extends Common {
 	{
 		global $user_id;
 
+		if(empty($this->set)){
+			$this->set = [[]];
+		}
+
 		foreach($this->set as $id => $row){
 			# Generate a unique table row ID
-			$this->set[$id][$this->table['id_col']] = $this->generateUUID();
+			$this->set[$id][$this->table["id_col"]] = $this->generateUUID();
 
 			# Set the row created date value
 			$this->set[$id]['created'] = "NOW()";
@@ -121,7 +125,7 @@ class Insert extends Common {
 		}
 
 		# Add the columns to the list of columns that will be populated by the insert
-		$this->addColumns([$this->table['id_col'],"created","created_by"]);
+		$this->addColumns([$this->table["id_col"],"created","created_by"]);
 	}
 
 	/**

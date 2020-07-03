@@ -42,7 +42,7 @@ class Permission extends Common {
 		$user_permissions = $this->getUserPermission($user_id, $rel_table, $rel_id);
 
 		# Check permissions
-		foreach (str_split($crud) as $l) {
+		foreach (str_split(strtolower($crud)) as $l) {
 			// For each permission requested
 			if(!$role_permissions[$l] && !$user_permissions[$l]){
 				// If neither the role or the user has the permission
@@ -255,7 +255,7 @@ class Permission extends Common {
 		}
 
 		# Get existing permissions
-		if (!$results = $this->sql->select([
+		if ($results = $this->sql->select([
 			"distinct" => true,
 			"columns" => [
 				"rel_table",
@@ -270,12 +270,12 @@ class Permission extends Common {
 				"{$rel}_id" => $item["{$rel}_id"],
 			],
 		])) {
+			foreach ($results as $table) {
+				$existing_permissions[$table['rel_table']] = $table;
+			}
+		} else {
 			//if this role has no permissions
-			return [];
-		}
-
-		foreach ($results as $table) {
-			$existing_permissions[$table['rel_table']] = $table;
+			$existing_permissions = [];
 		}
 
 		# For each table returned

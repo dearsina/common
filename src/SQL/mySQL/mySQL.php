@@ -135,6 +135,21 @@ class mySQL extends Common {
 		return $sql->select($a, $return_query);
 	}
 
+	/**
+	 * <code>
+	 * $rel_id = $this->sql->insert([
+	 * 	"table" => "",
+	 * 	"db" => "",
+	 * 	"set" => $set,
+	 * 	"user_id" => false,
+	 * 	"ignore_empty" => true
+	 * ]);
+	 * </code>
+	 * @param array     $a
+	 * @param bool|null $return_query
+	 *
+	 * @return mixed
+	 */
 	public function insert(array $a, ?bool $return_query = NULL)
 	{
 		return $this->call($a, $return_query, __FUNCTION__);

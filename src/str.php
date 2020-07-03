@@ -1089,7 +1089,7 @@ class str {
 
 	/**
 	 * Given an array of either a "button" or "buttons",
-	 * returns HTMl with both, or returns false if neither are present.
+	 * returns HTMl with both, or returns NULL if neither are present.
 	 *
 	 * @param array|null $a
 	 *
@@ -1097,7 +1097,12 @@ class str {
 	 * @throws \Exception
 	 * @throws \Exception
 	 */
-	static function getButtons(?array $a){
+	static function getButtons(?array $a): ?string
+	{
+		if(!is_array($a)){
+			return NULL;
+		}
+
 		# Dropdown buttons
 		if($a['buttons']){
 			$buttons = Dropdown::generate($a);
@@ -1113,11 +1118,31 @@ class str {
 			$button = Button::generate($a['button']);
 		}
 
+		# The buttons are by default wrapped in a btn-float-right div. This can be overwritten, by parent_class/style
+		$parent_class_array = ["btn-float-right"];
+		if(str::isAssociativeArray($a['button'])){
+			$parent_class_array = str::getAttrArray($a['button']['parent_class'], $parent_class_array, $a['button']['parent_only_class']);
+		}
+		$parent_class = str::getAttrTag("class", $parent_class_array);
+		$parent_style = str::getAttrTag("style", $a['button']['parent_style']);
+
 		if($button){
-			$button = "<div class=\"btn-float-right\">{$button}</div>";
+			$button = "<div{$parent_class}{$parent_style}>{$button}</div>";
 		}
 
 		return $buttons.$button;
+	}
+
+	/**
+	 * Given a text string, will return it as light gray and italicised text.
+	 *
+	 * @param string|null $text
+	 *
+	 * @return string
+	 */
+	public static function muteText(?string $text): string
+	{
+		return "<i class=\"text-silent\">{$text}</i>";
 	}
 
 	/**
@@ -2301,11 +2326,13 @@ EOF;
 	}
 
 	/**
+	 * Is the given colour string a hex colour (or a colour name)?
+	 *
 	 * @param $colour
 	 *
 	 * @return bool
 	 */
-	static function is_hex_colour($colour){
+	static function isHexColour($colour){
 		if(!is_string($colour)){
 			return false;
 		}
@@ -2346,53 +2373,11 @@ EOF;
 		if(!$colour){
 			return false;
 		}
-		if($translated_colour = str::translate_colour($colour)){
+		if($colour){
 			return "{$prefix}-{$translated_colour}";
 		} else {
 			return false;
 			//The default is no colour (black)
-		}
-	}
-
-	/**
-	 * Translates "real" colour names to Bootstrap 4 colour names.
-	 * If a "real" colour name cannot be found, FALSE is returned.
-	 * @param $colour
-	 *
-	 * @return bool|string
-	 */
-	static function translate_colour($colour){
-		switch($colour){
-		case 'custom'   : return 'custom'; break;
-		case 'primary'  : return 'primary'; break;
-		case 'blue'     : return 'blue'; break;
-		case 'secondary': return 'secondary'; break;
-		case 'grey'     : return 'gray'; break;
-		case 'gray'     : return 'gray'; break;
-		case 'green'    : return 'success'; break;
-		case 'success'  : return 'success'; break;
-		case 'warning'  : return 'warning'; break;
-		case 'yellow'   : return 'warning'; break;
-		case 'orange'   : return 'warning'; break;
-		case 'error'    : return 'danger'; break;
-		case 'danger'   : return 'danger'; break;
-		case 'red'      : return 'danger'; break;
-		case 'info'     : return 'info'; break;
-		case 'light'    : return 'light'; break;
-		case 'white'    : return 'light'; break;
-		case 'dark'     : return 'dark'; break;
-		case 'black'    : return 'dark'; break;
-		case 'muted'    : return 'muted'; break;
-		case 'link'     : return 'link'; break;
-			/**
-			 * Link isn't strictly speaking a colour,
-			 * but is treated like a colour for button
-			 * generation.
-			 */
-		default: return $colour; break;
-		/**
-		 * For other colours, just return the name itself.
-		 */
 		}
 	}
 
