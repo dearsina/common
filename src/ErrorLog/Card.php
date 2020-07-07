@@ -101,7 +101,7 @@ class Card extends \App\Common\Common {
 				],
 				"table" => "user",
 				"on" => [
-					"user_id" => "`error_log`.created_by"
+					"user_id" => ["error_log", "created_by"]
 				]
 			]],
 			"where" => array_merge($a['vars']?:[], [

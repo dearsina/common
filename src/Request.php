@@ -223,11 +223,13 @@ class Request {
 
 		# Ensure token is still valid
 		if($connection['closed']){
+			$this->hash->set("reload");
 			throw new \Exception("Expired CSRF token supplied.");
 		}
 
 		# Ensure token belongs to this IP address
 		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
+			$this->hash->set("reload");
 			throw new \Exception("IP address does not match CSRF token supplied.");
 		}
 

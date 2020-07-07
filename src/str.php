@@ -2475,6 +2475,25 @@ EOF;
 	}
 
 	/**
+	 * Shortcut for parent class and style.
+	 *
+	 * <code>
+	 * [$parent_class, $parent_style] = str::getClassAndStyle($this->cardHeader, ["col-auto", "card-title"]);
+	 * </code>
+	 * @param array      $item
+	 * @param array|null $default_parent_class
+	 *
+	 * @return array
+	 */
+	public static function getClassAndStyle(array $item, ?array $default_parent_class = NULL): array
+	{
+		$parent_class_array = str::getAttrArray($item['parent_class'], $default_parent_class, $item['only_parent_class']);
+		$parent_class = str::getAttrTag("class", $parent_class_array);
+		$parent_style = str::getAttrTag("style", $item['parent_style']);
+		return [$parent_class, $parent_style];
+	}
+
+	/**
 	 * Returns all keys that exist in more than one array child,
 	 * but that contain different values across the children.
 	 *

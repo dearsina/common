@@ -24,15 +24,15 @@ class Img
         }
 
         if($a['svg']){
-            return self::svg($a['svg']);
+            return self::svg($a);
         }
 
         if($a['img']){
-            return self::img($a['img']);
+            return self::img($a);
         }
 
         if($a['src']){
-            return self::img($a['src']);
+            return self::img($a);
         }
 
         return false;
