@@ -127,6 +127,10 @@ class Grow extends Common {
 	 * @return string
 	 */
 	private function identifyValDatatype(string $val){
+		if($val == "NOW()"){
+			return "datetime";
+		}
+
 		# DATE (YYYY-MM-DD) is still treated as a varchar
 		if(preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $val)){
 			return 'varchar';
@@ -303,8 +307,8 @@ class Grow extends Common {
 	 * @return bool|string
 	 */
 	private function getGrowColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata){
-		if(in_array($type, ["int", "bigint", "text"])){
-			//If the column data type is any of these, leave them alone
+		if(in_array($type, ["int", "bigint", "text", "datetime"])){
+			//If the column data type is any of these, no need to change their lengths
 			return false;
 		}
 

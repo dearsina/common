@@ -94,29 +94,30 @@ abstract class Common {
 	/**
 	 * Shortcut for complex, repeated SQL queries. Simple syntax:
 	 * <code>
-	 * $rel = $this->info($rel_table, $rel_id);
+	 * $rel = $this->info($rel_table, $rel_id, $refresh);
 	 * </code>
 	 * alternatively, add more colour:
 	 * <code>
 	 * $rel = $this->info([
-	 *	"rel_table" => $rel_table,
-	 * 	"rel_id" => $rel_id,
-	 * 	"where" => [
-	 * 		"key" => "val"
-	 * 	]
-	 * ]);
+	 *    "rel_table" => $rel_table,
+	 *    "rel_id" => $rel_id,
+	 *    "where" => [
+	 *        "key" => "val"
+	 *    ]
+	 * ], NULL, $refresh);
 	 * </code>
 	 *
-	 * @param array|string	$rel_table_or_array
-	 * @param string|null 	$rel_id
+	 * @param array|string $rel_table_or_array
+	 * @param string|null  $rel_id
+	 * @param mixed|null    $refresh
 	 *
 	 * @return bool|array
 	 * @throws \Exception
 	 */
-	protected function info($rel_table_or_array, ?string $rel_id = NULL)
+	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL)
 	{
 		$info = Info::getInstance();
-		return $info->getInfo($rel_table_or_array, $rel_id);
+		return $info->getInfo($rel_table_or_array, $rel_id, (bool) $refresh);
 	}
 
 	/**

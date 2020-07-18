@@ -78,7 +78,7 @@ class Select extends Common {
 		# Count (only) requested
 		if($count){
 			//if (only) the row count is requested
-			return $results['rows'][0]['COUNT(*)'];
+			return $results['rows'][0]['C'];
 		}
 
 		# Normalise, unless requested not to
@@ -111,28 +111,44 @@ class Select extends Common {
 	 * main table rows, and attach as many rows as those
 	 * main table rows require.
 	 *
+	 * To further complicate matters, if a join has a where clause,
+	 * that join (and any links in the chain between the join and
+	 * the main table) need to be brought in to the sub-query.
+	 *
+	 * It's faffy, but it's imperative that it works like this,
+	 * otherwise, chunked requests will miss data.
+	 *
 	 * @return string
 	 */
 	private function generateLimitedJoinQuery(): string
 	{
+		# Include the main table
+		$this->setTableAliasWithWhere([$this->table['alias']]);
+		/**
+		 * We want the table_alias_with_where array to contain all table
+		 * aliases that need to be inside the sub-query. The main
+		 * table is (obviously) the most important.
+		 */
+
 		# Generate table sub-query
 		$table[] = "SELECT";
 		$table[] = $this->getDistinctSQL();
-		$table[] = $this->getColumnsSQL($this->table['alias']);
+		$table[] = $this->getColumnsSQL($this->getTableAliasWithWhere());
 		$table[] = $this->getTableSQL();
-		$table[] = $this->getWhereSQL($this->table['alias']);
-		$table[] = $this->getGroupBySQL($this->table['alias']);
-		$table[] = $this->getOrderBySQL($this->table['alias']);
+		$table[] = $this->getJoinsSQL(true, false);
+		$table[] = $this->getWhereSQL($this->getTableAliasWithWhere());
+		$table[] = $this->getGroupBySQL($this->getTableAliasWithWhere());
+		$table[] = $this->getOrderBySQL($this->getTableAliasWithWhere());
 		$table[] = $this->getLimitSQL();
 
 		# Generate query (with sub-query)
 		$query[] = "SELECT";
 		$query[] = $this->getDistinctSQL();
-		$query[] = $this->getColumnsSQL(NULL, NULL, $this->table['alias']);
-		$query[] = $this->getTableSQL(implode("\r\n\t", array_filter($table)));
-		$query[] = $this->getJoinsSQL();
-		$query[] = $this->getWhereSQL(NULL, $this->table['alias']);
-		$query[] = $this->getGroupBySQL(NULL, $this->table['alias']);
+		$query[] = $this->getColumnsSQL(NULL, NULL, $this->getTableAliasWithWhere());
+		$query[] = $this->getTableSQL(implode("\r\n", array_filter($table)));
+		$query[] = $this->getJoinsSQL(false, true);
+		$query[] = $this->getWhereSQL(NULL, $this->getTableAliasWithWhere());
+		$query[] = $this->getGroupBySQL(NULL, $this->getTableAliasWithWhere());
 		$query[] = $this->getOrderBySQL();
 
 		return implode("\r\n", array_filter($query));
@@ -196,7 +212,7 @@ class Select extends Common {
 		return "SEPARATOR '{$this->separator}'";
 	}
 
-	private function getOrderBySQL(?string $alias_only = NULL, ?string $except_alias = NULL): ?string
+	private function getOrderBySQL(?array $alias_only = NULL, ?array $except_alias = NULL): ?string
 	{
 		$order_bys[$this->table['alias']] = $this->order_by;
 
@@ -213,12 +229,12 @@ class Select extends Common {
 
 		foreach($order_bys as $alias => $conditions){
 			if($alias_only){
-				if($alias != $alias_only){
+				if(!in_array($alias, $alias_only)){
 					continue;
 				}
 			}
 			if($except_alias){
-				if($alias == $except_alias){
+				if(in_array($alias, $except_alias)){
 					continue;
 				}
 			}
@@ -240,7 +256,7 @@ class Select extends Common {
 	 *
 	 * @return string|null
 	 */
-	private function getGroupBySQL(?string $alias_only = NULL, ?string $except_alias = NULL): ?string
+	private function getGroupBySQL(?array $alias_only = NULL, ?array $except_alias = NULL): ?string
 	{
 		$columns = $this->getAllColumns($alias_only, $except_alias);
 		if(!array_filter(array_column( $columns, "agg"))){
@@ -267,15 +283,15 @@ class Select extends Common {
 	 * Collects all the columns from the main table and any joined tables and creates
 	 * a single block of text with a column on each line.
 	 *
-	 * @param string|null $table_alias_only   Can be limited to a certain table alias
-	 * @param string|null $except_table_alias A certain table alias can be excluded
-	 * @param string|null $alias_only
+	 * @param array|null $table_alias_only   Can be limited to a certain table alias
+	 * @param array|null $except_table_alias A certain table alias can be excluded
+	 * @param array|null $alias_only
 	 *
 	 * @return string
 	 */
-	private function getColumnsSQL(?string $table_alias_only = NULL,
-								   ?string $except_table_alias = NULL,
-								   ?string $alias_only = NULL)
+	private function getColumnsSQL(?array $table_alias_only = NULL,
+								   ?array $except_table_alias = NULL,
+								   ?array $alias_only = NULL)
 	{
 		# Get all columns
 		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
@@ -291,7 +307,7 @@ class Select extends Common {
 		return implode(",\r\n", $formatted_columns);
 	}
 
-	private function getAllColumns(?string $alias_only = NULL, ?string $except_alias = NULL): ?array
+	private function getAllColumns(?array $alias_only = NULL, ?array $except_alias = NULL): ?array
 	{
 		$alias_columns = [];
 		$columns = [];
@@ -314,12 +330,12 @@ class Select extends Common {
 		# Optional table alias filters
 		foreach($alias_columns as $alias => $cols){
 			if($alias_only){
-				if($alias != $alias_only){
+				if(!in_array($alias, $alias_only)){
 					continue;
 				}
 			}
 			if($except_alias){
-				if($alias == $except_alias){
+				if(in_array($alias, $except_alias)){
 					continue;
 				}
 			}
@@ -332,29 +348,34 @@ class Select extends Common {
 	/**
 	 * Given a batch of columns from a single table, format them and return an array of column strings.
 	 *
-	 * @param array|null  $columns
-	 * @param string|null $alias_only
+	 * @param array|null $columns
+	 * @param array|null $alias_only
 	 *
 	 * @return array|null
 	 */
-	private function formatColumns(?array $columns, ?string $alias_only = NULL): ?array
+	private function formatColumns(?array $columns, ?array $alias_only = NULL): ?array
 	{
 		if(!is_array($columns)){
 			return NULL;
 		}
 
 		foreach($columns as $id => $column){
-			$strings[$id] = $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
-
-			if($alias_only && ($column['table_alias'] == $alias_only)){
+			if($alias_only && in_array($column['table_alias'], $alias_only)){
 				/**
 				 * If the table has already been formatted in a sub-query,
 				 * and all we need to do is reference the alias only.
 				 */
+				if($column['table_alias'] == $this->table['alias']){
+					//if this is the main table
+					$strings[$id] = $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
+					//Prefix the column with the ID to avoid ambiguous column name situations
+				}
 				$strings[$id] .= $column['alias'] ? "`{$column['alias']}`" : "`{$column['name']}`";
 				//If there is no alias, just use the column name
 				continue;
 			}
+
+			$strings[$id] = $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
 
 			# Column name
 			if($column['agg'] == "GROUP_CONCAT"){
@@ -368,9 +389,12 @@ class Select extends Common {
 				$strings[$id] .= "`{$column['name']}`";
 			}
 
+			# COUNTs can be set to distinct
+			$distinct = $column['distinct'] ? "DISTINCT " : NULL;
+
 			# Does the column have an aggregate function?
 			if($column['agg']){
-				$strings[$id]  = "{$column['agg']}({$this->getDistinctSQL(true)}{$strings[$id]})";
+				$strings[$id]  = "{$column['agg']}({$distinct}{$this->getDistinctSQL(true)}{$strings[$id]})";
 			}
 
 			$strings[$id] .= $column['alias'] ? " '{$column['alias']}'" : NULL;
@@ -481,6 +505,15 @@ class Select extends Common {
 				}
 			}
 
+			# Ensure the main table actually contains some data
+			if(!array_filter($main_table)){
+				// If the main table has no values (it's completely empty)
+				continue;
+				// Forget it.
+			}
+			// This may have a negative impact on any tables that are joined without conditions
+			// Because the assumption is that if tables are joined, they must have data in the row (that was used to join)
+
 			# If this is the first row, or if this row's main columns are the same as the last row
 			if(!$last_main_table || ($main_table == $last_main_table)){
 
@@ -519,7 +552,23 @@ class Select extends Common {
 				//For each column value
 				if(is_array($val)){
 					//if any of the values are arrays, make sure that array is also normalised
-					$normalised[$id][$key] = $this->normalise($val);
+
+					# Get the normalised value
+					$normalised_val = $this->normalise($val);
+
+					# Ensure the normalised array contains values
+					if(empty(array_filter($normalised_val))){
+						// If the normalised value is empty
+
+						# Remove it
+						unset($normalised[$id][$key]);
+
+						# Jog on
+						continue;
+					}
+
+					# Replace the value in the array with the normalised value
+					$normalised[$id][$key] = $normalised_val;
 				}
 			}
 		}

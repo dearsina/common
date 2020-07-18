@@ -72,15 +72,15 @@ class Permission extends Common {
 		];
 
 		/**
-		 * A rel_id is optional, and role access
-		 * is mostly on rel_table alone,
-		 * superseding rel_id.
-		 *
-		 * So we have to check for both the value,
-		 * and NULL.
+		 * If a rel_id has been included use it.
+		 * But if it hasn't, this particular user
+		 * needs to have been given blanket access
+		 * to the $rel_table, thus rel_id must be NULL.
 		 */
 		if($rel_id){
-			$where['rel_id'] = [$rel_id, NULL];
+			$where['rel_id'] = $rel_id;
+		} else {
+			$where['rel_id'] = NULL;
 		}
 
 		if ($permission = $this->sql->select([
@@ -118,10 +118,8 @@ class Permission extends Common {
 			return [];
 		}
 
-		$where = [
-			"rel_table" => $rel_table,
-			"role" => $role
-		];
+		# A rel_table is not optional
+		$where["rel_table"] = $rel_table;
 
 		/**
 		 * A rel_id is optional, and role access
@@ -137,12 +135,21 @@ class Permission extends Common {
 
 		if ($permission = $this->sql->select([
 			"columns" => [
+				"role_id",
 				"c",
 				"r",
 				"u",
 				"d",
 			],
 			"table" => "role_permission",
+			"join" => [[
+				"columns" => false,
+				"table" => "role",
+				"on" => "role_id",
+				"where" => [
+					"role" => $role
+				]
+			]],
 			"where" => $where,
 			"limit" => 1
 		])) {
@@ -191,7 +198,7 @@ class Permission extends Common {
 		];
 
 		foreach (["c", "r", "u", "d"] as $l) {
-			$access[$l] = in_array($l, str_split($crud));
+			$access[$l] = in_array($l, str_split(strtolower($crud)));
 		}
 
 		if ($existing_permission = $this->sql->select([

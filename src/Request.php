@@ -293,7 +293,7 @@ class Request {
 		}
 
 		# Create a new instance of the class
-		$classInstance = new $classPath($this);
+		$classInstance = new $classPath();
 
 		# Set the method (view is the default)
 		$method = str::getMethodCase($action) ?: "view";

@@ -15,8 +15,6 @@ class Modal extends \App\Common\Common {
 		# The script called every time the select2 value changes
 		$script = "ajaxCall(\"getUserRoles\", \"{$rel_table}\", null, {user_id: $(this).val()});";
 
-
-
 		$form = new Form([
 			"fields" => [[
 				"type" => "select",

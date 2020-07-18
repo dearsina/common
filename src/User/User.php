@@ -6,6 +6,7 @@ namespace App\Common\User;
 use App\Common\Common;
 use App\Common\Email\Email;
 use App\Common\Navigation\Navigation;
+use App\Common\Role\Role;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
 use App\UI\Form\Form;
@@ -64,8 +65,11 @@ class User extends Common {
 
 		$user = $this->info("user", $rel_id);
 
+		# Get the user's current role
+		global $role;
+
 		$page = new Page([
-			"icon" => Icon::get($user['last_role']),
+			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
 			"alt" => "You are currently logged in as a {$user['last_role']}",
 			"title" => str::title($user['name'], true),
 			"subtitle" => "You first registered on {$_ENV['title']} ".str::ago($user['created']),
@@ -430,26 +434,25 @@ class User extends Common {
 	/**
 	 * Insert new user.
 	 *
-	 * @param $a
+	 * @param array     $a
+	 * @param bool|null $internal
 	 *
-	 * @return bool|int|mixed
+	 * @return bool|mixed
 	 * @throws Exception
 	 */
-	public function insert($a){
+	public function insert(array $a, ?bool $internal = NULL)
+	{
 		extract($a);
 
 		# The hash to send the user back to in case there is an error with the reCAPTCHA
 		$hash =  [
 			"rel_table" => $rel_table,
 			"action" => "new",
-			"vars" => [
-				"first_name" => $vars['first_name'],
-				"last_name" => $vars['last_name'],
-				"email" => $vars['email'],
-				"phone" => $vars['phone'],
-				"tnc" => $vars['tnc'],
-			]
+			"vars" => $vars
 		];
+
+		# This field needs to be re-populated
+		unset($hash['vars']['recaptcha_response']);
 
 		# Ensure reCAPTCHA is validated
 		if(!$this->validateRecaptcha($vars['recaptcha_response'], "insert_user", $hash)){
@@ -471,20 +474,13 @@ class User extends Common {
 		}
 
 		# Check to see if the user has already registered (based on email alone)
-		if($user = $this->sql->select([
-			"table" => "user",
-			"where" => [
-				"email" => $vars['email']
-			],
-			"limit" => 1
-		])){
-			//User has already registered
-
-			# The user has a verified account
-			if($user['verified']){
+		if($status = $this->alreadyRegistered($vars['email'])){
+			// If the user already has an account
+			if($status == "verified"){
+				// if the user already has a verified account
 				$this->log->info([
 					"title" => "You have already registered",
-					"message" => "You already have an account with {$_ENV['title']}. No need to re-register, just alert in."
+					"message" => "You already have an account with {$_ENV['title']}. No need to sign up again, just log in."
 				]);
 				$this->hash->set([
 					"rel_table" => $rel_table,
@@ -494,19 +490,19 @@ class User extends Common {
 					]
 				]);
 				return true;
+			} else {
+				// If the user has an unverified account
+				$this->log->warning([
+					"title" => "Signed up but not verified yet",
+					"message" => "You have already signed up with {$_ENV['title']}, but your email address has yet to be verified."
+				]);
+				$this->hash->set([
+					"rel_table" => $rel_table,
+					"rel_id" => $user['user_id'],
+					"action" => "verification_email_sent"
+				]);
+				return true;
 			}
-
-			# The user has an unverified account
-			$this->log->warning([
-				"title" => "Registered but not verified yet",
-				"message" => "You have already registered with {$_ENV['title']}, but your email address has yet to be verified."
-			]);
-			$this->hash->set([
-				"rel_table" => $rel_table,
-				"rel_id" => $user['user_id'],
-				"action" => "verification_email_sent"
-			]);
-			return true;
 		}
 
 		# Create a random key for the verification process
@@ -540,7 +536,57 @@ class User extends Common {
 		]);
 
 		$a['rel_id']  = $user_id;
-		return $this->sendVerificationEmail($a, true);
+		if(!$this->sendVerificationEmail($a, true)){
+			return false;
+		}
+
+		if($internal){
+			return $user_id;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Given an email address,
+	 * returns "verified", "unverified" or bool FALSE
+	 * if user has NOT registered before using this email address.
+	 *
+	 * <code>
+	 * if($status = $this->alreadyRegistered($vars['email'])){
+	 *    //If the user already has an account
+	 *    if($status == "verified"){
+	 *        //If the user has a verified account
+	 *    } else {
+	 *        //If the user has an unverified account
+	 *    }
+	 * }
+	 * </code>
+	 *
+	 * @param string $email
+	 *
+	 * @return bool
+	 */
+	public function alreadyRegistered(string $email): bool
+	{
+		if(!$user = $this->sql->select([
+			"table" => "user",
+			"where" => [
+				"email" => $email
+			],
+			"limit" => 1
+		])){
+			//if the user HASN'T already registered
+			return false;
+		}
+
+		if($user['verified']){
+			// If the user has a verified account
+			return "verified";
+		} else {
+			// If the user has an unverified account
+			return "unverified";
+		}
 	}
 
 	/**
@@ -1003,6 +1049,28 @@ class User extends Common {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Given an email address,
+	 * returns a user array
+	 * or FALSE if no user has
+	 * that email address.
+	 *
+	 * @param string $email
+	 *
+	 * @return array|bool
+	 * @throws Exception
+	 */
+	public function getUserFromEmail(string $email)
+	{
+		return $this->info([
+			"rel_table" => "user",
+			"where" => [
+				"email" => $email
+			],
+			"limit" => 1
+		]);
 	}
 
 	/**
@@ -2004,8 +2072,30 @@ class User extends Common {
 			return $this->accessDenied();
 		}
 
-		if($vars['term']){
-			$term = preg_replace("/[^a-z0-9-'. ]/i", "", $vars['term']);
+		$this->generateOptions($vars['term']);
+
+		return true;
+	}
+
+	/**
+	 * Generates search results for a user dropdown.
+	 *
+	 * Available for other classes to use also,
+	 * but because it expects a string, will not be directly
+	 * accessible from the outside.
+	 *
+	 * <code>
+	 * $this->user->generateOptions($vars['term']);
+	 * </code>
+	 *
+	 * @param string|null $term
+	 *
+	 * @throws Exception
+	 */
+	public function generateOptions(?string $term): void
+	{
+		if($term){
+			$term = preg_replace("/[^a-z0-9-'. ]/i", "", $term);
 			$or = [
 				"first_name" => "%{$term}%",
 				"last_name" => "%{$term}%",
@@ -2033,6 +2123,5 @@ class User extends Common {
 		}
 
 		$this->output->set_var("results", $users);
-		return true;
 	}
 }

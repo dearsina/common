@@ -53,7 +53,7 @@ class Field {
 		if (is_array($a))
 			extract($a);
 
-		return [[
+		return [[[
 			"name" => "first_name",
 			"autocomplete" => "name given-name",
 			"label" => false,
@@ -65,7 +65,8 @@ class Field {
 				],
 				"minLength" => 2
 			],
-			"value" => $first_name
+			"value" => $first_name,
+			"sm" => 5
 		],[
 			"name" => "last_name",
 			"autocomplete" => "name family-name",
@@ -78,7 +79,14 @@ class Field {
 				],
 				"minLength" => 2
 			],
-			"value" => $last_name
+			"value" => $last_name,
+			"sm" => 7
+		]],[
+			"name" => "company_name",
+			"autocomplete" => "company",
+			"label" => false,
+			"placeholder" => "Company Name",
+			"value" => $company_name,
 		],[
 			"type" => "email",
 			"autocomplete" => "email",

@@ -193,10 +193,16 @@ class Card extends Common {
 			"title" => "Forgot password",
 		]];
 
+		if($vars['callback']){
+			$callback = $vars['callback'];
+		} else if ($this->hash->getCallback()){
+			$callback = $this->hash->getCallback() == "user//login" ? false : $this->hash->getCallback();
+		}
+
 		$form = new Form([
 			"action" => "verify_credentials",
 			"rel_table" => "user",
-			"callback" => $this->hash->getCallback() == "user//login" ? false : $this->hash->getCallback(),
+			"callback" => $callback,
 			// This is to prevent a loop
 			"fields" => Field::login($vars),
 			"buttons" => $buttons,

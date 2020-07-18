@@ -1088,52 +1088,6 @@ class str {
 	}
 
 	/**
-	 * Given an array of either a "button" or "buttons",
-	 * returns HTMl with both, or returns NULL if neither are present.
-	 *
-	 * @param array|null $a
-	 *
-	 * @return string
-	 * @throws \Exception
-	 * @throws \Exception
-	 */
-	static function getButtons(?array $a): ?string
-	{
-		if(!is_array($a)){
-			return NULL;
-		}
-
-		# Dropdown buttons
-		if($a['buttons']){
-			$buttons = Dropdown::generate($a);
-		}
-
-		# Button(s) in a row
-		if(str::isNumericArray($a['button'])){
-			$a['button'] = array_reverse($a['button']);
-			foreach($a['button'] as $b){
-				$button .= Button::generate($b);
-			}
-		} else if ($a['button']){
-			$button = Button::generate($a['button']);
-		}
-
-		# The buttons are by default wrapped in a btn-float-right div. This can be overwritten, by parent_class/style
-		$parent_class_array = ["btn-float-right"];
-		if(str::isAssociativeArray($a['button'])){
-			$parent_class_array = str::getAttrArray($a['button']['parent_class'], $parent_class_array, $a['button']['parent_only_class']);
-		}
-		$parent_class = str::getAttrTag("class", $parent_class_array);
-		$parent_style = str::getAttrTag("style", $a['button']['parent_style']);
-
-		if($button){
-			$button = "<div{$parent_class}{$parent_style}>{$button}</div>";
-		}
-
-		return $buttons.$button;
-	}
-
-	/**
 	 * Given a text string, will return it as light gray and italicised text.
 	 *
 	 * @param string|null $text
@@ -1167,6 +1121,8 @@ class str {
 	 * 1ee9aa1b-6510-4105-92b9-7171bb2f3089
 	 * </code>
 	 * Add a `$length` value, and only a certain section is returned.
+	 *
+	 * The ID is completely random and not generated in any sequential order.
 	 *
 	 * @param int $length 4, 8 or 12 are the only accepted values
 	 *
@@ -1349,57 +1305,80 @@ EOF;
 	}
 
 	/**
-	 * Format a float as money.
+	 * Transforms int and float into readable numbers
+	 * or currency, with optional padding.
 	 *
-	 * @param      $amt
-	 * @param bool $pad
-	 * @param int  $decimals
+	 * @param float       $amount
+	 * @param string|null $currency
+	 * @param int|null    $padding
+	 * @param int|null    $decimals
 	 *
-	 * @return bool|string
+	 * @return string|null
 	 */
-	static function money($amt, $pad = false, $decimals = 2){
-		if($amt === false){
-			return false;
+	static function number(float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2): ?string
+	{
+		# A number (even if it's "0") is required
+		if(!strlen($amount)){
+			return NULL;
 		}
-		if($pad){
-			return "<xmp style=\"font-family:'Roboto Mono',monospace;margin: 0;\">£".str_pad(number_format($amt, $decimals, '.', ','),$pad, " ", STR_PAD_LEFT)."</xmp>";
-		}
-		return "<span style=\"font-family:'Roboto Mono',monospace;\">£".number_format($amt, $decimals, '.', ',')."</span>";
-	}
 
-	/**
-	 * Format a float as readable number.
-	 *
-	 * @param      $amt
-	 * @param bool $pad
-	 * @param int  $decimals
-	 *
-	 * @return bool|string
-	 */
-	static function number($amt, $pad = false, $decimals = 0){
-		if(!$amt && !is_float($amt)){
-//			var_dump($amt);
-			return false;
+		# include thousand separators, decimals and a decimal point
+		$amount = number_format($amount, $decimals, '.', ',');
+
+		# Pad if required
+		if($padding){
+			$amount = str_pad($amount,$padding, " ", STR_PAD_LEFT);
 		}
-		if($pad){
-			return "<xmp style=\"font-family:'Roboto Mono',monospace;margin: 0;display: unset;\">".str_pad(number_format($amt, $decimals, '.', ','),$pad, " ", STR_PAD_LEFT)."</xmp>";
+
+		# Prefix with currency symbol + space
+		if($currency){
+			$amount = "{$currency} {$amount}";
 		}
-		return "<span style=\"font-family:'Roboto Mono',monospace;\">".number_format($amt, $decimals, '.', ',')."</span>";
+
+		return str::monospace($amount);
 	}
 
 	/**
 	 * Format any text as monospaced.
 	 *
-	 * @param      $str
-	 * @param bool $upper
+	 * @param mixed $a
 	 *
 	 * @return string
 	 */
-	static function monospace($str,$upper = false){
-		if($upper){
-			$str = strtoupper($str);
+	static function monospace($a): ?string
+	{
+		if(!is_array($a)){
+			# There needs to be _something_ to monospace
+			if(!strlen($a)){
+				return NULL;
+			}
+
+			$a = [
+				"text" => $a
+			];
 		}
-		return "<span style=\"font-family:'Roboto Mono',monospace;font-size:smaller;\">{$str}</span>";
+
+		extract($a);
+
+		# Make uppercase
+		if($upper){
+			$text = strtoupper($str);
+		}
+
+		# ID (optional)
+		$id = str::getAttrTag("id", $id);
+
+		# Class
+		$class_array = str::getAttrArray($class, ["text-monospace"], $only_class);
+		$class = str::getAttrTag("class", $class_array);
+
+		# Style
+		$style = str::getAttrTag("style", $style);
+
+		# Alt
+		$alt = str::getAttrTag("title", $alt);
+
+		return "<span{$id}{$class}{$style}{$alt}>{$text}</span>";
 	}
 
 

@@ -7,6 +7,7 @@ namespace App\Common\IssueTracker;
 use App\Common\Common;
 use App\Common\ErrorLog\ErrorLog;
 use App\Common\str;
+use App\UI\Button;
 use App\UI\Icon;
 use App\UI\Page;
 use App\UI\Progress;
@@ -100,7 +101,7 @@ class IssueTracker extends Common {
 			]);
 
 			# Update the buttons
-			$this->output->update($vars['button_id'], str::getButtons([
+			$this->output->update($vars['button_id'], Button::get([
 				"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
 			]));
 		}

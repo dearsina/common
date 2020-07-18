@@ -5,6 +5,7 @@ namespace App\Common\ErrorLog;
 
 use App\Common\Common;
 use App\Common\str;
+use App\UI\Button;
 use App\UI\Icon;
 use App\UI\Page;
 use App\UI\Table;
@@ -212,7 +213,15 @@ class ErrorLog extends Common {
 	 */
 	public function getErrors($a){
 		str::replaceNullStrings($a);
+
 		extract($a);
+
+		/**
+		 * We're stripping this var out because
+		 * due to its complexity, we treat it
+		 * in the base_query instead of feeding it
+		 * to the Table class.
+		 */
 		unset($a['vars']['resolved']);
 
 		if(!$this->user->is("admin")){
@@ -401,7 +410,7 @@ class ErrorLog extends Common {
 			"id" => $rel_id
 		]);
 
-		$this->output->update($vars['button_id'], str::getButtons([
+		$this->output->update($vars['button_id'], Button::get([
 			"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
 		]));
 

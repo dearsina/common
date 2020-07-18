@@ -9,10 +9,8 @@ use Exception;
 
 /**
  * Class Common
- *
  * Common is an abstract base class for all the different SQL query types.
  * Any method that is shared between more than 1 query type is found here.
- *
  * @package App\Common\SQL\mySQL
  */
 abstract class Common {
@@ -28,21 +26,18 @@ abstract class Common {
 
 	/**
 	 * The database object given by the root class.
-	 *
 	 * @var \mysqli
 	 */
 	protected \mysqli $mysqli;
 
 	/**
 	 * Is SELECT query to be distinct?
-	 *
 	 * @var bool
 	 */
 	protected bool $distinct = false;
 
 	/**
 	 * Used exclusively by GROUP_CONCAT().
-	 *
 	 * @var string|null
 	 */
 	protected ?string $separator;
@@ -50,34 +45,29 @@ abstract class Common {
 	/**
 	 * An array where the keys are the table name (prefixed with database if not the same database as the main table)
 	 * and values are the number of times that combo is being used by this query.
-	 *
 	 * @var array
 	 */
 	protected array $tables_in_use = [];
 
 	/**
 	 * The main table.
-	 *
 	 * An array containing the following child keys:
 	 *  - name, the name of the table
 	 *  - alias, the table alias
 	 *  - db, the database of the table
 	 *  - id, the table ID column name
-	 *
 	 * @var array
 	 */
 	protected array $table = [];
 
 	/**
 	 * Columns belonging to the main table.
-	 *
 	 * @var array|null
 	 */
 	protected ?array $columns = [];
 
 	/**
 	 * Contains the names of the columns where HTML content is accepted.
-	 *
 	 * @var array|null
 	 */
 	protected ?array $html = [];
@@ -85,7 +75,6 @@ abstract class Common {
 	/**
 	 * Array of columns that will be populated,
 	 * either by INSERT or UPDATE queries.
-	 *
 	 * @var array|null
 	 */
 	protected ?array $set = [];
@@ -98,14 +87,12 @@ abstract class Common {
 
 	/**
 	 * Contains the order bys of the main table.
-	 *
 	 * @var array|null
 	 */
 	protected ?array $order_by = [];
 
 	/**
 	 * The LIMIT string.
-	 *
 	 * @var string|null
 	 */
 	protected ?string $limit = NULL;
@@ -113,16 +100,13 @@ abstract class Common {
 	/**
 	 * An array of table column name definitions, so that multiple calls to the same table definition doesn't result
 	 * in multiple database calls. Is structured like so:
-	 *
 	 * `database` -> `table` -> `column` -> `Column metadata`
-	 *
 	 * @var array
 	 */
 	protected array $table_column_names_all = [];
 
 	/**
 	 * Same as the $tableColumnNamesAll array, except only with columns the user can edit.
-	 *
 	 * @var array
 	 */
 	protected array $table_column_names = [];
@@ -130,17 +114,16 @@ abstract class Common {
 	/**
 	 * An array containing table, db, etc, with keys as names,
 	 * and whether they exist or not as boolean values.
-	 *
 	 * @var array
 	 */
 	protected array $exists = [];
 
 	/**
 	 * An array containing the main table where conditions.
-	 *
 	 * @var array|null
 	 */
 	protected ?array $where = [];
+	protected ?array $tableAliasWithWhere = [];
 
 	public function __construct(\mysqli $mysqli)
 	{
@@ -149,7 +132,7 @@ abstract class Common {
 
 	protected function resetVariables(): void
 	{
-		foreach (array_keys(get_object_vars($this)) as $var){
+		foreach(array_keys(get_object_vars($this)) as $var){
 			unset($this->{$var});
 		}
 	}
@@ -172,14 +155,12 @@ abstract class Common {
 	/**
 	 * Given a database name (string) and a table array or string,
 	 * returns a table array. Doesn't check if any of the values are legit.
-	 *
 	 * A table array contains the following child keys:
 	 *  - name, the name of the table
 	 *  - alias, the table alias
 	 *  - db, the database of the table
 	 *  - id, the table ID column name
 	 *  - include_removed, whether or not we should include removed columns (default is to exclude them)
-	 *
 	 * All of the values can be given.
 	 *
 	 * @param string|null $db
@@ -195,10 +176,10 @@ abstract class Common {
 		//If no database name is given, use the default one
 
 		# Get the table name
-		if (is_string($table)){
+		if(is_string($table)){
 			//if the table name is a string
 			$name = $table;
-		} else if (str::isAssociativeArray($table)){
+		} else if(str::isAssociativeArray($table)){
 			//if the table is an associative array
 			extract($table);
 			//This can override the db name
@@ -235,7 +216,6 @@ abstract class Common {
 	 * Get the table SQL string.
 	 * Optionally, if the table is a sub query, return the string
 	 * with the subquery.
-	 *
 	 * Used by SELECT and DELETE
 	 *
 	 * @param string|null $sub_query
@@ -246,7 +226,8 @@ abstract class Common {
 	{
 		if($sub_query){
 			//if the main table is a sub_query
-			return "FROM (\r\n{$sub_query}\r\n) AS `{$this->table['alias']}`";
+			$sub_query = str_replace("\r\n", "\r\n\t", $sub_query);
+			return "FROM (\r\n\t{$sub_query}\r\n) AS `{$this->table['alias']}`";
 		}
 		return "FROM `{$this->table['db']}`.`{$this->table['name']}` AS `{$this->table['alias']}`";
 	}
@@ -255,7 +236,6 @@ abstract class Common {
 	 * Takes a valid mySQL database and table name and returns an alias.
 	 * The alias is the table name + a suffix if it's the 2-n'th
 	 * instance of the table.
-	 *
 	 * table_name,
 	 * table_name2,
 	 * table_name3,
@@ -271,7 +251,7 @@ abstract class Common {
 		# The assumption here is that the table name contains at least one alphanumeric character.
 		$table = preg_replace("/[^A-Za-z0-9_]/", '', $table);
 
-		if ($db != $_ENV['db_database']){
+		if($db != $_ENV['db_database']){
 			//if the table is NOT the same as the main database
 
 			$table = $this->getDbAndTableString($db, $table);
@@ -281,7 +261,7 @@ abstract class Common {
 		# If the table has been used before, increase the count
 		$this->tables_in_use[$table] += 1;
 
-		if ($this->tables_in_use[$table] == 1){
+		if($this->tables_in_use[$table] == 1){
 			//If this is the first table, omit the number suffix
 			return $table;
 		}
@@ -309,24 +289,25 @@ abstract class Common {
 
 	/**
 	 * Sets all joins of a given type (INNER, LEFT, etc)
+	 *
 	 * @param string $type
 	 * @param        $j
 	 */
 	protected function setJoins(string $type, $j): void
 	{
-		if (!$j){
+		if(!$j){
 			return;
 		}
 
-		if (str::isAssociativeArray($j)){
+		if(str::isAssociativeArray($j)){
 			$joins[] = $j;
-		} else if (str::isNumericArray($j)){
+		} else if(str::isNumericArray($j)){
 			$joins = $j;
-		} else if (is_string($j)){
+		} else if(is_string($j)){
 			$joins[] = ["table" => $j];
 		}
 
-		foreach ($joins as $join){
+		foreach($joins as $join){
 			$this->setJoin($type, $join);
 		}
 	}
@@ -335,25 +316,25 @@ abstract class Common {
 	 * Sets a single join.
 	 *
 	 * @param string $type The type of join
-	 * @param mixed $a The join data
+	 * @param mixed  $a    The join data
 	 */
 	protected function setJoin(string $type, $a): void
 	{
-		if (str::isAssociativeArray($a)){
+		if(str::isAssociativeArray($a)){
 			//most commonly
 			extract($a);
-		} else if (str::isNumericArray($a)){
+		} else if(str::isNumericArray($a)){
 			//shouldn't happen, but just in case
-			foreach ($a as $join){
+			foreach($a as $join){
 				$this->setJoin($type, $join);
 			}
 			return;
-		} else if (is_string($a)){
+		} else if(is_string($a)){
 			//If the whole join is just the name of a table
 			$table = $a;
 		} else {
 			//Otherwise, not sure what to do with this join
-			throw new mysqli_sql_exception("An incomprehensible join was passed: ".print_r($a, true));
+			throw new mysqli_sql_exception("An incomprehensible join was passed: " . print_r($a, true));
 		}
 
 		# Generate the table array (needs to be done first, as the array is used by everyone else)
@@ -382,7 +363,7 @@ abstract class Common {
 			"columns" => $columns,
 			"on" => $on_conditions,
 			"where" => $where_conditions,
-			"order_by" => $order_by_conditions
+			"order_by" => $order_by_conditions,
 		];
 	}
 
@@ -399,22 +380,16 @@ abstract class Common {
 		# A request for a count will override any other column requirements
 		if(($columns = $this->generateCountColumn($table)) !== NULL){
 			return $columns;
-		}
-
-		# Columns can be ignored all together
+		} # Columns can be ignored all together
 		else if($c === false){
 			return NULL;
 		}
 
 		if(is_string($c)){
 			$cols[] = $c;
-		}
-
-		else if(is_array($c)){
+		} else if(is_array($c)){
 			$cols = $c;
-		}
-
-		else {
+		} else {
 			$cols = $this->getAllTableColumns($table);
 		}
 
@@ -446,7 +421,10 @@ abstract class Common {
 
 		return [[
 			"agg" => "COUNT",
-			"name" => "*",
+			"table_alias" => $this->table['alias'],
+			"name" => $this->table["id_col"],
+			"alias" => "C",
+			"distinct" => true
 		]];
 	}
 
@@ -496,7 +474,7 @@ abstract class Common {
 			"table_alias" => $table['alias'],
 			"name" => $col,
 			"alias" => $col_alias,
-			"agg" => $agg
+			"agg" => $agg,
 		];
 	}
 
@@ -507,7 +485,7 @@ abstract class Common {
 		return $sql->groupConcat($table, $col_alias, $a);
 	}
 
-	protected function isGroupConcat($col):bool
+	protected function isGroupConcat($col): bool
 	{
 		return is_array($col) && (count($col) == 2) && (strtoupper($col[0]) == "GROUP_CONCAT");
 	}
@@ -537,7 +515,8 @@ abstract class Common {
 		return $table['alias'] . self::TABLE_COL_SEPARATOR . $col;
 	}
 
-	protected function getAllTableColumns(array $table){
+	protected function getAllTableColumns(array $table)
+	{
 		return array_keys($this->getTableMetadata($table, false, true));
 	}
 
@@ -586,17 +565,20 @@ abstract class Common {
 		# If a particular ID has been asked for
 		if($table['id']){
 			$conditions["and"][] = "`{$table['alias']}`.`{$table["id_col"]}` = '{$table['id']}'";
+
+			# Collecting all tables that have where clauses
+			$this->setTableAliasWithWhere([$table['alias']]);
 		}
 
 		if(is_array($and)){
 			foreach($and as $key => $val){
-				$conditions["and"][] = $this->getValueComparison($table, $key, $val);
+				$conditions["and"][] = $this->getValueComparison($table, $key, $val, true);
 			}
 		}
 
 		if(is_array($or)){
 			foreach($or as $key => $val){
-				$conditions["or"][] = $this->getValueComparison($table, $key, $val);
+				$conditions["or"][] = $this->getValueComparison($table, $key, $val, true);
 			}
 		}
 		return $conditions;
@@ -632,7 +614,7 @@ abstract class Common {
 			 * the joined table and the main table.
 			 */
 			if($this->columnExists($table['db'], $table['name'], $and)
-			&& $this->columnExists($this->table['db'], $this->table['name'], $and)){
+				&& $this->columnExists($this->table['db'], $this->table['name'], $and)){
 				$conditions["and"][] = "`{$table['alias']}`.`$and` = `{$this->table['alias']}`.`$and`";
 			}
 		}
@@ -731,6 +713,36 @@ abstract class Common {
 	}
 
 	/**
+	 * Collecting all tables and parent tables with children that have where clauses
+	 *
+	 * @param array|null $tableAliasWithWhere
+	 */
+	protected function setTableAliasWithWhere(?array $tableAliasWithWhere): void
+	{
+		if(!$tableAliasWithWhere){
+			return;
+		}
+		foreach($tableAliasWithWhere as $table){
+			$this->tableAliasWithWhere[$table] = $table;
+		}
+	}
+
+	protected function getTableAliasWithWhere(): ?array
+	{
+		if(!$this->tableAliasWithWhere){
+			return NULL;
+		}
+		$tables = [];
+		foreach($this->tableAliasWithWhere as $alias){
+			$tables[$alias] = $alias;
+			foreach(explode(".", $alias) as $section){
+				$tables[$section] = $section;
+			}
+		}
+		return $tables;
+	}
+
+	/**
 	 * Formats a range of value comparisons and returns them as strings.
 	 * The following formats are all accepted:
 	 * <code>
@@ -743,13 +755,14 @@ abstract class Common {
 	 * "col" => ["alias", "col"]
 	 * </code>
 	 *
-	 * @param array $table
-	 * @param mixed $col
-	 * @param mixed $val
+	 * @param array     $table
+	 * @param mixed     $col
+	 * @param mixed     $val
+	 * @param bool|null $where If set, signals that this method was called for a WHERE clause, not
 	 *
 	 * @return string|null
 	 */
-	protected function getValueComparison(array $table, $col, $val): ?string
+	protected function getValueComparison(array $table, $col, $val, ?bool $where = NULL): ?string
 	{
 		# "db.table.col = 'complete comparison'"
 		if(is_numeric($col) && is_string($val)){
@@ -758,10 +771,14 @@ abstract class Common {
 			 * a string (column name), and $val is a string,
 			 * assume $val is a complete comparison
 			 */
-			return $val;
-		}
 
-		# "col" => ["alias", "col"]
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias']]);
+			}
+
+			return $val;
+		} # "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
 			[$tbl_alias, $tbl_col] = $val;
 
@@ -780,10 +797,13 @@ abstract class Common {
 				return NULL;
 			}
 
-			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
-		}
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias'], $tbl_alias]);
+			}
 
-		# "col" => ["db", "name", "col"]
+			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
+		} # "col" => ["db", "name", "col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 3)){
 			[$tbl_db, $tbl_name, $tbl_col] = $val;
 
@@ -797,6 +817,11 @@ abstract class Common {
 				return NULL;
 			}
 
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias'], $this->getDbAndTableString($tbl_db, $tbl_name)]);
+			}
+
 			return "`{$table['alias']}`.`{$col}` = `{$this->getDbAndTableString($tbl_db,$tbl_name)}`.`{$tbl_col}`";
 			/**
 			 * In cases where the same table from the same database
@@ -804,9 +829,7 @@ abstract class Common {
 			 * the assumption is that it's the first table that is
 			 * referenced here.
 			 */
-		}
-
-		# ["col", "=", "val"] or ["col", "IN", [1, 2,3]]
+		} # ["col", "=", "val"] or ["col", "IN", [1, 2,3]]
 		else if(is_numeric($col) && is_array($val) && (count($val) == 3)){
 			[$col, $eq, $val] = $val;
 
@@ -829,6 +852,11 @@ abstract class Common {
 				return NULL;
 			}
 
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias']]);
+			}
+
 			# Negate missing NULLs in negative comparisons
 			if($this->isNegativeComparisonOperator($eq)){
 				return "(`{$table['alias']}`.`{$col}` {$eq} {$val} OR `{$table['alias']}`.`{$col}` IS NULL)";
@@ -839,9 +867,7 @@ abstract class Common {
 			}
 
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
-		}
-
-		# ["col", "BETWEEN", "1", "5"],
+		} # ["col", "BETWEEN", "1", "5"],
 		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && (strtoupper($val[1]) == "BETWEEN")){
 			[$col, $eq, $from_val, $to_val] = $val;
 
@@ -860,10 +886,13 @@ abstract class Common {
 				return NULL;
 			}
 
-			return "`{$table['alias']}`.`{$col}` BETWEEN {$from_val} AND {$to_val}";
-		}
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias']]);
+			}
 
-		# ["col", "=", "table_alias", "col"],
+			return "`{$table['alias']}`.`{$col}` BETWEEN {$from_val} AND {$to_val}";
+		} # ["col", "=", "table_alias", "col"],
 		else if(is_numeric($col) && is_array($val) && (count($val) == 4)){
 			[$col, $eq, $tbl_alias, $tbl_col] = $val;
 
@@ -879,6 +908,9 @@ abstract class Common {
 
 			# Negate missing NULLs in negative comparisons
 			if($this->isNegativeComparisonOperator($eq)){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias']]);
+
 				return "(`{$table['alias']}`.`{$col}` {$eq} {$val} OR `{$table['alias']}`.`{$col}` IS NULL)";
 				/**
 				 * In cases where a condition is that a value is NOT (!=, <>, NOT IN) something,
@@ -891,10 +923,13 @@ abstract class Common {
 				return NULL;
 			}
 
-			return "`{$table['alias']}`.`{$col}` {$eq} `{$tbl_alias}`.`{$tbl_col}`";
-		}
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias'], $tbl_alias]);
+			}
 
-		# "col" => "val",
+			return "`{$table['alias']}`.`{$col}` {$eq} `{$tbl_alias}`.`{$tbl_col}`";
+		} # "col" => "val",
 		else {
 			# Ensure the join table column exists
 			if(!$this->columnExists($table['db'], $table['name'], $col)){
@@ -908,6 +943,11 @@ abstract class Common {
 			if(($val = $this->formatComparisonVal($val)) === NULL){
 				//A legit value can be "0"
 				return NULL;
+			}
+
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias']]);
 			}
 
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
@@ -947,7 +987,7 @@ abstract class Common {
 	 * @param null $start
 	 * @param null $length
 	 */
-	protected function setLimit($limit, $start = NULL, $length = NULL):void
+	protected function setLimit($limit, $start = NULL, $length = NULL): void
 	{
 		if(is_array($limit)){
 			[$start, $length] = $limit;
@@ -955,25 +995,40 @@ abstract class Common {
 
 		if($start && $length){
 			$this->limit = "LIMIT {$start}, {$length}";
-		}
-
-		else if($length){
+		} else if($length){
 			$this->limit = "LIMIT {$length}";
-		}
-
-		else if($limit){
+		} else if($limit){
 			$this->limit = "LIMIT {$limit}";
 		}
 	}
 
-	protected function getJoinsSQL(): ?string
+	protected function getJoinsSQL(?bool $with_where = true, ?bool $without_where = true): ?string
 	{
 		if(!$this->join){
 			return NULL;
 		}
 
+		$tables = [];
+
+		$table_alias_with_where = $this->getTableAliasWithWhere();
+
 		foreach($this->join as $type => $joins){
 			foreach($joins as $join){
+
+				# If we ONLY want those tables that HAVE a where clause
+				if($with_where && !$without_where){
+					if(!$table_alias_with_where[$join['table']['alias']]){
+						continue;
+					}
+				}
+
+				# If we ONLY want those tables that DON'T have a where clause
+				if(!$with_where && $without_where){
+					if($table_alias_with_where[$join['table']['alias']]){
+						continue;
+					}
+				}
+
 				$tables[] = $this->getJoinTableSQL($type, $join['table']);
 				$tables[] = $this->getConditionsSQL("ON", $join['on']);
 			}
@@ -982,12 +1037,53 @@ abstract class Common {
 		return implode("\r\n", array_filter($tables));
 	}
 
+//	/**
+//	 * Returns an array of table aliases that have where conditions,
+//	 * or who's children have where conditions.
+//	 * Both the keys and the values are the name of the tables.
+//	 *
+//	 * @param bool|null $include_main
+//	 *
+//	 * @return array
+//	 */
+//	public function getTablesWithWhere(): array
+//	{
+//		$tables_with_where[$this->table['alias']] = $this->table['alias'];
+//
+//		foreach($this->join as $type => $joins){
+//			foreach($joins as $join){
+//				if(!$join['where']){
+//					continue;
+//				}
+//				if($join['where']['or']){
+//					foreach($join['where']['or'] as $and){
+//						$tables_with_where[$join['table']] = $join['table'];
+//					}
+//				}
+//				if($join['where']['or']){
+//					$tables_with_where[$join['alias']] = $join['alias'];
+//					$tables_with_where[$join['parent_alias']] = $join['parent_alias'];
+//				}
+//				if($join['where']['and']){
+//					$str = "`removed` IS NULL";
+//					foreach($join['where']['and'] as $and){
+//						if(substr($and, strlen($str) * -1) != $str){
+//							$tables_with_where[$join['table']] = $join['table'];
+//						}
+//					}
+//				}
+//			}
+//		}
+//
+//		return $tables_with_where;
+//	}
+
 	protected function getLimitSQL(): ?string
 	{
 		return $this->limit;
 	}
 
-	protected function getWhereSQL(?string $alias_only = NULL, ?string $except_alias = NULL): ?string
+	protected function getWhereSQL(?array $alias_only = NULL, ?array $except_alias = NULL): ?string
 	{
 		return $this->getConditionsSQL("WHERE", $this->getAllWhereConditions($alias_only, $except_alias));
 	}
@@ -1001,9 +1097,9 @@ abstract class Common {
 	 *
 	 * @return array
 	 */
-	protected function getAllWhereConditions(?string $alias_only = NULL, ?string $except_alias = NULL): array
+	protected function getAllWhereConditions(?array $alias_only = NULL, ?array $except_alias = NULL): array
 	{
-		$wheres = [];
+		$where = [];
 
 		# From the main table
 		if(is_array($this->where)){
@@ -1032,17 +1128,17 @@ abstract class Common {
 		# Optional filter on table alias
 		foreach($wheres as $alias => $types){
 			if($alias_only){
-				if($alias != $alias_only){
+				if(!in_array($alias, $alias_only)){
 					continue;
 				}
 			}
 			if($except_alias){
-				if($alias == $except_alias){
+				if(in_array($alias, $except_alias)){
 					continue;
 				}
 			}
 			foreach($types as $type => $conditions){
-				$where[$type] = array_merge($where[$type] ?:[], $conditions ?:[]);
+				$where[$type] = array_merge($where[$type] ?: [], $conditions ?: []);
 			}
 		}
 
@@ -1063,6 +1159,8 @@ abstract class Common {
 			return NULL;
 		}
 
+		$strings = [];
+
 		foreach($on as $type => $conditions){
 			$type = strtoupper($type);
 
@@ -1070,7 +1168,7 @@ abstract class Common {
 			$conditions = array_unique(array_filter($conditions));
 
 			if($type == "OR"){
-				$strings[] = "AND (\r\n\t".implode("\r\n\t{$type} ", $conditions)."\r\n)";
+				$strings[] = "AND (\r\n\t" . implode("\r\n\t{$type} ", $conditions) . "\r\n)";
 			} else {
 				$strings[] = implode("\r\n{$type} ", $conditions);
 			}
@@ -1082,7 +1180,7 @@ abstract class Common {
 
 		$condition_type = strtoupper($condition_type);
 
-		return "{$condition_type} ".implode("\r\n", $strings);
+		return "{$condition_type} " . implode("\r\n", $strings);
 	}
 
 	/**
@@ -1100,7 +1198,6 @@ abstract class Common {
 
 	/**
 	 * Set the columns that are going to go to the SET section of the INSERT or UPDATE query.
-	 *
 	 *
 	 * @param array|null $set
 	 * @param array|null $html
@@ -1142,7 +1239,7 @@ abstract class Common {
 	 *
 	 * @param array $set Array of columns to set.
 	 */
-	protected function removeIllegalColumns():void
+	protected function removeIllegalColumns(): void
 	{
 		# If this table has no columns the user can set
 		if(!$table_metadata = $this->getTableMetadata($this->table)){
@@ -1158,8 +1255,9 @@ abstract class Common {
 	 *
 	 * @param $columns
 	 */
-	protected function addColumns(?array $columns){
-		$this->columns = array_unique(array_merge($this->columns ?:[], $columns ?:[]));
+	protected function addColumns(?array $columns)
+	{
+		$this->columns = array_unique(array_merge($this->columns ?: [], $columns ?: []));
 	}
 
 	/**
@@ -1182,15 +1280,15 @@ abstract class Common {
 		if(is_array($val)){
 
 			# Empty arrays
-			if(empty($val)) {
+			if(empty($val)){
 				//if it's an empty array
 				return "NULL";
 			}
 
 			# Non-empty array with a single empty key and empty sub value
-			while(true){
+			while(true) {
 				foreach($val as $k => $v){
-					if(trim($k)||trim($v)){
+					if(trim($k) || trim($v)){
 						break 2;
 					}
 				}
@@ -1198,17 +1296,16 @@ abstract class Common {
 			}
 
 			# Otherwise, arrays are not allowed and will return an error
-			throw new mysqli_sql_exception("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>".print_r($val,true)."</pre>");
+			throw new mysqli_sql_exception("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>" . print_r($val, true) . "</pre>");
 		}
 
 		# HTML columns
-		if(in_array($col, $this->html ?:[])
-		&& $table_metadata[$col]['CHARACTER_MAXIMUM_LENGTH']>255){
+		if(in_array($col, $this->html ?: [])
+			&& $table_metadata[$col]['CHARACTER_MAXIMUM_LENGTH'] > 255){
 			/**
 			 * Only columns that are of the TEXT/LONGTEXT type,
 			 * or columns that are VARCHAR but have a max length LONGER
 			 * than 255 are allowed to contain HTML.
-			 *
 			 * In addition, the column needs to be explicitly marked
 			 * to allow for HTML.
 			 */
@@ -1222,7 +1319,6 @@ abstract class Common {
 			 * the assumption is that the field is expecting UNIX timestamps.
 			 * However, mySQL doesn't seem to accept actual timestamp INTs
 			 * as input.
-			 *
 			 * Thus the input must be translated to a more
 			 * traditional datetime string. This ignores timezones.
 			 */
@@ -1237,6 +1333,12 @@ abstract class Common {
 			if(is_string($val) && strtotime($val)){
 				$val = date_create('@' . strtotime($val))->format("Y-m-d");
 			}
+
+			if(!$val && is_string($val)){
+				//if the value is ""
+				return "NULL";
+				// Because datetime columns do not accept strings, even empty ones
+			}
 		}
 
 		# Datetime
@@ -1245,6 +1347,21 @@ abstract class Common {
 			if(is_string($val) && strtotime($val)){
 				$val = date_create('@' . strtotime($val))->format("Y-m-d H:i:s");
 			}
+
+			if(!$val && is_string($val)){
+				//if the value is ""
+				return "NULL";
+				// Because datetime columns do not accept strings, even empty ones
+			}
+		}
+
+		# Int columns
+		if($table_metadata[$col]['DATA_TYPE'] == 'int'){
+			if(!$val && is_string($val)){
+				//if the value is ""
+				return "NULL";
+				// Because INT columns do not accept strings, even empty ones
+			}
 		}
 
 		# Tinyint columns
@@ -1252,16 +1369,15 @@ abstract class Common {
 			/**
 			 * The assumption here is that if the data type is tinyint,
 			 * it's used as a de facto boolean data type.
-			 *
 			 * Thus, string true/false values are translated to 1/NULL values.
 			 */
-			if ($val == "true"){
-				return (int) 1;
+			if($val == "true"){
+				return (int)1;
 			}
-			if ($val == "false"){
+			if($val == "false"){
 				return "NULL";
 			}
-			if (!$val) {
+			if(!$val){
 				//"", "0", 0
 				return "NULL";
 			}
@@ -1297,7 +1413,7 @@ abstract class Common {
 				}
 				$vals[] = $v;
 			}
-			return "(".implode(",", array_unique($vals)).")";
+			return "(" . implode(",", array_unique($vals)) . ")";
 		}
 
 		if($val === NULL){
@@ -1358,15 +1474,14 @@ abstract class Common {
 
 	/**
 	 * Returns a table (array) of metadata for a given table, on a column-per-row basis.
-	 *
 	 * Can be called externally like so:
 	 * <code>
 	 * $this->sql->getTableMetadata($tbl, true, true);
 	 * </code>
 	 *
-	 * @param string|array     $table   A table array (containing at least `db` and `name` keys)
-	 * @param bool|null $refresh Whether or not to force a refresh of the metadata
-	 * @param bool|null $all     Whether or not to return all columns (not just the ones the user can update)
+	 * @param string|array $table   A table array (containing at least `db` and `name` keys)
+	 * @param bool|null    $refresh Whether or not to force a refresh of the metadata
+	 * @param bool|null    $all     Whether or not to return all columns (not just the ones the user can update)
 	 *
 	 * @return array
 	 */
@@ -1375,28 +1490,28 @@ abstract class Common {
 		if(is_string($table)){
 			$table = [
 				"name" => $table,
-				"db" => $_ENV['db_database']
+				"db" => $_ENV['db_database'],
 			];
 		}
 
 		# Verify all the details are correct
 		$this->verifyTableArray($table);
 
-		if ($refresh){
+		if($refresh){
 			//If the table data is to be refreshed
 			$this->loadTableMetadata($table);
-		} else if (!$this->table_column_names_all[$table["db"]][$table["name"]]){
+		} else if(!$this->table_column_names_all[$table["db"]][$table["name"]]){
 			//if the table data doesn't exist yet
 			$this->loadTableMetadata($table);
 		}
 
-		if ($all){
+		if($all){
 			//if the user has requested *all* columns (including those the user cannot update)
 			return $this->table_column_names_all[$table["db"]][$table["name"]];
 		}
 
 		# Return only the columns they can update (that can be no columns)
-		return $this->table_column_names[$table["db"]][$table["name"]] ?:[];
+		return $this->table_column_names[$table["db"]][$table["name"]] ?: [];
 	}
 
 	/**
@@ -1414,14 +1529,14 @@ abstract class Common {
 		$result = $this->mysqli->query($query);
 
 		# Go thru the result (assuming the database-table exists))
-		if (is_object($result)){
+		if(is_object($result)){
 			# Get the columns the user cannot update
 			$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
 
 			# Save each result row
-			while ($c = $result->fetch_assoc()) {
+			while($c = $result->fetch_assoc()) {
 				$this->table_column_names_all[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
-				if (!in_array($c['COLUMN_NAME'], $columns_user_cannot_update)){
+				if(!in_array($c['COLUMN_NAME'], $columns_user_cannot_update)){
 					$this->table_column_names[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
 				}
 			}
@@ -1453,14 +1568,14 @@ abstract class Common {
 			}
 
 			# Column
-			if($key = array_search($col, array_column($columns, 'name')) !== FALSE){
+			if($key = array_search($col, array_column($columns, 'name')) !== false){
 				//if the column being ordered is the name of a column
 				$order_by[] = "`{$columns[$key]['table_alias']}`.`$col` {$dir}";
 				continue;
 			}
 
 			# Alias
-			if($key = array_search($col, array_column($columns, 'alias')) !== FALSE){
+			if($key = array_search($col, array_column($columns, 'alias')) !== false){
 				//if the column being ordered is the alias of a column
 				$order_by[] = "`$col` {$dir}";
 				continue;
@@ -1479,7 +1594,6 @@ abstract class Common {
 
 	/**
 	 * Generates a standard SQL UPDATE query.
-	 *
 	 * @return string
 	 */
 	protected function generateUpdateSQL(): string
@@ -1494,12 +1608,11 @@ abstract class Common {
 
 	/**
 	 * Gets all the variables formatted to be set in a UPDATE query.
-	 *
 	 * @return string
 	 */
 	protected function getSetSQL(): string
 	{
-		foreach (reset($this->set) as $col => $val){
+		foreach(reset($this->set) as $col => $val){
 
 			# Make sure the column is part of the accepted set
 			if(is_string($col) && !in_array($col, $this->columns)){
@@ -1507,16 +1620,16 @@ abstract class Common {
 			}
 
 			# "col" => ["tbl_alias", "tbl_col"]
-			if (is_string($col) && is_array($val) && (count($val) == 2)){
+			if(is_string($col) && is_array($val) && (count($val) == 2)){
 				[$tbl_alias, $tbl_col] = $val;
 
 				# Both values have to exist
-				if (!$tbl_alias || !$tbl_col){
+				if(!$tbl_alias || !$tbl_col){
 					NULL;
 				}
 
 				# Ensure table alias exists
-				if (!$this->tableAliasExists($tbl_alias)){
+				if(!$this->tableAliasExists($tbl_alias)){
 					continue;
 				}
 
@@ -1525,11 +1638,11 @@ abstract class Common {
 			}
 
 			# "col" => ["tbl_db", "tbl_name", "tbl_col"]
-			if (is_string($col) && is_array($val) && (count($val) == 3)){
+			if(is_string($col) && is_array($val) && (count($val) == 3)){
 				[$tbl_db, $tbl_name, $tbl_col] = $val;
 
 				# Ensure the counterpart also exists
-				if (!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+				if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
 					continue;
 				}
 
@@ -1544,21 +1657,47 @@ abstract class Common {
 			}
 
 			# "col" => ["tbl_db", "tbl_name", "tbl_col", "calc"]
-			if (is_string($col) && is_array($val) && (count($val) == 4)){
+			if(is_string($col) && is_array($val) && (count($val) == 4)){
 				[$tbl_db, $tbl_name, $tbl_col, $calc] = $val;
 
 				# Ensure the counterpart also exists
-				if (!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+				if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
 					continue;
 				}
 
 				/**
-				 * Calc is any suffixed calculation text freeform to
+				 * Calc is any suffixed calculation text value to
 				 * perform on the value. Is used by the re-ordering method
 				 * to shift values up or down.
 				 */
 
 				$strings[] = "`{$this->table['alias']}`.`{$col}` = `{$this->getDbAndTableString($tbl_db,$tbl_name)}`.`{$tbl_col}` {$calc}";
+				/**
+				 * In cases where the same table from the same database
+				 * is referenced, and tbl_db + tbl_name are given,
+				 * the assumption is that it's the first table that is
+				 * referenced here.
+				 */
+				continue;
+			}
+
+			# "col" => ["tbl_db", "tbl_name", "tbl_col", "pre", "post"]
+			if(is_string($col) && is_array($val) && (count($val) == 5)){
+				[$tbl_db, $tbl_name, $tbl_col, $pre, $post] = $val;
+
+				# Ensure the counterpart also exists
+				if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+					continue;
+				}
+
+				/**
+				 * The pre and post vars constitute a
+				 * free-form format for complex requests,
+				 * like DATE_ADD().
+				 * Any of the values can be NULL
+				 */
+
+				$strings[] = "`{$this->table['alias']}`.`{$col}` = {$pre}`{$this->getDbAndTableString($tbl_db,$tbl_name)}`.`{$tbl_col}`{$post}";
 				/**
 				 * In cases where the same table from the same database
 				 * is referenced, and tbl_db + tbl_name are given,
@@ -1585,12 +1724,12 @@ abstract class Common {
 	protected function verifyTableArray(array $table): bool
 	{
 		# Ensure the database exists
-		if (!$this->dbExists($table["db"])){
+		if(!$this->dbExists($table["db"])){
 			throw new mysqli_sql_exception("The database <code>{$table["db"]}</code> doesn't seem to exists or the current user does not have access to it.");
 		}
 
 		# Ensure the table exists in the database
-		if (!$this->tableExists($table["db"], $table["name"])){
+		if(!$this->tableExists($table["db"], $table["name"])){
 			throw new mysqli_sql_exception("The <code>{$table["name"]}</code> table does not seem to exist in the <code>{$table["db"]}</code> database, or the current user does not have access to it.");
 		}
 
@@ -1609,12 +1748,12 @@ abstract class Common {
 	protected function dbExists(string $db): bool
 	{
 		$db = str::i($db);
-		if (key_exists($db, $this->exists['db'] ?:[])){
+		if(key_exists($db, $this->exists['db'] ?: [])){
 			return $this->exists['db'][$db];
 		}
 		$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}'";
 
-		$this->exists['db'][$db] = (bool) $this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+		$this->exists['db'][$db] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
 		return $this->exists['db'][$db];
 	}
 
@@ -1637,8 +1776,8 @@ abstract class Common {
 		$table = str::i($table);
 
 		# if the database-table combo has already been checked before, reuse results
-		if (key_exists($db, $this->exists['table'] ?:[])){
-			if (key_exists($table, $this->exists['table'][$db])){
+		if(key_exists($db, $this->exists['table'] ?: [])){
+			if(key_exists($table, $this->exists['table'][$db])){
 				return $this->exists['table'][$db][$table];
 			}
 		}
@@ -1647,7 +1786,7 @@ abstract class Common {
 		$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
 
 		# Does this database-table combo exist?
-		$this->exists[$db][$table] = (bool) $this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+		$this->exists[$db][$table] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
 
 		return $this->exists[$db][$table];
 	}
@@ -1680,9 +1819,9 @@ abstract class Common {
 		}
 
 		# if the database-table-col combo has already been checked before, reuse results
-		if (key_exists($db, $this->exists['col'] ?:[])){
-			if (key_exists($table, $this->exists['col'][$db] ?:[])){
-				if (key_exists($col, $this->exists['col'][$db][$table] ?:[])){
+		if(key_exists($db, $this->exists['col'] ?: [])){
+			if(key_exists($table, $this->exists['col'][$db] ?: [])){
+				if(key_exists($col, $this->exists['col'][$db][$table] ?: [])){
 					return $this->exists['col'][$db][$table][$col];
 				}
 			}
@@ -1692,7 +1831,7 @@ abstract class Common {
 		$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}' AND `COLUMN_NAME` = '{$col}'";
 
 		# Does this database-table-col combo exist?
-		$this->exists['col'][$db][$table][$col] = (bool) $this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+		$this->exists['col'][$db][$table][$col] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
 
 		return $this->exists['col'][$db][$table][$col];
 	}
@@ -1728,11 +1867,9 @@ abstract class Common {
 	/**
 	 * Check to see if there where conditions have been included,
 	 * once you ignore the "`remove` IS NULL" condition.
-	 *
 	 * Does so by counting the number of conditions in total,
 	 * and checking if that number is higher than the number of
 	 * "`remove` IS NULL" conditions.
-	 *
 	 * @return bool
 	 */
 	protected function whereConditionsExist(): bool
@@ -1771,7 +1908,7 @@ abstract class Common {
 	 *
 	 * @return array
 	 */
-	protected function getTableColumnsUsersCannotUpdate(string $table): array
+	public function getTableColumnsUsersCannotUpdate(string $table): array
 	{
 		return [
 			"${table}_id",

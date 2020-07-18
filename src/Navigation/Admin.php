@@ -13,8 +13,8 @@ use App\UI\Icon;
  * @package App\Common\Navigation
  */
 class Admin extends Common implements NavigationInterface {
-	private $levels = [];
-	private $footers = [];
+	public $levels = [];
+	public $footers = [];
 
 	/**
 	 * @inheritDoc

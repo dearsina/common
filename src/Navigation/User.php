@@ -10,7 +10,7 @@ namespace App\Common\Navigation;
 class User extends Common implements NavigationInterface {
 	public function update() : array
 	{
-		$this->levels[2]['title'] = "Optional title";
+//		$this->levels[2]['title'] = "Optional title";
 		return $this->levels;
 	}
 

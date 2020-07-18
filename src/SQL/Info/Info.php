@@ -20,9 +20,11 @@ class Info {
 	private static $instance;
 
 	/**
-	 * @var
+	 * Contains all cached results.
+	 *
+	 * @var array
 	 */
-	protected $info;
+	protected $info = [];
 
 	/**
 	 * @var mySQL
@@ -57,13 +59,14 @@ class Info {
 	}
 
 	/**
-	 * @param      $a
-	 * @param null $rel_id
+	 * @param             $a
+	 * @param string|null $rel_id
+	 * @param bool|null   $refresh If set to TRUE, will ignore any cached results.
 	 *
 	 * @return bool|mixed
 	 * @throws \Exception
 	 */
-	public function getInfo($a, $rel_id = NULL){
+	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL){
 		if(is_string($a)){
 			$a = [
 				"rel_table" => $a,
@@ -76,16 +79,106 @@ class Info {
 		
 		# Clean up the request variables
 		$a = $this->cleanVars($a);
-		
-		# Get cached results if they exist
-		if($cached_results = $this->getCachedResults($a)){
-			return $cached_results;
+
+		if(!$refresh){
+			//If force refresh is not set
+
+			# Get cached results if they exist
+			if(($cached_results = $this->getCachedResults($a)) !== FALSE){
+				return $cached_results;
+			}
 		}
 
-		if(!$class_path = str::findClass("Info", $a['rel_table'])){
-			throw new \Exception("The <code>{$a['rel_table']}\\Info</code> method doesn't exists. Use `\$this->sql->select()` instead.");
+		# Run either a custom or generic process to get the rows
+		if($class_path = str::findClass("Info", $a['rel_table'])){
+			$rows = $this->customProcess($class_path, $a);
+		} else {
+			$rows = $this->genericProcess($a);
 		}
 
+		# Store the cached results
+		$this->setCachedResults($a, $rows);
+
+		# If there aren't any actual results
+		if(!$rows){
+			return false;
+		}
+
+		/**
+		 * As rel_id and limit=1 are stripped out to always
+		 * return a numerical array, if either were
+		 * part of the original request, re-instate the limits
+		 * by only returning the first (and most probably only)
+		 * result.
+		 */
+		if(($a['limit'] == 1) || $a['rel_id']){
+			return reset($rows);
+		}
+
+
+		return $rows;
+	}
+
+	/**
+	 * If there is no custom process, just run it thru select.
+	 * Why you ask?
+	 * The benefit of using $this->info() is caching (which
+	 * could be a double edged sword if results change),
+	 * and ability to write uniform code even when rel_table is not known.
+	 *
+	 * @param array $a
+	 *
+	 * @return array|bool|mixed|string
+	 */
+	private function genericProcess(array $a)
+	{
+		# Set a generic order by
+		$a['order_by'] = [
+			"order" => "ASC",
+			"title" => "ASC"
+		];
+
+		# Run the SQL query
+		if (!$rows = $this->sql->select($a)) {
+			return false;
+		}
+
+		# Ensure rows array is numerical
+		$this->ensureRowsAreNumerical($a, $rows);
+
+		return $rows;
+	}
+
+	/**
+	 * If only one row was requested, and
+	 * the select() method returned an associative
+	 * array containing that one row, return
+	 * a numeric array to ensure consistency
+	 * with the custom methods.
+	 *
+	 * The one row limit will be imposed before
+	 * the row is sent to the user.
+	 *
+	 * @param array $a
+	 * @param array $rows
+	 */
+	private function ensureRowsAreNumerical(array $a, array &$rows): void
+	{
+		if($a['limit'] == 1){
+			$rows = [$rows];
+		}
+	}
+
+	/**
+	 * If the rel_table has a custom Info() class, use it.
+	 *
+	 * @param string $class_path
+	 * @param array  $a
+	 *
+	 * @return array|bool|mixed|string
+	 */
+	private function customProcess(string $class_path, array $a)
+	{
 		# Load up an instance of the custom info class
 		$class_instance = new $class_path();
 
@@ -97,6 +190,9 @@ class Info {
 			return false;
 		}
 
+		# Ensure rows array is numerical
+		$this->ensureRowsAreNumerical($a, $rows);
+
 		# Go thru each row
 		foreach($rows as $id => $row){
 			# Format the data (optional)
@@ -104,11 +200,7 @@ class Info {
 			$rows[$id] = $row;
 		}
 
-		# Store the cached results
-		$this->setCachedResults($a, $rows);
-
-		# If a particular ID has been request, only return that one row, otherwise all
-		return $a['rel_id'] ? reset($rows) : $rows;
+		return $rows;
 	}
 
 	/**
@@ -141,12 +233,21 @@ class Info {
 	}
 
 	/**
+	 * Will return cached results if they exist.
+	 * A valid cached result could also be NULL.
+	 *
+	 * Will return FALSE if no cache exists.
+	 *
 	 * @param $a
 	 *
 	 * @return mixed
 	 */
 	private function getCachedResults($a){
-		return $this->info[$this->fingerprint($a)];
+		$id = $this->fingerprint($a);
+		if(!key_exists($id, $this->info)){
+			return false;
+		}
+		return $this->info[$id];
 	}
 
 	/**
