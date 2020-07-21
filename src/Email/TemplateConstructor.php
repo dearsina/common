@@ -10,11 +10,10 @@ use App\Common\Common;
  * Class TemplateConstructor
  * @package App\Common\Email
  */
-class TemplateConstructor extends Common {
+class TemplateConstructor extends Common implements TemplateConstructorInterface {
 	/**
 	 * An array with all the variables to be used
 	 * in the template.
-	 * 
 	 * @var array
 	 */
 	protected $variables;
@@ -24,7 +23,8 @@ class TemplateConstructor extends Common {
 	 *
 	 * @param $a
 	 */
-	public function __construct ($a) {
+	public function __construct($a)
+	{
 		parent::__construct();
 		$this->variables = $a;
 	}
@@ -34,9 +34,13 @@ class TemplateConstructor extends Common {
 	 * as a HTML string. Wil include
 	 * app wide (optional) headers and footers.
 	 *
+	 * This method should be replaced in a \App\Email\TemplateConstructor class,
+	 * allowing for variables to be passed to the header and footer methods.
+	 *
 	 * @return bool|string
 	 */
-	public function getMessageHTML(){
+	public function getMessageHTML()
+	{
 		if(!$body = $this->getMessage()){
 			return false;
 		}
@@ -48,20 +52,37 @@ EOF;
 	}
 
 	/**
+	 * This method should be replaced in a \App\Email\TemplateConstructor class
+	 * and contain the actual HTML footer.
+	 *
+	 * @param array $a
+	 *
 	 * @return string
+	 * @link https://htmlemail.io/inline
 	 */
-	private function getHeader(){
-		return <<<EOF
+	public function getHeader(?array $a = NULL): ?string
+	{
+		if(is_array($a)){
+			extract($a);
+		}
 
-EOF;
+		return NULL;
 	}
 
 	/**
+	 * This method should be replaced in a \App\Email\TemplateConstructor class
+	 * and contain the actual HTML footer.
+	 *
+	 * @param array $a
+	 *
 	 * @return string
 	 */
-	private function getFooter(){
-		return <<<EOF
+	public function getFooter(?array $a = NULL): ?string
+	{
+		if(is_array($a)){
+			extract($a);
+		}
 
-EOF;
+		return NULL;
 	}
 }

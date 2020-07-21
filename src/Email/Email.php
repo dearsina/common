@@ -9,7 +9,6 @@ use App\Common\str;
 /**
  * Class Email
  * A wrapper for the Swift_Message() class.
- *
  * @package App\Common
  */
 class Email extends Common {
@@ -33,7 +32,8 @@ class Email extends Common {
 	 *
 	 * @param null $a
 	 */
-	public function __construct ($a = NULL) {
+	public function __construct($a = NULL)
+	{
 		parent::__construct();
 
 		# Create the envelope that will contain the email metadata and message
@@ -58,13 +58,14 @@ class Email extends Common {
 	 * @return $this
 	 * @throws \Exception
 	 */
-	public function template($template, $variables){
+	public function template($template, $variables)
+	{
 		if(!$TemplateClass = str::getClassCase($template)){
 			throw new \Exception("No template provided");
 		}
 
-		$class = "\\App\\Common\\Email\\Template\\{$TemplateClass}";
-		if(!class_exists($class)){
+		# Find template class (first in App, then in Common)
+		if(!$class = str::findClass($TemplateClass, "Email\\Template")){
 			throw new \Exception("Cannot find the {$TemplateClass} template.");
 		}
 
@@ -90,11 +91,12 @@ class Email extends Common {
 	 * @throws \Exception
 	 * @throws \Exception
 	 */
-	public function subject(string $subject){
+	public function subject(string $subject)
+	{
 		if(!$subject){
 			throw new \Exception("An email was attempted sent without a subject line.");
 		}
-		
+
 		# Set the subject line
 		$this->envelope->setSubject($subject);
 
@@ -110,32 +112,145 @@ class Email extends Common {
 	 * @throws \Exception
 	 * @throws \Exception
 	 */
-	public function message(string $message){
+	public function message(string $message)
+	{
 		if(!$message){
 			throw new \Exception("An email was attempted sent without a message body.");
 		}
 
-		# Hack to ensure that base64 embedded photos are converted to CIDs so that Gmail will display them
-		$pattern = /** @lang PhpRegExp */'/<img src="data:([^;]+);base64,([^"]+)">/m';
-		if(preg_match_all($pattern, $message, $matches)){
-			//if there are embedded images
-			foreach($matches[2] as $id => $base64){
-				//for each base64 encoded image
-				$cid = $envelope->embed(new \Swift_Image(base64_decode($base64), "img_".rand(), $matches[1][$id]));
-				//create a CID using the decoded data, a random name and the format string from the base64 image
-				$message = str_replace("data:{$matches[1][$id]};base64,{$base64}", $cid, $message);
-				//replace the entire src tag with the CID
-			}
-		}
+		$message = $this->removeHTMLComments($message);
+
+		# Converts images to CIDs
+		$message = $this->convertImages($message);
+
+		$this->envelope->setContentType('text/html');
+		$this->envelope->setCharset('utf-8');
 
 		# Set the HTML body
 		$this->envelope->setBody($message, 'text/html');
 
 		# Create and set the text version
-		$text = str_replace(array("<br>","<br/>","<p>","</p>"),self::CRLF,strip_tags($message,'<br><br/><p>'));
-		$this->envelope->addPart($text, 'text/plain');
+//		$this->envelope->addPart($this->generateTextVersion($message), 'text/plain');
 
 		return $this;
+	}
+
+	/**
+	 * Given a fully formatted HTML email,
+	 * returns the text version of the body tag (only).
+	 *
+	 * @param string $html
+	 *
+	 * @return string
+	 */
+	private function generateTextVersion(string $html): string
+	{
+		$html = preg_replace('/<head>(.*)<\/head>/Uis', '', $html);
+		$text = str_replace(["<br>", "<br/>", "<p>", "</p>"], self::CRLF, strip_tags($html, '<br><br/><p>'));
+		return $text;
+	}
+
+	/**
+	 * Strips away HTML comments from the final output so that the
+	 * HTML header and footer sections can be richly commented on.
+	 * Details on the modifiers:
+	 *  - `U` makes it un-greedy and so goes only to the first close comment.
+	 *  - `i` makes it case insensitive (Not sure why this is needed here).
+	 *  - `s` means that newlines are allowed inside the comments too.
+	 *
+	 * @param $message
+	 *
+	 * @return string
+	 * @link https://stackoverflow.com/a/3235781/429071
+	 */
+	private function removeHTMLComments($message): string
+	{
+		return preg_replace('/<!--(.*)-->/Uis', '', $message);
+	}
+
+	/**
+	 * Given a complete HTML body message,
+	 * extracts and converts both local
+	 * and external image links, and
+	 * embedded base64 images to CIDs.
+	 * Assumes the img tags are in a
+	 * `<img src="" [...]>` format.
+	 *
+	 * @param string $message
+	 *
+	 * @return string
+	 */
+	private function convertImages(string $message): string
+	{
+		# Magic to translate linked images to CID (inline) images.
+		$pattern = /** @lang PhpRegExp */
+			"/(<img[^>]+src=\"([^\"]+)\"([^>]+)>)/";
+
+		$message = preg_replace_callback($pattern, function($img_tag){
+			//for each image link
+			$image_path = $img_tag[2];
+			if(substr($image_path, 0, 1) == "/"){
+				//If this is a local file
+				$image_file = \Swift_Image::fromPath($image_path);
+			} else {
+				//if this is an external file (even if it's hosted locally)
+
+				# Get the image content
+				if(!$data = @file_get_contents($image_path)){
+					throw new \Exception("An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email has not been sent.");
+				}
+
+				# Get the filename
+				$filename = explode("?", basename($image_path))[0];
+
+				# Get the mime type
+				$finfo = new \finfo(FILEINFO_MIME_TYPE);
+				$mime_type = $finfo->buffer($buffer);
+
+				# Create image file
+				$image_file = new \Swift_Image($data, $filename, $mime_type);
+
+				# Set the disposition to be inline (not sure if we need this)
+				$image_file->setDisposition('inline');
+			}
+
+			# Create a CID
+			$cid = $this->envelope->embed($image_file);
+
+			# Return the img tag with the CID instead of the file reference
+			return "<img src=\"{$cid}\" {$img_tag[3]}>";
+		}, $message);
+
+		# Hack to ensure that base64 embedded photos are converted to CIDs so that Gmail will display them
+		$pattern = /** @lang PhpRegExp */
+			'/<img[^>]+src="data:([^;]+);base64,([^"]+)">/m';
+
+		if(preg_match_all($pattern, $message, $matches)){
+			//if there are embedded images
+			foreach($matches[2] as $id => $base64){
+				//for each base64 encoded image
+
+				# The image content (converted from base64)
+				$data = base64_decode($base64);
+
+				# (Random) filename
+				$filename = "img_" . rand();
+
+				# Mime type
+				$mime_type = $matches[1][$id];
+
+				# Create image file
+				$image_file = new \Swift_Image($data, $filename, $mime_type);
+
+				# Create a CID
+				$cid = $this->envelope->embed($image_file);
+
+				# Replace the entire src tag with the CID
+				$message = str_replace("data:{$matches[1][$id]};base64,{$base64}", $cid, $message);
+			}
+		}
+
+		return $message;
 	}
 
 	/**
@@ -146,7 +261,8 @@ class Email extends Common {
 	 *
 	 * @return $this
 	 */
-	public function attachments($a = NULL){
+	public function attachments($a = NULL)
+	{
 		if(!$a){
 			return $this;
 		}
@@ -154,7 +270,7 @@ class Email extends Common {
 		if(is_string($a)){
 			$attachments[] = [
 				"path" => $a,
-				"filename" => pathinfo($a)['basename']
+				"filename" => pathinfo($a)['basename'],
 			];
 		}
 
@@ -182,29 +298,32 @@ class Email extends Common {
 	 * @throws \Exception
 	 * @throws \Exception
 	 */
-	public function to($to){
+	public function to($to)
+	{
 		if(is_string($to) && !empty($to)){
 			$this->envelope->setTo([$to => $to]);
 		} else if(str::isAssociativeArray($to)){
 			$this->envelope->setTo($to);
 		} else if(str::isNumericArray($to)){
 			foreach($to as $t){
-				$this->envelope->setTo($t);	
+				$this->envelope->setTo($t);
 			}
 		} else {
 			throw new \Exception("An email was attempted sent without a recipient.");
 		}
-		
+
 		return $this;
 	}
 
 	/**
 	 * Set the CC recipients
+	 *
 	 * @param array|string $cc
 	 *
 	 * @return $this
 	 */
-	public function cc($cc){
+	public function cc($cc)
+	{
 		if(is_string($cc) && !empty($cc)){
 			$this->envelope->setCc([$cc => $cc]);
 		} else if(str::isAssociativeArray($cc)){
@@ -220,11 +339,13 @@ class Email extends Common {
 
 	/**
 	 * Set the BCC recipients
+	 *
 	 * @param array|string $bcc
 	 *
 	 * @return $this
 	 */
-	public function bcc($bcc){
+	public function bcc($bcc)
+	{
 		if(is_string($bcc) && !empty($bcc)){
 			$this->envelope->setBcc([$bcc => $bcc]);
 		} else if(str::isAssociativeArray($bcc)){
@@ -238,7 +359,8 @@ class Email extends Common {
 		return $this;
 	}
 
-	public function silent(){
+	public function silent()
+	{
 		$this->silent = true;
 	}
 
@@ -251,7 +373,8 @@ class Email extends Common {
 	 *
 	 * @return bool
 	 */
-	public function send($a = NULL){
+	public function send($a = NULL)
+	{
 		if(is_array($a)){
 			foreach($a as $key => $val){
 				$this->{$key}($val);
@@ -263,7 +386,7 @@ class Email extends Common {
 			$this->log->info([
 				"icon" => "ban",
 				"title" => "Email not sent",
-				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}]."
+				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
 			]);
 			return true;
 		}

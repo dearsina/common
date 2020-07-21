@@ -39,7 +39,7 @@ class Email2FACode extends \App\Common\Email\TemplateConstructor implements \App
 			"html" => $code
 		]);
 		$grid->set([
-			"html" => "The code is case <i>in</i>sensitive and will expire in 15 minutes."
+			"html" => "The code is not case sensitive and will expire in 15 minutes."
 		]);
 		return $grid->getHTML();
 	}

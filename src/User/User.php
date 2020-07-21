@@ -9,6 +9,7 @@ use App\Common\Navigation\Navigation;
 use App\Common\Role\Role;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
+use App\Subscription\Subscription;
 use App\UI\Form\Form;
 use App\UI\Icon;
 use App\UI\Page;
@@ -59,7 +60,7 @@ class User extends Common {
 			$rel_id = $user_id;
 		}
 
-		if(!$this->permission()->get($rel_table, $rel_id, "crud")){
+		if(!$this->permission()->get($rel_table, $rel_id, "R")){
 			return $this->accessDenied($a);
 		}
 
@@ -79,6 +80,13 @@ class User extends Common {
 			"html"=> $this->card()->user($user),
 			"sm" => 4
 		]]);
+
+		$a['vars']['owner_id'] = $user['user_id'];
+
+		$subscription = new Subscription();
+		$page->setGrid([
+			"html" => $subscription->card()->all($a),
+		]);
 
 		$this->output->html($page->getHTML());
 
@@ -1093,9 +1101,9 @@ class User extends Common {
 		];
 
 		# Ensure reCAPTCHA is validated
-		if(!$this->validateRecaptcha($vars['recaptcha_response'], "reset_password", $hash)) {
-			return false;
-		}
+//		if(!$this->validateRecaptcha($vars['recaptcha_response'], "reset_password", $hash)) {
+//			return false;
+//		}
 
 		if(!$vars['email']){
 			$this->log->error([

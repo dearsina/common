@@ -224,6 +224,29 @@ class Permission extends Common {
 	}
 
 	/**
+	 * Remove any and all permissions.
+	 *
+	 * Given a rel_table/id, remove one or all permissions associated with it.
+	 * If a user_id is given, only permissions on the rel_table/id for that user
+	 * are removed.
+	 *
+	 * @param string      $rel_table
+	 * @param string      $rel_id
+	 * @param string|null $user_id
+	 */
+	public function remove(string $rel_table, string $rel_id, ?string $user_id = NULL): void
+	{
+		$this->sql->remove([
+			"table" => "user_permission",
+			"where" => [
+				"rel_table" => $rel_table,
+				"rel_id" => $rel_id,
+				"user_id" => $user_id
+			]
+		]);
+	}
+
+	/**
 	 * Updates permissions or role permissions,
 	 * depending on which class is using the method.
 	 *
