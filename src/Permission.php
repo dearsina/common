@@ -37,6 +37,11 @@ class Permission extends Common {
 		// Get the logged in user's current role
 		global $role;
 
+		# Admins have rights to everything
+		if($role == "admin"){
+			return true;
+		}
+
 		# Get role and user permissions for the role/user + rel_table/id combo
 		$role_permissions = $this->getRolePermission($role, $rel_table, $rel_id);
 		$user_permissions = $this->getUserPermission($user_id, $rel_table, $rel_id);

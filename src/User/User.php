@@ -4,8 +4,11 @@
 namespace App\Common\User;
 
 use App\Common\Common;
+use App\Common\Connection\Connection;
 use App\Common\Email\Email;
+use App\Common\Geolocation\Geolocation;
 use App\Common\Navigation\Navigation;
+use App\Common\Process;
 use App\Common\Role\Role;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
@@ -13,6 +16,7 @@ use App\Subscription\Subscription;
 use App\UI\Form\Form;
 use App\UI\Icon;
 use App\UI\Page;
+use App\UI\Table;
 use Exception;
 
 /**
@@ -41,6 +45,238 @@ class User extends Common {
 	 */
 	public function modal(){
 		return new Modal();
+	}
+
+	/**
+	 * View a list of all users.
+	 * Filters can be applied.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function all(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "CRUD")){
+			return $this->accessDenied($a);
+		}
+
+		$page = new Page([
+			"title" => "All users",
+			"icon" => Icon::get("plan"),
+		]);
+
+		$page->setGrid([
+			"html" => $this->card()->all($a),
+		]);
+
+		$this->output->html($page->getHTML());
+
+		return true;
+	}
+
+	/**
+	 * Called by the user//all javascript,
+	 * to get batches of users.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function getUsers(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "CRUD")){
+			return $this->accessDenied($a);
+		}
+
+		/**
+		 * The base query is the base of the search
+		 * query to run to get the results, it will
+		 * be supplemented with vars are where clauses.
+		 */
+		$base_query = [
+			"table" => $rel_table,
+		];
+
+		# Fatten the base query with prepare()
+		$info = new Info();
+		$info->prepare($base_query);
+
+		/**
+		 * The row handler gets one row of data from SQL,
+		 * and its job is to format the row and return
+		 * an array of metadata in addition to the column
+		 * values to feed to the Grid() class.
+		 *
+		 * @param array $cols
+		 *
+		 * @return array
+		 */
+		$row_handler = function(array $cols) use ($rel_table){
+			if(!$this->permission()->get($rel_table, $cols["{$rel_table}_id"], "R")){
+				//if the user doesn't have access to this row
+				throw new \Exception("You do not have access to this user.");
+			}
+			return User::rowHandler($cols);
+		};
+
+		# This line is all that is required to respond to the page request
+		Table::managePageRequest($a, $base_query, $row_handler);
+
+		return true;
+	}
+
+	/**
+	 * Gets info on a single user based on the user ID.
+	 * If no ID is supplied, assumes it means the current
+	 * logged in user (from global $user_id).
+	 *
+	 * @param string|null $user_id
+	 *
+	 * @return array
+	 */
+	public function get(?string $user_id = NULL): ?array
+	{
+		if(!$user_id){
+			global $user_id;
+		}
+
+		if(!$user_id){
+			return NULL;
+		}
+
+		return $this->info("user", $user_id);
+	}
+
+	protected static function rowHandler(array $cols): array
+	{
+		$info = new Info();
+		$info->format($cols);
+
+		$row["First name"] = [
+			"col_name" => "first_name",
+			"html" => $cols['first_name'],
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $cols['user_id'],
+			],
+		];
+
+		$row["Last name"] = [
+			"col_name" => "last_name",
+			"html" => $cols['last_name'],
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $cols['user_id'],
+			],
+		];
+
+		$row["Email address"] = [
+			"col_name" => "email",
+			"html" => $cols['email'],
+			"copy" => true,
+			"sm" => "3"
+		];
+
+		$row["Mobile"] = [
+			"col_name" => "phone",
+			"html" => $cols['phone'],
+			"url" => "tel:{$cols['phone']}",
+			"copy" => true,
+			"sm" => 2
+		];
+
+		$row['Registered'] = [
+			"col_name" => "created",
+			"html" => (new \DateTime($cols['created']))->format("j F Y"),
+			"alt" => $cols['created'],
+			"value" => $cols['created'],
+		];
+
+		$row['Verified'] = [
+			"col_name" => "verified",
+			"html" => $cols['verified'] ? (new \DateTime($cols['verified']))->format("j F Y") : false,
+			"alt" => $cols['verified'],
+			"value" => $cols['verified'],
+		];
+
+		$row[""] = [
+			"sortable" => false,
+			"buttons" => User::getRowButtons($cols),
+		];
+
+		return $row;
+	}
+
+	public static function getRowButtons($cols): array
+	{
+		$buttons[] = [
+			"icon" => Icon::get("pencil"),
+			"title" => "Edit...",
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $cols['user_id'],
+				"action" => "edit",
+			],
+		];
+
+		if(!$cols['verified']){
+			$buttons[] = [
+				"icon" => Icon::get("send"),
+				"title" => "Send welcome email...",
+				"alt" => "Send a welcome email to the user with a link to verify their account.",
+				"hash" => [
+					"rel_table" => "user",
+					"rel_id" => $cols['user_id'],
+					"action" => "send_welcome_email",
+				],
+				"approve" => [
+					"icon" => Icon::get("send"),
+					"title" => "Send welcome email?",
+					"message" => [
+						"{$cols['name']} will receive an email welcoming them to {$_ENV['title']} and a link to verify their account.",
+					],
+				],
+			];
+			$buttons[] = [
+				"icon" => Icon::get("remove"),
+				"title" => "Remove user...",
+				"hash" => [
+					"rel_table" => "user",
+					"rel_id" => $cols['user_id'],
+					"action" => "remove",
+					"vars" => [
+						"callback" => str::generate_uri([
+							"rel_table" => "user",
+							"action" => "all",
+						], true),
+					],
+				],
+				"approve" => [
+					"icon" => Icon::get("bin"),
+					"colour" => "red",
+					"title" => "Remove unverified user?",
+					"message" => [
+						"The user will not be notified. Removing this unverified user cannot be undone.",
+					],
+				],
+			];
+		} else {
+			$buttons[] = [
+				"icon" => Icon::get("remove"),
+				"title" => "Remove...",
+				"alt" => "Cannot remove verified user",
+				"disabled" => true,
+			];
+		}
+
+		return $buttons;
 	}
 
 	/**
@@ -157,13 +393,49 @@ class User extends Common {
 			return $this->accessDenied();
 		}
 
+		if(!$this->cleanUpName($vars['first_name'], ".modal-body")){
+			return true;
+		}
+
+		if(!$this->cleanUpName($vars['last_name'], ".modal-body")){
+			return true;
+		}
+
+		# The three fields anyone can update
+		$set = [
+			"first_name" => $vars['first_name'],
+			"last_name" => $vars['last_name'],
+			"phone" => $vars['phone'],
+		];
+
+		if($this->permission()->get($rel_table)){
+			//if the user has elevated permissions
+
+			# Get the user being updated
+			$user = $this->get($rel_id);
+
+			if($user['email'] != $vars['email']){
+				//if the email address has been changed
+				if($user['verified'] && $user['email']){
+					//if this is a verified user
+					$a['vars']['new_email'] = $vars['email'];
+
+					# Kick off the process to update the email
+					if(!$this->sendEmailUpdateEmail($a, true)){
+						return false;
+					}
+				} else {
+					//if this is an unverified user
+					$set['email'] = $vars['email'];
+					//Unverified user's email addresses can be updated immediately
+				}
+			}
+		}
+
+		# Update the user
 		$this->sql->update([
 			"table" => $rel_table,
-			"set" => [
-				"first_name" => $vars['first_name'],
-				"last_name" => $vars['last_name'],
-				"phone" => $vars['phone'],
-			],
+			"set" => $set,
 			"id" => $rel_id
 		]);
 
@@ -171,8 +443,164 @@ class User extends Common {
 		$this->output->closeModal();
 
 		# If there is a callback, use it
-		$this->hash->set($this->hash->getCallback());
+		if($this->hash->getCallback()){
+			$this->hash->set($this->hash->getCallback());
+		} else {
+			//Otherwise just refresh the current page
+			$this->hash->set("refresh");
+		}
 
+		return true;
+	}
+
+	/**
+	 * Removes UNVERIFIED users only.
+	 * All other users can be closed, but cannot be removed.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function remove(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "D")){
+			return $this->accessDenied();
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		if($user['verified']){
+			throw new \Exception("Only unverified users can be removed.");
+		}
+
+		$this->removeUser($user['user_id']);
+
+		# Inform user that removal is complete
+		$this->log->info([
+			"title" => "User removed",
+			"message" => "The user account belonging to <b>{$user['name']}</b> was removed."
+		]);
+
+		# Callback to wherever
+		if($vars['callback']){
+			$this->hash->set($vars['callback']);
+		} else if($this->permission()->get($rel_table)){
+			$this->hash->set([
+				"rel_table" => $rel_table,
+				"action" => "all",
+			]);
+		} else {
+			$this->hash->set([
+				"rel_table" => "home",
+			]);
+		}
+
+		# Update the navigation
+		Navigation::update();
+
+		return true;
+	}
+
+	/**
+	 * Removes the user from the database.
+	 *
+	 * @param $user_id
+	 */
+	private function removeUser($user_id): void
+	{
+		# Remove the user
+		$this->sql->remove([
+			"table" => "user",
+			"id" => $user_id,
+		]);
+
+		# Remove all permissions related
+		$this->permission()->remove("user", $user_id);
+
+		# Remove roles attached to the user
+		$this->sql->remove([
+			"table" => "user_role",
+			"where" => [
+				"user_id" => $user_id,
+			],
+		]);
+	}
+
+	/**
+	 * Closes verified accounts,
+	 * if they don't have any active subscriptions
+	 * or seats.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function close(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "D")){
+			return $this->accessDenied($a);
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		# Subscriptions
+		if($subscriptions_count = $this->sql->select([
+			"count" => true,
+			"table" => "subscription",
+			"where" => [
+				"owner_id" => $user['user_id'],
+				["status", "NOT IN", ["closed", "draft"]]
+			]
+		])){
+			//if the user has active (non close or draft) subscriptions
+			$this->log->error([
+				"title" => "Active ".str::pluralise_if($subscriptions_count, "subscription", false),
+				"message" => "You have ".
+					str::pluralise_if($subscriptions_count, "subscription", true).
+					" that ".str::isAre($subscriptions_count)." still active. You cannot close your account until you've closed all subscriptions."
+			]);
+			return false;
+		}
+
+		# Seats
+		if($seats_count = $this->sql->select([
+			"count" => true,
+			"table" => "subscription_seat",
+			"where" => [
+				"user_id" => $user['user_id']
+			]
+		])){
+			//if the user has active seats
+			$this->log->error([
+				"title" => "Active ".str::pluralise_if($subscriptions_count, "seat", false),
+				"message" => "You have ".
+					str::pluralise_if($subscriptions_count, "seat", true).
+					" that ".str::isAre($subscriptions_count)." still active. You cannot close your account until you've resigned from all your seats."
+			]);
+			return false;
+		}
+
+		# Log user out (so that all cookies are removed)
+		$this->logout($a, true);
+
+		# Remove user from the database
+		$this->removeUser($user['user_id']);
+
+		$this->log->info([
+			"icon" => "power-off",
+			'title' => 'Good bye!',
+			'message' => 'You have been logged out.',
+		]);
+
+		# Set the hash to the front page
+		$this->hash->set("https://{$_ENV['domain']}");
+		
 		return true;
 	}
 
@@ -213,7 +641,7 @@ class User extends Common {
 
 	/**
 	 * Login form
-	 * Presented to the user when wanting to alert in, or when credentials have expired.
+	 * Presented to the user when wanting to log in, or when credentials have expired.
 	 *
 	 * @param null $a
 	 *
@@ -330,13 +758,40 @@ class User extends Common {
 	}
 
 	/**
+	 * This method is for elevated users only,
+	 * creating other users. For users registering,
+	 * use user//register.
+	 *
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function new(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table)){
+			return $this->accessDenied($a);
+		}
+
+		$this->output->modal($this->modal()->new($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	/**
 	 * Registering a new user.
 	 *
 	 * @param $a
 	 *
 	 * @return bool
 	 */
-	public function new($a){
+	public function register($a){
 		if(is_array($a))
 			extract($a);
 
@@ -354,7 +809,7 @@ class User extends Common {
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
-				"html" => $this->card()->new($a)
+				"html" => $this->card()->register($a)
 			]
 		]);
 
@@ -439,8 +894,112 @@ class User extends Common {
 		return true;
 	}
 
+	public function insert(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table)){
+			return $this->accessDenied($a);
+		}
+
+		# Check to see if the user has already registered (based on email alone)
+		if($status = $this->alreadyRegistered($vars['email'])){
+			//If the email is already in use
+			$this->log->warning([
+				"container" => ".modal-body",
+				"title" => "Email already in use",
+				"message" => "This email address already belongs to a registered user."
+			]);
+			return false;
+			//Email addresses must be unique
+		}
+
+		# Create a random key for the verification process
+		$key = str::uuid();
+
+		# Insert the new user, get the new user_id
+		$user_id = $this->sql->insert([
+			"table" => 'user',
+			"set" => [
+				"first_name" => $vars['first_name'],
+				"last_name" => $vars['last_name'],
+				"email" => $vars['email'],
+				"phone" => $vars['phone'],
+				"last_role" => "user",
+				"2fa_enabled" => true,
+				"key" => $key
+			],
+		]);
+
+		# Give the user permission to their own account
+		$this->permission()->set($rel_table, $user_id, "rud", $user_id);
+
+		# Create the link between the user and the user type
+		$this->sql->insert([
+			"table" => "user_role",
+			"set" => [
+				"user_id" => $user_id,
+				"rel_table" => "user",
+				"rel_id" => $user_id
+			],
+		]);
+
+		if($vars['welcome_email']){
+			//If a welcome email is to be sent
+			$a['rel_id']  = $user_id;
+			if(!$this->sendWelcomeEmail($a, true)){
+				return false;
+			}
+		}
+
+		$this->output->closeModal();
+
+		$this->hash->set([
+			"rel_table" => "user",
+			"rel_id" => $user_id
+		]);
+
+		return true;
+	}
+
 	/**
-	 * Insert new user.
+	 * Given a portion of a name, cleans it up:
+	 *  - Will error if a non-character character is found.
+	 *  - Will capitalise names where possible.
+	 *
+	 * @param string      $name
+	 * @param string|null $container
+	 *
+	 * @return bool
+	 */
+	private function cleanUpName(string &$name, ?string $container = ".card-body"): bool
+	{
+		$pattern = /** @lang PhpRegExp */"/["
+			."\x{0000}-\x{001F}" // System commands
+			."\x{0022}-\x{0026}" // "#$%&
+			."\x{0028}-\x{002C}" // ()*+,
+			."\x{002F}-\x{0040}" // /0123456789:;<=>?@
+			."\x{005B}-\x{0060}" // [\]^_`
+			."\x{007B}-\x{007F}" // {|}~
+			."\x{0080}-\x{00BF}" // System commands + Misc
+			."\x{02B0}-\x{02FF}" // Spacing Modifier Letters block
+			."\x{2012}-\x{2BFF}" // Misc non-letter symbols
+			."]+/u";
+		if(preg_match($pattern, $name)){
+			$this->log->error([
+				"container" => $container,
+				"title" => "Unusual characters detected",
+				"message" => "Unusual characters have been detected in your name. Please ensure you have written it correctly."
+			]);
+			return false;
+		}
+		$name = str::capitalise_name($name, true, true);
+		return true;
+	}
+
+	/**
+	 * Create new user.
+	 * Used when external/new user self registers.
 	 *
 	 * @param array     $a
 	 * @param bool|null $internal
@@ -448,14 +1007,14 @@ class User extends Common {
 	 * @return bool|mixed
 	 * @throws Exception
 	 */
-	public function insert(array $a, ?bool $internal = NULL)
+	public function create(array $a, ?bool $internal = NULL)
 	{
 		extract($a);
 
 		# The hash to send the user back to in case there is an error with the reCAPTCHA
 		$hash =  [
 			"rel_table" => $rel_table,
-			"action" => "new",
+			"action" => "register",
 			"vars" => $vars
 		];
 
@@ -470,6 +1029,14 @@ class User extends Common {
 		# Ensure form is complete
 		if(!$this->formComplete(["first_name","last_name","email","phone"], $vars)){
 			return false;
+		}
+
+		if(!$this->cleanUpName($vars['first_name'])){
+			return true;
+		}
+
+		if(!$this->cleanUpName($vars['last_name'])){
+			return true;
 		}
 
 		# Ensure the email address is valid
@@ -543,14 +1110,20 @@ class User extends Common {
 			],
 		]);
 
+		# Send verification email
 		$a['rel_id']  = $user_id;
-		if(!$this->sendVerificationEmail($a, true)){
-			return false;
-		}
+		$this->sendVerifyEmail($a, true);
 
 		if($internal){
 			return $user_id;
 		}
+
+		# Direct user to verification sent page
+		$this->hash->set([
+			"rel_table" => $rel_table,
+			"rel_id" => $user_id,
+			"action" => "verification_email_sent"
+		]);
 
 		return true;
 	}
@@ -599,29 +1172,26 @@ class User extends Common {
 
 	/**
 	 * Sends a verification email.
+	 * Method meant to be customer facing.
 	 *
 	 * @param array     $a Needs to include a rel_table/rel_id
-	 * @param bool|null $internal
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function sendVerificationEmail(array $a, ?bool $internal = NULL) : bool
+	public function sendVerificationEmail(array $a) : bool
 	{
 		extract($a);
 
-		if(!$internal){
-			//If this is not an internal request
-			$hash = [
-				"rel_table" => $rel_table,
-				"rel_id" => $rel_id,
-				"action" => "verification_email_sent"
-			];
+		$hash = [
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"action" => "verification_email_sent"
+		];
 
-			# Ensure reCAPTCHA is validated
-			if(!$this->validateRecaptcha($vars['recaptcha_response'], "send_verification_email", $hash)){
-				return false;
-			}
+		# Ensure reCAPTCHA is validated
+		if(!$this->validateRecaptcha($vars['recaptcha_response'], "send_verification_email", $hash)){
+			return false;
 		}
 
 		if(!$user = $this->sql->select([
@@ -637,7 +1207,7 @@ class User extends Common {
 			//if the user is already verified
 			$this->log->info([
 				"title" => "Already verified",
-				"message" => "You do not need to verify this email address again. Next time just alert in.",
+				"message" => "You do not need to verify this email address again. Next time just log in.",
 			]);
 			$this->hash->set("login");
 			return true;
@@ -645,6 +1215,7 @@ class User extends Common {
 
 		$variables = [
 			"user_id" => $rel_id,
+			"first_name" => $user['first_name'],
 			"email" => $user['email'],
 			"key" => $user['key'],
 		];
@@ -654,27 +1225,129 @@ class User extends Common {
 			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
 			->send();
 
-		if($internal) {
-			//if it's internal, meaning it's part of a process (eg. insert new user), direct them to the email sent page
-			$this->hash->set([
-				"rel_table" => $rel_table,
-				"rel_id" => $rel_id,
-				"action" => "verification_email_sent"
-			]);
-		} else {
-			//if it's not internal let the user know that a verification email has been sent
+		$this->log->success([
+			"container" => ".card-body",
+			"icon" => "envelope",
+			"title" => "Verification email sent",
+			"message" => "Verification email sent to <code>{$user['email']}</code>."
+		]);
+
+		return true;
+	}
+
+	/**
+	 * Used by either users with elevated access to (re)send the verification email
+	 * to a user, or by the user creation process.
+	 *
+	 * @param array     $a
+	 * @param bool|null $internal
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function sendVerifyEmail(array $a, ?bool $internal = NULL): bool
+	{
+		extract($a);
+
+		if(!$internal){
+			# Only elevated users can send welcome emails
+			if(!$this->permission()->get($rel_table)){
+				return $this->accessDenied($a);
+			}
+		}
+
+		if(!$user = $this->info($rel_table, $rel_id)){
+			//if the user cannot be found
+			throw new Exception("Requested user ID [<code>{$rel_id}</code>] cannot be found.");
+		}
+
+		if($user['verified'] && $user['password']){
+			//if the user is already verified (and has a password on file)
+			throw new Exception("This user has already verified their account and has a password on file. They cannot be sent a verify email.");
+		}
+
+		$variables = [
+			"user_id" => $rel_id,
+			"first_name" => $user['first_name'],
+			"email" => $user['email'],
+			"key" => $user['key'],
+		];
+
+		$email = new Email();
+		$email->template("verify_email", $variables)
+			->to([$user['email'] => "{$user['name']}"])
+			->send();
+
+		# Notify the (elevated) user (if it's NOT internal)
+		if(!$internal){
 			$this->log->success([
-				"container" => ".card-body",
 				"icon" => "envelope",
-				"title" => "Verification email sent",
-				"message" => "Verification email sent to <code>{$user['email']}</code>."
+				"title" => "Verify email sent",
+				"message" => "Verify email sent to <code>{$user['email']}</code>."
 			]);
+
+			$this->hash->set(-1);
 		}
 
 		return true;
 	}
 
-	public function sendEmailUpdateEmail(array $a): bool
+	/**
+	 * Sends a welcome email.
+	 *
+	 * @param array     $a Needs to include a rel_table/rel_id
+	 * @param bool|null $internal
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function sendWelcomeEmail(array $a) : bool
+	{
+		extract($a);
+
+		# Only elevated users can send welcome emails
+		if(!$this->permission()->get($rel_table)){
+			return $this->accessDenied($a);
+		}
+
+		if(!$user = $this->info($rel_table, $rel_id)){
+			//if the user cannot be found
+			$this->log->error("Cannot find user to send welcome email to.");
+			return false;
+		}
+
+		if($user['verified']){
+			//if the user is already verified
+			$this->log->warning([
+				"title" => "Already verified",
+				"message" => "This user has already verified their account and cannot be sent a welcome email.",
+			]);
+			return false;
+		}
+
+		$variables = [
+			"user_id" => $rel_id,
+			"email" => $user['email'],
+			"key" => $user['key'],
+		];
+
+		$email = new Email();
+		$email->template("welcome_email", $variables)
+			->to([$user['email'] => "{$user['name']}"])
+			->send();
+
+		$this->log->success([
+			"icon" => "envelope",
+			"title" => "Welcome email sent",
+			"message" => "Welcome email sent to <code>{$user['email']}</code>."
+		]);
+
+		$this->hash->set(-1);
+
+		return true;
+	}
+
+	public function sendEmailUpdateEmail(array $a, ?bool $internal = NULL): bool
 	{
 		extract($a);
 
@@ -706,29 +1379,107 @@ class User extends Common {
 			return false;
 		}
 
-		# Check to see if the password is correct, compared to the password on file
-		if (!$this->validatePassword($vars['password'], $user['password'])) {
-			$this->log->error([
+		# Ensure no other account has this address
+		if($this->sql->select([
+			"table" => "user",
+			"where" => [
+				"email" => $vars['new_email'],
+			]
+		])){
+			//if this email address is already in use with a different account
+			$this->log->warning([
 				"container" => ".modal-body",
-				"title" => 'Incorrect password',
-				"message" => 'Please ensure you have written the correct password.',
+				"reset" => true,
+				"title" => "Email already in use",
+				"message" => "This email address is already in use with another account. Account email addresses have to be unique.",
 			]);
 			return false;
 		}
 
-		# Create a random key
-		$key = str::uuid();
+		# No need to check the password if it's an internal call
+		if(!$internal){
+			# Decrypt the (password) vars
+			\App\UI\Form\Form::decryptVars($vars);
 
-		# Store the key for reference
-		if(!$this->sql->update([
-			"table" => "user",
-			"id" => $user['user_id'],
-			"set" => [
-				"key" => $key
-			]
-		])){
-			return false;
+			# Check to see if the password is correct, compared to the password on file
+			if (!$this->validatePassword($vars['password'], $user['password'])) {
+				$this->log->error([
+					"container" => ".modal-body",
+					"title" => 'Incorrect password',
+					"message" => 'Please ensure you have written the correct password.',
+				]);
+				return false;
+			}
 		}
+
+		$a['action'] = "post_update_email_emails";
+		Process::request($a);
+
+		# Closes the (top-most) modal
+		$this->output->closeModal();
+
+		if(!$internal){
+			$this->log->success([
+				"container" => ".headsup",
+				"title" => 'Email update',
+				"message" => "
+			An email is being prepared to be sent to <code>{$vars['new_email']}</code>
+			with a link to verify the email address. Only once the address has been verified
+			will it be changed. And once it's changed
+			you can start using this new address to log in to {$_ENV['title']}.",
+			]);
+		} else {
+			// Internal requests will receive different messaging
+			$this->log->success([
+				"title" => 'Email update',
+				"message" => "
+			An email is being prepared to be sent to <code>{$vars['new_email']}</code>
+			with a link to verify the email address. Only once the address has been verified
+			will it be changed. And once it's changed
+			the user can start using this new address.",
+			]);
+		}
+
+		return true;
+	}
+
+	/**
+	 * The method that actually sends the two emails about updating an account's email address.
+	 * One email will go to the current address, one will go to the new address.
+	 *
+	 * Can only be accessed via CLI, because no permissions are checked.
+	 * Placed separately to improve efficiency, as sending emails can
+	 * take several seconds each.
+	 *
+	 * Expects the $a['vars'] to contain new_email
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function postUpdateEmailEmails(array $a): bool
+	{
+
+		# This method can only be run from the command line (via the Process class)
+		if(!str::runFromCLI()){
+			throw new \Exception("This method can only be accessed from the command line.");
+		}
+
+		extract($a);
+
+		if(!$rel_id){
+			throw new Exception("No user ID received.");
+		}
+
+		if(!$vars['new_email']){
+			throw new Exception("No new email address received.");
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		# Set the user key
+		$key = $this->setKey($user['user_id']);
 
 		$variables = [
 			"user_id" => $rel_id,
@@ -749,19 +1500,39 @@ class User extends Common {
 			->to([$vars['new_email'] => "{$user['first_name']} {$user['last_name']}"])
 			->send();
 
-		# Closes the (top-most) modal
-		$this->output->closeModal();
-
+		# Inform subscription owner of email sent
 		$this->log->success([
-			"container" => ".headsup",
-			"title" => 'Update request email sent',
-			"message" => "
-			An email has been sent to <code>{$vars['new_email']}</code>
-			with a link to update your email address. Once you change it,
-			you can start using this new address to alert in to {$_ENV['title']}.",
+			"title" => "Update emails sent",
+			"message" => "A notice has been sent to <code>{$user['email']}</code> informing them that a email change request has been received, and a verification request has been sent to <code>{$vars['new_email']}</code> to verify their new address.",
 		]);
 
 		return true;
+	}
+
+	/**
+	 * Given a user ID, will update the account key and return the key.
+	 *
+	 * @param string $user_id
+	 *
+	 * @return string
+	 */
+	private function setKey(string $user_id): string
+	{
+		# Create a random key
+		$key = str::uuid();
+
+		# Store the key for reference
+		$this->sql->update([
+			"table" => "user",
+			"id" => $user_id,
+			"set" => [
+				"key" => $key
+			],
+			"user_id" => false
+			//So that this method can be run from CLI
+		]);
+
+		return $key;
 	}
 
 	/**
@@ -807,7 +1578,7 @@ class User extends Common {
 
 		$this->log->success([
 			"title" => "Email updated",
-			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to alert in from now on."
+			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to log in from now on."
 		]);
 
 		$this->hash->set("home");
@@ -859,8 +1630,8 @@ class User extends Common {
 	 */
 	public function getSessionToken()
 	{
-		# Get the user's geolocation
-		$geolocation = $this->getGeolocation();
+		# Record the user's geolocation
+		Geolocation::get();
 
 		# Get the user's user agent ID
 		$user_agent_id = $this->getUserAgentId();
@@ -873,7 +1644,7 @@ class User extends Common {
 			"table" => "connection",
 			"set" => [
 				"session_id" => session_id(),
-				"ip" => $geolocation['ip'],
+				"ip" => $_SERVER['REMOTE_ADDR'],
 				"user_agent_id" => $user_agent_id,
 				"user_id" => $user_id
 			],
@@ -939,75 +1710,6 @@ class User extends Common {
 		}
 
 		return $user_agent_id;
-	}
-
-	/**
-	 * Given an IP address,
-	 * returns geolocation details.
-	 *
-	 * Is public because, problematically, it's called from elsewhere also.
-	 * 
-	 * @param string|null $ip
-	 *
-	 * @return bool|mixed
-	 */
-	public function getGeolocation(string $ip = NULL){
-		$ip = $ip ?: $_SERVER['REMOTE_ADDR'];
-		//if an IP isn't explicitly given, use the requester's IP
-
-		# Most of the time, the data already exists
-		if($geolocation = $this->sql->select([
-			"table" => "geolocation",
-			"where" => [
-				"ip" => $ip
-			],
-			"limit" => 1
-		])){
-			return $geolocation;
-		}
-
-		# If the IP data doesn't exist, get it from ipStack, this requires a key
-		if(!$_ENV['ipstack_access_key']){
-			//if a key hasn't been set, no data can be gathered
-			return false;
-		}
-
-		$client = new \GuzzleHttp\Client([
-			"base_uri" => "http://api.ipstack.com/"
-		]);
-
-		try {
-			$response = $client->request("GET", $ip, [
-				"query" => [
-					"access_key" => $_ENV['ipstack_access_key'],
-				]
-			]);
-		}
-		catch (Exception $e) {
-			//Catch errors
-			$this->log->error($e->getMessage());
-			return false;
-		}
-
-		# Get the content as a flattened array to insert as a new row
-		$array = json_decode($response->getBody()->getContents(), true);
-
-		# Remove location as it adds complexity that we don't need right now
-		unset($array['location']);
-
-		# Flatten (don't really need this, as the data *should* be flat already)
-		$set = str::flatten($array);
-
-		if(!$this->sql->insert([
-			"table" => "geolocation",
-			"set" => $set,
-			"grow" => true,
-		])){
-			return false;
-		}
-
-		# Try again, this time the data will have been loaded
-		return $this->getGeolocation($ip);
 	}
 
 	/**
@@ -1290,6 +1992,27 @@ class User extends Common {
 			return false;
 		}
 
+		# Check to see if the user has saved a password
+		if(!$user['password']){
+			//if the user DOESN'T have a password (edge case, but could happen)
+
+			# Resend verification email
+			$this->sendVerifyEmail([
+				"rel_table" => $rel_table,
+				"rel_id" => $user['user_id']
+			], true);
+
+			# Warn/inform user
+			$this->log->warning([
+				"container" => ".card-body",
+				"title" => "No password on file",
+				"message" => "You have verified your email address, but have yet to set up a password.<br>
+				An email has been sent to you with a link to complete verification and set up a password."
+			]);
+
+			return false;
+		}
+
 		# Check to see if the password is correct, compared to the password on file
 		if (!$this->validatePassword($vars['password'], $user['password'])) {
 			$this->log->error([
@@ -1417,7 +2140,7 @@ class User extends Common {
 
 			$this->log->error([
 				"title" => 'Expired key',
-				"message" => "The two-factor authentication key you provided has expired. Please alert in again.",
+				"message" => "The two-factor authentication key you provided has expired. Please log in again.",
 			]);
 
 			$this->hash->set([
@@ -1474,7 +2197,7 @@ class User extends Common {
 
 	/**
 	 * Assigns a role to a user.
-	 * Part of the alert in process.
+	 * Part of the log in process.
 	 *
 	 * @param $user
 	 *
@@ -1606,7 +2329,7 @@ class User extends Common {
 			 * and doesn't have a password set:
 			 * It's an empty account.
 			 */
-			$this->sendVerificationEmail([
+			$this->sendVerifyEmail([
 				"rel_table" => "user",
 				"rel_id" => $user['user_id']
 			], true);
@@ -1631,7 +2354,7 @@ class User extends Common {
 
 		# If an existing user (with an existing password) is verifying a new email address
 		if($user['password']){
-			$this->log->success("Your new email address has been verified, thanks. From now on, please use <b>{$user['email']}</b> to alert in.");
+			$this->log->success("Your new email address has been verified, thanks. From now on, please use <b>{$user['email']}</b> to log in.");
 			$this->hash->set([
 				"rel_table" => "user",
 				"action" => "login",
@@ -1642,6 +2365,25 @@ class User extends Common {
 			return true;
 		}
 
+		# The narrative for the new password card
+		return $this->newPasswordPage($a, "
+			<p>Thank you for verifying your email address.<br/>
+			Please enter a new password for your account.</p>
+		");
+	}
+
+	/**
+	 * The form for a new password.
+	 * Needs a narrative, which in turn will prevent direct access.
+	 *
+	 * @param array  $a
+	 * @param string $narrative
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function newPasswordPage(array $a, string $narrative): bool
+	{
 		$page = new Page();
 
 		$page->setGrid([
@@ -1652,7 +2394,7 @@ class User extends Common {
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
-				"html" => $this->card()->newPassword($a)
+				"html" => $this->card()->newPassword($a, $narrative)
 			]
 		]);
 
@@ -1665,7 +2407,7 @@ class User extends Common {
 	{
 		extract($a);
 
-		# Ensure both the user ID and the key hsa been sent
+		# Ensure both the user ID and the key has been sent
 		if(!$rel_id || !$vars['key']){
 			$this->log->error([
 				"container" => "#ui-view",
@@ -1699,23 +2441,7 @@ class User extends Common {
 			return false;
 		}
 
-		$page = new Page();
-
-		$page->setGrid([
-			"row_class" => "justify-content-md-center",
-			"row_style" => [
-				"height" => "85% !important"
-			],
-			"html" => [
-				"sm" => 4,
-				"class" => "fixed-width-column",
-				"html" => $this->card()->newPassword($a)
-			]
-		]);
-
-		$this->output->html($page->getHTML());
-
-		return true;
+		return $this->newPasswordPage($a, "Thank you for verifying your account. Please enter a new password.");
 	}
 
 	/**
@@ -1777,21 +2503,34 @@ class User extends Common {
 			"user_id" => $rel_id,
 		]);
 
+		# Store the hash
+		$this->hash->set([
+			"rel_table" => "user",
+			"action" => "login",
+			"vars" => [
+				"email" => $email,
+				"callback" => $vars['callback']
+			]
+		]);
+
+		# But make the switch silent
+		$this->hash->silent();
+
+		# Set the message
 		$this->log->success([
+			"container" => ".card-body",
 			"icon" => "lock",
 			"title" => "New password saved",
 			"message" => "Your new password has been saved. Give it a try!"
 		]);
 
-		$this->hash->set([
-			"rel_table" => "user",
-			"action" => "login",
+		# Ask the user to log in before sending them to an (optional) callback
+		return $this->user->login([
 			"vars" => [
-				"email" => $email
+				"email" => $email,
+				"callback" => $vars['callback']
 			]
 		]);
-
-		return true;
 	}
 
 	/**
@@ -2030,7 +2769,7 @@ class User extends Common {
 
 	/**
 	 * Checks to see whether the user is logged in or not.
-	 * If not logged in, assumes they need to alert in before accessing the resource.
+	 * If not logged in, assumes they need to log in before accessing the resource.
 	 * If logged in, assumes they do not have access to the resource.
 	 *
 	 * Should only be used as a last resort if the user is logged in.
@@ -2056,7 +2795,7 @@ class User extends Common {
 		$this->log->warning([
 			"icon" => "lock-alt",
 			"title" => 'Credentials required',
-			"message" => 'Please alert in to continue.',
+			"message" => 'Please log in to continue.',
 		]);
 
 		$this->hash->set([

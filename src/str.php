@@ -8,52 +8,53 @@ use App\UI\Icon;
 
 /**
  * Static class related mainly to string manipulation.
- *
  * <code>
  * str::
  * </code>
  * or
- *
  * <code>
  * $this->str->
  * </code>
- *
  * @package App\Common
  */
 class str {
 	/**
 	 * The below code is just here so that str can be used in HEREDOCs by writing
 	 * $this->str->method() instead of str::method(), which wont work.
-	 *
 	 * Can now be pulled in locally so that $this->str->method() can be used.
 	 * @link https://stackoverflow.com/questions/8773236/proper-way-to-access-a-static-variable-inside-a-string-with-a-heredoc-syntax/
-	 *
-	 *
 	 * @var bool
 	 */
 	private $str;
-	private static $instance = null;
+	private static $instance = NULL;
 
 	/**
 	 * The constructor is private so that the class
 	 * can be run in static mode.
-	 *
 	 * Cloning and wakeup are also set to private to prevent
 	 * cloning and unserialising of the Hash() object.
 	 */
-	private function __construct() {
+	private function __construct()
+	{
 		$this->str = false;
 	}
-	private function __clone() {}
-	private function __wakeup() {}
+
+	private function __clone()
+	{
+	}
+
+	private function __wakeup()
+	{
+	}
 
 	/**
 	 * @return str|null
 	 */
-	public static function getInstance() {
+	public static function getInstance()
+	{
 
 		// Check if instance is already exists
-		if(self::$instance == null) {
+		if(self::$instance == NULL){
 			self::$instance = new str();
 		}
 
@@ -81,7 +82,7 @@ class str {
 		"BK",
 		"MA",
 		"SEIS",
-		"LLP"
+		"LLP",
 	];
 
 	/**
@@ -100,8 +101,8 @@ class str {
 
 	/**
 	 * Standardizes the capitalization on people's names and the titles of reports and essays.
-	 *
-	 * You may need to adapt the lists in "$all_uppercase" and "$all_lowercase" to suit the data that you are working with.
+	 * You may need to adapt the lists in "$all_uppercase" and "$all_lowercase" to suit the data that you are working
+	 * with.
 	 *
 	 * @param      $str
 	 * @param bool $is_name
@@ -110,31 +111,32 @@ class str {
 	 * @return mixed
 	 * @link http://www.php.net/manual/en/function.ucwords.php#60064
 	 */
-	static function capitalise_name($str, $is_name = false, $all_words = false) {
+	static function capitalise_name($str, $is_name = false, $all_words = false)
+	{
 		if(is_array($str)){
-//			var_dump($str);exit;
+			//			var_dump($str);exit;
 			return $str;
 			//TODO Fix this
 		}
 		// exceptions to standard case conversion
-		if ($is_name) {
+		if($is_name){
 			$all_uppercase = 'MD';
 			$all_lowercase = 'De La|De Las|Der|Van De|Van Der|Vit De|Von|Or|And|D|Del';
-			$str = preg_replace_callback("/\\b(\\w)/u", function ($matches) {
+			$str = preg_replace_callback("/\\b(\\w)/u", function($matches){
 				return strtoupper($matches[1]);
 			}, strtolower(trim($str)));
-		} else if (!$all_words){
+		} else if(!$all_words){
 			//if only the first word is to be capitalised
-			$str_array = explode(" ",$str);
+			$str_array = explode(" ", $str);
 			$first_word = array_shift($str_array);
 			$str = ucfirst(strtolower(trim($str)));
 			if(is_array(self::ALL_UPPERCASE)){
 				$all_uppercase = '';
 				foreach(self::ALL_UPPERCASE as $uc){
 					if($first_word == strtolower($uc)){
-						$str = strtoupper($first_word)." ".implode(" ",$str_array);
+						$str = strtoupper($first_word) . " " . implode(" ", $str_array);
 					}
-					$all_uppercase .= strtolower($uc).'|';
+					$all_uppercase .= strtolower($uc) . '|';
 					//set them all to lowercase
 				}
 			}
@@ -142,9 +144,9 @@ class str {
 				$all_lowercase = '';
 				foreach(self::ALL_LOWERCASE as $uc){
 					if($first_word == strtolower($uc)){
-						$str = strtolower($first_word)." ".implode(" ",$str_array);
+						$str = strtolower($first_word) . " " . implode(" ", $str_array);
 					}
-					$all_lowercase .= strtolower($uc).'|';
+					$all_lowercase .= strtolower($uc) . '|';
 					//set them all to lowercase
 				}
 			}
@@ -152,17 +154,17 @@ class str {
 			// addresses, essay titles ... and anything else
 			if(is_array(self::ALL_UPPERCASE)){
 				foreach(self::ALL_UPPERCASE as $uc){
-					$all_uppercase .= ucfirst(strtolower($uc)).'|';
+					$all_uppercase .= ucfirst(strtolower($uc)) . '|';
 				}
 			}
 			if(is_array(self::ALL_LOWERCASE)){
 				foreach(self::ALL_LOWERCASE as $uc){
-					$all_lowercase .= ucfirst($uc).'|';
+					$all_lowercase .= ucfirst($uc) . '|';
 				}
 			}
 			// captialize all first letters
 			//$str = preg_replace('/\\b(\\w)/e', 'strtoupper("$1")', strtolower(trim($str)));
-			$str = preg_replace_callback("/\\b(\\w)/u", function ($matches) {
+			$str = preg_replace_callback("/\\b(\\w)/u", function($matches){
 				return strtoupper($matches[1]);
 			}, strtolower(trim($str)));
 		}
@@ -170,41 +172,41 @@ class str {
 		$prefixes = "Mc";
 		$suffixes = "'S";
 
-		if ($all_uppercase) {
+		if($all_uppercase){
 			// capitalize acronymns and initialisms e.g. PHP
 			//$str = preg_replace("/\\b($all_uppercase)\\b/e", 'strtoupper("$1")', $str);
-			$str = preg_replace_callback("/\\b($all_uppercase)\\b/u", function ($matches) {
+			$str = preg_replace_callback("/\\b($all_uppercase)\\b/u", function($matches){
 				return strtoupper($matches[1]);
 			}, $str);
 		}
-		if ($all_lowercase) {
+		if($all_lowercase){
 			// decapitalize short words e.g. and
-			if ($is_name) {
+			if($is_name){
 				// all occurences will be changed to lowercase
 				//$str = preg_replace("/\\b($all_lowercase)\\b/e", 'strtolower("$1")', $str);
-				$str = preg_replace_callback("/\\b($all_lowercase)\\b/u", function ($matches) {
+				$str = preg_replace_callback("/\\b($all_lowercase)\\b/u", function($matches){
 					return strtolower($matches[1]);
 				}, $str);
 			} else {
 				// first and last word will not be changed to lower case (i.e. titles)
 				//$str = preg_replace("/(?<=\\W)($all_lowercase)(?=\\W)/e", 'strtolower("$1")', $str);
-				$str = preg_replace_callback("/(?<=\\W)($all_lowercase)(?=\\W)/u", function ($matches) {
+				$str = preg_replace_callback("/(?<=\\W)($all_lowercase)(?=\\W)/u", function($matches){
 					return strtolower($matches[1]);
 				}, $str);
 			}
 		}
-		if ($prefixes) {
+		if($prefixes){
 			// capitalize letter after certain name prefixes e.g 'Mc'
 			//$str = preg_replace("/\\b($prefixes)(\\w)/e", '"$1".strtoupper("$2")', $str);
-			$str = preg_replace_callback("/\\b($prefixes)(\\w)/u", function ($matches) {
-				return "${matches[1]}".strtoupper($matches[2]);
+			$str = preg_replace_callback("/\\b($prefixes)(\\w)/u", function($matches){
+				return "${matches[1]}" . strtoupper($matches[2]);
 			}, $str);
 		}
-		if ($suffixes) {
+		if($suffixes){
 			// decapitalize certain word suffixes e.g. 's
 			//$str = preg_replace("/(\\w)($suffixes)\\b/e", '"$1".strtolower("$2")', $str);
-			$str = preg_replace_callback("/(\\w)($suffixes)\\b/u", function ($matches) {
-				return "${matches[1]}".strtolower($matches[2]);
+			$str = preg_replace_callback("/(\\w)($suffixes)\\b/u", function($matches){
+				return "${matches[1]}" . strtolower($matches[2]);
 			}, $str);
 		}
 		return $str;
@@ -217,12 +219,15 @@ class str {
 	 * str::title("name",true);
 	 * str::title("not only first word",false,true);
 	 * </code>
+	 *
 	 * @param      $string
 	 * @param bool $is_name
 	 * @param bool $all_words
+	 *
 	 * @return mixed
 	 */
-	static function title($string, $is_name = false, $all_words = false){
+	static function title($string, $is_name = false, $all_words = false)
+	{
 		return self::capitalise_name(str_replace("_", " ", $string), $is_name, $all_words);
 	}
 
@@ -231,13 +236,49 @@ class str {
 	 * suffixed with the % sign.
 	 *
 	 * @param     $int_fraction float
-	 * @param int $decimals int The number of decimal points to include
+	 * @param int $decimals     int The number of decimal points to include
 	 *
 	 * @return string
 	 */
-	static function percent($int_fraction, $decimals = 0){
+	static function percent($int_fraction, $decimals = 0)
+	{
 		$int = round($int_fraction * 100, $decimals);
 		return "{$int}%";
+	}
+
+	/**
+	 * Given a set of keys, traverses the array,
+	 * looks for those keys, and if they're orphans,
+	 * flattens them.
+	 *
+	 * By flatten is meant to remove the numerical level of a child array:
+	 * <code>
+	 * $array['parent'][0]['child'] > $array['parent']['child']
+	 * </code>
+	 *
+	 * @param array $array An array potentially containing numerical array children.
+	 * @param array $keys A list of keys, if children are orphaned numerical arrays, to be flattened.
+	 *
+	 * @return array
+	 */
+	public static function flattenSingleChildren(array $array, array $keys): array
+	{
+		foreach($array as $key => $val){
+			# We're not interested in non-array values
+			if(!is_array($val)){
+				continue;
+			}
+
+			# Flatten keys in scope (that only have 1 child anyway)
+			if(str::isNumericArray($val) && in_array($key, $keys) && count($val) == 1){
+				$val = reset($val);
+			}
+
+			# Go deeper
+			$array[$key] = str::flattenSingleChildren($val, $keys);
+
+		}
+		return $array;
 	}
 
 	/**
@@ -246,16 +287,18 @@ class str {
 	 * [3176] whitelabel.php->load_ajax_call([{}]);
 	 * [  28] error_log.php->unresolved([{}]);
 	 * </code>
-	 *
 	 * Just by running this line at whichever point the backtrace is required
 	 * <code>str::backtrace();</code>
+	 *
 	 * @param null $return
+	 *
 	 * @return string
 	 */
-	static function backtrace($return = NULL){
+	static function backtrace($return = NULL)
+	{
 		$steps = [];
-		array_walk(debug_backtrace(), function($a) use (&$steps) {
-			$steps[] = "{$a['function']}(".json_encode($a['args']).");\r\n[".str_pad($a['line'],4, " ", STR_PAD_LEFT)."] ".basename($a['file'])."->";
+		array_walk(debug_backtrace(), function($a) use (&$steps){
+			$steps[] = "{$a['function']}(" . json_encode($a['args']) . ");\r\n[" . str_pad($a['line'], 4, " ", STR_PAD_LEFT) . "] " . basename($a['file']) . "->";
 		});
 
 		# Fix is so that the functions and filenames are aligned correctly
@@ -275,28 +318,28 @@ class str {
 		exit;
 	}
 
-//	/**
-//	 * Backtraces the function and gives dumps the trail
-//	 * <code>
-//	 * str::trace();
-//	 * </code>
-//	 * @return mixed
-//	 */
-//	static function trace(){
-////		array_walk(debug_backtrace(),create_function('$a,$b','print "{$a[\'function\']}()(".basename($a[\'file\']).":{$a[\'line\']});\r\n";'));
-//		array_walk(debug_backtrace(),function($a){
-//			print "{$a['function']}()(".basename($a['file']).":{$a['line']});\r\n";
-//		});
-//		exit;
-//	}
+	//	/**
+	//	 * Backtraces the function and gives dumps the trail
+	//	 * <code>
+	//	 * str::trace();
+	//	 * </code>
+	//	 * @return mixed
+	//	 */
+	//	static function trace(){
+	////		array_walk(debug_backtrace(),create_function('$a,$b','print "{$a[\'function\']}()(".basename($a[\'file\']).":{$a[\'line\']});\r\n";'));
+	//		array_walk(debug_backtrace(),function($a){
+	//			print "{$a['function']}()(".basename($a['file']).":{$a['line']});\r\n";
+	//		});
+	//		exit;
+	//	}
 
 	/**
 	 * Returns TRUE if script is run from the command line (CLI),
 	 * or false if it's run from a browser (http).
-	 *
 	 * @return bool
 	 */
-	static function runFromCLI(){
+	static function runFromCLI()
+	{
 		return (PHP_SAPI == "cli");
 	}
 
@@ -304,13 +347,10 @@ class str {
 	 * Formats strings and ensures that they won't break SQL.
 	 * If a string is not a float, int or string,
 	 * it will be outright rejected.
-	 *
 	 * <code>
 	 * str::i($string);
 	 * </code>
-	 *
 	 * or if HTML is accepted
-	 *
 	 * <code>
 	 * str::i($html_string, TRUE);
 	 * </code>
@@ -320,7 +360,8 @@ class str {
 	 *
 	 * @return mixed|string
 	 */
-	public static function i($i, $html_accepted = NULL){
+	public static function i($i, $html_accepted = NULL)
+	{
 		# We don't really care about stuff that looks like numbers
 		if(is_numeric($i)){
 			return $i;
@@ -355,33 +396,34 @@ class str {
 
 	/**
 	 * Checks to see if an email address is valid
-	 *
-	 * 	<code>str::isValidEmail($email);<code>
+	 *    <code>str::isValidEmail($email);<code>
 	 *
 	 * @param string $email email@address.com
+	 *
 	 * @return boolean returns the email address on true or false on failure
 	 * @link: https://github.com/egulias/EmailValidator
 	 */
-	public static function isValidEmail($email){
+	public static function isValidEmail($email)
+	{
 		$validator = new \Egulias\EmailValidator\EmailValidator();
 		$multipleValidations = new \Egulias\EmailValidator\Validation\MultipleValidationWithAnd([
 			new \Egulias\EmailValidator\Validation\RFCValidation(),
-			new \Egulias\EmailValidator\Validation\DNSCheckValidation()
+			new \Egulias\EmailValidator\Validation\DNSCheckValidation(),
 		]);
 		return $validator->isValid($email, $multipleValidations);
 	}
 
 	/**
 	 * Validates a phone number.
-	 *
 	 * TODO Expand to include fixing/adding country codes etc.
 	 *
 	 * @param $number
 	 *
 	 * @return bool
 	 */
-	public static function isValidPhoneNumber($number){
-		$number = preg_replace("/[^0-9+]/","",$number);
+	public static function isValidPhoneNumber($number)
+	{
+		$number = preg_replace("/[^0-9+]/", "", $number);
 		if(strlen($number) < self::MINIMUM_PHONE_NUMBER_LENGTH){
 			return false;
 		}
@@ -395,12 +437,13 @@ class str {
 	 *
 	 * @return array|float|int|string
 	 */
-	public static function mysql_escape_mimic($inp) {
+	public static function mysql_escape_mimic($inp)
+	{
 		if(is_array($inp))
 			return array_map(__METHOD__, $inp);
 
-		if(!empty($inp) && is_string($inp)) {
-			return str_replace(array('\\', "'", '"', "\x1a"), array('\\\\', "\\'", '\\"', '\\Z'), $inp);
+		if(!empty($inp) && is_string($inp)){
+			return str_replace(['\\', "'", '"', "\x1a"], ['\\\\', "\\'", '\\"', '\\Z'], $inp);
 		}
 
 		return $inp;
@@ -428,7 +471,6 @@ class str {
 	 * Checks to see if a given method is available in the current scope.
 	 * And if that method is PUBLIC. Protected and private methods
 	 * are protected from outside execution via the load_ajax_call() call.
-	 *
 	 * If the modifier is set, it will accept any methods set at that modifier or lower:
 	 * <code>
 	 * private
@@ -438,12 +480,12 @@ class str {
 	 *
 	 * @param object $class
 	 * @param string $method
-	 *
 	 * @param string $modifier The minimum accepted modifier level. (Default: public)
+	 *
 	 * @return bool
 	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
 	 */
-	public static function methodAvailable(object $class, string $method, $modifier = "public") : bool
+	public static function methodAvailable(object $class, string $method, $modifier = "public"): bool
 	{
 		if(!$class || !$method){
 			return false;
@@ -455,26 +497,24 @@ class str {
 
 		try {
 			$reflection = new \ReflectionMethod($class, $method);
-		}
-
-		catch (\ReflectionException $e){
+		} catch(\ReflectionException $e) {
 			return false;
 		}
 
-		switch($modifier){
+		switch($modifier) {
 		case 'private':
-			if (!$reflection->isPrivate() && !$reflection->isProtected() && !$reflection->isPublic()) {
+			if(!$reflection->isPrivate() && !$reflection->isProtected() && !$reflection->isPublic()){
 				return false;
 			}
 			break;
 		case 'protected':
-			if (!$reflection->isProtected() && !$reflection->isPublic()) {
+			if(!$reflection->isProtected() && !$reflection->isPublic()){
 				return false;
 			}
 			break;
 		case 'public':
 		default:
-			if (!$reflection->isPublic()) {
+			if(!$reflection->isPublic()){
 				return false;
 			}
 			break;
@@ -491,7 +531,7 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function getClassesFromPath(string $path) : array
+	public static function getClassesFromPath(string $path): array
 	{
 		$finder = new \Symfony\Component\Finder\Finder;
 		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder->in($path));
@@ -502,7 +542,6 @@ class str {
 	 * Given a class name (with its namespace),
 	 * return an array of all the methods that
 	 * qualify the modifier.
-	 *
 	 * This depends on the root namespaces being in the composer.json
 	 * and that the `composer update autoload` command has been run.
 	 *
@@ -511,12 +550,12 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC") : array
+	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC"): array
 	{
 		$modifier = strtoupper($modifier);
-		$cmd  = "go(function(){";
+		$cmd = "go(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
-		$cmd .= "\$class = new \ReflectionClass(\"".str_replace("\\","\\\\",$class)."\");";
+		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
 		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
 		$cmd .= "});";
 
@@ -524,7 +563,7 @@ class str {
 		$json_output = shell_exec("php -r '{$cmd}' 2>&1");
 
 		# Return false if no methods matching are found
-		if(!$array = json_decode($json_output,true)) {
+		if(!$array = json_decode($json_output, true)){
 			return [];
 		}
 
@@ -535,7 +574,7 @@ class str {
 			}
 
 			# We're not interested in magic methods
-			if(substr($method['name'],0,2) == "__"){
+			if(substr($method['name'], 0, 2) == "__"){
 				continue;
 			}
 
@@ -554,31 +593,33 @@ class str {
 	 * @return string
 	 * @return string
 	 */
-	public static function getMethodCase($snake){
+	public static function getMethodCase($snake)
+	{
 		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
 	}
 
 	/**
 	 * Given a rel_table, and an optional parent_class, find a class
 	 *
-	 * @param string      $rel_table The class you're looking for
+	 * @param string      $rel_table    The class you're looking for
 	 * @param string|null $parent_class The parent class if it's different from the class itself
 	 *
 	 * @return bool|string Returns the class with path or FALSE if it can't find it
 	 */
-	public static function findClass(string $rel_table, ?string $parent_class = NULL){
+	public static function findClass(string $rel_table, ?string $parent_class = NULL)
+	{
 		# An optional parent class can be supplied
 		$parent_class = $parent_class ?: $rel_table;
 
 		# Does an App path exist?
 		$corePath = str::getClassCase("\\App\\{$parent_class}\\{$rel_table}");
-		if(class_exists($corePath)) {
+		if(class_exists($corePath)){
 			return $corePath;
 		}
 
 		# Does a Common path exist?
 		$commonPath = str::getClassCase("\\App\\Common\\{$parent_class}\\{$rel_table}");
-		if(class_exists($commonPath)) {
+		if(class_exists($commonPath)){
 			return $commonPath;
 		}
 
@@ -595,7 +636,8 @@ class str {
 	 * @return string|string[]
 	 * @return string|string[]
 	 */
-	public static function getClassCase($snake){
+	public static function getClassCase($snake)
+	{
 		return str_replace("_", "", ucwords($snake, "_\\"));
 	}
 
@@ -604,10 +646,11 @@ class str {
 	 *
 	 * @param string $string
 	 * @param string $us
-	 * @link https://stackoverflow.com/a/40514305/429071
+	 *
 	 * @return string
+	 * @link https://stackoverflow.com/a/40514305/429071
 	 */
-	public static function camelToSnakeCase (string $string, string $us = "_"): string
+	public static function camelToSnakeCase(string $string, string $us = "_"): string
 	{
 		return strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string));
@@ -676,11 +719,13 @@ class str {
 	 *   }
 	 * }
 	 * </code>
+	 *
 	 * @param null $ip
 	 *
 	 * @return bool|mixed
 	 */
-	public static function ip($ip = NULL){
+	public static function ip($ip = NULL)
+	{
 		if(!$_ENV['ipstack_access_key']){
 			//if a key hasn't been set, ignore this
 			return false;
@@ -689,17 +734,16 @@ class str {
 		//if an IP isn't explicitly given, use the requester's IP
 
 		$client = new \GuzzleHttp\Client([
-			"base_uri" => "http://api.ipstack.com/"
+			"base_uri" => "http://api.ipstack.com/",
 		]);
 
 		try {
 			$response = $client->request("GET", $ip, [
 				"query" => [
 					"access_key" => $_ENV['ipstack_access_key'],
-				]
+				],
 			]);
-		}
-		catch (\Exception $e) {
+		} catch(\Exception $e) {
 			//Catch errors
 			return false;
 		}
@@ -720,14 +764,14 @@ class str {
 	public static function generateChecksum(array $a): int
 	{
 		array_multisort($a);
-		return crc32(implode("",str::flatten($a)));
+		return crc32(implode("", str::flatten($a)));
 	}
 
 	/**
 	 * Given an array of data and its checksum,
 	 * compare it and return the results.
 	 *
-	 * @param array  $a Array of data
+	 * @param array  $a        Array of data
 	 * @param string $checksum Checksum belonging to the data
 	 *
 	 * @return bool Returns TRUE if the data is complete, FALSE if not.
@@ -738,11 +782,9 @@ class str {
 	}
 
 
-
 	/**
 	 * Given an array of rel_table/id and action, and an array of vars,
 	 * creates a hash string and returns it.
-	 *
 	 * Crucually, the string is not prefixed with a slash.
 	 *
 	 * @param array $array
@@ -750,7 +792,8 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function generate_uri($array, $urlencoded = NULL){
+	static function generate_uri($array, $urlencoded = NULL)
+	{
 
 		# If an array is given (most common)
 		if(is_array($array)){
@@ -765,7 +808,7 @@ class str {
 		}
 
 		# If a string is given (less common)
-		if (is_string($array)){
+		if(is_string($array)){
 			$hash = $array;
 		}
 
@@ -775,7 +818,7 @@ class str {
 			if(is_array($vars['callback'])){
 				$vars['callback'] = str::generate_uri($vars['callback'], true);
 			}
-			if (count($vars) == count($vars, COUNT_RECURSIVE)){
+			if(count($vars) == count($vars, COUNT_RECURSIVE)){
 				//if the vars array is NOT multi-dimensional
 				foreach($vars as $key => $val){
 					if($val === NULL){
@@ -786,7 +829,7 @@ class str {
 				}
 			} else {
 				//if the vars array _is_ multidimensional
-				$hash .= "/".json_encode($vars);
+				$hash .= "/" . json_encode($vars);
 				//Encode the entire vars array as a JSON string
 			}
 			/**
@@ -795,7 +838,6 @@ class str {
 			 * fit into the key/val/.../key/val structure of the
 			 * URI string, and any second and n-level key values would
 			 * be lost.
-			 *
 			 * Instead, the entire multidimensional array is stored
 			 * as a string and converted back to an array by the
 			 * hashChange() method in Javascript.
@@ -808,28 +850,28 @@ class str {
 
 	/**
 	 * Safe URL encoding.
-	 *
 	 * Only URL encodes if the string needs it, or hasn't already been encoded.
 	 *
 	 * @param $str
 	 *
 	 * @return string
 	 */
-	static function urlencode($str){
-		return strpos($str,'/') !== false ? urlencode($str) : $str;
+	static function urlencode($str)
+	{
+		return strpos($str, '/') !== false ? urlencode($str) : $str;
 	}
 
 	/**
 	 * URL decodes a variable. That variable
 	 * could be an array with key-val pairs.
-	 *
 	 * All the vals will be urldecoded.
 	 *
 	 * @param $a
 	 *
 	 * @return array|string
 	 */
-	static function urldecode($a){
+	static function urldecode($a)
+	{
 		if(!$a){
 			return $a;
 		}
@@ -847,7 +889,6 @@ class str {
 
 	/**
 	 * Given a url + optional key/vals, generate a URL.
-	 *
 	 * Not to confused with a hash URI.
 	 *
 	 * @param $url
@@ -855,7 +896,8 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function generate_url($url, $hash_array = NULL){
+	static function generate_url($url, $hash_array = NULL)
+	{
 		if(is_array($hash_array)){
 			$url .= "?";
 			foreach($hash_array as $key => $val){
@@ -875,11 +917,12 @@ class str {
 	 *
 	 * @return array|bool
 	 */
-	static function explode($delimiters, $string){
+	static function explode($delimiters, $string)
+	{
 		if(!is_array(($delimiters)) && !is_array($string)){
 			//if neither the delimiter nor the string are arrays
-			return explode($delimiters,$string);
-		} else if(!is_array($delimiters) && is_array($string)) {
+			return explode($delimiters, $string);
+		} else if(!is_array($delimiters) && is_array($string)){
 			//if the delimiter is not an array but the string is
 			foreach($string as $item){
 				foreach(explode($delimiters, $item) as $sub_item){
@@ -887,7 +930,7 @@ class str {
 				}
 			}
 			return $items;
-		} else if(is_array($delimiters) && !is_array($string)) {
+		} else if(is_array($delimiters) && !is_array($string)){
 			//if the delimiter is an array but the string is not
 			$string_array[] = $string;
 			foreach($delimiters as $delimiter){
@@ -900,6 +943,7 @@ class str {
 
 	/**
 	 * Searches an array of needles in a string haystack
+	 *
 	 * @param string $haystack
 	 * @param array  $needle
 	 * @param int    $offset
@@ -907,10 +951,13 @@ class str {
 	 * @return bool
 	 * @link http://stackoverflow.com/questions/6284553/using-an-array-as-needles-in-strpos
 	 */
-	public static function strposa($haystack, $needle, $offset=0) {
-		if(!is_array($needle)) $needle = array($needle);
-		foreach($needle as $query) {
-			if(strpos($haystack, $query, $offset) !== false) return true; // stop on first true result
+	public static function strposa($haystack, $needle, $offset = 0)
+	{
+		if(!is_array($needle))
+			$needle = [$needle];
+		foreach($needle as $query){
+			if(strpos($haystack, $query, $offset) !== false)
+				return true; // stop on first true result
 		}
 		return false;
 	}
@@ -921,21 +968,22 @@ class str {
 	 * @param string $needle
 	 * @param string $replace
 	 * @param string $haystack
-	 * @param bool $last if set to TRUE, will replace the *LAST* instance,
-	 *                   instead of the default first
+	 * @param bool   $last if set to TRUE, will replace the *LAST* instance,
+	 *                     instead of the default first
 	 *
 	 * @return mixed
-	 *@link https://stackoverflow.com/a/1252710/429071
+	 * @link https://stackoverflow.com/a/1252710/429071
 	 */
-	static function str_replace_once($needle, $replace, $haystack, $last = NULL){
-		if ($last){
-			$pos = strrpos($haystack,$needle);
+	static function str_replace_once($needle, $replace, $haystack, $last = NULL)
+	{
+		if($last){
+			$pos = strrpos($haystack, $needle);
 		} else {
-			$pos = strpos($haystack,$needle);
+			$pos = strpos($haystack, $needle);
 		}
 
-		if ($pos !== false) {
-			return substr_replace($haystack,$replace,$pos,strlen($needle));
+		if($pos !== false){
+			return substr_replace($haystack, $replace, $pos, strlen($needle));
 		}
 
 		return $haystack;
@@ -946,13 +994,14 @@ class str {
 	 * returns the corresponding value in B-TB,
 	 * with suffix.
 	 *
-	 * @param int $bytes A number of bytes
+	 * @param int $bytes     A number of bytes
 	 * @param int $precision How precise to represent the number
 	 *
 	 * @return string
 	 */
-	static function bytes($bytes, $precision = 2) {
-		$units = array('B', 'KB', 'MB', 'GB', 'TB');
+	static function bytes($bytes, $precision = 2)
+	{
+		$units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
 		$bytes = max($bytes, 0);
 		$pow = floor(($bytes ? log($bytes) : 0) / log(1024));
@@ -971,7 +1020,8 @@ class str {
 	 *
 	 * @return bool|string
 	 */
-	static function getScriptTag($script){
+	static function getScriptTag($script)
+	{
 		if(!$script){
 			return false;
 		}
@@ -990,11 +1040,12 @@ class str {
 	 *
 	 * @return int
 	 */
-	static function get_array_depth($array) {
+	static function get_array_depth($array)
+	{
 		$depth = 0;
 		$iteIte = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($array));
 
-		foreach ($iteIte as $ite) {
+		foreach($iteIte as $ite){
 			$d = $iteIte->getDepth();
 			$depth = $d > $depth ? $d : $depth;
 		}
@@ -1005,13 +1056,16 @@ class str {
 	/**
 	 * Returns an array of (attribute) values.
 	 *
-	 * @param array|string|bool $attr An array or string of values to be added to the attribute. If set to false, will override $defaults.
-	 * @param array|string $defaults The default values of the attribute.
-	 * @param array|string $only_attr If set, will override both $attr and $defaults, this includes if it's set to false.
+	 * @param array|string|bool $attr      An array or string of values to be added to the attribute. If set to false,
+	 *                                     will override $defaults.
+	 * @param array|string      $defaults  The default values of the attribute.
+	 * @param array|string      $only_attr If set, will override both $attr and $defaults, this includes if it's set to
+	 *                                     false.
 	 *
 	 * @return array|null
 	 */
-	static function getAttrArray($attr = NULL, $defaults = NULL, $only_attr = NULL){
+	static function getAttrArray($attr = NULL, $defaults = NULL, $only_attr = NULL)
+	{
 		if($only_attr === false){
 			return [];
 		}
@@ -1021,8 +1075,8 @@ class str {
 		}
 
 		return array_merge(
-			is_array($defaults)	? $defaults	: [$defaults],
-			is_array($attr) 		? $attr 	: [$attr]
+			is_array($defaults) ? $defaults : [$defaults],
+			is_array($attr) ? $attr : [$attr]
 		);
 	}
 
@@ -1032,19 +1086,23 @@ class str {
 	 * <code>
 	 * key="value"
 	 * </code>
-	 * @param      $attr
-	 * @param mixed $val Can be a string, can be an array
-	 * @param null $if_null Replacement value if the $val variable is empty (string length = 0)
+	 *
+	 * @param       $attr
+	 * @param mixed $val     Can be a string, can be an array
+	 * @param null  $if_null Replacement value if the $val variable is empty (string length = 0)
 	 *
 	 * @return bool|string
 	 */
-	static function getAttrTag($attr, $val, $if_null = NULL){
+	static function getAttrTag($attr, $val, $if_null = NULL)
+	{
 		if(is_array($val)){
 			$val_array = $val;
 			unset($val);
 			if(str::isNumericArray($val_array)){
 				//if keys don't matter
-				array_walk_recursive($val_array, function($a) use (&$flat_val_array) { $flat_val_array[] = $a; });
+				array_walk_recursive($val_array, function($a) use (&$flat_val_array){
+					$flat_val_array[] = $a;
+				});
 				//flatten the potentially multidimensional array
 				$val = implode(" ", array_unique(array_filter($flat_val_array)));
 				//remove empty and duplicate values, and then translate the array to a string
@@ -1057,7 +1115,7 @@ class str {
 						}
 					} else {
 						if($k && $v){
-							$val .= "{$k}:{$v};";	
+							$val .= "{$k}:{$v};";
 						}
 					}
 				}
@@ -1109,10 +1167,11 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function id($prefix = NULL){
+	public static function id($prefix = NULL)
+	{
 		$prefix = $prefix ?: "id";
 		$prefix = preg_replace("/[^A-Za-z0-9]/", '_', $prefix);
-		return "{$prefix}_".rand();
+		return "{$prefix}_" . rand();
 	}
 
 	/**
@@ -1121,29 +1180,30 @@ class str {
 	 * 1ee9aa1b-6510-4105-92b9-7171bb2f3089
 	 * </code>
 	 * Add a `$length` value, and only a certain section is returned.
-	 *
 	 * The ID is completely random and not generated in any sequential order.
 	 *
 	 * @param int $length 4, 8 or 12 are the only accepted values
 	 *
 	 * @return mixed|string
 	 */
-	public static function uuid($length = NULL){
+	public static function uuid($length = NULL)
+	{
 		$obj = \Ramsey\Uuid\Uuid::uuid4();
 		$uuid = $obj->toString();
 
-		switch($length){
+		switch($length) {
 		case 4: # Return the second section (4 characteres) of the UUID
 			return explode("-", $uuid)[1];
 			break;
 		case 8: # Return the second and penultimate sections (in total 8 characters)
-			return explode("-", $uuid)[1].explode("-", $uuid)[3];
+			return explode("-", $uuid)[1] . explode("-", $uuid)[3];
 			break;
 		case 12: # Return the last section (12 characters) of the UUID
 			return explode("-", $uuid)[4];
 			break;
 		default: # Return the entire 36 character string
-			return $uuid; break;
+			return $uuid;
+			break;
 		}
 	}
 
@@ -1158,7 +1218,8 @@ class str {
 	 *
 	 * @return string|bool
 	 */
-	static function check($value, $cross = false, ?array $settings = []){
+	static function check($value, $cross = false, ?array $settings = [])
+	{
 		if($value){
 			$settings['name'] = "check";
 			$settings['colour'] = "success";
@@ -1177,15 +1238,16 @@ class str {
 	 * The amount of time will change as time passes.
 	 *
 	 * @param datetime $datetime_or_time mySQL datetime value
-	 * @param bool $future If set to to true will also show future times
+	 * @param bool     $future           If set to to true will also show future times
 	 *
 	 * @return string
 	 * @throws \Exception
 	 */
-	static function ago($datetime_or_time, $future = NULL){
+	static function ago($datetime_or_time, $future = NULL)
+	{
 		if(!$datetime_or_time){
 			return '';
-		} else if (is_object($datetime_or_time)){
+		} else if(is_object($datetime_or_time)){
 			$then = clone $datetime_or_time;
 			$datetime_or_time = $then->format("Y-m-d H:i:s");
 		} else {
@@ -1210,13 +1272,11 @@ EOF;
 	 * echo time_elapsed_string('@1367367755'); # timestamp input
 	 * echo time_elapsed_string('2013-05-01 00:22:35', true);
 	 * </code>
-	 *
 	 * Output:
 	 * <code>
 	 * 4 months ago
 	 * 4 months, 2 weeks, 3 days, 1 hour, 49 minutes, 15 seconds ago
 	 * </code>
-	 *
 	 * The output is static.
 	 *
 	 * @param      $datetime
@@ -1227,7 +1287,8 @@ EOF;
 	 * @throws \Exception
 	 * @link https://stackoverflow.com/a/18602474/429071
 	 */
-	static function time_elapsed_string($datetime, $full = false) {
+	static function time_elapsed_string($datetime, $full = false)
+	{
 		$now = new \DateTime;
 		$ago = new \DateTime($datetime);
 		$diff = $now->diff($ago);
@@ -1235,7 +1296,7 @@ EOF;
 		$diff->w = floor($diff->d / 7);
 		$diff->d -= $diff->w * 7;
 
-		$string = array(
+		$string = [
 			'y' => 'year',
 			'm' => 'month',
 			'w' => 'week',
@@ -1243,46 +1304,54 @@ EOF;
 			'h' => 'hour',
 			'i' => 'minute',
 			's' => 'second',
-		);
-		foreach ($string as $k => &$v) {
-			if ($diff->$k) {
+		];
+		foreach($string as $k => &$v){
+			if($diff->$k){
 				$v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
 			} else {
 				unset($string[$k]);
 			}
 		}
 
-		if (!$full) $string = array_slice($string, 0, 1);
+		if(!$full)
+			$string = array_slice($string, 0, 1);
 		return $string ? implode(', ', $string) . ' ago' : 'just now';
 	}
 
 	/**
 	 * Returns a string of how many days between then and now.
 	 *
-	 * @param      $date mySQL date formatted string (YYYY-MM-DD)
-	 * @param bool $string if TRUE, the function may return a string variable (n days, yesterday, tomorrow, etc), if FALSE, will always just return a number
+	 * @param      $date   mySQL date formatted string (YYYY-MM-DD)
+	 * @param bool $string if TRUE, the function may return a string variable (n days, yesterday, tomorrow, etc), if
+	 *                     FALSE, will always just return a number
 	 *
 	 * @return bool|string
 	 */
-	static function days($date, $string = false){
+	static function days($date, $string = false)
+	{
 		if(!$date){
 			return false;
 		}
-		$then = \DateTime::createFromFormat("Y-m-d",$date);
+		$then = \DateTime::createFromFormat("Y-m-d", $date);
 		$now = new \DateTime();
 		$days_away = (int)$then->diff($now)->format("%r%a");
 		if(!$string){
 			return $days_away;
 		}
-		switch($days_away){
-		case -1: return "yesterday"; break;
-		case 1: return "tomorrow"; break;
-		default: return "{$days_away} days"; break;
+		switch($days_away) {
+		case -1:
+			return "yesterday";
+			break;
+		case 1:
+			return "tomorrow";
+			break;
+		default:
+			return "{$days_away} days";
+			break;
 		}
 	}
 
 	/**
-	 *
 	 * Checks if the number of minutes between a given
 	 * point in time in the `$since` variable expressed
 	 * as any value that the `strtotime()` function can
@@ -1290,7 +1359,7 @@ EOF;
 	 * `$minutes`.
 	 * <code>
 	 * if(str::moreThanMinutesSince(15, $user['updated'])){
-	 * 	//If more than 15 minutes has passed since the user profile was last updated
+	 *    //If more than 15 minutes has passed since the user profile was last updated
 	 * }
 	 * </code>
 	 *
@@ -1299,7 +1368,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function moreThanMinutesSince(float $minutes, string $since) : bool
+	static function moreThanMinutesSince(float $minutes, string $since): bool
 	{
 		return (floor((strtotime("now") - strtotime($since)) / 60) >= $minutes);
 	}
@@ -1327,7 +1396,7 @@ EOF;
 
 		# Pad if required
 		if($padding){
-			$amount = str_pad($amount,$padding, " ", STR_PAD_LEFT);
+			$amount = str_pad($amount, $padding, " ", STR_PAD_LEFT);
 		}
 
 		# Prefix with currency symbol + space
@@ -1354,7 +1423,7 @@ EOF;
 			}
 
 			$a = [
-				"text" => $a
+				"text" => $a,
 			];
 		}
 
@@ -1387,17 +1456,18 @@ EOF;
 	 *
 	 * @param      $expression
 	 * @param bool $return
-	 * @link https://www.php.net/manual/en/function.var-export.php#122853
+	 *
 	 * @return string
+	 * @link https://www.php.net/manual/en/function.var-export.php#122853
 	 */
-	public static function var_export ($expression, $return = false)
+	public static function var_export($expression, $return = false)
 	{
 		$export = var_export($expression, true);
 		$export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
 		$array = preg_split("/\r\n|\n|\r/", $export);
 		$array = preg_replace(["/\s*array\s\($/", "/\)(,)?$/", "/\s=>\s$/"], [NULL, ']$1', ' => ['], $array);
 		$export = join(PHP_EOL, array_filter(["["] + $array));
-		if ((bool)$return)
+		if((bool)$return)
 			return $export; else echo $export;
 	}
 
@@ -1405,18 +1475,19 @@ EOF;
 	 * Return text strings in a "raw" format.
 	 *
 	 * @param string|array $str
-	 * @param bool         $crop If set to TRUE, will crop the output length.
+	 * @param bool         $crop     If set to TRUE, will crop the output length.
 	 * @param null         $language If a language is given, will become formatted with PrismJS
 	 *
 	 * @return string
 	 */
-	public static function pre($str, $crop = NULL, $language = NULL){
+	public static function pre($str, $crop = NULL, $language = NULL)
+	{
 		if(is_array($str)){
-			$str = var_export($str, true);
+			$str = str::var_export($str, true);
 		}
 
 		if($crop){
-			return /** @lang HTML */<<<EOF
+			return /** @lang HTML */ <<<EOF
 <xmp style="
 	font-size: x-small;
     white-space: normal;
@@ -1449,32 +1520,35 @@ EOF;
 
 	/**
 	 * Returns FALSE is array is numeric (sequential, 0 to n row keys), TRUE otherwise.
-	 *
 	 * @link https://stackoverflow.com/a/173479/429071
+	 *
 	 * @param array $arr
 	 *
 	 * @return bool
 	 */
-	static function isAssociativeArray ($arr) {
-		if (!is_array($arr)) return false;
-		if (array() === $arr) return false;
+	static function isAssociativeArray($arr)
+	{
+		if(!is_array($arr))
+			return false;
+		if([] === $arr)
+			return false;
 		return array_keys($arr) !== range(0, count($arr) - 1);
 	}
 
 	/**
 	 * Checks to see whether an array has sequential numerical keys (only),
 	 * starting from 0 to n, where n is the array count minus one.
-	 *
 	 * The opposite of `isAssociativeArray()`.
-	 *
 	 * @link https://codereview.stackexchange.com/questions/201/is-numeric-array-is-missing/204
 	 *
 	 * @param $arr
 	 *
 	 * @return bool
 	 */
-	static function isNumericArray ($arr) {
-		if (!is_array($arr)) return false;
+	static function isNumericArray($arr)
+	{
+		if(!is_array($arr))
+			return false;
 		return array_keys($arr) === range(0, (count($arr) - 1));
 	}
 
@@ -1482,16 +1556,17 @@ EOF;
 	 * Given an array, returns a human readable XML string.
 	 *
 	 * @param $array array A standard PHP array that you want to convert to XML.
-	 * @param $root string The root bracket that you want to enclose the XML in.
+	 * @param $root  string The root bracket that you want to enclose the XML in.
 	 *
 	 * @return string A human readable XML string.
 	 */
-	public static function xmlify($array, $root){
+	public static function xmlify($array, $root)
+	{
 		$xml = self::array_to_xml($array, new \SimpleXMLElement($root))->asXML();
 		$dom = new \DOMDocument;
-		$dom->preserveWhiteSpace = FALSE;
+		$dom->preserveWhiteSpace = false;
 		$dom->loadXML($xml);
-		$dom->formatOutput = TRUE;
+		$dom->formatOutput = true;
 		$xml_string = $dom->saveXml($dom->documentElement);
 		return $xml_string;
 	}
@@ -1500,14 +1575,16 @@ EOF;
 	 * Returns an array as a CSV string with the keys as a header row.
 	 *
 	 * @param $array
+	 *
 	 * @return bool
 	 */
-	public static function get_array_as_csv($array){
+	public static function get_array_as_csv($array)
+	{
 		$f = fopen('php://memory', 'r+');
 		# Header row
 		fputcsv($f, array_keys(array_shift($array)));
 		# Data rows
-		foreach ($array as $fields) {
+		foreach($array as $fields){
 			fputcsv($f, $fields);
 		}
 		rewind($f);
@@ -1526,18 +1603,18 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public static function csvAsArray (string $file, ?string $delimiter = ",", ?int $skip_rows = 0): array
+	public static function csvAsArray(string $file, ?string $delimiter = ",", ?int $skip_rows = 0): array
 	{
-		$all_rows = array();
+		$all_rows = [];
 
-		$header = null;//null; // has header
-		if (($handle = fopen($file, "r")) !== FALSE) {
-			while (($row = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+		$header = NULL;//null; // has header
+		if(($handle = fopen($file, "r")) !== false){
+			while(($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
 				if($skip_rows && $skip_rows > $rows_skipped){
 					$rows_skipped++;
 					continue;
 				}
-				if ($header === null) {
+				if($header === NULL){
 					$header = $row;
 					continue;
 				}
@@ -1552,11 +1629,14 @@ EOF;
 	/**
 	 * AU for when you want to capitalise the first letter (only)
 	 * because it's placed in the beginning of a sentence.
+	 *
 	 * @param string $input
-	 * @param int $count
+	 * @param int    $count
+	 *
 	 * @return string
 	 */
-	public static function AU($input, $count=1){
+	public static function AU($input, $count = 1)
+	{
 		return ucfirst(self::A($input, $count));
 	}
 
@@ -1568,7 +1648,8 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function AN($input, $count=1) {
+	public static function AN($input, $count = 1)
+	{
 		return self::A($input, $count);
 	}
 
@@ -1578,14 +1659,15 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function A($input, $count=1) {
-		$matches = array();
+	public static function A($input, $count = 1)
+	{
+		$matches = [];
 		$matchCount = preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
 		[$all, $pre, $word, $post] = $matches;
 		if(!$word)
 			return $input;
 		$result = self::_indef_article($word, $count);
-		return $pre.$result.$post;
+		return $pre . $result . $post;
 	}
 
 	# THIS PATTERN MATCHES STRINGS OF CAPITALS STARTING WITH A "VOWEL-SOUND"
@@ -1618,7 +1700,8 @@ EOF;
 	 *
 	 * @return string
 	 */
-	private static function _indef_article($word, $count) {
+	private static function _indef_article($word, $count)
+	{
 		if($count != 1) // TO DO: Check against $PL_count_one instead
 			return "$count $word";
 
@@ -1629,34 +1712,44 @@ EOF;
 		#These need to be checked early due to the methods used in some cases below
 
 		#any number starting with an '8' uses 'an'
-		if(preg_match("/^[8](\d+)?/", $word))					return "an $word";
+		if(preg_match("/^[8](\d+)?/", $word))
+			return "an $word";
 
 		#numbers starting with a '1' are trickier, only use 'an'
 		#if there are 3, 6, 9, … digits after the 11 or 18
 
 		#check if word starts with 11 or 18
-		if(preg_match("/^[1][1](\d+)?/", $word) || (preg_match("/^[1][8](\d+)?/", $word))) {
+		if(preg_match("/^[1][1](\d+)?/", $word) || (preg_match("/^[1][8](\d+)?/", $word))){
 
 			#first strip off any decimals and remove spaces or commas
 			#then if the number of digits modulus 3 is 2 we have a match
-			if(strlen(preg_replace(array("/\s/", "/,/", "/\.(\d+)?/"), '', $word))%3 == 2) return "an $word";
+			if(strlen(preg_replace(["/\s/", "/,/", "/\.(\d+)?/"], '', $word)) % 3 == 2)
+				return "an $word";
 		}
 
 		# HANDLE ORDINAL FORMS
-		if(preg_match("/^(".self::$A_ordinal_a.")/i", $word)) 		return "a $word";
-		if(preg_match("/^(".self::$A_ordinal_an.")/i", $word))     	return "an $word";
+		if(preg_match("/^(" . self::$A_ordinal_a . ")/i", $word))
+			return "a $word";
+		if(preg_match("/^(" . self::$A_ordinal_an . ")/i", $word))
+			return "an $word";
 
 		# HANDLE SPECIAL CASES
 
-		if(preg_match("/^(".self::$A_explicit_an.")/i", $word))     	return "an $word";
-		if(preg_match("/^[aefhilmnorsx]$/i", $word))     	return "an $word";
-		if(preg_match("/^[bcdgjkpqtuvwyz]$/i", $word))     	return "a $word";
+		if(preg_match("/^(" . self::$A_explicit_an . ")/i", $word))
+			return "an $word";
+		if(preg_match("/^[aefhilmnorsx]$/i", $word))
+			return "an $word";
+		if(preg_match("/^[bcdgjkpqtuvwyz]$/i", $word))
+			return "a $word";
 
 		# HANDLE ABBREVIATIONS
 
-		if(preg_match("/^(".self::$A_abbrev.")/x", $word))     		return "an $word";
-		if(preg_match("/^[aefhilmnorsx][.-]/i", $word))     	return "an $word";
-		if(preg_match("/^[a-z][.-]/i", $word))     		return "a $word";
+		if(preg_match("/^(" . self::$A_abbrev . ")/x", $word))
+			return "an $word";
+		if(preg_match("/^[aefhilmnorsx][.-]/i", $word))
+			return "an $word";
+		if(preg_match("/^[a-z][.-]/i", $word))
+			return "a $word";
 
 		# HANDLE CONSONANTS
 
@@ -1664,27 +1757,36 @@ EOF;
 		#But is necessary for later matching of some special cases.  Need to move digit
 		#recognition above this.
 		#rule is: case insensitive match any string that starts with a letter not in [aeiouy]
-		if(preg_match("/^[^aeiouy]/i", $word))                  return "a $word";
+		if(preg_match("/^[^aeiouy]/i", $word))
+			return "a $word";
 
 		# HANDLE SPECIAL VOWEL-FORMS
 
-		if(preg_match("/^e[uw]/i", $word))                  	return "a $word";
-		if(preg_match("/^onc?e\b/i", $word))                  	return "a $word";
-		if(preg_match("/^uni([^nmd]|mo)/i", $word))		return "a $word";
-		if(preg_match("/^ut[th]/i", $word))                  	return "an $word";
-		if(preg_match("/^u[bcfhjkqrst][aeiou]/i", $word))	return "a $word";
+		if(preg_match("/^e[uw]/i", $word))
+			return "a $word";
+		if(preg_match("/^onc?e\b/i", $word))
+			return "a $word";
+		if(preg_match("/^uni([^nmd]|mo)/i", $word))
+			return "a $word";
+		if(preg_match("/^ut[th]/i", $word))
+			return "an $word";
+		if(preg_match("/^u[bcfhjkqrst][aeiou]/i", $word))
+			return "a $word";
 
 		# HANDLE SPECIAL CAPITALS
 
-		if(preg_match("/^U[NK][AIEO]?/", $word))                return "a $word";
+		if(preg_match("/^U[NK][AIEO]?/", $word))
+			return "a $word";
 
 		# HANDLE VOWELS
 
-		if(preg_match("/^[aeiou]/i", $word))			return "an $word";
+		if(preg_match("/^[aeiou]/i", $word))
+			return "an $word";
 
 		# HANDLE y... (BEFORE CERTAIN CONSONANTS IMPLIES (UNNATURALIZED) "i.." SOUND)
 
-		if(preg_match("/^(".self::$A_y_cons.")/i", $word))	return "an $word";
+		if(preg_match("/^(" . self::$A_y_cons . ")/i", $word))
+			return "an $word";
 
 		#DEFAULT CONDITION BELOW
 		# OTHERWISE, GUESS "a"
@@ -1694,26 +1796,25 @@ EOF;
 	/**
 	 * Flatten multidimentional array.
 	 *
-	 *
-	 * @param array $array The array to flatten
-	 * @param string $glue The glue to use in the flattened array keys. Default is dot-notation.
-
-	 * @link https://stackoverflow.com/a/10424516/429071
+	 * @param array  $array The array to flatten
+	 * @param string $glue  The glue to use in the flattened array keys. Default is dot-notation.
 	 *
 	 * @return array|bool
+	 * @link https://stackoverflow.com/a/10424516/429071
 	 */
-	public static function flatten($array, $glue = '.'){
+	public static function flatten($array, $glue = '.')
+	{
 		if(!is_array($array)){
 			return false;
 		}
 		$ritit = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($array));
-		$result = array();
-		foreach ($ritit as $leafValue) {
-			$keys = array();
-			foreach (range(0, $ritit->getDepth()) as $depth) {
+		$result = [];
+		foreach($ritit as $leafValue){
+			$keys = [];
+			foreach(range(0, $ritit->getDepth()) as $depth){
 				$keys[] = $ritit->getSubIterator($depth)->key();
 			}
-			$result[ join($glue, $keys) ] = $leafValue;
+			$result[join($glue, $keys)] = $leafValue;
 		}
 		return $result;
 	}
@@ -1721,7 +1822,6 @@ EOF;
 	/**
 	 * Searches thru a multi-dimentional array for a key,
 	 * and returns an array of values belonging to matching keys.
-	 *
 	 * @link https://www.experts-exchange.com/questions/27653578/search-multidimensional-array-by-key-and-return-array-value's-as-result.html
 	 *
 	 * @param $array
@@ -1731,14 +1831,13 @@ EOF;
 	 */
 	static function array_key_search($array, $key)
 	{
-		$results = array();
+		$results = [];
 
-		if (is_array($array))
-		{
-			if (isset($array[$key]) && !is_array($array[$key]))
+		if(is_array($array)){
+			if(isset($array[$key]) && !is_array($array[$key]))
 				$results[] = $array[$key];
 
-			foreach ($array as $subarray)
+			foreach($array as $subarray)
 				$results = array_merge($results, self::array_key_search($subarray, $key));
 		}
 
@@ -1748,17 +1847,18 @@ EOF;
 	/**
 	 * Does the leg work deciding "[1 ]thing was ", or "[2 ]things were ".
 	 *
-	 * @param array|int $array An array of things that will be counted, or an int of the count.
-	 * @param string $rel_table The name of the thing that is to be counted.
-	 * @param bool $include_count If set to true, will include the count also.
+	 * @param array|int $array         An array of things that will be counted, or an int of the count.
+	 * @param string    $rel_table     The name of the thing that is to be counted.
+	 * @param bool      $include_count If set to true, will include the count also.
 	 *
 	 * @return bool|mixed Returns a string if the vars have been entered correctly, otherwise FALSE.
 	 */
-	public static function were($array, $rel_table, $include_count = false){
+	public static function were($array, $rel_table, $include_count = false)
+	{
 		if(is_array($array)){
 			$count = count($array);
 		} else if(is_int($array) || is_string($array)){
-			$count = (int) $array;
+			$count = (int)$array;
 		} else {
 			$count = 0;
 		}
@@ -1767,86 +1867,98 @@ EOF;
 		}
 
 		if($include_count){
-			switch($count){
-			case 0: return str::title("No ".str::pluralise($rel_table)." were"); break;
-			case 1: return str::title("1 {$rel_table} was"); break;
-			default: return str::title("{$count} ".str::pluralise($rel_table)." were"); break;
+			switch($count) {
+			case 0:
+				return str::title("No " . str::pluralise($rel_table) . " were");
+				break;
+			case 1:
+				return str::title("1 {$rel_table} was");
+				break;
+			default:
+				return str::title("{$count} " . str::pluralise($rel_table) . " were");
+				break;
 			}
 		}
 
-		switch($count){
-		case 0: 	return str::pluralise($rel_table)." were"; break;
-		case 1: 	return "{$rel_table} was"; break;
-		default:	return str::pluralise($rel_table)." were"; break;
+		switch($count) {
+		case 0:
+			return str::pluralise($rel_table) . " were";
+			break;
+		case 1:
+			return "{$rel_table} was";
+			break;
+		default:
+			return str::pluralise($rel_table) . " were";
+			break;
 		}
 	}
 
-	static $plural = array(
-		'/(quiz)$/i'               => "$1zes",
-		'/^(ox)$/i'                => "$1en",
-		'/([m|l])ouse$/i'          => "$1ice",
+	static $plural = [
+		'/(quiz)$/i' => "$1zes",
+		'/^(ox)$/i' => "$1en",
+		'/([m|l])ouse$/i' => "$1ice",
 		'/(matr|vert|ind)ix|ex$/i' => "$1ices",
-		'/(x|ch|ss|sh)$/i'         => "$1es",
-		'/([^aeiouy]|qu)y$/i'      => "$1ies",
-		'/(hive)$/i'               => "$1s",
+		'/(x|ch|ss|sh)$/i' => "$1es",
+		'/([^aeiouy]|qu)y$/i' => "$1ies",
+		'/(hive)$/i' => "$1s",
 		'/(?:([^f])fe|([lr])f)$/i' => "$1$2ves",
 		'/(shea|lea|loa|thie)f$/i' => "$1ves",
-		'/sis$/i'                  => "ses",
-		'/([ti])um$/i'             => "$1a",
-		'/(tomat|potat|ech|her|vet)o$/i'=> "$1oes",
-		'/(bu)s$/i'                => "$1ses",
-		'/(alias)$/i'              => "$1es",
-		'/(octop)us$/i'            => "$1i",
-		'/(ax|test)is$/i'          => "$1es",
-		'/(us)$/i'                 => "$1es",
-		'/s$/i'                    => "s",
-		'/$/'                      => "s"
-	);
+		'/sis$/i' => "ses",
+		'/([ti])um$/i' => "$1a",
+		'/(tomat|potat|ech|her|vet)o$/i' => "$1oes",
+		'/(bu)s$/i' => "$1ses",
+		'/(alias)$/i' => "$1es",
+		'/(octop)us$/i' => "$1i",
+		'/(ax|test)is$/i' => "$1es",
+		'/(us)$/i' => "$1es",
+		'/s$/i' => "s",
+		'/$/' => "s",
+	];
 
-	static $singular = array(
-		'/(quiz)zes$/i'             => "$1",
-		'/(matr)ices$/i'            => "$1ix",
-		'/(vert|ind)ices$/i'        => "$1ex",
-		'/^(ox)en$/i'               => "$1",
-		'/(alias)es$/i'             => "$1",
-		'/(octop|vir)i$/i'          => "$1us",
-		'/(cris|ax|test)es$/i'      => "$1is",
-		'/(shoe)s$/i'               => "$1",
-		'/(o)es$/i'                 => "$1",
-		'/(bus)es$/i'               => "$1",
-		'/([m|l])ice$/i'            => "$1ouse",
-		'/(x|ch|ss|sh)es$/i'        => "$1",
-		'/(m)ovies$/i'              => "$1ovie",
-		'/(s)eries$/i'              => "$1eries",
-		'/([^aeiouy]|qu)ies$/i'     => "$1y",
-		'/([lr])ves$/i'             => "$1f",
-		'/(tive)s$/i'               => "$1",
-		'/(hive)s$/i'               => "$1",
-		'/(li|wi|kni)ves$/i'        => "$1fe",
-		'/(shea|loa|lea|thie)ves$/i'=> "$1f",
-		'/(^analy)ses$/i'           => "$1sis",
-		'/((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/i'  => "$1$2sis",
-		'/([ti])a$/i'               => "$1um",
-		'/(n)ews$/i'                => "$1ews",
-		'/(h|bl)ouses$/i'           => "$1ouse",
-		'/(corpse)s$/i'             => "$1",
-		'/(us)es$/i'                => "$1",
-		'/s$/i'                     => ""
-	);
+	static $singular = [
+		'/(quiz)zes$/i' => "$1",
+		'/(matr)ices$/i' => "$1ix",
+		'/(vert|ind)ices$/i' => "$1ex",
+		'/^(ox)en$/i' => "$1",
+		'/(alias)es$/i' => "$1",
+		'/(octop|vir)i$/i' => "$1us",
+		'/(cris|ax|test)es$/i' => "$1is",
+		'/(shoe)s$/i' => "$1",
+		'/(o)es$/i' => "$1",
+		'/(bus)es$/i' => "$1",
+		'/([m|l])ice$/i' => "$1ouse",
+		'/(x|ch|ss|sh)es$/i' => "$1",
+		'/(m)ovies$/i' => "$1ovie",
+		'/(s)eries$/i' => "$1eries",
+		'/([^aeiouy]|qu)ies$/i' => "$1y",
+		'/([lr])ves$/i' => "$1f",
+		'/(tive)s$/i' => "$1",
+		'/(hive)s$/i' => "$1",
+		'/(li|wi|kni)ves$/i' => "$1fe",
+		'/(shea|loa|lea|thie)ves$/i' => "$1f",
+		'/(^analy)ses$/i' => "$1sis",
+		'/((a)naly|(b)a|(d)iagno|(p)arenthe|(p)rogno|(s)ynop|(t)he)ses$/i' => "$1$2sis",
+		'/([ti])a$/i' => "$1um",
+		'/(n)ews$/i' => "$1ews",
+		'/(h|bl)ouses$/i' => "$1ouse",
+		'/(corpse)s$/i' => "$1",
+		'/(us)es$/i' => "$1",
+		'/s$/i' => "",
+	];
 
-	static $irregular = array(
-		'move'   => 'moves',
-		'foot'   => 'feet',
-		'goose'  => 'geese',
-		'sex'    => 'sexes',
-		'child'  => 'children',
-		'man'    => 'men',
-		'tooth'  => 'teeth',
+	static $irregular = [
+		'move' => 'moves',
+		'foot' => 'feet',
+		'goose' => 'geese',
+		'sex' => 'sexes',
+		'child' => 'children',
+		'man' => 'men',
+		'tooth' => 'teeth',
 		'person' => 'people',
-		'valve'  => 'valves'
-	);
+		'valve' => 'valves',
+	];
 
-	static $uncountable = array(
+	static $uncountable = [
 		'sheep',
 		'fish',
 		'deer',
@@ -1855,17 +1967,18 @@ EOF;
 		'money',
 		'rice',
 		'information',
-		'equipment'
-	);
+		'equipment',
+	];
 
 	/**
 	 * Pluralises a string.
 	 *
 	 * @param $string
-	 * @link http://kuwamoto.org/2007/12/17/improved-pluralizing-in-php-actionscript-and-ror/
+	 *
 	 * @return bool|string
+	 * @link http://kuwamoto.org/2007/12/17/improved-pluralizing-in-php-actionscript-and-ror/
 	 */
-	public static function pluralise( $string )
+	public static function pluralise($string)
 	{
 		// If no string is supplied
 		if(!$string){
@@ -1873,24 +1986,22 @@ EOF;
 		}
 
 		// save some time in the case that singular and plural are the same
-		if ( in_array( strtolower( $string ), self::$uncountable ) )
+		if(in_array(strtolower($string), self::$uncountable))
 			return $string;
 
 
 		// check for irregular singular forms
-		foreach ( self::$irregular as $pattern => $result )
-		{
+		foreach(self::$irregular as $pattern => $result){
 			$pattern = '/' . $pattern . '$/i';
 
-			if ( preg_match( $pattern, $string ) )
-				return preg_replace( $pattern, $result, $string);
+			if(preg_match($pattern, $string))
+				return preg_replace($pattern, $result, $string);
 		}
 
 		// check for matches using regular expressions
-		foreach ( self::$plural as $pattern => $result )
-		{
-			if ( preg_match( $pattern, $string ) )
-				return preg_replace( $pattern, $result, $string );
+		foreach(self::$plural as $pattern => $result){
+			if(preg_match($pattern, $string))
+				return preg_replace($pattern, $result, $string);
 		}
 
 		return $string;
@@ -1901,26 +2012,24 @@ EOF;
 	 *
 	 * @return string|string[]|null
 	 */
-	public static function singularise( $string )
+	public static function singularise($string)
 	{
 		// save some time in the case that singular and plural are the same
-		if ( in_array( strtolower( $string ), self::$uncountable ) )
+		if(in_array(strtolower($string), self::$uncountable))
 			return $string;
 
 		// check for irregular plural forms
-		foreach ( self::$irregular as $result => $pattern )
-		{
+		foreach(self::$irregular as $result => $pattern){
 			$pattern = '/' . $pattern . '$/i';
 
-			if ( preg_match( $pattern, $string ) )
-				return preg_replace( $pattern, $result, $string);
+			if(preg_match($pattern, $string))
+				return preg_replace($pattern, $result, $string);
 		}
 
 		// check for matches using regular expressions
-		foreach ( self::$singular as $pattern => $result )
-		{
-			if ( preg_match( $pattern, $string ) )
-				return preg_replace( $pattern, $result, $string );
+		foreach(self::$singular as $pattern => $result){
+			if(preg_match($pattern, $string))
+				return preg_replace($pattern, $result, $string);
 		}
 
 		return $string;
@@ -1928,34 +2037,32 @@ EOF;
 
 	/**
 	 * Returns $rel_table pluralised if $array > 1.
-	 *
 	 * If the <code>$include_count</code> flag is set, will also return the count.
-	 *
 	 * Examples:
 	 * <code>
 	 * $this->str->pluralise_if(3, "chair", true);
 	 * //3 chairs
-	 *
 	 * $this->str->pluralise_if(false, "item", true);
 	 * //0 items
-	 *
 	 * str::pluralise_if(1, "boat", false);
 	 * //boat
 	 * </code>
 	 *
-	 * @param      $array         array|int|string The array to count, or int to check or string to convert to number to check
+	 * @param      $array         array|int|string The array to count, or int to check or string to convert to number
+	 *                            to check
 	 * @param      $rel_table     string The word to pluralise
 	 * @param null $include_count bool If set to TRUE, will include the count as a prefix in the string returned.
-	 *
 	 * @param null $include_is_are
+	 *
 	 * @return bool|null|string|string[]
 	 */
-	public static function pluralise_if($array, $rel_table, $include_count = NULL, $include_is_are = NULL){
+	public static function pluralise_if($array, $rel_table, $include_count = NULL, $include_is_are = NULL)
+	{
 		if(is_array($array)){
 			$count = count($array);
 		} else if(is_int($array) && $array){
 			$count = $array;
-		} else if(is_string($array) && $string = preg_replace("/[^0-9.]/","",$array)){
+		} else if(is_string($array) && $string = preg_replace("/[^0-9.]/", "", $array)){
 			$count = $string;
 		} else {
 			$count = 0;
@@ -1977,6 +2084,24 @@ EOF;
 	}
 
 	/**
+	 * Returns an IS or ARE depending whether there is 1 or
+	 * any other number (including zero) of something.
+	 *
+	 * @param mixed     $count        Count can be either a number, or an array (in which case it gets counted)
+	 * @param bool|null $passed_tense If set, replaces is/are with was/were
+	 *
+	 * @return string
+	 */
+	public static function isAre($count, ?bool $passed_tense = NULL): string
+	{
+		$count = is_array($count) ? count($count) : $count;
+		if($passed_tense){
+			return abs($count) == 1 ? "was" : "were";
+		}
+		return abs($count) == 1 ? "is" : "are";
+	}
+
+	/**
 	 * Given an array, returns an oxford comma separated,
 	 * grammatically correct list of items:
 	 * <code>
@@ -1990,7 +2115,8 @@ EOF;
 	 *
 	 * @return bool|mixed|string
 	 */
-	public static function oxford_implode($array, $glue = ", ", $and_or = "and"){
+	public static function oxford_implode($array, $glue = ", ", $and_or = "and")
+	{
 		if(empty($array)){
 			return false;
 		}
@@ -2007,19 +2133,20 @@ EOF;
 
 		$last_element = array_pop($array);
 
-		return implode($glue, $array).$and_or.$last_element;
+		return implode($glue, $array) . $and_or . $last_element;
 	}
 
 	/**
 	 * Sanitise a string to be used as a filename.
 	 *
-	 *
 	 * @param      $filename
 	 * @param bool $beautify
-	 * @link https://stackoverflow.com/a/42058764/429071
+	 *
 	 * @return null|string|string[]
+	 * @link https://stackoverflow.com/a/42058764/429071
 	 */
-	public static function filter_filename($filename, $beautify=true) {
+	public static function filter_filename($filename, $beautify = true)
+	{
 		// sanitize filename
 		$filename = preg_replace(
 			'~
@@ -2033,7 +2160,8 @@ EOF;
 		// avoids ".", ".." or ".hiddenFiles"
 		$filename = ltrim($filename, '.-');
 		// optional beautification
-		if ($beautify) $filename = self::beautify_filename($filename);
+		if($beautify)
+			$filename = self::beautify_filename($filename);
 		// maximise filename length to 255 bytes http://serverfault.com/a/9548/44086
 		$ext = pathinfo($filename, PATHINFO_EXTENSION);
 		$filename = mb_strcut(pathinfo($filename, PATHINFO_FILENAME), 0, 255 - ($ext ? strlen($ext) + 1 : 0), mb_detect_encoding($filename)) . ($ext ? '.' . $ext : '');
@@ -2047,22 +2175,23 @@ EOF;
 	 *
 	 * @return string|string[]|null
 	 */
-	public static function beautify_filename($filename) {
+	public static function beautify_filename($filename)
+	{
 		// reduce consecutive characters
-		$filename = preg_replace(array(
+		$filename = preg_replace([
 			// "file   name.zip" becomes "file-name.zip"
 			'/ +/',
 			// "file___name.zip" becomes "file-name.zip"
 			'/_+/',
 			// "file---name.zip" becomes "file-name.zip"
-			'/-+/'
-		), '-', $filename);
-		$filename = preg_replace(array(
+			'/-+/',
+		], '-', $filename);
+		$filename = preg_replace([
 			// "file--.--.-.--name.zip" becomes "file.name.zip"
 			'/-*\.-*/',
 			// "file...name..zip" becomes "file.name.zip"
-			'/\.{2,}/'
-		), '.', $filename);
+			'/\.{2,}/',
+		], '.', $filename);
 		// lowercase for windows/unix interoperability http://support.microsoft.com/kb/100625
 		$filename = mb_strtolower($filename, mb_detect_encoding($filename));
 		// ".file-name.-" becomes "file-name"
@@ -2073,7 +2202,6 @@ EOF;
 	/**
 	 * Finds degrees of mismatches between two strings, returns the degree.
 	 * If strings are identical, returns 0.
-	 *
 	 * 0. Exact match "a==b"
 	 * 1. Match only after cases ignored "lowercase(a)==lowercase(b)"
 	 * 2. Match only after unicode diacritics have been removed
@@ -2091,7 +2219,8 @@ EOF;
 	 *
 	 * @return int
 	 */
-	public static function mismatch ($a, $b, $excluded_words_case_insensitive = NULL){
+	public static function mismatch($a, $b, $excluded_words_case_insensitive = NULL)
+	{
 		# Format the excluded words (if provided)
 		if($excluded_words_case_insensitive){
 			if(!is_array($excluded_words_case_insensitive)){
@@ -2107,7 +2236,9 @@ EOF;
 		# 0. Exact match
 		$mismatch = 0;
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 1. Case mismatch "lowercase(a)==lowercase(b)"
 		$mismatch++;
@@ -2116,7 +2247,9 @@ EOF;
 		$a = mb_strtolower($a);
 		$b = mb_strtolower($b);
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 2. Ignore unicode mismatches
 		$mismatch++;
@@ -2125,16 +2258,20 @@ EOF;
 		$a = preg_replace("/\pM*/u", "", normalizer_normalize($a, \Normalizer::FORM_D));
 		$b = preg_replace("/\pM*/u", "", normalizer_normalize($b, \Normalizer::FORM_D));
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 3. Space mismatches (everything is the same bar the number of spaces)
 		$mismatch++;
 
 		# Trim and filter away all superfluous spaces
-		$a = implode(" ",array_filter(preg_split('/\s+/', $a)));
-		$b = implode(" ",array_filter(preg_split('/\s+/', $b)));
+		$a = implode(" ", array_filter(preg_split('/\s+/', $a)));
+		$b = implode(" ", array_filter(preg_split('/\s+/', $b)));
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 4. excluded words mismatch "lowercase==lowercase, except in excluded words"
 		$mismatch++;
@@ -2143,26 +2280,38 @@ EOF;
 		$a = trim(str_replace($excluded_words, "", $a));
 		$b = trim(str_replace($excluded_words, "", $b));
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 5. excluded non alphanumeric characters
 		$mismatch++;
 
 		# Trim away everything that isn't A-Z or 0-9, and extra spaces
-		$a = implode(" ",array_filter(preg_split('/[^A-Za-z0-9]+/', $a)));
-		$b = implode(" ",array_filter(preg_split('/[^A-Za-z0-9]+/', $b)));
+		$a = implode(" ", array_filter(preg_split('/[^A-Za-z0-9]+/', $a)));
+		$b = implode(" ", array_filter(preg_split('/[^A-Za-z0-9]+/', $b)));
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 6. All the same words, just in a different order
 		$mismatch++;
 
 		//@link https://stackoverflow.com/questions/21138505/check-if-two-arrays-have-the-same-values
 		//@link https://stackoverflow.com/questions/18720682/sort-a-php-array-returning-new-array
-		$a = implode(" ",call_user_func(function(array $a){sort($a);return $a;}, preg_split('/\s+/', $a)));
-		$b = implode(" ",call_user_func(function(array $b){sort($b);return $b;}, preg_split('/\s+/', $b)));
+		$a = implode(" ", call_user_func(function(array $a){
+			sort($a);
+			return $a;
+		}, preg_split('/\s+/', $a)));
+		$b = implode(" ", call_user_func(function(array $b){
+			sort($b);
+			return $b;
+		}, preg_split('/\s+/', $b)));
 
-		if($a == $b){return $mismatch;}
+		if($a == $b){
+			return $mismatch;
+		}
 
 		# 7. omitted words mismatch "a contains b, or b contains a, but also has additional strings"
 		$mismatch++;
@@ -2176,7 +2325,7 @@ EOF;
 
 		if(strlen($a) > 3 && strlen($b) > 3){
 			//this only applies is both strings are longer than 3 characters
-			if((strlen($a) > strlen($b) ? strlen($a) : strlen($b)) - similar_text($a,$b) == 1){
+			if((strlen($a) > strlen($b) ? strlen($a) : strlen($b)) - similar_text($a, $b) == 1){
 				return $mismatch;
 			}
 		}
@@ -2194,16 +2343,33 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function mismatch_colour($mismatch){
-		switch($mismatch){
-		case 7: return "danger"; break;
-		case 6: return "warning"; break;
-		case 5: return "warning"; break;
-		case 4: return "warning"; break;
-		case 3: return "info"; break;
-		case 2: return "info"; break;
-		case 1: return "info"; break;
-		default: return "success"; break;
+	public static function mismatch_colour($mismatch)
+	{
+		switch($mismatch) {
+		case 7:
+			return "danger";
+			break;
+		case 6:
+			return "warning";
+			break;
+		case 5:
+			return "warning";
+			break;
+		case 4:
+			return "warning";
+			break;
+		case 3:
+			return "info";
+			break;
+		case 2:
+			return "info";
+			break;
+		case 1:
+			return "info";
+			break;
+		default:
+			return "success";
+			break;
 		}
 	}
 
@@ -2215,9 +2381,10 @@ EOF;
 	 *
 	 * @return array
 	 */
-	static function hex2hsl ($hex) {
-		$hex = array($hex[0] . $hex[1], $hex[2] . $hex[3], $hex[4] . $hex[5]);
-		$rgb = array_map(function ($part) {
+	static function hex2hsl($hex)
+	{
+		$hex = [$hex[0] . $hex[1], $hex[2] . $hex[3], $hex[4] . $hex[5]];
+		$rgb = array_map(function($part){
 			return hexdec($part) / 255;
 		}, $hex);
 
@@ -2226,13 +2393,13 @@ EOF;
 
 		$l = ($max + $min) / 2;
 
-		if ($max == $min) {
+		if($max == $min){
 			$h = $s = 0;
 		} else {
 			$diff = $max - $min;
 			$s = $l > 0.5 ? $diff / (2 - $max - $min) : $diff / ($max + $min);
 
-			switch ($max) {
+			switch($max) {
 			case $rgb[0]:
 				$h = ($rgb[1] - $rgb[2]) / $diff + ($rgb[1] < $rgb[2] ? 6 : 0);
 				break;
@@ -2247,7 +2414,7 @@ EOF;
 			$h /= 6;
 		}
 
-		return array($h, $s, $l);
+		return [$h, $s, $l];
 	}
 
 	/**
@@ -2257,10 +2424,11 @@ EOF;
 	 *
 	 * @return string A string containgin a HEX colour value (ex. FF0000 for red)
 	 */
-	static function hsl2hex ($hsl) {
+	static function hsl2hex($hsl)
+	{
 		[$h, $s, $l] = $hsl;
 
-		if ($s == 0) {
+		if($s == 0){
 			$r = $g = $b = 1;
 		} else {
 			$q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
@@ -2283,12 +2451,18 @@ EOF;
 	 *
 	 * @return float|int
 	 */
-	static function hue2rgb ($p, $q, $t) {
-		if ($t < 0) $t += 1;
-		if ($t > 1) $t -= 1;
-		if ($t < 1 / 6) return $p + ($q - $p) * 6 * $t;
-		if ($t < 1 / 2) return $q;
-		if ($t < 2 / 3) return $p + ($q - $p) * (2 / 3 - $t) * 6;
+	static function hue2rgb($p, $q, $t)
+	{
+		if($t < 0)
+			$t += 1;
+		if($t > 1)
+			$t -= 1;
+		if($t < 1 / 6)
+			return $p + ($q - $p) * 6 * $t;
+		if($t < 1 / 2)
+			return $q;
+		if($t < 2 / 3)
+			return $p + ($q - $p) * (2 / 3 - $t) * 6;
 
 		return $p;
 	}
@@ -2300,7 +2474,8 @@ EOF;
 	 *
 	 * @return string
 	 */
-	static function rgb2hex ($rgb) {
+	static function rgb2hex($rgb)
+	{
 		return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
 	}
 
@@ -2311,7 +2486,8 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function isHexColour($colour){
+	static function isHexColour($colour)
+	{
 		if(!is_string($colour)){
 			return false;
 		}
@@ -2323,11 +2499,13 @@ EOF;
 
 	/**
 	 * Get the style of button
+	 *
 	 * @param $a
 	 *
 	 * @return mixed
 	 */
-	static function get_style($a){
+	static function get_style($a)
+	{
 		extract($a);
 
 		if($style){
@@ -2348,7 +2526,8 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function getColour($colour, $prefix = 'text'){
+	static function getColour($colour, $prefix = 'text')
+	{
 		if(!$colour){
 			return false;
 		}
@@ -2367,25 +2546,60 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function translate_approve_colour($colour){
-		switch($colour){
-		case 'primary'  : return 'blue'; break;
-		case 'blue'     : return 'blue'; break;
-		case 'info'     : return 'blue'; break;
-		case 'green'    : return 'green'; break;
-		case 'success'  : return 'green'; break;
-		case 'warning'  : return 'orange'; break;
-		case 'yellow'   : return 'orange'; break;
-		case 'orange'   : return 'orange'; break;
-		case 'danger'   : return 'red'; break;
-		case 'red'      : return 'red'; break;
-		case 'purple'   : return 'purple '; break;
-		case 'dark'     : return 'dark'; break;
-		case 'grey'     : return 'dark'; break;
-		case 'gray'     : return 'dark'; break;
-		case 'silver'   : return 'dark'; break;
-		case 'black'    : return 'dark'; break;
-		default: return $colour; break;
+	static function translate_approve_colour($colour)
+	{
+		switch($colour) {
+		case 'primary'  :
+			return 'blue';
+			break;
+		case 'blue'     :
+			return 'blue';
+			break;
+		case 'info'     :
+			return 'blue';
+			break;
+		case 'green'    :
+			return 'green';
+			break;
+		case 'success'  :
+			return 'green';
+			break;
+		case 'warning'  :
+			return 'orange';
+			break;
+		case 'yellow'   :
+			return 'orange';
+			break;
+		case 'orange'   :
+			return 'orange';
+			break;
+		case 'danger'   :
+			return 'red';
+			break;
+		case 'red'      :
+			return 'red';
+			break;
+		case 'purple'   :
+			return 'purple ';
+			break;
+		case 'dark'     :
+			return 'dark';
+			break;
+		case 'grey'     :
+			return 'dark';
+			break;
+		case 'gray'     :
+			return 'dark';
+			break;
+		case 'silver'   :
+			return 'dark';
+			break;
+		case 'black'    :
+			return 'dark';
+			break;
+		default:
+			return $colour;
+			break;
 		}
 	}
 
@@ -2397,10 +2611,10 @@ EOF;
 	 * or more complex approval array:
 	 * <code>
 	 * "approve" => [
-	 * 	"title" => "Title",
-	 * 	"message" => "Message",
-	 * 	"colour" => "Red",
-	 * 	"icon" => "user"
+	 *    "title" => "Title",
+	 *    "message" => "Message",
+	 *    "colour" => "Red",
+	 *    "icon" => "user"
 	 *  ]
 	 * </code>
 	 * All of the array elements are optional.
@@ -2409,7 +2623,8 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function getApproveAttr($approve){
+	static function getApproveAttr($approve)
+	{
 		if(!$approve){
 			//If no approve modal is required
 			return false;
@@ -2417,13 +2632,9 @@ EOF;
 
 		if(is_array($approve)){
 			extract($approve);
-		}
-
-		else if (is_bool($approve)){
+		} else if(is_bool($approve)){
 			$message = "Are you sure you want to do this?";
-		}
-
-		else if (is_string($approve)){
+		} else if(is_string($approve)){
 			//if just the name of the thing to be removed is given
 			$message = str::title("Are you sure you want to {$approve}?");
 		}
@@ -2432,7 +2643,7 @@ EOF;
 		$title = $title ?: "Are you sure?";
 
 		# Message
-		$message = str_replace(["\r\n","\r","\n"], " ", $message);
+		$message = str_replace(["\r\n", "\r", "\n"], " ", $message);
 
 		$icon_class = Icon::getClass($icon);
 		$type = self::translate_approve_colour($colour);
@@ -2446,19 +2657,19 @@ EOF;
 				"content" => $message,
 				"buttons" => [
 					"confirm" => [
-						"btnClass" => $button_colour
-					]
-				]
-			]
+						"btnClass" => $button_colour,
+					],
+				],
+			],
 		]);
 	}
 
 	/**
 	 * Shortcut for parent class and style.
-	 *
 	 * <code>
 	 * [$parent_class, $parent_style] = str::getClassAndStyle($this->cardHeader, ["col-auto", "card-title"]);
 	 * </code>
+	 *
 	 * @param array      $item
 	 * @param array|null $default_parent_class
 	 *
@@ -2477,25 +2688,26 @@ EOF;
 	 * but that contain different values across the children.
 	 *
 	 * @param array $rows
-	 * @link https://stackoverflow.com/a/58811601/429071
+	 *
 	 * @return array
+	 * @link https://stackoverflow.com/a/58811601/429071
 	 */
-	public static function getFieldsNonIdentical(array $rows) : array
+	public static function getFieldsNonIdentical(array $rows): array
 	{
 		if(!str::isNumericArray($rows)){
-			throw new \InvalidArgumentException("A non numeric array was passed: ".print_r($rows, true));
+			throw new \InvalidArgumentException("A non numeric array was passed: " . print_r($rows, true));
 		}
-		if (count($rows) < 2) {
+		if(count($rows) < 2){
 			throw new \InvalidArgumentException("You should pass at least 2 rows to compare");
 		}
 
 		$compareArr = [];
 		$keyDifferentArr = [];
-		foreach ($rows as $row) {
-			foreach($row as $key => $val) {
-				if (!key_exists($key, $compareArr)) {
+		foreach($rows as $row){
+			foreach($row as $key => $val){
+				if(!key_exists($key, $compareArr)){
 					$compareArr[$key] = $val;
-				} elseif ($compareArr[$key] !== $val) {
+				} else if($compareArr[$key] !== $val){
 					$keyDifferentArr[$key] = true;
 				}
 			}
@@ -2507,17 +2719,18 @@ EOF;
 	 * Given a key-value array,
 	 * returns a string of `data-key=val`,
 	 * to be fed into a tag.
-	 *
 	 * If the array is multi-dimensional (aka. the `val` is an array),
 	 * will `json_encode()` the `val`.
 	 *
 	 * @param array|null $a
-	 * @param bool|null  $keep_empty If set to TRUE, will keep the keys with empty vals, otherwise those keys will be removed.
-	 * @link https://stackoverflow.com/a/1081581/429071
-	 * @link https://stackoverflow.com/questions/13705473/escaping-quotes-and-html-in-a-data-attribute-json-object
+	 * @param bool|null  $keep_empty If set to TRUE, will keep the keys with empty vals, otherwise those keys will be
+	 *                               removed.
+	 *
 	 * @return string|bool
+	 * @link https://stackoverflow.com/questions/13705473/escaping-quotes-and-html-in-a-data-attribute-json-object
+	 * @link https://stackoverflow.com/a/1081581/429071
 	 */
-	static function getDataAttr(?array $a, ?bool $keep_empty = NULL) : ?string
+	static function getDataAttr(?array $a, ?bool $keep_empty = NULL): ?string
 	{
 		if(!is_array($a)){
 			return false;
@@ -2537,7 +2750,7 @@ EOF;
 				$val = json_encode($val);
 
 				# Escape single quotes
-				$val = str_replace("'", "&#39;",$val);
+				$val = str_replace("'", "&#39;", $val);
 			} else {
 				# Escape double quotes
 				$val = str_replace("\"", "&quot;", $val);
@@ -2556,7 +2769,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function addNames(&$row) : bool
+	public static function addNames(&$row): bool
 	{
 		if(!$row){
 			return false;
@@ -2582,6 +2795,27 @@ EOF;
 		return true;
 	}
 
+	/**
+	 * Given address fields, compiles them into the HTML field "address".
+	 *
+	 * @param $row
+	 *
+	 */
+	public static function formatAddress(&$row): void
+	{
+		if(!$row){
+			return;
+		}
+
+		$row['address'] = implode("<br>", array_filter([
+			$row['address_line_1'],
+			$row['address_line_2'],
+			$row['address_level_1'],
+			implode(" ", [$row['address_level_2'], $row['post_code']]),
+			$row['country'][0]['name']
+		]));
+	}
+
 
 	/**
 	 * Same as the `array_filter()` function, but works
@@ -2593,126 +2827,124 @@ EOF;
 	 */
 	static function array_filter_recursive($input)
 	{
-		foreach ($input as &$value)
-		{
-			if (is_array($value))
-			{
+		foreach($input as &$value){
+			if(is_array($value)){
 				$value = str::array_filter_recursive($value);
 			}
 		}
 		return array_filter($input);
 	}
 
-//	/**
-//	 * If "approve" => "string" is included in a button config,
-//	 * create an approval modal based on the button config.
-//	 *
-//	 * @param $a string|array Can either be a simple sentence fragment
-//	 *           describing the action wanted or an array of settings,
-//	 *           including icons, colour, text, etc.
-//	 *
-//	 *
-//	 * @return bool|string
-//	 */
-//	static function get_approve_script($a){
-//		extract($a);
-//
-//		if(!$approve){
-//			//If no approve modal is required
-//			return false;
-//		}
-//
-//		if(is_bool($approve)){
-//			$message = str::title("Are you sure you want to do this?");
-//		} else if(is_string($approve)){
-//			//if just the name of the thing to be removed is given
-//			$message = str::title("Are you sure you want to {$approve}?");
-//		} else {
-//			extract($a['approve']);
-//			//can override icon/class/etc options
-//		}
-//
-//		if(!$title){
-//			$title = "Are you sure?";
-//		}
-//		if(substr($title,-3) == '...'){
-//			//remove potential ellipsis
-//			$title = substr($title,0,-3);
-//		}
-//
-//		if(is_array($hash)){
-//			$hash = str::generate_uri($hash, false);
-//			//Not sure why this was set to true, but could have a real reason
-//		}
-//
-//		if($remove && $hash){
-//			$hash .= substr($hash,-1) == "/" ? "" : "/";
-//			$hash .=  "div/{$id}";
-//			$confirm = "$(\"#{$id}\").{$remove}.remove();".$confirm;
-//			$confirm = "window.location.pathname = '/{$hash}';".$confirm;
-//		} else if($div && $hash){
-//			$hash .= substr($hash,-1) == "/" ? "" : "/";
-//			$hash .=  "div/{$div}";
-//			$confirm = "hashChange('{$hash}');";
-//		} else if($onclick||$onClick){
-//			$confirm = $onclick.$onClick;
-//		} else if ($hash){
-//			if($hash == -1){
-//				//only -1 works in a button context
-//				$confirm = "window.history.back();";
-//			} else {
-//				$confirm = "window.location.pathname = '/{$hash}';";
-//			}
-//		} else if ($url) {
-//			$confirm = "window.location = '{$url}';";
-//		} else if ($type=="submit"){
-//			//if this is confirming a form submission
-//			$confirm = "$('#{$id}').closest('form').submit();
-//			let l = Ladda.create( document.querySelector( '#{$id}' ) );
-//			l.start();";
-//			//submit the form
-//
-//		}
-//
-//		$icon_class = Icon::getClass($icon);
-//		$type = self::translate_approve_colour($colour);
-//		$button_colour = self::getColour($colour, "btn");
-//
-//		$message = str_replace(["\r\n","\r","\n"], " ", $message);
-//
-//		return /** @lang HTML */<<<EOF
-//<script>
-//$('#{$id}').on('click', function (event) {
-//    event.stopImmediatePropagation();
-//	event.preventDefault();
-//	$.confirm({
-//		animateFromElement: false,
-//		escapeKey: true,
-//		backgroundDismiss: true,
-//		closeIcon: true,
-//		type: "{$type}",
-//		theme: "modern",
-//		icon: "{$icon_class}",
-//		title: "{$title}",
-//		content: "{$message}",
-//		buttons: {
-//			confirm: {
-//				text: "Yes", // text for button
-//				btnClass: "{$button_colour}", // class for the button
-//				keys: ["enter"], // keyboard event for button
-//				action: function(){
-//					{$confirm}
-//				}
-//			},
-//			cancel: function () {
-//				//Close
-//			},
-//		}
-//	});
-//});
-//</script>
-//EOF;
-//
-//
-//	}
+	//	/**
+	//	 * If "approve" => "string" is included in a button config,
+	//	 * create an approval modal based on the button config.
+	//	 *
+	//	 * @param $a string|array Can either be a simple sentence fragment
+	//	 *           describing the action wanted or an array of settings,
+	//	 *           including icons, colour, text, etc.
+	//	 *
+	//	 *
+	//	 * @return bool|string
+	//	 */
+	//	static function get_approve_script($a){
+	//		extract($a);
+	//
+	//		if(!$approve){
+	//			//If no approve modal is required
+	//			return false;
+	//		}
+	//
+	//		if(is_bool($approve)){
+	//			$message = str::title("Are you sure you want to do this?");
+	//		} else if(is_string($approve)){
+	//			//if just the name of the thing to be removed is given
+	//			$message = str::title("Are you sure you want to {$approve}?");
+	//		} else {
+	//			extract($a['approve']);
+	//			//can override icon/class/etc options
+	//		}
+	//
+	//		if(!$title){
+	//			$title = "Are you sure?";
+	//		}
+	//		if(substr($title,-3) == '...'){
+	//			//remove potential ellipsis
+	//			$title = substr($title,0,-3);
+	//		}
+	//
+	//		if(is_array($hash)){
+	//			$hash = str::generate_uri($hash, false);
+	//			//Not sure why this was set to true, but could have a real reason
+	//		}
+	//
+	//		if($remove && $hash){
+	//			$hash .= substr($hash,-1) == "/" ? "" : "/";
+	//			$hash .=  "div/{$id}";
+	//			$confirm = "$(\"#{$id}\").{$remove}.remove();".$confirm;
+	//			$confirm = "window.location.pathname = '/{$hash}';".$confirm;
+	//		} else if($div && $hash){
+	//			$hash .= substr($hash,-1) == "/" ? "" : "/";
+	//			$hash .=  "div/{$div}";
+	//			$confirm = "hashChange('{$hash}');";
+	//		} else if($onclick||$onClick){
+	//			$confirm = $onclick.$onClick;
+	//		} else if ($hash){
+	//			if($hash == -1){
+	//				//only -1 works in a button context
+	//				$confirm = "window.history.back();";
+	//			} else {
+	//				$confirm = "window.location.pathname = '/{$hash}';";
+	//			}
+	//		} else if ($url) {
+	//			$confirm = "window.location = '{$url}';";
+	//		} else if ($type=="submit"){
+	//			//if this is confirming a form submission
+	//			$confirm = "$('#{$id}').closest('form').submit();
+	//			let l = Ladda.create( document.querySelector( '#{$id}' ) );
+	//			l.start();";
+	//			//submit the form
+	//
+	//		}
+	//
+	//		$icon_class = Icon::getClass($icon);
+	//		$type = self::translate_approve_colour($colour);
+	//		$button_colour = self::getColour($colour, "btn");
+	//
+	//		$message = str_replace(["\r\n","\r","\n"], " ", $message);
+	//
+	//		return /** @lang HTML */<<<EOF
+	//<script>
+	//$('#{$id}').on('click', function (event) {
+	//    event.stopImmediatePropagation();
+	//	event.preventDefault();
+	//	$.confirm({
+	//		animateFromElement: false,
+	//		escapeKey: true,
+	//		backgroundDismiss: true,
+	//		closeIcon: true,
+	//		type: "{$type}",
+	//		theme: "modern",
+	//		icon: "{$icon_class}",
+	//		title: "{$title}",
+	//		content: "{$message}",
+	//		buttons: {
+	//			confirm: {
+	//				text: "Yes", // text for button
+	//				btnClass: "{$button_colour}", // class for the button
+	//				keys: ["enter"], // keyboard event for button
+	//				action: function(){
+	//					{$confirm}
+	//				}
+	//			},
+	//			cancel: function () {
+	//				//Close
+	//			},
+	//		}
+	//	});
+	//});
+	//</script>
+	//EOF;
+	//
+	//
+	//	}
 }

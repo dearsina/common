@@ -288,7 +288,7 @@ class ErrorLog extends Common {
 //			"style" => [
 //				"min-width" => "100px",
 //			],
-			"col_alias" => "created"
+			"col_name" => "created"
 		];
 
 		$first_line = str::explode(["\r\n","\n"], $error['message'])[0];
@@ -314,7 +314,7 @@ class ErrorLog extends Common {
 			],
 			"sm" => 4,
 //			"class" => "text-flat",
-			"col_alias" => "title"
+			"col_name" => "title"
 		];
 
 		$hash = str::generate_uri([
@@ -349,7 +349,7 @@ class ErrorLog extends Common {
 //				"min-width" => "100px",
 //			],
 			"class" => "text-flat",
-			"col_alias" => "user.first_name",
+			"col_name" => "user.first_name",
 			"html" => $error['user'][0]['full_name'] ?: "(Not logged in)",
 			"hash" => $error['user'][0]['user_id'] ? [
 				"rel_table" => "user",

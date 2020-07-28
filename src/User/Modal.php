@@ -74,12 +74,20 @@ class Modal extends Common {
 
 		$buttons = ["save","cancel_md"];
 
+		# If the user has elevated permissions
+		if($this->permission()->get($rel_table)){
+			$fields = Field::edit($$rel_table, true);
+		} else {
+			//if it's the user itself
+			$fields = Field::edit($$rel_table);
+		}
+
 		$form = new Form([
 			"action" => "update",
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
 			"callback" => $vars['callback'],
-			"fields" => Field::edit($$rel_table),
+			"fields" => $fields,
 			"buttons" => $buttons,
 			"modal" => true
 		]);
@@ -117,7 +125,8 @@ class Modal extends Common {
 			"callback" => $vars['callback'],
 			"fields" => Field::editEmail($$rel_table),
 			"buttons" => $buttons,
-			"modal" => true
+			"modal" => true,
+			"encrypt" => ["password"]
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
@@ -127,6 +136,41 @@ class Modal extends Common {
 			"body" => $form->getHTML(),
 			"draggable" => true,
 			"resizable" => true,
+		]);
+
+		return $modal->getHTML();
+	}
+
+	public function new(array $a): string
+	{
+		extract($a);
+
+		$$rel_table = $this->info($rel_table, $rel_id);
+
+		$buttons = [[
+			"type" => "submit",
+			"title" => "Save",
+			"icon" => Icon::get("save"),
+			"colour" => "primary",
+		],"cancel_md"];
+
+		$form = new Form([
+			"action" => "insert",
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+//			"callback" => $vars['callback'],
+			"fields" => Field::new($$rel_table),
+			"buttons" => $buttons,
+			"modal" => true
+		]);
+
+		$modal = new \App\UI\Modal\Modal([
+			//			"size" => "xl",
+			"icon" => Icon::get("new"),
+			"header" => str::title("New {$rel_table}"),
+			"body" => $form->getHTML(),
+			"draggable" => true,
+			"approve" => "change",
 		]);
 
 		return $modal->getHTML();

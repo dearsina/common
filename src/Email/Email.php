@@ -58,7 +58,7 @@ class Email extends Common {
 	 * @return $this
 	 * @throws \Exception
 	 */
-	public function template($template, $variables)
+	public function template_OLD($template, $variables)
 	{
 		if(!$TemplateClass = str::getClassCase($template)){
 			throw new \Exception("No template provided");
@@ -83,12 +83,45 @@ class Email extends Common {
 	}
 
 	/**
+	 * By passing a template name and an array of variables,
+	 * populate both the subject and the message body
+	 * with a populated template.
+	 *
+	 * @param string     $template_name
+	 * @param array|null $variables
+	 *
+	 * @return $this|object
+	 */
+	public function template(string $template_name, ?array $variables = NULL): object
+	{
+		# Get the right template factory (App, failing that, Common)
+		$template_factory_class = str::findClass("Template");
+
+		# Set up the factory
+		$template_factory = new $template_factory_class($variables);
+
+		# Set the template
+		$template_factory->setTemplate($template_name);
+
+		# Get (and set) the subject
+		if(!$this->subject($template_factory->generateSubject()." ".date("H:i"))){
+			throw new \Exception("No subject generated using the {$template_name} template.");
+		}
+
+		# Get (and set) the message
+		if(!$this->message($template_factory->generateMessage())){
+			throw new \Exception("No message generated using the {$template_name} template.");
+		}
+
+		return $this;
+	}
+
+	/**
 	 * Set the subject
 	 *
 	 * @param string $subject
 	 *
 	 * @return $this|bool
-	 * @throws \Exception
 	 * @throws \Exception
 	 */
 	public function subject(string $subject)
@@ -130,7 +163,7 @@ class Email extends Common {
 		$this->envelope->setBody($message, 'text/html');
 
 		# Create and set the text version
-//		$this->envelope->addPart($this->generateTextVersion($message), 'text/plain');
+		$this->envelope->addPart($this->generateTextVersion($message), 'text/plain');
 
 		return $this;
 	}
@@ -382,7 +415,8 @@ class Email extends Common {
 		}
 
 		# Ensure no emails are sent from the dev environment
-		if($_SERVER['SERVER_ADDR'] == $_ENV['dev_ip']){
+		if($_SERVER['SERVER_ADDR'] === $_ENV['dev_ip']){
+			// === because when accessed from the CLI, SERVER_ADDR = NULL, and if the dev_ip is NOT set (""), will result is a false positive match
 			$this->log->info([
 				"icon" => "ban",
 				"title" => "Email not sent",

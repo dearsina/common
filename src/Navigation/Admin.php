@@ -25,9 +25,39 @@ class Admin extends Common implements NavigationInterface {
 		$this->errors();
 		$this->issues();
 		$this->cron();
+		$this->users();
 		$this->permissions();
 		$this->examples();
 		return $this->levels;
+	}
+
+	private function users(): void
+	{
+		$children[] = [
+			"icon" => Icon::get("new"),
+			"title" => "New user...",
+			"alt" => "Create a new user",
+			"hash" => [
+				"rel_table" => "user",
+				"action" => "new"
+			]
+		];
+
+		$children[] = [
+			"icon" => Icon::get("all"),
+			"title" => "All users",
+			"alt" => "See all users registered",
+			"hash" => [
+				"rel_table" => "user",
+				"action" => "all"
+			]
+		];
+
+		$this->levels[2]['items'][] = [
+			"icon" => "users",
+			"title" => "Users",
+			"children" => $children
+		];
 	}
 
 	private function permissions() : void
@@ -166,10 +196,7 @@ class Admin extends Common implements NavigationInterface {
 		];
 
 		$children[] = [
-			"icon" => [
-				"type" => "thick",
-				"name" => Icon::get("issue")
-			],
+			"icon" => Icon::get("issue"),
 			"title" => "All issues",
 			"alt" => "See all issues",
 			"hash" => [

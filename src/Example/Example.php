@@ -30,15 +30,26 @@ class Example extends Common {
 			$page = new Page([
 				"title" => str::title($rel_id),
 				"icon" => Icon::get($rel_id),
-				"button" => [
+				"button" => [[
 					"icon" => "chevron-left",
 					"title" => "Return",
 					"basic" => true,
 					"hash" => -1,
 					"style" => [
+						"margin-bottom" => "1rem",
+						"margin-right" => "1rem"
+					]
+				],[
+					"icon" => "redo",
+					"basic" => true,
+					"title" => "Refresh",
+					"alt" => "Refresh this screen",
+					"colour" => "green",
+					"hash" => $a,
+					"style" => [
 						"margin-bottom" => "1rem"
 					]
-				]
+				]]
 			]);
 
 //			$page->setGrid([

@@ -4,6 +4,7 @@
 namespace App\Common\UserRole;
 
 
+use App\Common\Email\Email;
 use App\Common\Navigation\Navigation;
 use App\Common\str;
 use App\UI\Button;
@@ -47,7 +48,7 @@ class UserRole extends \App\Common\Common {
 	{
 		extract($a);
 
-		if(!$this->user->is("admin")){
+		if(!$this->permission()->get($rel_table)){
 			return $this->accessDenied($a);
 		}
 
@@ -109,11 +110,33 @@ class UserRole extends \App\Common\Common {
 
 			$this->log->success([
 				"icon" => Icon::get("role"),
-				"title" => "User given {$vars['role']} role",
-				"message" => "The user was successfully given the <code>{$vars['role']}</code> role. There may be additional settings for the role that user needs to set in order to fully operate as ".str::A($vars['role']).".",
+				"title" => "{$user['first_name']} given {$vars['role']} role",
+				"message" => "{$user['first_name']} was successfully given the <code>{$vars['role']}</code> role. There may be additional settings for the role that user needs to set in order to fully operate as ".str::A($vars['role']).".",
 				"container" => ".modal-body"
 			]);
 		}
+
+		# Get the user
+		$user = $this->info("user", $vars['user_id']);
+
+		# Prepare the variables for the email
+		$variables = [
+			"first_name" => $user['first_name'],
+			"role" => $vars['role']
+		];
+
+		# Send an email to the user about the new role
+		$email = new Email();
+		$email->template("new_role", $variables)
+			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
+			->send();
+
+		$this->log->info([
+			"icon" => Icon::get("role"),
+			"title" => "{$user['first_name']} emailed about {$vars['role']} role",
+			"message" => "An email was sent to {$user['first_name']} informing them about their new role as ".str::A($vars['role']).".",
+			"container" => ".modal-body"
+		]);
 
 		# A change in roles will have impact on the navigation
 		Navigation::update();

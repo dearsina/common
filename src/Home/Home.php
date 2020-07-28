@@ -94,6 +94,7 @@ class Home extends Common {
 			]);
 		}
 
+		$rows["Subdomain"] =  strtoupper($subdomain);
 		$rows["User IP address"] =  $_SERVER['REMOTE_ADDR'];
 		$rows["User Agent"] =  $_SERVER['HTTP_USER_AGENT'];
 		$rows["Cookies"] =  str::pre(print_r($_COOKIE, true));

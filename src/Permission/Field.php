@@ -77,7 +77,7 @@ class Field {
 			$row["IDs"] = $permissions[$table['Name']]['count_rel_id'] ?: "None";
 			$fields[] = [
 				"row_style" => [
-					"border-bottom" => ".1px solid #ddd",
+					"border-bottom" => ".9px solid #ddd",
 					"margin-bottom" => "1rem"
 				],
 				"html" => array_values($row)

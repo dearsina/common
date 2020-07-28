@@ -21,6 +21,16 @@ class PA {
 	 */
 	private $sql;
 
+	/**
+	 * Both join and where are used to build
+	 * a query to identify potential recipients
+	 * of immediate alerts.
+	 *
+	 * @var array
+	 */
+	private array $join = [];
+	private array $where = [];
+
 	private static $instance = null;
 	/**
 	 * The constructor is private so that the class can be run in static mode
@@ -58,63 +68,44 @@ class PA {
 		return self::$instance;
 	}
 
-//	/**
-//	 * Append a recipient of the msg.
-//	 *
-//	 * @param array|string $a If a string is passed,
-//	 *                        it's assumed to be an id,
-//	 *                        if it's an array,
-//	 *                        it's assumed to be a hash.
-//	 */
-//	public function to($a){
-//		if(is_array($a)){
-//
-//		} else {
-//
-//		}
-//	}
-//
-//	/**
-//	 * @param $a
-//	 */
-//	public function msg($a){
-//
-//	}
-//
-//	/**
-//	 * @param $a
-//	 */
-//	public function listen($a){
-//
-//	}
-
 	/**
-	 * @param null $a
+	 * Sends data to the requested list of recipients.
+	 *
+	 * Currently set so that if (for some reason) a message should
+	 * go to _all_ connections, the recipients list must explicitly
+	 * be set to an (empty) array, making it a little harder to
+	 * accidentally send a message to all.
+	 *
+	 * @param array $recipients
+	 * @param array $data
 	 *
 	 * @return bool
 	 */
-	public function speak($a = NULL){
-		if(!$recipients = $this->getRecipients($a)){
-//			$this->log->warning("No recipients found for the broadcast.");
-			//Not sure if this is necessary as it will create an alert unneccesarily
+	public function speak(array $recipients, array $data): bool
+	{
+		# Get connection FDs from the recipient criteria
+		if(!$fds = $this->getConnectionFDs($recipients)){
+			//if no currently open connections fit the criteria
 			return false;
+			//Don't push any messages on the network
+			//TODO Log messages that weren't sent
 		}
 
 		try {
-			$this->push($recipients, $a['data']);
+			$this->push($fds, $data);
 		}
 		catch (\Exception $e){
 			$this->log->error($e);
 			return false;
 		}
-		//
 
 		return true;
 	}
 
 	/**
 	 * Given the array from speak,
-	 * builds a list of recipients.
+	 * builds a list of recipient
+	 * connection FDs.
 	 * If no recipients are found,
 	 * returns bool FALSE.
 	 *
@@ -122,62 +113,37 @@ class PA {
 	 *
 	 * @return array|bool
 	 */
-	private function getRecipients(array $a)
+	private function getConnectionFDs(array $a)
 	{
-		# If a list of recipients was explicitly sent
-		if(is_array($a['fd'])){
-			return $a['fd'];
-		}
-		//TODO decide between "fd" and "recipients"
-
-		# If a list of recipients was explicitly sent
-		if(is_array($a['recipients'])){
-			return $a['recipients'];
+		# If a list of recipient FDs was explicitly sent
+		if($a['fd']){
+			return is_array($a['fd']) ? $a['fd'] : [$a['fd']];
 		}
 
-		# Assume we have to generate recipients
-
-		# The where clause is how we identify recipients
-		$where = ["closed" => NULL];
+		# If we have to generate recipients
+		$this->join = [];
+		//Reset the class variables
+		$this->where = ["closed" => NULL];
+		//We're only interested in currently open connections
 
 		# User permissions based recipients
-		if($a['rel_table']){
-			//if all active users who have permissions over a particular rel_table/id should get the message
-			$join[] = [
-				"table" => "user_permission",
-				"on" => "user_id",
-				"where" => [
-					"rel_table" => $a['rel_table'],
-					"rel_id" => $a['rel_id'],
-					"r" => true
-					// The user needs to at least have read access
-				]
-			];
-		}
+		$this->getRecipientsBasedOnUserPermissions($a);
 
 		# Role based recipients
-		else if($a['role']){
-			//if all logged on users of a particular role should get the message
-			$join[] = [
-				"table" => "user_role",
-				"on" => "user_id",
-				"where" => [
-					"rel_table" => $a['role']
-				]
-			];
-		}
+		$this->getRecipientsBasedOnRolePermissions($a);
 
-		else {
-			//if no recipients have been identified,
-			//assume only the person kicking off the
-			//ajax is the only person to be notified
-			$where["session_id"] = session_id();
-		}
+		# Requester based recipient (there is only one requester at any time)
+		$this->getRecipientsBasedOnRequester($a);
+
+		/**
+		 * While the recipient criteria can be combined,
+		 * they will only further limit each other.
+		 */
 
 		if(!$connections = $this->sql->select([
 			"table" => "connection",
-			"join" => $join,
-			"where" => $where
+			"join" => $this->join,
+			"where" => $this->where
 		])){
 			//if no connections are found
 			return false;
@@ -188,6 +154,73 @@ class PA {
 		}
 
 		return $recipients;
+	}
+
+	/**
+	 * If a `rel_table` is included, will send the message to any
+	 * user who has permissions to READ that `rel_table`.
+	 * If a `rel_id` is included, will limit it to those with
+	 * permissions for the `rel_table` + `rel_id` *combined*.
+	 *
+	 * @param $a
+	 */
+	private function getRecipientsBasedOnUserPermissions($a): void
+	{
+		extract($a);
+
+		if(!$rel_table){
+			return;
+		}
+
+		$this->join[] = [
+			"table" => "user_permission",
+			"on" => "user_id",
+			"where" => [
+				"rel_table" => $rel_table,
+				"rel_id" => $rel_id ?: false,
+				"r" => true
+				// The user needs to at least have read access
+			]
+		];
+	}
+
+	/**
+	 * If a particular `role` is included, will send the message to
+	 * any user who is currently logged in as that role.
+	 *
+	 * @param $a
+	 */
+	private function getRecipientsBasedOnRolePermissions($a): void
+	{
+		extract($a);
+
+		if(!$role){
+			return;
+		}
+
+		$join[] = [
+			"table" => "user_role",
+			"on" => "user_id",
+			"where" => [
+				"rel_table" => $role
+			]
+		];
+	}
+
+	/**
+	 * Requester data can be sent as user_id and session_id variables.
+	 *
+	 * @param $a
+	 */
+	private function getRecipientsBasedOnRequester($a): void
+	{
+		extract($a);
+
+		if($user_id){
+			$this->where['user_id'] = $user_id;
+		} else if($session_id){
+			$this->where['session_id'] = $session_id;
+		}
 	}
 
 	/**

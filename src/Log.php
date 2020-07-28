@@ -47,7 +47,7 @@ class Log {
 	}
 
 	/**
-	 * Returns all allerts, of false if none are found.
+	 * Returns all alerts, or false if none are found.
 	 *
 	 * @return mixed
 	 */
@@ -55,9 +55,10 @@ class Log {
 		if(!empty($this->alerts)){
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
-					$flat_error_array[] = str::array_filter_recursive(
-						array_merge($alert,$this->prepareAlert($type, $alert))
-					);
+//					$flat_error_array[] = str::array_filter_recursive(
+//						array_merge($alert,$this->prepareAlert($type, $alert))
+//					);
+					$flat_error_array[] = $this->prepareAlert($type, $alert);
 				}
 			}
 			return $flat_error_array;
@@ -304,7 +305,6 @@ EOF;
 		# If the alert is to be shared with the user immediately
 		if($immediately){
 			return $this->alertImmediately($type, $alert, $immediately);
-			//Messages that are sent immediately are not logged
 		}
 		$this->alerts[$type][] = $alert;
 		return true;
@@ -329,15 +329,37 @@ EOF;
 		# Prepare the alert for sharing with users
 		$alert = $this->prepareAlert($type, $alert);
 
-		# Prepare the message
+		# If the $immediately var contains recipients
 		if(is_array($immediately)){
-			$speak = $immediately;
+			$recipients = $immediately;
+		} else {
+			//if no recipients have been identified
+			global $user_id;
+			global $session_id;
+			$recipients = [
+				"user_id" => $user_id,
+				"session_id" => $session_id
+			];
+			/**
+			 * If no individual or group of recipients
+			 * have been explicitly identified,
+			 * assume that only the requester
+			 * that prompted the alert should
+			 * be notified.
+			 *
+			 * Because CLI requests include
+			 * requester info, even those requests
+			 * will send alerts to the correct
+			 * requester.
+			 */
 		}
-		$speak['data']['alerts'][] = $alert;
+
+		# Prepare the message
+		$data['alerts'][] = $alert;
 
 		# Send the message to the recipients
 		$pa = PA::getInstance();
-		return $pa->speak($speak);
+		return $pa->speak($recipients, $data);
 	}
 
 	/**

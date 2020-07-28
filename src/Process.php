@@ -35,6 +35,11 @@ class Process {
 	 * Given a hash array, will execute the hash
 	 * as a separate thread.
 	 *
+	 * I'm struggling to find a usecase for this approach,
+	 * over Process::request(). Unless perhaps when the requestor
+	 * is a CLI request itself, but other than Cron Jobs,
+	 * I can't think of any.
+	 *
 	 * @param array      $a
 	 * @param array|null $params
 	 *
@@ -73,6 +78,9 @@ class Process {
 			$params_json = str_replace(["\\", '"'],["\\\\",'\\"'],json_encode($params));
 			$params = "\"{$params_json}\"";
 			//Both \ and " must be escaped or else the command will fail
+		} else{
+			//If no params are sent, use the ones sent to _this_method
+			$params = self::stringifyArray($a);
 		}
 
 		# Build the command that executes the execute method
@@ -88,9 +96,99 @@ class Process {
 		return $process->getPid();
 	}
 
-	private function runCom ()
+	/**
+	 * Request a process asynchronously.
+	 *
+	 * This method should be used to offload
+	 * tasks that are not instant to ensure that the
+	 * user doesn't have to wait for requests
+	 * to complete to continue their work.
+	 *
+	 * Because ownership (user ID, or session ID)
+	 * is passed on to the request, it's as if
+	 * the user themselves was performing the task.
+	 *
+	 * @param array $a
+	 *
+	 * @return int The process ID
+	 */
+	public static function request(array $a): int
 	{
-		$command = 'nohup ' . $this->command . ' > /tmp/process.alert 2>&1 & echo $!';
+		# Get the requester params
+		$requester = self::getGlobalVariablesAsString();
+
+		# Format the params to feed to the method
+		$params = self::stringifyArray($a);
+
+		# Build the command that executes the execute method
+		$cmd  = "go(function(){";
+		$cmd .= "require \"/var/www/html/app/settings.php\";";
+		$cmd .= "\$request = new App\\Common\\Request({$requester});";
+		$cmd .= "\$request->handler({$params});";
+		$cmd .= "});";
+
+		# Use the Process class to execute it with a pID that can be checked
+		$process = new Process("php -r '{$cmd}'");
+
+		return $process->getPid();
+	}
+
+	/**
+	 * Returns the user ID and role (if the user is logged in),
+	 * and the session ID (for all users) as a string that
+	 * can be fed into a CLI executed php -r command.
+	 * @return string
+	 */
+	private static function getGlobalVariablesAsString(): string
+	{
+		# User ID (if exists)
+		global $user_id;
+		if($user_id){
+			$global_vars['user_id'] = $user_id;
+		}
+
+		# Role (if exists)
+		global $role;
+		if($role){
+			$global_vars['role'] = $role;
+		}
+
+		# Session ID (will always exist)
+		$global_vars['session_id'] = session_id();
+
+		# Return stringified
+		return self::stringifyArray($global_vars);
+	}
+
+	/**
+	 * Recursive function.
+	 * Takes the normal $a array, or any array really,
+	 * and stringifies it, and ensures that double quotes are used.
+	 *
+	 * @param $a
+	 *
+	 * @return string
+	 */
+	private static function stringifyArray($a){
+		$params = "[";
+		foreach($a as $key => $val){
+			$key = str_replace('"', '\\"', $key);
+			if(is_array($val)){
+				$val = self::stringifyArray($val);
+				$params .= "\"{$key}\" => {$val},";
+			} else {
+				$val = str_replace('"', '\\"', $val);
+				$params .= "\"{$key}\" => \"{$val}\",";
+			}
+		}
+		$params .= "]";
+		return $params;
+	}
+
+	private function runCom (): void
+	{
+//		echo $this->command;exit;
+		$command = 'nohup ' . $this->command . ' >> /var/www/tmp/process.log 2>&1 & echo $!';
 		exec($command, $op);
 		$this->pid = (int)$op[0];
 	}

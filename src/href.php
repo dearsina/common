@@ -32,7 +32,8 @@ class href {
 		$class = str::getAttrTag("class", $class);
 
 		# Style
-		$style = str::getAttrTag("style", $style);
+		$style_array = str::getAttrArray($style, $default_style, $only_style);
+		$style = str::getAttrTag("style", $style_array);
 
 		# Target
 		$target = str::getAttrTag("target", $target);

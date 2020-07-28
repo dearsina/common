@@ -561,6 +561,7 @@ abstract class Common {
 		if(!$table['include_removed']){
 			$conditions["and"][] = "`{$table['alias']}`.`removed` IS NULL";
 		}
+		//This could potentially be limited to the main table only
 
 		# If a particular ID has been asked for
 		if($table['id']){
@@ -629,6 +630,16 @@ abstract class Common {
 				//if the joined table also has a column the same name as the main table's ID column
 				$conditions["and"][] = "`{$table['alias']}`.`{$this->table["id_col"]}` = `{$this->table['alias']}`.`{$this->table["id_col"]}`";
 			}
+		}
+
+		# Unless we're explicitly including removed, remove them (this has to be placed after the above if() statement to not influence it)
+		if(!$table['include_removed']){
+			$conditions["and"][] = "`{$table['alias']}`.`removed` IS NULL";
+			/**
+			 * The removed is null condition has to be on the join,
+			 * and NOT on the WHERE, except for on the main table
+			 * otherwise counts will be screwed.
+			 */
 		}
 
 		return $conditions;

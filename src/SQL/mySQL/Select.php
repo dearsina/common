@@ -514,10 +514,11 @@ class Select extends Common {
 			// This may have a negative impact on any tables that are joined without conditions
 			// Because the assumption is that if tables are joined, they must have data in the row (that was used to join)
 
+
 			# If this is the first row, or if this row's main columns are the same as the last row
 			if(!$last_main_table || ($main_table == $last_main_table)){
 
-				# Update the last main table variable
+				# Update the last main table variable (only useful for the first row)
 				$last_main_table = $main_table;
 
 				# merge all rows of columns belonging to joined tables
@@ -572,6 +573,11 @@ class Select extends Common {
 				}
 			}
 		}
+
+		# Remove rows that are exactly the same (including comparing their joined children)
+		$normalised = array_map('unserialize', array_unique(array_map('serialize', $normalised)));
+		//@link https://stackoverflow.com/a/44179213/429071
+		// EXPERIMENTAL Not sure of the wider consequences of removing rows that are identical
 
 		return $normalised;
 	}

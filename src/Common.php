@@ -80,7 +80,7 @@ abstract class Common {
 			return true;
 		}
 		foreach($a as $key => $val){
-			$method = "set".ucwords($key);
+			$method = str::getMethodCase("set_{$key}");
 			if (method_exists($this, $method)) {
 				//if a custom setter method exists, use it
 				$this->$method($val);

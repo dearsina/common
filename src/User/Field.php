@@ -49,7 +49,14 @@ class Field {
 		]];
 	}
 
-	public static function new($a = NULL) {
+	/**
+	 * Externally facing.
+	 *
+	 * @param null $a
+	 *
+	 * @return array
+	 */
+	public static function register($a = NULL) {
 		if (is_array($a))
 			extract($a);
 
@@ -65,7 +72,7 @@ class Field {
 				],
 				"minLength" => 2
 			],
-			"value" => $first_name,
+			"value" => urldecode($first_name),
 			"sm" => 5
 		],[
 			"name" => "last_name",
@@ -79,15 +86,15 @@ class Field {
 				],
 				"minLength" => 2
 			],
-			"value" => $last_name,
+			"value" => urldecode($last_name),
 			"sm" => 7
 		]],[
-			"name" => "company_name",
-			"autocomplete" => "company",
-			"label" => false,
-			"placeholder" => "Company Name",
-			"value" => $company_name,
-		],[
+//			"name" => "company_name",
+//			"autocomplete" => "company",
+//			"label" => false,
+//			"placeholder" => "Company Name",
+//			"value" => $company_name,
+//		],[
 			"type" => "email",
 			"autocomplete" => "email",
 			"name" => "email",
@@ -143,13 +150,86 @@ class Field {
 	}
 
 	/**
+	 * Internal only.
+	 *
+	 * @param null $a
+	 *
+	 * @return array
+	 */
+	public static function new($a = NULL) {
+		if (is_array($a))
+			extract($a);
+
+		return [[[
+			"name" => "first_name",
+			"autocomplete" => "name given-name",
+			"label" => false,
+			"placeholder" => "First name",
+			"required" => true,
+			"value" => $first_name,
+			"sm" => 5
+		],[
+			"name" => "last_name",
+			"autocomplete" => "name family-name",
+			"label" => false,
+			"placeholder" => "Last name",
+			"required" => true,
+			"value" => $last_name,
+			"sm" => 7
+		]],[
+//			"name" => "company_name",
+//			"autocomplete" => "company",
+//			"label" => false,
+//			"placeholder" => "Company Name",
+//			"value" => $company_name,
+//		],[
+			"type" => "email",
+			"autocomplete" => "email",
+			"name" => "email",
+			"icon" => "envelope",
+			"label" => false,
+			"placeholder" => "Email address",
+			"required" => true,
+			"value" => $email
+		],[
+			"type" => "tel",
+			"autocomplete" => "tel",
+			"name" => "phone",
+			"placeholder" => false,
+			"validation" => [
+				"tel" => [
+					"rule" => true,
+					"msg" => "Please ensure you enter a full mobile number."
+				],
+			],
+			"label" => false,
+			"value" => $phone
+		],[
+			"type" => "checkbox",
+			"name" => "welcome_email",
+			"checked" => false,
+			"label" => [
+				"title" => "Send welcome email",
+				"desc" => "Sends a welcome email to the new user with a link to verify their account and set up a password."
+			],
+		]];
+	}
+
+	/**
 	 * @param null $a
 	 *
 	 * @return array[]
 	 */
-	public static function edit($a = NULL) {
+	public static function edit($a = NULL, ?bool $elevated = NULL) {
 		if (is_array($a))
 			extract($a);
+
+		if($elevated){
+			$desc = "Email address changes to verified accounts will result in emails going to the user's old and new addresses for verification.";
+		} else {
+			$disabled = true;
+			$desc = "There is a separate process for changing your email address.";
+		}
 
 		return [[
 			"name" => "first_name",
@@ -182,9 +262,11 @@ class Field {
 			"icon" => "envelope",
 			"label" => false,
 			"placeholder" => "Email address",
-			"disabled" => true,
-			"desc" => "There is a separate process for changing your email address.",
-			"value" => $email
+			"disabled" => $disabled,
+			"desc" => $desc,
+			"value" => $email,
+			"name" => "email",
+			"required" => true,
 		],[
 			"type" => "tel",
 			"autocomplete" => "tel",
@@ -213,6 +295,13 @@ class Field {
 			extract($a);
 
 		return [[
+			"html" => "<p>If you wish to update your email address, 
+			enter the new one here along with your current password. 
+			An email will be sent to your new address with a verification 
+			link to complete the update process.</p>
+			<p>Until you complete the process, please continue to use
+			your current address to log in.</p>",
+		],[
 			"type" => "email",
 			"autocomplete" => "off",
 			"name" => "new_email",
@@ -246,11 +335,6 @@ class Field {
 			extract($a);
 
 		return [[
-			"html" => "
-				<p>Thank you for verifying your email address.<br/>
-				Please enter a new password for your account.</p>
-			",
-		],[
 			"type" => "password",
 			"icon" => "key",
 			"name" => "new_password",
@@ -327,8 +411,8 @@ class Field {
 			],
 			"desc" => Countdown::generate([
 				"modify" => "+15 minutes",
-				"stop" => "Your code has expired, please cancel and alert in again.",
-				"pre" => "The code is case <i>in</i>sensitive and will expire in ",
+				"stop" => "Your code has expired, please cancel and log in again.",
+				"pre" => "The code is not case sensitive and will expire in ",
 				"post" => "."
 			]),
 			"autocomplete" => "off"
