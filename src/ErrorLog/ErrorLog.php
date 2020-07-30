@@ -262,7 +262,7 @@ class ErrorLog extends Common {
 		 * @return array
 		 */
 		$row_handler = function(array $error){
-			return ErrorLog::rowHandler($error);
+			return $this->rowHandler($error);
 		};
 
 		# This line is all that is required to respond to the page request
@@ -277,7 +277,8 @@ class ErrorLog extends Common {
 	 * @return mixed
 	 * @throws \Exception
 	 */
-	public static function rowHandler($error){
+	public function rowHandler(array $error, ?array $a = []): array
+	{
 		$row["Date"] = [
 			"html" => str::ago($error['created']),
 			"class" => "text-flat",
@@ -410,7 +411,7 @@ class ErrorLog extends Common {
 			"id" => $rel_id
 		]);
 
-		$this->output->update($vars['button_id'], Button::get([
+		$this->output->update("#{$vars['button_id']}", Button::get([
 			"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
 		]));
 

@@ -203,7 +203,7 @@ class UserRole extends \App\Common\Common {
 			]
 		])){
 
-			$this->output->update("user_roles", Grid::generate([
+			$this->output->update("#user_roles", Grid::generate([
 				"row_style" => [
 					"float" => "left"
 				],
@@ -270,7 +270,7 @@ class UserRole extends \App\Common\Common {
 			$html .= Button::generate($button);
 		}
 
-		$this->output->update("user_roles", "<div class=btn-float-right>{$html}</div>");
+		$this->output->update("#user_roles", "<div class=btn-float-right>{$html}</div>");
 		return true;
 	}
 

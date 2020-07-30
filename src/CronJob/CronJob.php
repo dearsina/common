@@ -274,8 +274,8 @@ class CronJob extends Common {
 		];
 
 		if(!$methods = str::getMethodsFromClass($vars['class'])){
-			$this->output->set_var("options", $options);
-			$this->output->set_var("placeholder", "No methods exist for this class.");
+			$this->output->setVar("options", $options);
+			$this->output->setVar("placeholder", "No methods exist for this class.");
 			return true;
 		}
 
@@ -286,8 +286,8 @@ class CronJob extends Common {
 			];
 		}
 
-		$this->output->set_var("options", $options);
-		$this->output->set_var("placeholder", "Select a method for the ".end(explode("\\",$vars['class']))." class.");
+		$this->output->setVar("options", $options);
+		$this->output->setVar("placeholder", "Select a method for the ".end(explode("\\",$vars['class']))." class.");
 		return true;
 	}
 
@@ -403,7 +403,7 @@ EOF;
 			];
 		}
 
-		$this->output->update("all_cron_job", Table::generate($rows, [
+		$this->output->update("#all_cron_job", Table::generate($rows, [
 			"rel_table" => $rel_table,
 			"order" => true
 		]));

@@ -38,7 +38,7 @@ class Card extends \App\Common\Common {
 //			"buttons" => $buttons
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"body" => $form->getHTML()
 		]);
 
@@ -113,7 +113,7 @@ class Card extends \App\Common\Common {
 			"buttons" => $buttons
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => Icon::get("permission"),
 				"title" => "Permissions",

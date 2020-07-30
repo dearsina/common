@@ -101,7 +101,7 @@ class IssueTracker extends Common {
 			]);
 
 			# Update the buttons
-			$this->output->update($vars['button_id'], Button::get([
+			$this->output->update("#{$vars['button_id']}", Button::get([
 				"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
 			]));
 		}
@@ -210,7 +210,7 @@ class IssueTracker extends Common {
 	private function updateIssueTrackerTable() : void
 	{
 		$script = str::getScriptTag("onDemandReset(\"all_issue_tracker\");");
-		$this->output->append("all_issue_tracker > .table-container",$script);
+		$this->output->append("#all_issue_tracker > .table-container",$script);
 	}
 
 	/**
@@ -302,7 +302,7 @@ class IssueTracker extends Common {
 		 * @return array
 		 */
 		$row_handler = function(array $issue){
-			return IssueTracker::rowHandler($issue);
+			return $this->rowHandler($issue);
 		};
 
 		# This line is all that is required to respond to the page request
@@ -320,7 +320,7 @@ class IssueTracker extends Common {
 	 * @return mixed
 	 * @throws \Exception
 	 */
-	public static function rowHandler($issue){
+	public function rowHandler($issue){
 		Info::format($issue);
 
 		$row["Type"] = [

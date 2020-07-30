@@ -67,7 +67,7 @@ class Card extends \App\Common\Common {
 			];
 		}
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
 				"title" => "Cron jobs",
@@ -227,7 +227,7 @@ class Card extends \App\Common\Common {
 			];
 		}
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
 				"title" => $title,

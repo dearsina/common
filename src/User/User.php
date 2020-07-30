@@ -123,7 +123,7 @@ class User extends Common {
 				//if the user doesn't have access to this row
 				throw new \Exception("You do not have access to this user.");
 			}
-			return User::rowHandler($cols);
+			return $this->rowHandler($cols);
 		};
 
 		# This line is all that is required to respond to the page request
@@ -154,7 +154,7 @@ class User extends Common {
 		return $this->info("user", $user_id);
 	}
 
-	protected static function rowHandler(array $cols): array
+	public function rowHandler(array $cols, ?array $a = []): array
 	{
 		$info = new Info();
 		$info->format($cols);
@@ -208,13 +208,13 @@ class User extends Common {
 
 		$row[""] = [
 			"sortable" => false,
-			"buttons" => User::getRowButtons($cols),
+			"buttons" => $this->getRowButtons($cols),
 		];
 
 		return $row;
 	}
 
-	public static function getRowButtons($cols): array
+	public function getRowButtons(array $cols, ?array $a = []): array
 	{
 		$buttons[] = [
 			"icon" => Icon::get("pencil"),
@@ -1654,7 +1654,7 @@ class User extends Common {
 		}
 
 		# The connection UUID is the CSRF token, return it to the user
-		$this->output->set_var("token", $connection_id);
+		$this->output->setVar("token", $connection_id);
 
 		return true;
 	}
@@ -1670,10 +1670,10 @@ class User extends Common {
 			"count" => true,
 			"table" => "cron_job"
 		]);
-		$this->output->set_var("key", $cron_jobs_count);
+		$this->output->setVar("key", $cron_jobs_count);
 		$seconds = rand(4,7);
 		sleep($seconds);
-		$this->output->set_var("seconds", $seconds);
+		$this->output->setVar("seconds", $seconds);
 		$this->log->success("That took {$seconds}.");
 		return true;
 	}
@@ -2869,6 +2869,6 @@ class User extends Common {
 			$users = [];
 		}
 
-		$this->output->set_var("results", $users);
+		$this->output->setVar("results", $users);
 	}
 }

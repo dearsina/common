@@ -133,7 +133,7 @@ class Modal extends Common {
 			"id" => $rel_id
 		]);
 
-		$buttons = ["save",[
+		$buttons = [[
 			"icon" => Icon::get("trash"),
 			"colour" => "danger",
 			"basic" => true,
@@ -148,8 +148,12 @@ class Modal extends Common {
 				"rel_table" => $rel_table,
 				"rel_id" => $rel_id,
 				"action" => "remove"
+			],
+			"class" => "float-right",
+			"style"=> [
+				"margin-right" => "1rem"
 			]
-		],"close_md"];
+		],"save","close_md"];
 
 		$issue_form = new Form([
 			"action" => "update",
@@ -159,6 +163,7 @@ class Modal extends Common {
 			"fields" => Field::issueTracker($vars),
 			"buttons" => $buttons,
 //			"modal" => true
+			// If set to true, will screw with formatting
 		]);
 
 		$note_form = new Form([

@@ -7,7 +7,7 @@ namespace App\Common\Example;
 use App\Common\Common;
 use App\Common\str;
 use App\UI\Button;
-use App\UI\Card;
+use App\UI\Card\Card;
 use App\UI\Icon;
 use App\UI\ListGroup;
 use App\UI\Page;

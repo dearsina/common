@@ -260,6 +260,6 @@ class Admin extends Common {
 			];
 		}
 
-		$this->output->update("all_error_notification", Table::generate($rows));
+		$this->output->update("#all_error_notification", Table::generate($rows));
 	}
 }

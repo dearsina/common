@@ -250,14 +250,13 @@ class str {
 	 * Given a set of keys, traverses the array,
 	 * looks for those keys, and if they're orphans,
 	 * flattens them.
-	 *
 	 * By flatten is meant to remove the numerical level of a child array:
 	 * <code>
 	 * $array['parent'][0]['child'] > $array['parent']['child']
 	 * </code>
 	 *
 	 * @param array $array An array potentially containing numerical array children.
-	 * @param array $keys A list of keys, if children are orphaned numerical arrays, to be flattened.
+	 * @param array $keys  A list of keys, if children are orphaned numerical arrays, to be flattened.
 	 *
 	 * @return array
 	 */
@@ -1845,6 +1844,80 @@ EOF;
 	}
 
 	/**
+	 * Will return all the keys for rows that contain a match in the $col for any of the $value.
+	 *
+	 * @param array|null  $array
+	 * @param string|null $col
+	 * @param array|null  $values
+	 *
+	 * @return array|null
+	 */
+	public static function array_intersect_key_multi_values(?array $array, ?string $col, ?array $values): ?array
+	{
+		if(empty($array)){
+			return NULL;
+		}
+		if(!$col){
+			return NULL;
+		}
+		if(empty($values)){
+			return NULL;
+		}
+
+		$matches = [];
+		
+		foreach($values as $value){
+			$matches = array_merge($matches, array_keys(array_column($array, $col), $value));
+		}
+		return $matches;
+	}
+
+	/**
+	 * Given an array, will create a string from the values, with the glue as the glue.
+	 *
+	 * @param mixed       $array
+	 * @param string|null $glue
+	 *
+	 * @return string|null
+	 */
+	public static function stringFromArray($array, ?string $glue = "|"): ?string
+	{
+		# If it's missing, return NULL
+		if(!$array){
+			return NULL;
+		}
+
+		# If it's not an array, just return it
+		if(!is_array($array)){
+			return $array;
+		}
+		return implode($glue, $array);
+	}
+
+	/**
+	 * Given a string, will break it apart by the delimiter and return an array.
+	 *
+	 * @param mixed      $string
+	 * @param string|null $delimiter
+	 *
+	 * @return array|null
+	 */
+	public static function arrayFromString($string, ?string $delimiter = "|"): ?array
+	{
+		# If it's missing, return NULL
+		if(!$string){
+			return NULL;
+		}
+
+		# If it's already an array, just return it
+		if(is_array($string)){
+			return $string;
+		}
+
+		return explode($delimiter, $string);
+	}
+
+	/**
 	 * Does the leg work deciding "[1 ]thing was ", or "[2 ]things were ".
 	 *
 	 * @param array|int $array         An array of things that will be counted, or an int of the count.
@@ -2799,7 +2872,6 @@ EOF;
 	 * Given address fields, compiles them into the HTML field "address".
 	 *
 	 * @param $row
-	 *
 	 */
 	public static function formatAddress(&$row): void
 	{
@@ -2812,7 +2884,7 @@ EOF;
 			$row['address_line_2'],
 			$row['address_level_1'],
 			implode(" ", [$row['address_level_2'], $row['post_code']]),
-			$row['country'][0]['name']
+			$row['country'][0]['name'],
 		]));
 	}
 
@@ -2834,117 +2906,4 @@ EOF;
 		}
 		return array_filter($input);
 	}
-
-	//	/**
-	//	 * If "approve" => "string" is included in a button config,
-	//	 * create an approval modal based on the button config.
-	//	 *
-	//	 * @param $a string|array Can either be a simple sentence fragment
-	//	 *           describing the action wanted or an array of settings,
-	//	 *           including icons, colour, text, etc.
-	//	 *
-	//	 *
-	//	 * @return bool|string
-	//	 */
-	//	static function get_approve_script($a){
-	//		extract($a);
-	//
-	//		if(!$approve){
-	//			//If no approve modal is required
-	//			return false;
-	//		}
-	//
-	//		if(is_bool($approve)){
-	//			$message = str::title("Are you sure you want to do this?");
-	//		} else if(is_string($approve)){
-	//			//if just the name of the thing to be removed is given
-	//			$message = str::title("Are you sure you want to {$approve}?");
-	//		} else {
-	//			extract($a['approve']);
-	//			//can override icon/class/etc options
-	//		}
-	//
-	//		if(!$title){
-	//			$title = "Are you sure?";
-	//		}
-	//		if(substr($title,-3) == '...'){
-	//			//remove potential ellipsis
-	//			$title = substr($title,0,-3);
-	//		}
-	//
-	//		if(is_array($hash)){
-	//			$hash = str::generate_uri($hash, false);
-	//			//Not sure why this was set to true, but could have a real reason
-	//		}
-	//
-	//		if($remove && $hash){
-	//			$hash .= substr($hash,-1) == "/" ? "" : "/";
-	//			$hash .=  "div/{$id}";
-	//			$confirm = "$(\"#{$id}\").{$remove}.remove();".$confirm;
-	//			$confirm = "window.location.pathname = '/{$hash}';".$confirm;
-	//		} else if($div && $hash){
-	//			$hash .= substr($hash,-1) == "/" ? "" : "/";
-	//			$hash .=  "div/{$div}";
-	//			$confirm = "hashChange('{$hash}');";
-	//		} else if($onclick||$onClick){
-	//			$confirm = $onclick.$onClick;
-	//		} else if ($hash){
-	//			if($hash == -1){
-	//				//only -1 works in a button context
-	//				$confirm = "window.history.back();";
-	//			} else {
-	//				$confirm = "window.location.pathname = '/{$hash}';";
-	//			}
-	//		} else if ($url) {
-	//			$confirm = "window.location = '{$url}';";
-	//		} else if ($type=="submit"){
-	//			//if this is confirming a form submission
-	//			$confirm = "$('#{$id}').closest('form').submit();
-	//			let l = Ladda.create( document.querySelector( '#{$id}' ) );
-	//			l.start();";
-	//			//submit the form
-	//
-	//		}
-	//
-	//		$icon_class = Icon::getClass($icon);
-	//		$type = self::translate_approve_colour($colour);
-	//		$button_colour = self::getColour($colour, "btn");
-	//
-	//		$message = str_replace(["\r\n","\r","\n"], " ", $message);
-	//
-	//		return /** @lang HTML */<<<EOF
-	//<script>
-	//$('#{$id}').on('click', function (event) {
-	//    event.stopImmediatePropagation();
-	//	event.preventDefault();
-	//	$.confirm({
-	//		animateFromElement: false,
-	//		escapeKey: true,
-	//		backgroundDismiss: true,
-	//		closeIcon: true,
-	//		type: "{$type}",
-	//		theme: "modern",
-	//		icon: "{$icon_class}",
-	//		title: "{$title}",
-	//		content: "{$message}",
-	//		buttons: {
-	//			confirm: {
-	//				text: "Yes", // text for button
-	//				btnClass: "{$button_colour}", // class for the button
-	//				keys: ["enter"], // keyboard event for button
-	//				action: function(){
-	//					{$confirm}
-	//				}
-	//			},
-	//			cancel: function () {
-	//				//Close
-	//			},
-	//		}
-	//	});
-	//});
-	//</script>
-	//EOF;
-	//
-	//
-	//	}
 }

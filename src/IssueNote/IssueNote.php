@@ -239,7 +239,7 @@ class IssueNote extends \App\Common\Common {
 			];
 		}
 
-		$this->output->update("all_issue_note", Table::generate($rows, [
+		$this->output->update("#all_issue_note", Table::generate($rows, [
 			"style" => [
 				"margin-top" => "2rem"
 			],

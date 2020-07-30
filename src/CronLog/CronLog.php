@@ -19,9 +19,10 @@ class CronLog extends \App\Common\Common {
 	 *
 	 * @return Card
 	 */
-	public function card(?bool $output_to_email = NULL){
+	public function card(?bool $output_to_email = NULL)
+	{
 		if($output_to_email){
-//			return new EmailCard();
+			//			return new EmailCard();
 		}
 		return new Card();
 	}
@@ -32,7 +33,8 @@ class CronLog extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function all($a){
+	public function all($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -54,10 +56,10 @@ class CronLog extends \App\Common\Common {
 
 		$page->setGrid([[
 			"html" => $this->card()->cronLogByStatus($a)
-		],[
+		], [
 			"html" => $this->card()->cronLogByJob($a)
-//		],[
-//			"html" => $this->card()->errorsByReltable($a)
+			//		],[
+			//			"html" => $this->card()->errorsByReltable($a)
 		]]);
 
 		$page->setGrid([
@@ -75,7 +77,8 @@ class CronLog extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function removeAll($a){
+	public function removeAll($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -106,8 +109,8 @@ class CronLog extends \App\Common\Common {
 
 		$this->log->success([
 			"icon" => Icon::get("trash"),
-			"title" => str::pluralise_if($removed_count, "alert", true)." removed",
-			"message" => str::were($removed_count, "alert", true)." removed successfully."
+			"title" => str::pluralise_if($removed_count, "alert", true) . " removed",
+			"message" => str::were($removed_count, "alert", true) . " removed successfully."
 		]);
 
 		$this->hash->set([
@@ -127,7 +130,7 @@ class CronLog extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL) : bool
+	public function remove(array $a, $silent = NULL): bool
 	{
 		extract($a);
 
@@ -151,7 +154,6 @@ class CronLog extends \App\Common\Common {
 	}
 
 
-
 	/**
 	 * An excellent example of how to use the Table::onDemand feature.
 	 *
@@ -160,7 +162,8 @@ class CronLog extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function getCronLog($a){
+	public function getCronLog($a)
+	{
 		# Replace "NULL" with NULL values
 		str::replaceNullStrings($a);
 
@@ -204,7 +207,7 @@ class CronLog extends \App\Common\Common {
 		 * @return array
 		 */
 		$row_handler = function(array $error){
-			return CronLog::rowHandler($error);
+			return $this->rowHandler($error);
 		};
 
 		# This line is all that is required to respond to the page request
@@ -221,7 +224,8 @@ class CronLog extends \App\Common\Common {
 	 * @return array
 	 * @throws \Exception
 	 */
-	public static function rowHandler(array $item){
+	public function rowHandler(array $item, ?array $a = []): array
+	{
 		switch($item['status']){
 		case 'success':
 			$name = "check-circle";

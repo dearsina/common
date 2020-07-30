@@ -46,7 +46,7 @@ class IssueType extends Common {
 		return true;
 	}
 
-	protected function updateRelTable(array $a) : void
+	public function updateRelTable(array $a) : void
 	{
 		extract($a);
 
@@ -114,7 +114,7 @@ class IssueType extends Common {
 			];
 		}
 
-		$this->output->update("all_issue_type", Table::generate($rows));
+		$this->output->update("#all_issue_type", Table::generate($rows));
 	}
 
 	public function edit(array $a) : bool

@@ -424,7 +424,7 @@ abstract class Common {
 			"table_alias" => $this->table['alias'],
 			"name" => $this->table["id_col"],
 			"alias" => "C",
-			"distinct" => true
+			"distinct" => true,
 		]];
 	}
 
@@ -789,6 +789,7 @@ abstract class Common {
 			}
 
 			return $val;
+
 		} # "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
 			[$tbl_alias, $tbl_col] = $val;
@@ -814,6 +815,7 @@ abstract class Common {
 			}
 
 			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
+
 		} # "col" => ["db", "name", "col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 3)){
 			[$tbl_db, $tbl_name, $tbl_col] = $val;
@@ -840,6 +842,7 @@ abstract class Common {
 			 * the assumption is that it's the first table that is
 			 * referenced here.
 			 */
+
 		} # ["col", "=", "val"] or ["col", "IN", [1, 2,3]]
 		else if(is_numeric($col) && is_array($val) && (count($val) == 3)){
 			[$col, $eq, $val] = $val;
@@ -856,6 +859,11 @@ abstract class Common {
 
 			# Ensure correct comparison operator for NULL vals
 			$eq = $this->correctComparisonOperatorForNullVal($val, $eq);
+
+			# In cases where "$eq $val" is "IS NOT NULL"
+			if($this->isNegativeComparisonOperator($eq) && $val === NULL){
+				return "`{$table['alias']}`.`{$col}` {$eq} NULL";
+			}
 
 			# Ensure the formatted value is valid
 			if(($val = $this->formatComparisonVal($val)) === NULL){
@@ -878,6 +886,7 @@ abstract class Common {
 			}
 
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
+
 		} # ["col", "BETWEEN", "1", "5"],
 		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && (strtoupper($val[1]) == "BETWEEN")){
 			[$col, $eq, $from_val, $to_val] = $val;
@@ -903,6 +912,7 @@ abstract class Common {
 			}
 
 			return "`{$table['alias']}`.`{$col}` BETWEEN {$from_val} AND {$to_val}";
+
 		} # ["col", "=", "table_alias", "col"],
 		else if(is_numeric($col) && is_array($val) && (count($val) == 4)){
 			[$col, $eq, $tbl_alias, $tbl_col] = $val;
@@ -915,6 +925,11 @@ abstract class Common {
 			# Ensure comparison operator is valid
 			if(!$this->isValidComparisonOperator($eq)){
 				return NULL;
+			}
+
+			# In cases where "$eq $val" is "IS NOT NULL"
+			if($this->isNegativeComparisonOperator($eq) && $val === NULL){
+				return "`{$table['alias']}`.`{$col}` {$eq} NULL";
 			}
 
 			# Negate missing NULLs in negative comparisons
@@ -940,6 +955,7 @@ abstract class Common {
 			}
 
 			return "`{$table['alias']}`.`{$col}` {$eq} `{$tbl_alias}`.`{$tbl_col}`";
+
 		} # "col" => "val",
 		else {
 			# Ensure the join table column exists
@@ -1048,46 +1064,46 @@ abstract class Common {
 		return implode("\r\n", array_filter($tables));
 	}
 
-//	/**
-//	 * Returns an array of table aliases that have where conditions,
-//	 * or who's children have where conditions.
-//	 * Both the keys and the values are the name of the tables.
-//	 *
-//	 * @param bool|null $include_main
-//	 *
-//	 * @return array
-//	 */
-//	public function getTablesWithWhere(): array
-//	{
-//		$tables_with_where[$this->table['alias']] = $this->table['alias'];
-//
-//		foreach($this->join as $type => $joins){
-//			foreach($joins as $join){
-//				if(!$join['where']){
-//					continue;
-//				}
-//				if($join['where']['or']){
-//					foreach($join['where']['or'] as $and){
-//						$tables_with_where[$join['table']] = $join['table'];
-//					}
-//				}
-//				if($join['where']['or']){
-//					$tables_with_where[$join['alias']] = $join['alias'];
-//					$tables_with_where[$join['parent_alias']] = $join['parent_alias'];
-//				}
-//				if($join['where']['and']){
-//					$str = "`removed` IS NULL";
-//					foreach($join['where']['and'] as $and){
-//						if(substr($and, strlen($str) * -1) != $str){
-//							$tables_with_where[$join['table']] = $join['table'];
-//						}
-//					}
-//				}
-//			}
-//		}
-//
-//		return $tables_with_where;
-//	}
+	//	/**
+	//	 * Returns an array of table aliases that have where conditions,
+	//	 * or who's children have where conditions.
+	//	 * Both the keys and the values are the name of the tables.
+	//	 *
+	//	 * @param bool|null $include_main
+	//	 *
+	//	 * @return array
+	//	 */
+	//	public function getTablesWithWhere(): array
+	//	{
+	//		$tables_with_where[$this->table['alias']] = $this->table['alias'];
+	//
+	//		foreach($this->join as $type => $joins){
+	//			foreach($joins as $join){
+	//				if(!$join['where']){
+	//					continue;
+	//				}
+	//				if($join['where']['or']){
+	//					foreach($join['where']['or'] as $and){
+	//						$tables_with_where[$join['table']] = $join['table'];
+	//					}
+	//				}
+	//				if($join['where']['or']){
+	//					$tables_with_where[$join['alias']] = $join['alias'];
+	//					$tables_with_where[$join['parent_alias']] = $join['parent_alias'];
+	//				}
+	//				if($join['where']['and']){
+	//					$str = "`removed` IS NULL";
+	//					foreach($join['where']['and'] as $and){
+	//						if(substr($and, strlen($str) * -1) != $str){
+	//							$tables_with_where[$join['table']] = $join['table'];
+	//						}
+	//					}
+	//				}
+	//			}
+	//		}
+	//
+	//		return $tables_with_where;
+	//	}
 
 	protected function getLimitSQL(): ?string
 	{
@@ -1480,7 +1496,7 @@ abstract class Common {
 	 */
 	protected function isNegativeComparisonOperator(string $operator): bool
 	{
-		return in_array(strtoupper($operator), ["!=", "<>", "NOT LIKE", "NOT IN"]);
+		return in_array(strtoupper($operator), ["!=", "<>", "NOT LIKE", "NOT IN", "IS NOT"]);
 	}
 
 	/**

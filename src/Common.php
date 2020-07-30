@@ -7,10 +7,15 @@ use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
 use App\Common\User\User;
+use App\UI\Icon;
+use App\UI\Table;
 
 
 /**
  * Class Common
+ *
+ * The parent class for both CommonModal and CommonCard.
+ *
  * @package App\Common
  */
 abstract class Common {
@@ -209,30 +214,43 @@ abstract class Common {
 			return true;
 		}
 
+		# The key of the item being shifted
+		$rel_key = array_search($rel_id, $vars['order']);
+
+		if($rel_key){
+			//if the reordered item isn't the first (first key = 0)
+			$nearest_key = $rel_key-1;
+			//Get the key of the item right above it
+		} else {
+			//if the reordered item is the first
+			$nearest_key = $rel_key-2;
+		}
+
+		# Get the item directly above it, failing that, directly below
+		$item_above_or_below = $this->info($rel_table, $vars['order'][$nearest_key]);
+		# Get _its_ order number (which will be the new order number for our item)
+		$new_order = $item_above_or_below['order'];
+
 		# Up
 		if($vars['old_index'] > $vars['new_index']){
-			$end = (int) $vars['old_index'];
-			$beginning = (int) $vars['new_index'];
-			$end--;
 			$direction = "+";
+			$eq = ">=";
 		}
 
 		# Down
 		if($vars['old_index'] < $vars['new_index']) {
-			$beginning = (int) $vars['old_index'];
-			$end = (int) $vars['new_index'];
-			$beginning++;
 			$direction = "-";
+			$eq = "<=";
 		}
 
-		# Reorder all the other affected lines
+		# Push all other items one up or down to make space for our item
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => [
 				"order" => [NULL, $rel_table, "order", "{$direction} 1"]
 			],
 			"where" => [
-				["order", "between", $beginning, $end]
+				["order", $eq, $new_order]
 			]
 		]);
 
@@ -241,9 +259,15 @@ abstract class Common {
 			"table" => $rel_table,
 			"id" => $rel_id,
 			"set" => [
-				"order" => $vars['new_index']
+				"order" => $new_order
 			]
 		]);
+		/**
+		 * Its new order is a number that it will have
+		 * all by itself. All the other items
+		 * that used to occupy that number or higher/lower
+		 * have been pushed up or down to make space.
+		 */
 
 		if(!$silent){
 			$this->log->success([
@@ -253,6 +277,192 @@ abstract class Common {
 		}
 
 		return true;
+	}
+
+
+
+	/**
+	 * Finds the Field class and the relevant method for this rel_table.
+	 * Checks if they exist. Will error out of they don't.
+	 *
+	 * @param $rel_table
+	 *
+	 * @return array
+	 * @throws \ReflectionException
+	 */
+	protected function getFieldClassAndMethod($rel_table): array
+	{
+		$current_class = get_class($this);
+		$reflection_class = new \ReflectionClass($current_class);
+		$namespace = $reflection_class->getNamespaceName();
+		$field_class = $namespace."\\Field";
+		$method = str::getMethodCase($rel_table);
+
+		if(!class_exists($field_class)){
+			throw new \Exception("A <code>Field()</code> class for the <b>{$rel_table}</b> table could not be found.");
+		}
+
+		if(!method_exists($field_class, $method)){
+			throw new \Exception("A <code>{$method}</code> method could not be found in the <code>{$field_class}</code> class.");
+		}
+
+		return [$field_class, $method];
+	}
+
+	/**
+	 * Generic updateRelTable method. Relies on the rowHandler method
+	 * to format each line.
+	 *
+	 * @param array $a
+	 *
+	 * @throws \Exception
+	 */
+	public function updateRelTable(array $a) : void
+	{
+		extract($a);
+
+		$$rel_table = $this->info($rel_table);
+
+		if($$rel_table){
+			foreach($$rel_table as $row){
+				$rows[] = $this->rowHandler($row, $a);
+			}
+		} else {
+			$rows[] = Table::emptyTablePlaceholder($rel_table);
+		}
+
+		if (in_array("order", array_keys($this->sql->getTableMetadata($rel_table, true)))){
+			//if this table has an order-by column
+			$this->output->update("#all_{$rel_table}", Table::generate($rows, [
+				"rel_table" => $rel_table,
+				"order" => true
+			]));
+			return;
+		}
+
+		$this->output->update("#all_{$rel_table}", Table::generate($rows));
+	}
+
+	/**
+	 * A _very_ generic rowHandler method, should be switched with a custom method.
+	 * Is public so that other classes can access it.
+	 *
+	 * @param array $cols
+	 *
+	 * @return array
+	 */
+	public function rowHandler(array $cols, ?array $a = []): array
+	{
+		extract($a);
+		$cols_user_cannot_update = $this->sql->getTableColumnsUsersCannotUpdate($rel_table);
+
+		foreach($cols as $col => $val){
+			if(in_array($col, $cols_user_cannot_update)){
+				continue;
+			}
+			if($col == "order"){
+				$row["id"] = $cols["{$rel_table}_id"];
+				continue;
+			}
+			$row[str::title($col)] = [
+				"html" => $val
+			];
+			if($col == "title"){
+				$row[str::title($col)]['alt'] = str::title("Edit this {$rel_table}");
+				$row[str::title($col)]['hash'] = [
+					"rel_table" => $rel_table,
+					"rel_id" => $cols["{$rel_table}_id"],
+					"action" => "edit",
+				];
+			}
+		}
+
+		$row[""] = [
+			"sortable" => false,
+			"sm" => 2,
+			"button" => $this->getRowButtons($cols, $a)
+		];
+
+		return $row;
+	}
+
+	/**
+	 * Generic set of "make public", "edit" and "remove" buttons.
+	 *
+	 * @param array $cols
+	 * @param array $a
+	 *
+	 * @return array
+	 */
+	public function getRowButtons(array $cols, ?array $a = []): array
+	{
+		extract($a);
+
+		if(key_exists("public", $cols)){
+			if($cols['public']){
+				$button[] = [
+					"alt" => str::title("Remove {$rel_table} from public view"),
+					"icon" => "store",
+					"colour" => "success",
+					"size" => "xs",
+					"hash" => [
+						"rel_table" => $rel_table,
+						"rel_id" => $cols["{$rel_table}_id"],
+						"action" => "update",
+						"vars" => [
+							"public" => 0
+						]
+					]
+				];
+			} else {
+				$button[] = [
+					"alt" => str::title("Make {$rel_table} public"),
+					"icon" => "store",
+					"colour" => "success",
+					"basic" => true,
+					"size" => "xs",
+					"hash" => [
+						"rel_table" => $rel_table,
+						"rel_id" => $cols["{$rel_table}_id"],
+						"action" => "update",
+						"vars" => [
+							"public" => 1
+						]
+					]
+				];
+			}
+		}
+
+		$button[] = [
+			"size" => "xs",
+			"hash" => [
+				"rel_table" => $rel_table,
+				"rel_id" => $cols["{$rel_table}_id"],
+				"action" => "edit",
+			],
+			"icon" => Icon::get("edit"),
+			"basic" => true,
+		];
+
+		$button[] = [
+			"size" => "xs",
+			"hash" => [
+				"rel_table" => $rel_table,
+				"rel_id" => $cols["{$rel_table}_id"],
+				"action" => "remove",
+			],
+			"approve" => [
+				"icon" => Icon::get("trash"),
+				"colour" => "red",
+				"title" => str::title("Remove {$rel_table}?"),
+				"message" => str::title("Are you sure you want to remove this {$rel_table}?")
+			],
+			"icon" => Icon::get("trash"),
+			"basic" => true,
+			"colour" => "danger"
+		];
+
+		return $button;
 	}
 
 

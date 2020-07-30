@@ -175,7 +175,7 @@ class Role extends Common {
 	 *
 	 * @throws \Exception
 	 */
-	protected function updateRelTable($a) : void
+	public function updateRelTable(array $a) : void
 	{
 		extract($a);
 
@@ -250,6 +250,6 @@ class Role extends Common {
 			];
 		}
 
-		$this->output->update("all_role", Table::generate($rows));
+		$this->output->update("#all_role", Table::generate($rows));
 	}
 }

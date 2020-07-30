@@ -43,7 +43,7 @@ class Card extends Common {
 			],
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
 				"title" => str::pluralise(str::title($rel_table)),
@@ -87,7 +87,7 @@ class Card extends Common {
 			"buttons" => $buttons,
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => "Fill in the details below to register",
 			"body" => $form->getHTML(),
 			"footer" => "After you have registered you will receive an email with a link to verify your email address.",
@@ -172,7 +172,7 @@ class Card extends Common {
 			",
 		]]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"draggable" => true,
 			"header" => "Verify your email address",
 			"body" => $body,
@@ -223,7 +223,7 @@ class Card extends Common {
 			"encrypt" => ["new_password", "repeat_new_password"],
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => "New password",
 			"body" => [
 				"html" => [
@@ -263,6 +263,7 @@ class Card extends Common {
 			],
 			"basic" => true,
 			"title" => "Forgot password",
+			"class" => "float-right"
 		]];
 
 		if($vars['callback']){
@@ -281,7 +282,7 @@ class Card extends Common {
 			"encrypt" => ["password"],
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"title" => "Sign in to your account",
 				"icon" => "sign-in-alt",
@@ -352,7 +353,7 @@ class Card extends Common {
 
 		$body = ["html" => $body];
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			//			"draggable" => true,
 			"header" => "Two-factor authentication",
 			"body" => $body,
@@ -390,7 +391,7 @@ class Card extends Common {
 		]);
 
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"draggable" => true,
 			"header" => "Reset password",
 			"body" => $form->getHTML(),
@@ -410,7 +411,7 @@ class Card extends Common {
 	 */
 	public function newAdmin($a = NULL)
 	{
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => "exclamation-triangle",
 				"title" => "No admins assigned",
@@ -457,7 +458,7 @@ class Card extends Common {
 			]),
 		];
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"title" => "Account",
 				"buttons" => $this->getAccountButtons($user),

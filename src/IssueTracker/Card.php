@@ -31,7 +31,7 @@ class Card extends \App\Common\Common {
 			"length" => 10
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => Icon::get("issue"),
 				"title" => "Issues",

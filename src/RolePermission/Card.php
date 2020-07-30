@@ -37,7 +37,7 @@ class Card extends \App\Common\Common {
 			];
 		}
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"body" => ListGroup::generate([
 				"flush" => true,
 				"items" => $items,
@@ -88,7 +88,7 @@ class Card extends \App\Common\Common {
 			"buttons" => $buttons
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => Icon::get("permission"),
 				"title" => "Permissions",

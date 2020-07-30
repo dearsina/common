@@ -137,8 +137,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function update($id, $data){
-		return $this->set_data("update", $id, $data);
+	public function update(string $id, $data){
+		return $this->setData("update", $id, $data);
 	}
 
 	/**
@@ -146,13 +146,18 @@ class Output {
 	 * It will not touch the element itself.
 	 * Is predominantly for form elements that have a value="" attribute.
 	 *
+	 * I don't think this works, or is in use.
+	 * Only replace, prepend, append, update and remove are handled by app.js
+	 *
+	 * TODO Check to see if this method can be removed
+	 *
 	 * @param $id
 	 * @param $data
 	 *
 	 * @return bool
 	 */
-	public function val($id, $data){
-		return $this->set_data("val", $id, $data);
+	public function val(string $id, $data){
+		return $this->setData("val", $id, $data);
 	}
 
 	/**
@@ -163,8 +168,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function prepend($id, $data){
-		return $this->set_data("prepend", $id, $data);
+	public function prepend(string $id, $data){
+		return $this->setData("prepend", $id, $data);
 	}
 
 	/**
@@ -174,8 +179,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function append($id, $data){
-		return $this->set_data("append", $id, $data);
+	public function append(string $id, $data){
+		return $this->setData("append", $id, $data);
 	}
 
 	/**
@@ -186,8 +191,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function replace($id, $data){
-		return $this->set_data("replace", $id, $data);
+	public function replace(string $id, $data){
+		return $this->setData("replace", $id, $data);
 	}
 
 	/**
@@ -198,49 +203,25 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function remove($id){
-		return $this->set_data("remove", $id, NULL);
+	public function remove(string $id){
+		return $this->setData("remove", $id, NULL);
 	}
 
 	/**
-	 * Output a modal. Can either be a modal array
-	 * or modal HTML.
+	 * Appends a modal HTML string to the #ui-view.
 	 *
-	 * <code>
-	 * $this->output->modal([
-	 *    //"id" => str::id("modal"),
-	 *    //"size" => "xl",
-	 *    "header" => "Modal header",
-	 *    "body" => "Modal body",
-	 *    "footer" => "Modal footer",
-	 *    //"dismissible" => false,
-	 *    "draggable" => true,
-	 *    "resizable" => true,
-	 *    "approve" => true,
-	 * ]);
-	 * </code>
-	 *
-	 * @param $a
-	 * @return bool
+	 * @param string $a
 	 */
-	public function modal($a){
-		if(is_array($a)){
-			$modal = new Modal($a);
-			return $this->set_data("append", "ui-view", $modal->getHTML());
-		}
-
-		if(is_string($a)){
-			return $this->set_data("append", "ui-view", $a);
-		}
-
-		return false;
+	public function modal(string $a): void
+	{
+		$this->setData("modal", "#ui-view", $a);
 	}
 
 	/**
 	 * @return mixed
 	 */
 	public function closeModal(){
-		return $this->set_var("modal", "close");
+		return $this->setVar("modal", "close");
 	}
 
 	/**
@@ -268,15 +249,7 @@ class Output {
 	 * @return bool
 	 */
 	public function html($data){
-//		if($this->is_modal){
-//			return $this->modal($data);
-//		}
-//		if($this->direction){
-//			return $this->set_data($this->direction["type"], $this->direction["id"], $data);
-//		}
-		# I don't think we need these things any more, kept for reference only
-
-		return $this->set_data("update", "ui-view", $data);
+		return $this->setData("update", "#ui-view", $data);
 	}
 
 	/**
@@ -290,7 +263,7 @@ class Output {
 	 * @return bool
 	 */
 	public function navigation(?string $data){
-		$this->output['update']["ui-navigation"] = $data;
+		$this->output['update']["#ui-navigation"] = $data;
 		return true;
 	}
 
@@ -305,7 +278,7 @@ class Output {
 	 * @return bool
 	 */
 	public function footer(?string $data){
-		$this->output['update']["ui-footer"] = $data;
+		$this->output['update']["#ui-footer"] = $data;
 		return true;
 	}
 
@@ -318,7 +291,7 @@ class Output {
 	 * @return bool
 	 */
 	public function silent($true_or_false = TRUE){
-		return $this->set_data("silent", NULL, $true_or_false);
+		return $this->setData("silent", NULL, $true_or_false);
 	}
 
 	/**
@@ -329,7 +302,7 @@ class Output {
 	 * @return bool
 	 */
 	public function pageTitle($page_title){
-		return $this->set_data("page_title", NULL, $page_title);
+		return $this->setData("page_title", NULL, $page_title);
 	}
 
 	/**
@@ -340,7 +313,7 @@ class Output {
 	 *
 	 * @return mixed
 	 */
-	public function set_var($type, $data){
+	public function setVar($type, $data){
 		return $this->output[$type] = $data;
 	}
 
@@ -352,7 +325,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	private function set_data($type, $id, $data){
+	private function setData($type, $id, $data){
 		if($data === false){
 			//if data has by design been set as false
 
@@ -364,6 +337,13 @@ class Output {
 			}
 		} else {
 			//If data has been submitted
+
+			# Modal can either be "close" or an array of modal data
+			if(is_string($this->output[$type])){
+				// If it's set to "close"
+				unset($this->output[$type]);
+				//Remove it
+			}
 
 			# Data is *appended* to the array, NOT replaced
 			if($id){

@@ -253,7 +253,7 @@ class Card extends \App\Common\Common {
 			];
 		}
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
 				"title" => $title,
@@ -370,7 +370,7 @@ class Card extends \App\Common\Common {
 			]
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
 				"title" => "Errors",

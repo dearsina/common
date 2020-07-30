@@ -30,7 +30,7 @@ class Card extends \App\Common\Common {
 			]
 		]);
 
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"icon" => Icon::get("cron_job"),
 			"header" => "All cron jobs",
 			"body" => [
@@ -54,7 +54,7 @@ class Card extends \App\Common\Common {
 	}
 
 	public function running(array $a){
-		$card = new \App\UI\Card([
+		$card = new \App\UI\Card\Card([
 			"icon" => "play",
 			"header" => "Output from currently running jobs",
 			"body" => [
