@@ -475,7 +475,21 @@ abstract class Common {
 			"name" => $col,
 			"alias" => $col_alias,
 			"agg" => $agg,
+			"json" => $this->isColumnJson($table, $col),
 		];
+	}
+
+	/**
+	 * Confirms whether a column data type is JSON or not.
+	 *
+	 * @param array  $table
+	 * @param string $col
+	 *
+	 * @return bool
+	 */
+	protected function isColumnJson(array $table, string $col): bool
+	{
+		return $this->getTableMetadata($table)[$col]["DATA_TYPE"] == "json";
 	}
 
 	protected function formatGroupConcatCol(array $table, ?string $col_alias, array $col): ?array
@@ -573,12 +587,36 @@ abstract class Common {
 
 		if(is_array($and)){
 			foreach($and as $key => $val){
+				/**
+				 * Sets of conditions can be wrapped inside an associative array
+				 * and function as a collection of ORs inside a single AND condition.
+				 */
+				if(is_int($key) && str::isAssociativeArray($val)){
+					$inside_or = [];
+					foreach($val as $k => $v){
+						$inside_or[] = $this->getValueComparison($table, $k, $v, true);
+					}
+					$conditions["and"][] = "(" . implode(" OR ", $inside_or) . ")";
+					continue;
+				}
 				$conditions["and"][] = $this->getValueComparison($table, $key, $val, true);
 			}
 		}
 
 		if(is_array($or)){
 			foreach($or as $key => $val){
+				/**
+				 * Sets of conditions can be wrapped inside an associative array
+				 * and function as a collection of ANDs inside a single OR condition.
+				 */
+				if(is_int($key) && str::isAssociativeArray($val)){
+					$inside_and = [];
+					foreach($val as $k => $v){
+						$inside_and[] = $this->getValueComparison($table, $k, $v, true);
+					}
+					$conditions["or"][] = "(" . implode(" AND ", $inside_and) . ")";
+					continue;
+				}
 				$conditions["or"][] = $this->getValueComparison($table, $key, $val, true);
 			}
 		}
@@ -677,9 +715,12 @@ abstract class Common {
 		}
 
 		# Ensure the alias exists
-		if(!$this->tableAliasExists($parent_alias)){
+		if(!$tbl = $this->tableAliasExists($parent_alias)){
 			throw new mysqli_sql_exception("The <code>{$parent_alias}</code> table alias cannot be found. This is either because you're referencing a table that doesn't exist or doesn't exist yet. Order matters in the join array.");
 		}
+
+		# Update the $parent_alias because at times a prefix may have been added
+		$parent_alias = $tbl['alias'];
 
 		# For reference, add the parent alias
 		$table['parent_alias'] = $parent_alias;
@@ -790,13 +831,34 @@ abstract class Common {
 
 			return $val;
 
+		} # "col" => ["JSON_FUNCTION", ["val"]]
+		else if(is_string($col) && is_array($val) && (count($val) == 2) && (strtoupper(substr($val[0],0,5)) == "JSON_")){
+			[$json_function, $v] = $val;
+
+			# Format function
+			$json_function = strtoupper($json_function);
+
+			# Is col a JSON column?
+			if(!$this->isColumnJson($table, $col)){
+				//if $col is NOT a JSON column
+				return NULL;
+			}
+
+			if(is_array($v)){
+				$val = "'".str::i(json_encode($v))."'";
+			} else {
+				$val = "JSON_QUOTE('".str::i($v)."')";
+			}
+
+			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
+
 		} # "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
 			[$tbl_alias, $tbl_col] = $val;
 
 			# Both values have to exist
 			if(!$tbl_alias || !$tbl_col){
-				NULL;
+				return NULL;
 			}
 
 			# Ensure the join table column exists
@@ -805,13 +867,28 @@ abstract class Common {
 			}
 
 			# Ensure table alias exists
-			if(!$this->tableAliasExists($tbl_alias)){
+			if(!$tbl = $this->tableAliasExists($tbl_alias)){
 				return NULL;
 			}
+
+			# Get an update (at times parent_aliases are prefixed)
+			$tbl_alias = $tbl['alias'];
 
 			if($where){
 				# Collecting all tables and parent tables with children that have where clauses
 				$this->setTableAliasWithWhere([$table['alias'], $tbl_alias]);
+			}
+
+			# Is col a JSON column?
+			if($this->isColumnJson($table, $col)){
+				//if $col is JSON
+				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+			}
+
+			# Is tbl_col a JSON column?
+			if($this->isColumnJson($tbl, $tbl_col)){
+				//if $tbl_col is JSON
+				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
 			}
 
 			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
@@ -830,12 +907,40 @@ abstract class Common {
 				return NULL;
 			}
 
-			if($where){
-				# Collecting all tables and parent tables with children that have where clauses
-				$this->setTableAliasWithWhere([$table['alias'], $this->getDbAndTableString($tbl_db, $tbl_name)]);
+			# Create the table alias
+			$tbl_alias = $this->getDbAndTableString($tbl_db, $tbl_name);
+
+			# Ensure table alias exists (and get an update if there is one)
+			if(!$tbl = $this->tableAliasExists($tbl_alias)){
+				throw new mysqli_sql_exception("{$tbl_db} : {$tbl_name}");
 			}
 
-			return "`{$table['alias']}`.`{$col}` = `{$this->getDbAndTableString($tbl_db,$tbl_name)}`.`{$tbl_col}`";
+			# Get an update (at times parent_aliases are prefixed)
+			$tbl_alias = $tbl['alias'];
+
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias'], $tbl_alias]);
+			}
+
+			# Is col a JSON column?
+			if($this->isColumnJson($table, $col)){
+				//if $col is JSON
+				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+			}
+
+			$tbl = [
+				"db" => $tbl_db,
+				"name" => $tbl_name,
+			];
+
+			# Is tbl_col a JSON column?
+			if($this->isColumnJson($tbl, $tbl_col)){
+				//if $tbl_col is JSON
+				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+			}
+
+			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
 			/**
 			 * In cases where the same table from the same database
 			 * is referenced, and tbl_db + tbl_name are given,
@@ -945,9 +1050,12 @@ abstract class Common {
 			}
 
 			# Ensure table alias exists
-			if(!$this->tableAliasExists($tbl_alias)){
+			if(!$tbl = $this->tableAliasExists($tbl_alias)){
 				return NULL;
 			}
+
+			# Get an update (at times parent_aliases are prefixed)
+			$tbl_alias = $tbl['alias'];
 
 			if($where){
 				# Collecting all tables and parent tables with children that have where clauses
@@ -1322,6 +1430,12 @@ abstract class Common {
 				return "NULL";
 			}
 
+			# JSON columns
+			if($table_metadata[$col]['DATA_TYPE'] == "json"){
+				return "'" . str_replace("'", "\'", json_encode($val)) . "'";
+				//The array will be converted to a JSON string, single quotes escaped and the whole string wrapped in single quotes
+			}
+
 			# Otherwise, arrays are not allowed and will return an error
 			throw new mysqli_sql_exception("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>" . print_r($val, true) . "</pre>");
 		}
@@ -1514,6 +1628,18 @@ abstract class Common {
 	 */
 	public function getTableMetadata($table, ?bool $refresh = NULL, ?bool $all = NULL): array
 	{
+		# The table variable can either be an array
+		if(is_array($table)){
+			# Table _name_ must be present
+			if(!$table['name']){
+				throw new \Exception("Table name missing.");
+			}
+
+			# If no table DB has been provided, use the default one
+			$table['db'] = $table['db'] ?: $_ENV['db_database'];
+		}
+
+		# Or it can be a string
 		if(is_string($table)){
 			$table = [
 				"name" => $table,
@@ -1646,6 +1772,21 @@ abstract class Common {
 				continue;
 			}
 
+			# "db.table.col = 'complete comparison'"
+			if(is_numeric($col) && is_string($val)){
+				/**
+				 * If $col is numeric, meaning it doesn't contain
+				 * a string (column name), and $val is a string,
+				 * assume $val is a set command
+				 */
+				$strings[] = $val;
+				continue;
+			}
+
+			/**
+			 * Update queries will not encode JSON if the JSON is small (count<=5)
+			 */
+
 			# "col" => ["tbl_alias", "tbl_col"]
 			if(is_string($col) && is_array($val) && (count($val) == 2)){
 				[$tbl_alias, $tbl_col] = $val;
@@ -1656,9 +1797,12 @@ abstract class Common {
 				}
 
 				# Ensure table alias exists
-				if(!$this->tableAliasExists($tbl_alias)){
+				if(!$tbl = $this->tableAliasExists($tbl_alias)){
 					continue;
 				}
+
+				# Get an update (at times parent_aliases are prefixed)
+				$tbl_alias = $tbl['alias'];
 
 				$strings[] = "`{$this->table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
 				continue;
@@ -1868,27 +2012,35 @@ abstract class Common {
 	 *
 	 * @param $alias
 	 *
-	 * @return bool
+	 * @return array|NULL returns the entire table array
 	 */
-	protected function tableAliasExists($alias): bool
+	protected function tableAliasExists($alias): ?array
 	{
 		if($alias == $this->table['alias']){
-			return true;
+			return $this->table;
 		}
 
 		if(!$this->join){
-			return false;
+			return NULL;
 		}
 
 		foreach($this->join as $type => $joins){
 			foreach($joins as $join){
+				# If the alias is the same as a joined table alias
 				if($alias == $join['table']['alias']){
-					return true;
+					return $join['table'];
+				}
+
+				# if the alias PREFIXED with the parent alias of the joined table is the same as he joined table alias
+				if($join['table']['parent_alias']){
+					if("{$join['table']['parent_alias']}.{$alias}" == $join['table']['alias']){
+						return $join['table'];
+					}
 				}
 			}
 		}
 
-		return false;
+		return NULL;
 	}
 
 	/**

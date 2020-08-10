@@ -82,7 +82,7 @@ class IssueType extends Common {
 						"sm" => 2,
 						"class" => "float-right",
 						"button" => [[
-							"size" => "xs",
+							"size" => "s",
 							"hash" => [
 								"rel_table" => $rel_table,
 								"rel_id" => $type['issue_type_id'],

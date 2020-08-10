@@ -7,6 +7,7 @@ use App\Common\Common;
 use App\Common\Connection\Connection;
 use App\Common\Email\Email;
 use App\Common\Geolocation\Geolocation;
+use App\Common\href;
 use App\Common\Navigation\Navigation;
 use App\Common\Process;
 use App\Common\Role\Role;
@@ -105,8 +106,7 @@ class User extends Common {
 		];
 
 		# Fatten the base query with prepare()
-		$info = new Info();
-		$info->prepare($base_query);
+		Info::prepare($base_query);
 
 		/**
 		 * The row handler gets one row of data from SQL,
@@ -894,6 +894,14 @@ class User extends Common {
 		return true;
 	}
 
+	/**
+	 * For when users are created internally.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
 	public function insert(array $a): bool
 	{
 		extract($a);
@@ -903,12 +911,24 @@ class User extends Common {
 		}
 
 		# Check to see if the user has already registered (based on email alone)
-		if($status = $this->alreadyRegistered($vars['email'])){
+		if($user = $this->getUserFromEmail($vars['email'])){
 			//If the email is already in use
+			if($this->permission()->get("user", $user['user_id'], "R")){
+				$registered_user = href::a([
+					"html" => $user['name'],
+					"hash" => [
+						"rel_table" => "user",
+						"rel_id" => $user['user_id']
+					]
+				]);
+				$message = "This email address already belongs to registered user {$registered_user}.";
+			} else {
+				$message = "This email address already belongs to a registered user.";
+			}
 			$this->log->warning([
 				"container" => ".modal-body",
 				"title" => "Email already in use",
-				"message" => "This email address already belongs to a registered user."
+				"message" => $message
 			]);
 			return false;
 			//Email addresses must be unique
@@ -947,7 +967,7 @@ class User extends Common {
 		if($vars['welcome_email']){
 			//If a welcome email is to be sent
 			$a['rel_id']  = $user_id;
-			if(!$this->sendWelcomeEmail($a, true)){
+			if(!$this->sendWelcomeEmail($a)){
 				return false;
 			}
 		}
@@ -1002,12 +1022,11 @@ class User extends Common {
 	 * Used when external/new user self registers.
 	 *
 	 * @param array     $a
-	 * @param bool|null $internal
 	 *
 	 * @return bool|mixed
 	 * @throws Exception
 	 */
-	public function create(array $a, ?bool $internal = NULL)
+	public function create(array $a)
 	{
 		extract($a);
 
@@ -1049,22 +1068,24 @@ class User extends Common {
 		}
 
 		# Check to see if the user has already registered (based on email alone)
-		if($status = $this->alreadyRegistered($vars['email'])){
+		if($user = $this->getUserFromEmail($vars['email'])){
 			// If the user already has an account
-			if($status == "verified"){
-				// if the user already has a verified account
+			if($user['verified'] && $user['password']){
+				//And their account is verified and a password is set up
+
 				$this->log->info([
 					"title" => "You have already registered",
 					"message" => "You already have an account with {$_ENV['title']}. No need to sign up again, just log in."
 				]);
 				$this->hash->set([
-					"rel_table" => $rel_table,
+					"rel_table" => "user",
 					"action" => "login",
 					"variables" => [
-						"email" => $vars['email']
+						"email" => $vars['email'],
+						"callback" => $vars['callback']
 					]
 				]);
-				return true;
+				return false;
 			} else {
 				// If the user has an unverified account
 				$this->log->warning([
@@ -1072,11 +1093,11 @@ class User extends Common {
 					"message" => "You have already signed up with {$_ENV['title']}, but your email address has yet to be verified."
 				]);
 				$this->hash->set([
-					"rel_table" => $rel_table,
+					"rel_table" => "user",
 					"rel_id" => $user['user_id'],
 					"action" => "verification_email_sent"
 				]);
-				return true;
+				return false;
 			}
 		}
 
@@ -1098,7 +1119,7 @@ class User extends Common {
 		]);
 
 		# Give the user permission to their own account
-		$this->permission()->set($rel_table, $user_id, "rud", $user_id);
+		$this->permission()->set("user", $user_id, "rud", $user_id);
 
 		# Create the link between the user and the user type
 		$this->sql->insert([
@@ -1114,18 +1135,14 @@ class User extends Common {
 		$a['rel_id']  = $user_id;
 		$this->sendVerifyEmail($a, true);
 
-		if($internal){
-			return $user_id;
-		}
-
 		# Direct user to verification sent page
 		$this->hash->set([
-			"rel_table" => $rel_table,
+			"rel_table" => "user",
 			"rel_id" => $user_id,
 			"action" => "verification_email_sent"
 		]);
 
-		return true;
+		return $user_id;
 	}
 
 	/**
@@ -1203,7 +1220,7 @@ class User extends Common {
 			return false;
 		}
 
-		if($user['verified']){
+		if($user['verified'] && $user['password']){
 			//if the user is already verified
 			$this->log->info([
 				"title" => "Already verified",
@@ -1251,12 +1268,12 @@ class User extends Common {
 
 		if(!$internal){
 			# Only elevated users can send welcome emails
-			if(!$this->permission()->get($rel_table)){
+			if(!$this->permission()->get("user")){
 				return $this->accessDenied($a);
 			}
 		}
 
-		if(!$user = $this->info($rel_table, $rel_id)){
+		if(!$user = $this->info("user", $rel_id)){
 			//if the user cannot be found
 			throw new Exception("Requested user ID [<code>{$rel_id}</code>] cannot be found.");
 		}
@@ -2525,7 +2542,7 @@ class User extends Common {
 		]);
 
 		# Ask the user to log in before sending them to an (optional) callback
-		return $this->user->login([
+		return $this->login([
 			"vars" => [
 				"email" => $email,
 				"callback" => $vars['callback']
@@ -2604,7 +2621,7 @@ class User extends Common {
 			],
 			"html" => [
 				"sm" => 4,
-				"class" => "fixed-width-column",
+				"class" => "fixed-width-column my-auto",
 				"html" => $this->card()->verificationEmailSent($a)
 			]
 		]);
@@ -2778,7 +2795,8 @@ class User extends Common {
 	 *
 	 * @return bool Returns FALSE to ensure the JS recipients understand what's going on.
 	 */
-	public function accessDenied(?array $a = NULL){
+	public function accessDenied(?array $a = NULL): bool
+	{
 		global $user_id;
 
 		if($user_id){
@@ -2844,8 +2862,8 @@ class User extends Common {
 		if($term){
 			$term = preg_replace("/[^a-z0-9-'. ]/i", "", $term);
 			$or = [
-				"first_name" => "%{$term}%",
-				"last_name" => "%{$term}%",
+				["first_name", "LIKE", "%{$term}%"],
+				["last_name", "LIKE", "%{$term}%"],
 			];
 		}
 

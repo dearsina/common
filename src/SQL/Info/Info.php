@@ -66,7 +66,8 @@ class Info {
 	 * @return bool|mixed
 	 * @throws \Exception
 	 */
-	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL){
+	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL): ?array
+	{
 		if(is_string($a)){
 			$a = [
 				"rel_table" => $a,
@@ -101,7 +102,7 @@ class Info {
 
 		# If there aren't any actual results
 		if(!$rows){
-			return false;
+			return NULL;
 		}
 
 		/**
@@ -179,11 +180,8 @@ class Info {
 	 */
 	private function customProcess(string $class_path, array $a)
 	{
-		# Load up an instance of the custom info class
-		$class_instance = new $class_path();
-
 		# Prepare the variables
-		$class_instance->prepare($a);
+		$class_path::prepare($a);
 
 		# Run the SQL query
 		if (!$rows = $this->sql->select($a)) {
@@ -196,7 +194,7 @@ class Info {
 		# Go thru each row
 		foreach($rows as $id => $row){
 			# Format the data (optional)
-			$class_instance::format($row);
+			$class_path::format($row);
 			$rows[$id] = $row;
 		}
 

@@ -75,7 +75,7 @@ class Modal extends \App\Common\Common {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"size" => "xs",
+			"size" => "s",
 			"icon" => Icon::get("edit"),
 			"header" => "Edit issue type",
 			"body" => $form->getHTML(),
@@ -102,7 +102,7 @@ class Modal extends \App\Common\Common {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"size" => "xs",
+			"size" => "s",
 			"icon" => Icon::get("new"),
 			"header" => "New issue type",
 			"body" => $form->getHTML(),

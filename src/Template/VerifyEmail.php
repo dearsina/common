@@ -56,7 +56,7 @@ class VerifyEmail extends Template implements TemplateInterface {
 				],
 				"body" => [
 					"body" => "{$first_name}, thank you for registering with {$_ENV['title']}!<br/>
-				To complete your registration, please verify your email
+				To continue your registration, please verify your email
 				address by clicking on the button below.",
 					"align" => "left"
 				]

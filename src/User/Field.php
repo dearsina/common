@@ -413,7 +413,8 @@ class Field {
 				"modify" => "+15 minutes",
 				"stop" => "Your code has expired, please cancel and log in again.",
 				"pre" => "The code is not case sensitive and will expire in ",
-				"post" => "."
+				"post" => ".",
+				"callback" => false
 			]),
 			"autocomplete" => "off"
 		],[

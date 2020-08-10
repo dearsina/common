@@ -308,7 +308,9 @@ class CronJob extends Common {
 			return $this->accessDenied();
 		}
 
-		return $this->setOrder($a);
+		$this->setOrder($a);
+
+		return true;
 	}
 
 	/**
@@ -441,7 +443,7 @@ EOF;
 			$buttons[] = [
 				"alt" => "Stop this job...",
 				"colour" => "red",
-				"size" => "xs",
+				"size" => "s",
 				"icon" => "stop",
 				"hash" => [
 					"rel_table" => "cron_job",
@@ -459,7 +461,7 @@ EOF;
 			$buttons[] = [
 				"alt" => "Execute this job...",
 				"colour" => "yellow",
-				"size" => "xs",
+				"size" => "s",
 				"basic" => true,
 				"icon" => "play",
 				"hash" => [
@@ -490,7 +492,7 @@ EOF;
 				"alt" => "Unpause and resume running this job on schedule",
 				"icon" => "pause",
 				"colour" => "primary",
-				"size" => "xs",
+				"size" => "s",
 			];
 		} else {
 			$buttons[] = [
@@ -505,7 +507,7 @@ EOF;
 				"alt" => "Pause this job from running on schedule",
 				"icon" => "pause",
 				"colour" => "primary",
-				"size" => "xs",
+				"size" => "s",
 				"basic" => true
 			];
 		}
@@ -521,7 +523,7 @@ EOF;
 			"alt" => "See alert",
 			"icon" => Icon::get("log"),
 			"colour" => "info",
-			"size" => "xs",
+			"size" => "s",
 			"basic" => true
 		];
 		$buttons[] = [
@@ -533,7 +535,7 @@ EOF;
 			"alt" => "Remove..",
 			"icon" => Icon::get("trash"),
 			"colour" => "danger",
-			"size" => "xs",
+			"size" => "s",
 			"basic" => true,
 			"approve" => true
 		];

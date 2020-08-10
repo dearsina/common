@@ -71,6 +71,8 @@ abstract class CommonModal extends Common {
 	/**
 	 * Generic insert method.
 	 *
+	 * Does NOT handle permissions.
+	 *
 	 * @param array $a
 	 *
 	 * @return bool
@@ -89,6 +91,7 @@ abstract class CommonModal extends Common {
 
 		# Insert the records
 		$this->sql->insert([
+			"db" => $this->db,
 			"table" => $rel_table,
 			"set" => $vars
 		]);
@@ -147,6 +150,7 @@ abstract class CommonModal extends Common {
 		}
 
 		$this->sql->update([
+			"db" => $this->db,
 			"table" => $rel_table,
 			"set" => $vars,
 			"id" => $rel_id
@@ -183,6 +187,7 @@ abstract class CommonModal extends Common {
 		}
 
 		$this->sql->remove([
+			"db" => $this->db,
 			"table" => $rel_table,
 			"id" => $rel_id
 		]);

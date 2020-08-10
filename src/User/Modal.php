@@ -56,7 +56,7 @@ class Modal extends Common {
 		$buttons = Button::multi($options);
 
 		$modal = new \App\UI\Modal\Modal([
-			"size" => "xs",
+			"size" => "s",
 			"header" => "Log in as",
 			"body" => $buttons,
 			"draggable" => true,

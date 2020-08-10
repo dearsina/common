@@ -21,13 +21,17 @@ class Field {
 	static function Permission(?array $permissions, ?array $override_permissions = []){
 		$sql = Factory::getInstance();
 
-		# Get all tables
-		$results = $sql->run("SHOW TABLE STATUS FROM `{$_ENV['db_database']}`;");
+		# Get all tables (from _all_ databases)
+//		$results = $sql->run("SHOW TABLE STATUS FROM `{$_ENV['db_database']}`;");
+		$results = $sql->run("SELECT `table_schema` AS 'db', `table_name` AS 'Name' FROM `information_schema`.`tables` WHERE table_type = 'BASE TABLE' AND table_schema NOT IN ('information_schema','mysql','performance_schema','sys') ORDER BY `db`, `Name`;");
 
 		# Create the form field grid
 		foreach($results['rows'] as $table){
 			$row = [];
 			$row["Table"] = str::title($table['Name']);
+			if($table['db'] != $_ENV['db_database']){
+				$row["Table"] .= " <span class=\"text-silent small\">".strtoupper($table['db'])."</span>";
+			}
 			$crud = [
 				"c" => "Create, this includes upload",
 				"r" => "Read, this includes download",

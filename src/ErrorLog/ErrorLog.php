@@ -498,7 +498,7 @@ class ErrorLog extends Common {
 		if($error['resolved']){
 			//if this error has been resolved
 			$buttons[] = [
-				"size" => "xs",
+				"size" => "s",
 				"alt" => "Mark error as unresolved again",
 				"icon" => "flag-alt",
 				"basic" => true,
@@ -519,7 +519,7 @@ class ErrorLog extends Common {
 			//If the error is unresolved
 			$buttons[] = [
 				"basic" => true,
-				"size" => "xs",
+				"size" => "s",
 				"alt" => "Mark error as resolved",
 				"icon" => "flag-checkered",
 				"colour" => "success",
@@ -540,7 +540,7 @@ class ErrorLog extends Common {
 		if($error['issue_tracker_id']){
 			$buttons[] = [
 				"basic" => true,
-				"size" => "xs",
+				"size" => "s",
 				"alt" => "Unlink or link to different existing issue",
 				"hash" => [
 					"rel_table" => "error_log",
@@ -556,7 +556,7 @@ class ErrorLog extends Common {
 		} else {
 			$buttons[] = [
 				"basic" => true,
-				"size" => "xs",
+				"size" => "s",
 				"alt" => "Create an issue from this error",
 				"hash" => [
 					"rel_table" => "issue_tracker",
@@ -573,7 +573,7 @@ class ErrorLog extends Common {
 
 			$buttons[] = [
 				"basic" => true,
-				"size" => "xs",
+				"size" => "s",
 				"alt" => "Add to existing issue",
 				"hash" => [
 					"rel_table" => "error_log",

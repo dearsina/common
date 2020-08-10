@@ -200,7 +200,7 @@ class Role extends Common {
 							"role_id" => $role["{$rel_table}_id"]
 						]
 					],
-					"size" => "xs",
+					"size" => "s",
 					"basic" => true,
 				];
 
@@ -213,7 +213,7 @@ class Role extends Common {
 					"alt" => "Remove..",
 					"icon" => Icon::get("trash"),
 					"colour" => "danger",
-					"size" => "xs",
+					"size" => "s",
 					"basic" => true,
 					"approve" => true
 				];

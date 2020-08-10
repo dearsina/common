@@ -182,7 +182,7 @@ class Admin extends Common {
 					"alt" => "High alert (notifications every minute)",
 					"icon" => "temperature-hot",
 					"colour" => "danger",
-					"size" => "xs",
+					"size" => "s",
 					"hash" => [
 						"rel_table" => "admin",
 						"rel_id" => $admin['admin_id'],
@@ -198,7 +198,7 @@ class Admin extends Common {
 					"alt" => "Medium alert (notifications every hour)",
 					"icon" => "thermometer-half",
 					"colour" => "warning",
-					"size" => "xs",
+					"size" => "s",
 					"hash" => [
 						"rel_table" => "admin",
 						"rel_id" => $admin['admin_id'],
@@ -214,7 +214,7 @@ class Admin extends Common {
 					"alt" => "Low alert (notifications every day)",
 					"icon" => "temperature-frigid",
 					"colour" => "blue",
-					"size" => "xs",
+					"size" => "s",
 					"hash" => [
 						"rel_table" => "admin",
 						"rel_id" => $admin['admin_id'],
@@ -230,7 +230,7 @@ class Admin extends Common {
 					"alt" => "No alerts",
 					"icon" => "thermometer-empty",
 					"colour" => "grey",
-					"size" => "xs",
+					"size" => "s",
 					"hash" => [
 						"rel_table" => "admin",
 						"rel_id" => $admin['admin_id'],

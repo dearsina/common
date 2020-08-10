@@ -11,6 +11,8 @@ class Run extends Common {
 	{
 		# Store the query in a session variable
 		$_SESSION['query'] = $query;
+		$_SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
+		$_SESSION['database_calls']++;
 
 		if(str::runFromCLI()){
 			/**
@@ -21,6 +23,7 @@ class Run extends Common {
 			global $SESSION;
 			$SESSION['query'] = $query;
 			$SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
+			$SESSION['database_calls']++;
 		}
 
 		# Run the query

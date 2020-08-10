@@ -30,7 +30,7 @@ class App extends Common implements NavigationInterface {
 	{
 		$this->allUsersFooter();
 		if($this->user->isLoggedIn()){
-			$this->loggedInUsersFooter();
+//			$this->loggedInUsersFooter();
 		}
 		return $this->footers;
 	}
@@ -100,11 +100,11 @@ class App extends Common implements NavigationInterface {
 			"uri" => "/"
 		];
 
-		$this->levels[1]['items'][] = [
-			"icon" => "user-headset",
-			"alt" => "Help",
-			"children" => $children
-		];
+//		$this->levels[1]['items'][] = [
+//			"icon" => "user-headset",
+//			"alt" => "Help",
+//			"children" => $children
+//		];
 	}
 
 	/**

@@ -209,6 +209,7 @@ class Permission extends Common {
 		if ($existing_permission = $this->sql->select([
 			"table" => "user_permission",
 			"where" => $set,
+			"limit" => 1
 		])) {
 			//if there already exists permissions for this user/rel_table/id combo
 			$this->sql->update([

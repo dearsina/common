@@ -228,6 +228,7 @@ class str {
 	 */
 	static function title($string, $is_name = false, $all_words = false)
 	{
+		$string = str_replace("doc_", "document_", $string);
 		return self::capitalise_name(str_replace("_", " ", $string), $is_name, $all_words);
 	}
 
@@ -1113,7 +1114,7 @@ class str {
 							$val .= "{$vk}:{$vv};";
 						}
 					} else {
-						if($k && $v){
+						if($k && strlen($v)){
 							$val .= "{$k}:{$v};";
 						}
 					}
@@ -1518,6 +1519,23 @@ EOF;
 	}
 
 	/**
+	 * Reposition an array element by its key.
+	 *
+	 * @param array      $array The array being reordered.
+	 * @param string|int $key They key of the element you want to reposition.
+	 * @param int        $order The position in the array you want to move the element to. (0 is first)
+	 */
+	static function repositionArrayElement(array &$array, $key, int $order): void
+	{
+		if(($a = array_search($key, array_keys($array))) === false){
+			return;
+		}
+		$p1 = array_splice($array, $a, 1);
+		$p2 = array_splice($array, 0, $order);
+		$array = array_merge($p2, $p1, $array);
+	}
+
+	/**
 	 * Returns FALSE is array is numeric (sequential, 0 to n row keys), TRUE otherwise.
 	 * @link https://stackoverflow.com/a/173479/429071
 	 *
@@ -1865,7 +1883,7 @@ EOF;
 		}
 
 		$matches = [];
-		
+
 		foreach($values as $value){
 			$matches = array_merge($matches, array_keys(array_column($array, $col), $value));
 		}
@@ -1897,7 +1915,7 @@ EOF;
 	/**
 	 * Given a string, will break it apart by the delimiter and return an array.
 	 *
-	 * @param mixed      $string
+	 * @param mixed       $string
 	 * @param string|null $delimiter
 	 *
 	 * @return array|null
@@ -2605,6 +2623,7 @@ EOF;
 			return false;
 		}
 		if($colour){
+			$translated_colour = self::translate_approve_colour($colour);
 			return "{$prefix}-{$translated_colour}";
 		} else {
 			return false;

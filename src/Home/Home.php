@@ -29,7 +29,7 @@ class Home extends Common {
 	 * @throws \Exception
 	 * @throws \Exception
 	 */
-	public function view($a) : bool
+	public function view(array $a) : bool
 	{
 		# User needs to be logged in
 		if(!$this->user->isLoggedIn()){
@@ -43,7 +43,7 @@ class Home extends Common {
 			//if a App class for this role exists, use it
 
 			# Create a new instance of the class
-			$classInstance = new $classPath($this);
+			$classInstance = new $classPath();
 
 			# Set the method (view is the default)
 			$method = str::getMethodCase($action) ?: "view";
@@ -72,7 +72,7 @@ class Home extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private function genericView($a) : bool
+	public function genericView($a) : bool
 	{
 		extract($a);
 

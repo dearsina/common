@@ -315,18 +315,19 @@ class IssueTracker extends Common {
 	 * How to handle (the presentation/formatting of) a row
 	 * of issue data.
 	 *
-	 * @param $issue
+	 * @param $cols
 	 *
 	 * @return mixed
 	 * @throws \Exception
 	 */
-	public function rowHandler($issue){
-		Info::format($issue);
+	public function rowHandler(array $cols, ?array $a = []): array
+	{
+		Info::format($cols);
 
 		$row["Type"] = [
 			"icon" => [
-				"name" => $issue['issue_type']['icon'],
-				"alt" => $issue['issue_type']['title']
+				"name" => $cols['issue_type']['icon'],
+				"alt" => $cols['issue_type']['title']
 			],
 			"style" => ["margin" => "0.3rem 0"],
 			"sm" => 1,
@@ -334,7 +335,7 @@ class IssueTracker extends Common {
 		];
 
 		$row["Created"] = [
-			"html" => str::ago($issue['created']),
+			"html" => str::ago($cols['created']),
 			"class" => "text-flat",
 			"col_name" => "created"
 		];
@@ -342,10 +343,10 @@ class IssueTracker extends Common {
 		$row["Issue"] = [
 			"hash" => [
 				"rel_table" => "issue_tracker",
-				"rel_id" => $issue['issue_tracker_id'],
+				"rel_id" => $cols['issue_tracker_id'],
 				"action" => "edit"
 			],
-			"html" => $issue['title'],
+			"html" => $cols['title'],
 			"style" => ["font-weight" => 500],
 			"sm" => 4,
 			"col_name" => "title"
@@ -353,25 +354,25 @@ class IssueTracker extends Common {
 
 
 		$row["Assigned to"] = [
-			"html" => $issue['user']['full_name'] ?: "(Not assigned)",
+			"html" => $cols['user']['full_name'] ?: "(Not assigned)",
 			"class" => "text-flat",
 			"col_name" => "user.first_name"
 		];
 
 		$row["Priority"] = [
-			"html" => $issue['issue_priority']['title'],
-			"alt" => $issue['issue_priority']['desc'],
+			"html" => $cols['issue_priority']['title'],
+			"alt" => $cols['issue_priority']['desc'],
 			"col_name" => "issue_priority.title"
 		];
 
-		switch($issue['progress']){
+		switch($cols['progress']){
 		case 1: $colour = "success"; break;
 		default; $colour = "primary"; break;
 		}
 
 		$row["Completed"] = [
 			"html" => Progress::generate([
-				"width" => $issue['progress_percent'],
+				"width" => $cols['progress_percent'],
 				"colour" => $colour
 			]),
 			"style" => ["margin" => "0.2rem 0"],

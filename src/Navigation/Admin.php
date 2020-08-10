@@ -21,9 +21,9 @@ class Admin extends Common implements NavigationInterface {
 	 */
 	public function update (): array
 	{
-
 		$this->errors();
 		$this->issues();
+		$this->fieldTypes();
 		$this->cron();
 		$this->users();
 		$this->permissions();
@@ -41,6 +41,18 @@ class Admin extends Common implements NavigationInterface {
 				"rel_table" => "user",
 				"action" => "new"
 			]
+		];
+
+		$children[] = [
+			"icon" => [
+				"name" => Icon::get("role"),
+			],
+			"title" => "User roles",
+			"alt" => "Manage a given user's roles",
+			"hash" => [
+				"rel_table" => "user_role",
+				"action" => "all",
+			],
 		];
 
 		$children[] = [
@@ -100,18 +112,6 @@ class Admin extends Common implements NavigationInterface {
 //				"rel_table" => "role_permission",
 //			],
 			"children" => $grandchildren
-		];
-
-		$children[] = [
-			"icon" => [
-				"name" => Icon::get("role"),
-			],
-			"title" => "User roles",
-			"alt" => "Manage a given user's roles",
-			"hash" => [
-				"rel_table" => "user_role",
-				"action" => "all",
-			],
 		];
 
 		$children[] = [
@@ -222,6 +222,41 @@ class Admin extends Common implements NavigationInterface {
 			"icon" => Icon::get("issue"),
 			"title" => "Issues",
 			"alt" => "Development issues and bugs",
+//			"hash" => [
+//				"rel_table" => "issue_tracker",
+//				"action" => "all"
+//			],
+			"children" => $children
+		];
+	}
+
+	private function fieldTypes() : void
+	{
+		$children[] = [
+			"icon" => Icon::get("new"),
+			"title" => "New field type",
+			"alt" => "Create a new field type",
+			"hash" => [
+				"rel_table" => "field_type",
+				"action" => "new",
+			],
+		];
+
+		$children[] = [
+			"icon" => Icon::get("field_type"),
+			"title" => "All field types",
+			"alt" => "See all field types",
+			"hash" => [
+				"rel_table" => "field_type",
+				"action" => "all"
+			],
+		];
+
+
+		$this->levels[2]['items'][] = [
+			"icon" => Icon::get("field_type"),
+			"title" => "Field types",
+			"alt" => "Field types for custom client fields",
 //			"hash" => [
 //				"rel_table" => "issue_tracker",
 //				"action" => "all"

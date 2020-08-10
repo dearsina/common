@@ -81,6 +81,9 @@ class Select extends Common {
 			return $results['rows'][0]['C'];
 		}
 
+		# JSON decode (where applicable)
+		$this->jsonDecode($results['rows']);
+
 		# Normalise, unless requested not to
 		if(!$flat){
 			$rows = $this->normalise($results['rows']);
@@ -100,6 +103,37 @@ class Select extends Common {
 
 		# Otherwise, and most commonly, return all the result rows
 		return $rows;
+	}
+
+	/**
+	 * If a column is a JSON column,
+	 * json decode the value
+	 * into a PHP array.
+	 *
+	 * @param array|null $rows
+	 */
+	private function jsonDecode(?array &$rows): void
+	{
+		# Find all columns that are of the JSON data-type
+		foreach($this->getAllColumns() as $column){
+			if($column['json']){
+				$json_columns[] = $column['alias'] ?: $column["name"];
+			}
+		}
+
+		# If none, do nothing
+		if(!$json_columns){
+			return;
+		}
+
+		# For each JSON column, json_decode the value
+		foreach($rows as $id => $row){
+			foreach($row as $col_name => $col_value){
+				if(in_array($col_name, $json_columns)){
+					$rows[$id][$col_name] = json_decode($col_value, true);
+				}
+			}
+		}
 	}
 
 	/**
@@ -389,12 +423,9 @@ class Select extends Common {
 				$strings[$id] .= "`{$column['name']}`";
 			}
 
-			# COUNTs can be set to distinct
-			$distinct = $column['distinct'] ? "DISTINCT " : NULL;
-
 			# Does the column have an aggregate function?
 			if($column['agg']){
-				$strings[$id]  = "{$column['agg']}({$distinct}{$this->getDistinctSQL(true)}{$strings[$id]})";
+				$strings[$id]  = "{$column['agg']}({$this->getDistinctSQL(true)}{$strings[$id]})";
 			}
 
 			$strings[$id] .= $column['alias'] ? " '{$column['alias']}'" : NULL;
@@ -481,9 +512,23 @@ class Select extends Common {
 			# Contains this row's joined table columns
 			$joined_table = [];
 
+			# Filter away non-associative arrays (JSON value arrays)
+			if(!is_array($row)){
+				/**
+				 * The logic here is that if the row is not an array,
+				 * but instead is just a value, the whole $rows array
+				 * is just a non-associative array value from a JSON
+				 * column.
+				 *
+				 * The only reason it made here was because $rows _is_
+				 * a numerical array and thus was correctly fed into
+				 * the recursive loop.
+				 */
+				return $rows;
+			}
+
 			# Foreach column and value
 			foreach($row as $col => $val){
-
 				/**
 				 * Whether a column name contains a period or not
 				 * is the determining factor of whether the column
@@ -497,11 +542,34 @@ class Select extends Common {
 				} else {
 					//If the column belongs to a joined table
 
+					# Remove the first database fragment in the alias
+					$col_fragments = explode(":", $col);
+					// Break up the alias by :
+					if(count($col_fragments) > 1){
+						//If there _are_ any :
+						array_shift($col_fragments);
+						//Remove the first (database) fragment
+					}
+					$col = implode(":", $col_fragments);
+					/**
+					 * Join the other pieces back together.
+					 * We only deal with one database fragment layer
+					 * at a time.
+					 *
+					 * EXPERIMENTAL, not sure what this will do to
+					 * two tables with the same name from different
+					 * databases.
+					 *
+					 * TODO Fix it so that tables that have the same
+					 * DB as the main table are excused from db
+					 * fragments in the aliases/
+					 */
+
 					# Break open the column name
-					$col = explode($dot,$col);
+					$col = explode($dot, $col);
 
 					# Extract out the joined table, and the column names (that may include joined children)
-					$joined_table[array_shift($col)][$id][implode($dot,$col)] = $val;
+					$joined_table[array_shift($col)][$id][implode($dot, $col)] = $val;
 				}
 			}
 

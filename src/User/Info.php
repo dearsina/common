@@ -15,7 +15,7 @@ class Info extends Common implements InfoInterface {
 	/**
 	 * @param array $a
 	 */
-	public function prepare(&$a) : void
+	public static function prepare(array &$a) : void
 	{
 		$a['left_join'][] = "user_role";
 		$a['left_join'][] = [

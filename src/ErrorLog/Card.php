@@ -243,7 +243,7 @@ class Card extends \App\Common\Common {
 		if(!empty(array_intersect(array_keys($vars), array_keys($var_array)))){
 			$button = [
 				"title" => "Clear",
-				"size" => "xs",
+				"size" => "s",
 				"basic" => true,
 				"hash" => [
 					"rel_table" => $rel_table,
@@ -293,7 +293,7 @@ class Card extends \App\Common\Common {
 					"action" => "resolved",
 					"vars" => $vars
 				],
-				"size" => "xs",
+				"size" => "s",
 				"class" => "float-right"
 			];
 		} else {
@@ -315,7 +315,7 @@ class Card extends \App\Common\Common {
 					"action" => "unresolved",
 					"vars" => $vars
 				],
-				"size" => "xs",
+				"size" => "s",
 				"class" => "float-right"
 			];
 		}

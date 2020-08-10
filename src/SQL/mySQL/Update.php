@@ -4,6 +4,8 @@
 namespace App\Common\SQL\mySQL;
 
 
+use App\Common\str;
+
 class Update extends Common {
 	public function update(array $a, ?bool $return_query = NULL)
 	{
@@ -32,7 +34,7 @@ class Update extends Common {
 
 		# Make sure the column or columns are identified
 		if (!$id && !$this->whereConditionsExist()){
-			throw new \Exception("An update request was sent with no WHERE clause or column ID to identify what to update.");
+			throw new \Exception("An update request was sent with no WHERE clause or column ID to identify what to update: ".str::var_export($a, true));
 		}
 
 		# Set limits

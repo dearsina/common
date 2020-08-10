@@ -94,7 +94,8 @@ class Card extends Common {
 			"post" => [
 				"class" => "text-muted",
 				"style" => [
-					"font-size" => "small",
+					"font-size" => "9pt",
+					"font-weight" => "300",
 				],
 				"html" => Recaptcha::getPrivacyPolicy(),
 			],
@@ -151,15 +152,14 @@ class Card extends Common {
 
 		$body = Grid::generate([[
 			"html" => "
-			Thank you for registering, {$user['first_name']}!
-			To continue, you must verify your email address.
+			Thank you for signing up, {$user['first_name']}!
 			",
 			"row_style" => [
 				"font-weight" => "bolder",
 				"margin-bottom" => "1rem",
 			],
 		], [
-			"html" => "
+			"html" => "To continue, you must verify your email address.
 			Check your email, and click on the link in the message from {$_ENV['title']} to verify.
 			",
 			"row_style" => [
@@ -178,7 +178,10 @@ class Card extends Common {
 			"body" => $body,
 			"footer" => $form->getHTML(),
 			"post" => [
-				"class" => "small",
+				"style" => [
+					"font-size" => "9pt",
+					"font-weight" => "300",
+				],
 				"html" => Recaptcha::getPrivacyPolicy(),
 			],
 		]);
@@ -211,6 +214,7 @@ class Card extends Common {
 				"message" => "If you don't set a password, you will not be able to log in to {$_ENV['title']}.",
 				"colour" => "danger",
 			],
+			"class" => "float-right"
 		]];
 
 		$form = new Form([
@@ -310,11 +314,6 @@ class Card extends Common {
 			extract($a);
 
 		$buttons = [[
-			"colour" => "primary",
-			"icon" => "key",
-			"title" => "Verify",
-			"type" => "submit",
-		], [
 			"title" => "Cancel",
 			"colour" => "grey",
 			"basic" => true,
@@ -322,6 +321,11 @@ class Card extends Common {
 				"rel_table" => $rel_table,
 				"action" => "login",
 			],
+		], [
+			"colour" => "primary",
+			"icon" => "key",
+			"title" => "Verify",
+			"type" => "submit",
 		]];
 
 		$form = new Form([
@@ -357,8 +361,11 @@ class Card extends Common {
 			//			"draggable" => true,
 			"header" => "Two-factor authentication",
 			"body" => $body,
-			"footer" => [
-				"class" => "small text-silent",
+			"post" => [
+				"style" => [
+					"font-size" => "9pt",
+					"font-weight" => "300",
+				],
 				"html" => "Two-factor authentication can be disabled in your account settings.",
 			],
 		]);
@@ -396,7 +403,10 @@ class Card extends Common {
 			"header" => "Reset password",
 			"body" => $form->getHTML(),
 			"post" => [
-				"class" => "small",
+				"style" => [
+					"font-size" => "9pt",
+					"font-weight" => "300",
+				],
 				"html" => Recaptcha::getPrivacyPolicy(),
 			],
 		]);

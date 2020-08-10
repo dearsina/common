@@ -12,15 +12,6 @@ class Output {
 	private $direction = [];
 
 	/**
-	 * A boolean value, when set,
-	 * means that the output needs
-	 * to be in modal form.
-	 *
-	 * @var bool
-	 */
-	private $is_modal = false;
-
-	/**
 	 * Classes.
 	 *
 	 * @var log
@@ -61,11 +52,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function set($a){
-		if(!is_array($a)){
-			$this->log->error("Only arrays are accepted, otherwise use individual field methods.");
-			return false;
-		}
+	public function set(array $a){
 		foreach($a as $type => $ids_or_data){
 			if(in_array($type, ["div", "prepend", "append", "replace"])){
 				if(!is_array($ids_or_data)) {
@@ -208,6 +195,23 @@ class Output {
 	}
 
 	/**
+	 * Will execute a given function name, with the data as the variables.
+	 * If `$data` is an array, will json_encode.
+	 * In app.js, json_encoded arrays will automatically be decoded.
+	 *
+	 * @param string $function_name
+	 * @param mixed $data
+	 *
+	 * @return bool
+	 */
+	public function function(string $function_name, $data){
+		if(is_array($data)){
+			$data = json_encode($data);
+		}
+		return $this->setData("function", $function_name, $data);
+	}
+
+	/**
 	 * Appends a modal HTML string to the #ui-view.
 	 *
 	 * @param string $a
@@ -222,19 +226,6 @@ class Output {
 	 */
 	public function closeModal(){
 		return $this->setVar("modal", "close");
-	}
-
-	/**
-	 * Sets the is_modal value.
-	 * By default, sets it to true.
-	 *
-	 * @param bool $bool
-	 *
-	 * @return bool
-	 */
-	public function is_modal($bool = true){
-		$this->is_modal = $bool;
-		return true;
 	}
 
 	/**

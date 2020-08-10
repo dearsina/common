@@ -217,7 +217,7 @@ class Card extends \App\Common\Common {
 		if(!empty(array_intersect(array_keys($vars), array_keys($var_array)))){
 			$button = [
 				"title" => "Clear",
-				"size" => "xs",
+				"size" => "s",
 				"basic" => true,
 				"hash" => [
 					"rel_table" => $rel_table,

@@ -35,7 +35,7 @@ class Modal extends \App\Common\Common {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-//			"size" => "xs",
+//			"size" => "s",
 			"icon" => Icon::get("role"),
 			"header" => "User roles",
 			"body" => $form->getHTML(),

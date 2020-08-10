@@ -211,7 +211,7 @@ class IssueNote extends \App\Common\Common {
 //						"sm" => 2,
 //						"class" => "float-right",
 //						"button" => [[
-//							"size" => "xs",
+//							"size" => "s",
 //							"hash" => [
 //								"rel_table" => "issue_note",
 //								"rel_id" => $note['issue_note_id'],

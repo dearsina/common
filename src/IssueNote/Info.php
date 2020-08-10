@@ -15,7 +15,7 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 	/**
 	 * @inheritDoc
 	 */
-	public function prepare (array &$a): void
+	public static function prepare(array &$a): void
 	{
 		$a['join'][] = [
 			"table" => "user",
