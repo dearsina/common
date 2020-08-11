@@ -9,6 +9,8 @@ use App\Common\SQL\Info\Info;
 use App\Common\User\User;
 use App\UI\Icon;
 use App\UI\Table;
+use Exception;
+use ReflectionClass;
 
 
 /**
@@ -67,7 +69,8 @@ abstract class Common {
 		 * but that also are initiated in Common(),
 		 * are excused.
 		 */
-		if(in_array(end(explode("\\", get_called_class())), ["User"])){
+		$class_array = explode("\\", get_called_class());
+		if(in_array(end($class_array), ["User"])){
 			return true;
 		}
 
@@ -123,7 +126,7 @@ abstract class Common {
 	 * @param null        $refresh
 	 *
 	 * @return array|null
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL): ?array
 	{
@@ -164,7 +167,7 @@ abstract class Common {
 	 * @param $a
 	 *
 	 * @return bool
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function reorder($a): bool
 	{
@@ -183,11 +186,15 @@ abstract class Common {
 	 * Given a table name, will return the
 	 * next order number.
 	 *
-	 * @param $rel_table
+	 * @param string      $rel_table
+	 *
+	 * @param string|null $limiting_key Use the limiting key/val to limit the relevant rows
+	 * @param string|null $limiting_val The key/val should be a column that uniquely identifies the subset of interest
 	 *
 	 * @return bool|int
+	 * @throws Exception
 	 */
-	public function getOrder(string $rel_table)
+	public function getOrder(string $rel_table, ?string $limiting_key = NULL, ?string $limiting_val = NULL)
 	{
 		# Ensure the table has an order column
 		if(!in_array("order", array_keys($this->sql->getTableMetadata(["db" => $this->db, "name" => $rel_table], true)))){
@@ -201,6 +208,9 @@ abstract class Common {
 				"max_order" => ["max", "order"],
 			],
 			"table" => $rel_table,
+			"where" => [
+				$limiting_key => $limiting_val
+			],
 			"limit" => 1,
 		]);
 
@@ -212,13 +222,25 @@ abstract class Common {
 	 * Reorders items in a table.
 	 * Will reorder the entire table.
 	 *
-	 * While this is a public method, as it returns void,
-	 * any direct access attempts will fail.
+	 * To avoid reordering the entire table,
+	 * set the limiting_key/val pair,
+	 * a key/val that uniquely identifies
+	 * all the items being reordered.
+	 *
+	 * Its new order is a number that it will have
+	 * all by itself. All the other items
+	 * that occupy that number or higher/lower
+	 * will be pushed up or down to make space.
+	 *
+	 * Broken up so that authentication and action
+	 * are separated out. While this is a public
+	 * method, as it returns void, any direct
+	 * access attempts will fail.
 	 *
 	 * @param array $a
 	 * @param null  $silent
 	 *
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function setOrder(array $a, $silent = NULL): void
 	{
@@ -230,45 +252,66 @@ abstract class Common {
 			return;
 		}
 
+		if($vars['old_index'] > $vars['new_index']){
+			//going UP (towards 1)
+			$dir1 = "+";
+			$eq1 = ">=";
+			//All the items equal or greater than the new order are to be moved down
+			$dir2 = "-";
+			$eq2 = ">";
+			//All the greater than the old order are to be moved up (to fill the gap)
+		} else {
+			//going DOWN (away from 1)
+			$dir1 = "-";
+			$eq1 = "<=";
+			//All the items equal to or less than the new order are to be moved up
+			$dir2 = "+";
+			$eq2 = "<";
+			//All the items less than the old order are to be moved down (to fill the gap)
+		}
+
+		# Get the _current_ (soon to be old) order number
+		$old = $this->sql->select([
+			"columns" => [
+				"order"
+			],
+			"db" => $this->db,
+			"table" => $rel_table,
+			"id" => $rel_id
+		]);
+
 		# The key of the item being shifted
 		$rel_key = array_search($rel_id, $vars['order']);
 
-		# Ensure there are no rows with NULL order values
-		$this->sql->run("SET @a=0;");
-		$this->sql->update([
-			"db" => $this->db,
-			"table" => $rel_table,
-			"set" => [
-				["`order` = @a:=@a+1"],
-			],
-			"where" => [
-				"order" => NULL,
-			],
-		]);
+//		# Ensure there are no rows with NULL order values
+//		$this->sql->run("SET @a=1;");
+//		$this->sql->update([
+//			"db" => $this->db,
+//			"table" => $rel_table,
+//			"set" => [
+//				["`order` = @a:=@a+1"],
+//			],
+//			"where" => [
+//				$vars['limiting_key'] => $vars['limiting_val'],
+//				"order" => NULL,
+//			],
+//		]);
 
 		if(!$rel_key){
-			//if the item is in first (0) position
-			$new_order = 0;
+			//if the item is being moved to the first (0) position
+			$new_order = 1;
+		} else if(($rel_key + 1) == count($vars['order'])){
+			//if the item is being moved to the _last_ position
+			$item_above = $this->info($rel_table, $vars['order'][$rel_key - 1]);
+			$new_order = (int)$item_above['order'];
 		} else {
 			//if the item is in any position except the first (0)
 			$item_above = $this->info($rel_table, $vars['order'][$rel_key - 1]);
 			$new_order = (int)$item_above['order'] + 1;
 		}
 
-		# Push all other items down to make space for our item
-		$this->sql->update([
-			"db" => $this->db,
-			"table" => $rel_table,
-			"set" => [
-				"order" => [NULL, $rel_table, "order", "IFNULL(", ",{$new_order}) + 1"],
-			],
-			"or" => [
-				["order", ">=", $new_order],
-				"order" => NULL,
-			],
-		]);
-
-		# Reorder the dragged item
+		# Place the item in its new position
+//		echo
 		$this->sql->update([
 			"db" => $this->db,
 			"table" => $rel_table,
@@ -276,13 +319,44 @@ abstract class Common {
 			"set" => [
 				"order" => $new_order,
 			],
-		]);
+		], false);
+//		echo ";\r\n\r\n";
+
+		# Push all other items up/down to make space for our item
+//		echo
+		$this->sql->update([
+			"db" => $this->db,
+			"table" => $rel_table,
+			"set" => [
+				"order" => [$this->db, $rel_table, "order", "IFNULL(", ",{$new_order}) {$dir1} 1"],
+			],
+			"where" => [
+				$vars['limiting_key'] => $vars['limiting_val'],
+				["order", $eq1, $new_order],
+				["{$rel_table}_id", "<>", $rel_id]
+			],
+		], false);
+//		echo ";\r\n\r\n";
+
 		/**
-		 * Its new order is a number that it will have
-		 * all by itself. All the other items
-		 * that used to occupy that number or higher/lower
-		 * have been pushed up or down to make space.
+		 * As a consequence of the above update,
+		 * Some elements that were below/above the old order,
+		 * that _shouldn't_ have been pushed, were also pushed
 		 */
+//		echo
+		$this->sql->update([
+			"db" => $this->db,
+			"table" => $rel_table,
+			"set" => [
+				"order" => [$this->db, $rel_table, "order", "IFNULL(", ",{$old['order']}) {$dir2} 1"],
+			],
+			"where" => [
+				$vars['limiting_key'] => $vars['limiting_val'],
+				["order", $eq2, $old['order']],
+				["{$rel_table}_id", "<>", $rel_id]
+			],
+		], false);
+//		echo ";\r\n\r\n";
 
 		if(!$silent){
 			$this->log->success([
@@ -305,17 +379,17 @@ abstract class Common {
 	protected function getFieldClassAndMethod($rel_table): array
 	{
 		$current_class = get_class($this);
-		$reflection_class = new \ReflectionClass($current_class);
+		$reflection_class = new ReflectionClass($current_class);
 		$namespace = $reflection_class->getNamespaceName();
 		$field_class = $namespace . "\\Field";
 		$method = str::getMethodCase($rel_table);
 
 		if(!class_exists($field_class)){
-			throw new \Exception("A <code>Field()</code> class for the <b>{$rel_table}</b> table could not be found.");
+			throw new Exception("A <code>Field()</code> class for the <b>{$rel_table}</b> table could not be found.");
 		}
 
 		if(!method_exists($field_class, $method)){
-			throw new \Exception("A <code>{$method}</code> method could not be found in the <code>{$field_class}</code> class.");
+			throw new Exception("A <code>{$method}</code> method could not be found in the <code>{$field_class}</code> class.");
 		}
 
 		return [$field_class, $method];
@@ -327,7 +401,7 @@ abstract class Common {
 	 *
 	 * @param array $a
 	 *
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public function updateRelTable(array $a): void
 	{
@@ -345,7 +419,7 @@ abstract class Common {
 
 		$table = [
 			"name" => $rel_table,
-			"db" => $this->db
+			"db" => $this->db,
 		];
 
 		if(in_array("order", array_keys($this->sql->getTableMetadata($table, true)))){
