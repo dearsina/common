@@ -31,8 +31,6 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 	public static function format (array &$row): void
 	{
 
-		$row['user'] = $row['user'][0];
-
 		# Add "name" and "full_name", and format first and last names
 		str::addNames($row['user']);
 

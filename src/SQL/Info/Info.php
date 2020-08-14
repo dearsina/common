@@ -63,7 +63,7 @@ class Info {
 	 * @param string|null $rel_id
 	 * @param bool|null   $refresh If set to TRUE, will ignore any cached results.
 	 *
-	 * @return bool|mixed
+	 * @return array|null
 	 * @throws \Exception
 	 */
 	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL): ?array

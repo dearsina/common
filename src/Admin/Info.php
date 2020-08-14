@@ -40,12 +40,10 @@ class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterf
 	 */
 	public static function format(array &$row): void
 	{
-		//		var_export($row);
 		# There is only ever one user
 		$row['user'] = $row['user_role'][0]['user'][0];
 
 		# Add "name" and "full_name", and format first and last names
 		str::addNames($row['user']);
-		//		echo $_SESSION['query'];exit;
 	}
 }

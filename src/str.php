@@ -276,7 +276,6 @@ class str {
 
 			# Go deeper
 			$array[$key] = str::flattenSingleChildren($val, $keys);
-
 		}
 		return $array;
 	}
@@ -1431,7 +1430,7 @@ EOF;
 
 		# Make uppercase
 		if($upper){
-			$text = strtoupper($str);
+			$text = strtoupper($text);
 		}
 
 		# ID (optional)
@@ -2861,10 +2860,10 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function addNames(&$row): bool
+	public static function addNames(&$row): void
 	{
 		if(!$row){
-			return false;
+			return;
 		}
 
 		$users = str::isNumericArray($row) ? $row : [$row];
@@ -2883,8 +2882,6 @@ EOF;
 
 		$row = str::isAssociativeArray($row) ? reset($users) : $users;
 		//If there was only one user, skip the numerical key index
-
-		return true;
 	}
 
 	/**

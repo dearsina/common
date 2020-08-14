@@ -43,7 +43,6 @@ class Info implements \App\Common\SQL\Info\InfoInterface {
 		$row['progress_percent'] = ($row['progress'] * 100) . "%";
 		$row['issue_type'] = $row['issue_type'][0];
 		$row['issue_priority'] = $row['issue_priority'][0];
-		$row['user'] = $row['user'][0];
 		str::addNames($row['user']);
 	}
 }
