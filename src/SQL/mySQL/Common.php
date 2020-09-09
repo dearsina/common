@@ -586,41 +586,72 @@ abstract class Common {
 		}
 
 		if(is_array($and)){
-			foreach($and as $key => $val){
-				/**
-				 * Sets of conditions can be wrapped inside an associative array
-				 * and function as a collection of ORs inside a single AND condition.
-				 */
-				if(is_int($key) && str::isAssociativeArray($val)){
-					$inside_or = [];
-					foreach($val as $k => $v){
-						$inside_or[] = $this->getValueComparison($table, $k, $v, true);
-					}
-					$conditions["and"][] = "(" . implode(" OR ", $inside_or) . ")";
-					continue;
-				}
-				$conditions["and"][] = $this->getValueComparison($table, $key, $val, true);
-			}
+			$conditions['and'] = array_merge($conditions['and'] ?:[], $this->recursiveWhere($table, "and", $and));
+//			foreach($and as $key => $val){
+//				/**
+//				 * Sets of conditions can be wrapped inside an associative array
+//				 * and function as a collection of ORs inside a single AND condition.
+//				 */
+//				if(is_int($key) && str::isAssociativeArray($val)){
+//					$inside_or = [];
+//					foreach($val as $k => $v){
+//						$inside_or[] = $this->getValueComparison($table, $k, $v, true);
+//					}
+//					$conditions["and"][] = "(" . implode(" OR ", $inside_or) . ")";
+//					continue;
+//				}
+//				$conditions["and"][] = $this->getValueComparison($table, $key, $val, true);
+//			}
 		}
 
 		if(is_array($or)){
-			foreach($or as $key => $val){
-				/**
-				 * Sets of conditions can be wrapped inside an associative array
-				 * and function as a collection of ANDs inside a single OR condition.
-				 */
-				if(is_int($key) && str::isAssociativeArray($val)){
-					$inside_and = [];
-					foreach($val as $k => $v){
-						$inside_and[] = $this->getValueComparison($table, $k, $v, true);
-					}
-					$conditions["or"][] = "(" . implode(" AND ", $inside_and) . ")";
-					continue;
-				}
-				$conditions["or"][] = $this->getValueComparison($table, $key, $val, true);
-			}
+			$conditions['or'] = array_merge($conditions['or'] ?:[], $this->recursiveWhere($table, "or", $or));
+//			foreach($or as $key => $val){
+//				/**
+//				 * Sets of conditions can be wrapped inside an associative array
+//				 * and function as a collection of ANDs inside a single OR condition.
+//				 */
+//				if(is_int($key) && str::isAssociativeArray($val)){
+//					$inside_and = [];
+//					foreach($val as $k => $v){
+//						$inside_and[] = $this->getValueComparison($table, $k, $v, true);
+//					}
+//					$conditions["or"][] = "(" . implode(" AND ", $inside_and) . ")";
+//					continue;
+//				}
+//				$conditions["or"][] = $this->getValueComparison($table, $key, $val, true);
+//			}
 		}
 		return $conditions;
+	}
+
+	/**
+	 * EXPERIMENTAL
+	 *
+	 * Allows for infinite nested AND/ORs.
+	 *
+	 * May collide with value comparisons that can be arrays.
+	 *
+	 * @param array  $table
+	 * @param string $glue
+	 * @param array  $array
+	 *
+	 * @return array
+	 */
+	private function recursiveWhere(array $table, string $glue, array $array): array
+	{
+
+		foreach($array as $key => $val){
+			if(is_int($key) && (str::isAssociativeArray($val) || (is_array($val) && array_filter($val, "is_array") === $val))){
+				$opposite_glue = $glue == "and" ? "or" : "and";
+				$inner = array_filter($this->recursiveWhere($table, $opposite_glue, $val));
+				$outer[] = "(" . implode(" {$opposite_glue} ", $inner) . ")";
+				continue;
+			}
+			$outer[] = $this->getValueComparison($table, $key, $val, true);
+		}
+
+		return $outer;
 	}
 
 	/**
@@ -1335,10 +1366,10 @@ abstract class Common {
 	 * Set the columns that are going to go to the SET section of the INSERT or UPDATE query.
 	 *
 	 * @param array|null $set
-	 * @param array|null $html
+	 * @param array|string|null $html
 	 * @param bool|null  $ignore_empty If set to TRUE, will not throw an exception if no columns are to be set
 	 */
-	protected function setSet(?array $set, ?array $html, ?bool $ignore_empty = NULL): void
+	protected function setSet(?array $set, $html = NULL, ?bool $ignore_empty = NULL): void
 	{
 		if(!$set){
 			if($ignore_empty){
@@ -1355,6 +1386,7 @@ abstract class Common {
 		$this->set = $set;
 
 		# Add the columns that may contain HTML to the global variable
+		$html = is_string($html) ? [$html] : $html;
 		$this->html = $html;
 
 		# Grab all the columns from all the rows (not all rows need to have the same number of columns)
@@ -1432,8 +1464,11 @@ abstract class Common {
 
 			# JSON columns
 			if($table_metadata[$col]['DATA_TYPE'] == "json"){
-				return "'" . str_replace("'", "\'", json_encode($val)) . "'";
-				//The array will be converted to a JSON string, single quotes escaped and the whole string wrapped in single quotes
+				$json = json_encode($val);
+				$json = str_replace("\\", "\\\\", $json);
+				$json = str_replace("'", "\'", $json);
+				return "'{$json}'";
+				//The array will be converted to a JSON string, backslashes and  single quotes escaped and the whole string wrapped in single quotes
 			}
 
 			# Otherwise, arrays are not allowed and will return an error
@@ -1524,6 +1559,8 @@ abstract class Common {
 			}
 		}
 
+//		echo "{$col}: ";var_dump($val);echo "\r\n";
+
 		# Format the value, ensure it conforms
 		if(($val = $this->formatComparisonVal($val, $html)) === NULL){
 			//A legit value can be "0"
@@ -1531,6 +1568,8 @@ abstract class Common {
 			return "NULL";
 			//if the value is not accepted, set it to be NULL
 		}
+
+//		echo "{$col}: {$table_metadata[$col]['DATA_TYPE']}: {$val}\r\n";
 
 		return $val;
 	}
@@ -1572,8 +1611,11 @@ abstract class Common {
 			return NULL;
 		}
 
-		# Tidy up the value (after we've checked it's not boolean or NULL)
-		$val = str::i($val, $html);
+		if(!strlen($val)){
+			//If the value has no length (contains no characters)
+			return "NULL";
+			//This could be problematic, because it means that no field can contain the '' (empty string) value.
+		}
 
 		if($val == "NOW()"){
 			//If it's a datetime function
@@ -1584,6 +1626,9 @@ abstract class Common {
 			//if it's a number or a float, return it as is
 			return $val;
 		}
+
+		# Tidy up the value (after we've checked it's not boolean or NULL)
+		$val = str::i($val, $html);
 
 		# Enclose with single quotes
 		return "'{$val}'";
@@ -1783,9 +1828,12 @@ abstract class Common {
 				continue;
 			}
 
-			/**
-			 * Update queries will not encode JSON if the JSON is small (count<=5)
-			 */
+			# "col" => ["JSON", [array]] (array will be formatted as json and inserted if col is json)
+			if(is_string($col) && is_array($val) && (count($val) == 2) && strtoupper($val[0]) == "JSON"){
+				$val = $this->formatInsertVal($this->table, $col, $val[1]);
+				$strings[] = "`{$this->table['alias']}`.`$col` = {$val}";
+				continue;
+			}
 
 			# "col" => ["tbl_alias", "tbl_col"]
 			if(is_string($col) && is_array($val) && (count($val) == 2)){
@@ -1954,16 +2002,26 @@ abstract class Common {
 		}
 
 		# Write the query for table metadata
-		$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
+		$query = "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
+
+		$results = $this->mysqli->query($query)->fetch_all();
 
 		# Does this database-table combo exist?
-		$this->exists[$db][$table] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+		if($this->exists['table'][$db][$table] = (bool)$results){
+			//If so, store all the columns also so we don't have to run a query for each column also
+			foreach($results as $row){
+				$this->exists['col'][$db][$table][$row[0]] = true;
+			}
+		}
 
-		return $this->exists[$db][$table];
+		return $this->exists['table'][$db][$table];
 	}
 
 	/**
 	 * Does this db-table-col combo exist?
+	 *
+	 * Will rarely, if ever call a SQL query, because all the columns
+	 * will be logged by the tableExists() method.
 	 *
 	 * @param string $db
 	 * @param string $table

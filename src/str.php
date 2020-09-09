@@ -241,7 +241,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function percent($int_fraction, $decimals = 0)
+	static function percent(float $int_fraction, ?int $decimals = 0)
 	{
 		$int = round($int_fraction * 100, $decimals);
 		return "{$int}%";
@@ -642,6 +642,7 @@ class str {
 
 	/**
 	 * Given a camelCase string returns snake_case.
+	 * Will also replace spaces with underscore.
 	 *
 	 * @param string $string
 	 * @param string $us
@@ -651,8 +652,8 @@ class str {
 	 */
 	public static function camelToSnakeCase(string $string, string $us = "_"): string
 	{
-		return strtolower(preg_replace(
-			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string));
+		return str_replace(" ", $us,strtolower(preg_replace(
+			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string)));
 	}
 
 	/**
@@ -1563,8 +1564,9 @@ EOF;
 	 */
 	static function isNumericArray($arr)
 	{
-		if(!is_array($arr))
+		if(!is_array($arr)){
 			return false;
+		}
 		return array_keys($arr) === range(0, (count($arr) - 1));
 	}
 

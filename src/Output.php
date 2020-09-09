@@ -18,15 +18,18 @@ class Output {
 	 */
 	protected $log;
 
-	protected function __construct() {
+	protected function __construct()
+	{
 		$this->log = Log::getInstance();
 	}
 
-	private function __clone() {
+	private function __clone()
+	{
 		// Stopping cloning of object
 	}
 
-	private function __wakeup() {
+	private function __wakeup()
+	{
 		// Stopping unserialize of object
 	}
 
@@ -38,8 +41,8 @@ class Output {
 	 */
 	final public static function getInstance(): Output
 	{
-		static $instance = null;
-		if (!$instance) {
+		static $instance = NULL;
+		if(!$instance){
 			$instance = new Output();
 		}
 		return $instance;
@@ -52,10 +55,11 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function set(array $a){
+	public function set(array $a)
+	{
 		foreach($a as $type => $ids_or_data){
 			if(in_array($type, ["div", "prepend", "append", "replace"])){
-				if(!is_array($ids_or_data)) {
+				if(!is_array($ids_or_data)){
 					//div, prepend, append, and replace require an ID.
 					$this->log->error("The {$type} output type requires an ID and data.");
 					return false;
@@ -63,7 +67,7 @@ class Output {
 				foreach($ids_or_data as $id => $data){
 					$this->$type($id, $data);
 				}
-			} else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "page_title", "page_title"])) {
+			} else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "page_title", "page_title"])){
 				//these types do not require an ID
 				$this->$type($ids_or_data);
 			} else {
@@ -77,7 +81,8 @@ class Output {
 	/**
 	 * @return bool
 	 */
-	public function uri(){
+	public function uri()
+	{
 		$this->output['uri'] = true;
 		return true;
 	}
@@ -85,7 +90,8 @@ class Output {
 	/**
 	 * @return array
 	 */
-	public function get(){
+	public function get()
+	{
 		return $this->output;
 	}
 
@@ -107,10 +113,11 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function set_direction($vars){
+	public function set_direction($vars)
+	{
 		$this->direction = [
 			"type" => $vars['div'],
-			"id" => urldecode($vars['div_id'])
+			"id" => urldecode($vars['div_id']),
 		];
 		return true;
 	}
@@ -119,12 +126,13 @@ class Output {
 	 * Will update the *contents* a given div, based on their div ID.
 	 * It will not touch the div tag itself.
 	 *
-	 * @param $id
-	 * @param $data
+	 * @param string $id Expects an ID that jQuery will understand (prefixed with # or . etc)
+	 * @param string $data
 	 *
 	 * @return bool
 	 */
-	public function update(string $id, $data){
+	public function update(string $id, $data)
+	{
 		return $this->setData("update", $id, $data);
 	}
 
@@ -143,7 +151,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function val(string $id, $data){
+	public function val(string $id, $data)
+	{
 		return $this->setData("val", $id, $data);
 	}
 
@@ -155,18 +164,21 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function prepend(string $id, $data){
+	public function prepend(string $id, $data)
+	{
 		return $this->setData("prepend", $id, $data);
 	}
 
 	/**
 	 * Will append a given div with data.
+	 *
 	 * @param $id
 	 * @param $data
 	 *
 	 * @return bool
 	 */
-	public function append(string $id, $data){
+	public function append(string $id, $data)
+	{
 		return $this->setData("append", $id, $data);
 	}
 
@@ -178,7 +190,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function replace(string $id, $data){
+	public function replace(string $id, $data)
+	{
 		return $this->setData("replace", $id, $data);
 	}
 
@@ -190,7 +203,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function remove(string $id){
+	public function remove(string $id)
+	{
 		return $this->setData("remove", $id, NULL);
 	}
 
@@ -200,11 +214,12 @@ class Output {
 	 * In app.js, json_encoded arrays will automatically be decoded.
 	 *
 	 * @param string $function_name
-	 * @param mixed $data
+	 * @param mixed  $data
 	 *
 	 * @return bool
 	 */
-	public function function(string $function_name, $data){
+	public function function(string $function_name, $data)
+	{
 		if(is_array($data)){
 			$data = json_encode($data);
 		}
@@ -214,18 +229,30 @@ class Output {
 	/**
 	 * Appends a modal HTML string to the #ui-view.
 	 *
-	 * @param string $a
+	 * @param string $html
 	 */
-	public function modal(string $a): void
+	public function modal(string $html): void
 	{
-		$this->setData("modal", "#ui-view", $a);
+		$this->output['modal'][] = [
+			"id" => "#ui-view",
+			"html" => $html,
+		];
 	}
 
 	/**
+	 * Close the top-most modal.
+	 * Or include a particular modal ID to close.
+	 *
+	 * @param string|null $modal_id
+	 *
 	 * @return mixed
 	 */
-	public function closeModal(){
-		return $this->setVar("modal", "close");
+	public function closeModal(?string $modal_id = NULL): void
+	{
+		$this->output['modal'][] = [
+			"id" => $modal_id,
+			"close" => true,
+		];
 	}
 
 	/**
@@ -239,7 +266,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function html($data){
+	public function html($data)
+	{
 		return $this->setData("update", "#ui-view", $data);
 	}
 
@@ -253,7 +281,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function navigation(?string $data){
+	public function navigation(?string $data)
+	{
 		$this->output['update']["#ui-navigation"] = $data;
 		return true;
 	}
@@ -268,7 +297,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function footer(?string $data){
+	public function footer(?string $data)
+	{
 		$this->output['update']["#ui-footer"] = $data;
 		return true;
 	}
@@ -281,7 +311,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function silent($true_or_false = TRUE){
+	public function silent($true_or_false = true)
+	{
 		return $this->setData("silent", NULL, $true_or_false);
 	}
 
@@ -292,7 +323,8 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function pageTitle($page_title){
+	public function pageTitle($page_title)
+	{
 		return $this->setData("page_title", NULL, $page_title);
 	}
 
@@ -304,19 +336,21 @@ class Output {
 	 *
 	 * @return mixed
 	 */
-	public function setVar($type, $data){
+	public function setVar($type, $data)
+	{
 		return $this->output[$type] = $data;
 	}
 
 	/**
 	 *
 	 * @param string $type The name of the data key, an instruction on what to do with the data
-	 * @param string $id The div ID where the data is going
+	 * @param string $id   The div ID where the data is going
 	 * @param string $data The HTML or instructions.
 	 *
 	 * @return bool
 	 */
-	private function setData($type, $id, $data){
+	private function setData($type, $id, $data)
+	{
 		if($data === false){
 			//if data has by design been set as false
 
@@ -355,7 +389,8 @@ class Output {
 	 *
 	 * @return mixed
 	 */
-	private function getOutput($type, $id){
+	private function getOutput($type, $id)
+	{
 		if($id){
 			return $this->output[$type][$id];
 		} else {

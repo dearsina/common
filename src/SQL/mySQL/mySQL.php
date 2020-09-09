@@ -8,6 +8,8 @@ use mysqli_sql_exception;
 use Ramsey\Uuid\Codec\TimestampFirstCombCodec;
 use Ramsey\Uuid\Generator\CombGenerator;
 use Ramsey\Uuid\UuidFactory;
+use Swoole\IDEHelper\Exception;
+use Swoole\IDEHelper\StubGenerators\Swoole;
 
 /**
  * Reset global vars related to SQL calls.
@@ -77,7 +79,9 @@ class mySQL extends Common {
 					"message" => $e->getMessage()
 				]]
 			]);
-			exit();
+
+			# Will somehow throw an error saying "MySQL server has gone away"
+			throw new \Swoole\ExitException("Something is off.");
 			//There is no point in continuing
 		}
 	}

@@ -85,7 +85,8 @@ class Card extends \App\Common\Common {
 			"rel_table" => "role_permission",
 			"rel_id" => $role['role_id'],
 			"fields" => $fields,
-			"buttons" => $buttons
+			"buttons" => $buttons,
+			"modal" => true
 		]);
 
 		$card = new \App\UI\Card\Card([

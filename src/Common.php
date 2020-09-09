@@ -106,6 +106,33 @@ abstract class Common {
 	}
 
 	/**
+	 * Checks the $a array for given vars keys.
+	 * If they don't exists, throws an exception.
+	 *
+	 * Should only be used in cases where a missing key
+	 * suggests tampering or a bug in the code.
+	 *
+	 * @param array $a The $a array.
+	 * @param string|array $keys Can either be a single key (as a string), or an array of keys.
+	 *
+	 * @throws Exception
+	 */
+	public function checkVars(array $a, $keys): void
+	{
+		extract($a);
+
+		if(is_string($keys)){
+			$keys = [$keys];
+		}
+
+		foreach($keys as $key){
+			if(!$vars[$key]){
+				throw new \Exception("The expected <code>" . str::title($key) . "</code> value is missing");
+			}
+		}
+	}
+
+	/**
 	 * Shortcut for complex, repeated SQL queries. Simple syntax:
 	 * <code>
 	 * $rel = $this->info($rel_table, $rel_id, $refresh);
