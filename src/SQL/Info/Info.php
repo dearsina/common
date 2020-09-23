@@ -58,14 +58,14 @@ class Info {
 		return self::$instance;
 	}
 
-	/**
-	 * @param             $a
-	 * @param string|null $rel_id
-	 * @param bool|null   $refresh If set to TRUE, will ignore any cached results.
-	 *
-	 * @return array|null
-	 * @throws \Exception
-	 */
+    /**
+     * @param             $a
+     * @param string|null $rel_id
+     * @param bool|null $refresh If set to TRUE, will ignore any cached results.
+     *
+     * @return array|null
+     * @throws \Exception
+     */
 	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL): ?array
 	{
 		if(is_string($a)){

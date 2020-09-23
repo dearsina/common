@@ -2207,7 +2207,7 @@ EOF;
 	 *
 	 * @return bool|mixed|string
 	 */
-	public static function oxford_implode($array, $glue = ", ", $and_or = "and")
+	public static function oxfordImplode($array, $glue = ", ", $and_or = "and")
 	{
 		if(empty($array)){
 			return false;

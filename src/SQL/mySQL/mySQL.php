@@ -60,7 +60,7 @@ class mySQL extends Common {
 //			$this->loadTableMetadata();
 		}
 
-		catch(mysqli_sql_exception | \Exception $e) {
+		catch(\mysqli_sql_exception | \Exception $e) {
 			/**
 			 * If there is an error connecting,
 			 * put together a custom response,
@@ -68,21 +68,15 @@ class mySQL extends Common {
 			 * without a database connection,
 			 * nothing can be done.
 			 */
-			echo json_encode([
-				"success" => false,
-				"alerts" => [[
-					"container" => "#ui-view",
-					"close" => false,
-					"type" => "error",
-					"title" => "SQL Connection error",
-					"icon" => "far fa-ethernet",
-					"message" => $e->getMessage()
-				]]
-			]);
+			$message = "SQL Connection error [{$e->getCode()}]: {$e->getMessage()}";
 
-			# Will somehow throw an error saying "MySQL server has gone away"
-			throw new \Swoole\ExitException("Something is off.");
-			//There is no point in continuing
+			# There is no point in continuing
+			if(str::runFromCLI()){
+				# Will somehow throw an error saying "MySQL server has gone away"
+				throw new \Swoole\ExitException($message);
+			} else {
+				throw new \Exception($message, $e->getCode(), $e);
+			}
 		}
 	}
 

@@ -28,9 +28,6 @@ class Country {
 				]
 			],
 			"table" => "country",
-			"where" => [
-				["currency_code", "<>", ""]
-			],
 			"order_by" => [
 				"currency_code" => "ASC"
 			]

@@ -492,6 +492,18 @@ abstract class Common {
 		return $this->getTableMetadata($table)[$col]["DATA_TYPE"] == "json";
 	}
 
+	/**
+	 * Checks to see if the given string is a mySQL JSON function.
+	 *
+	 * @param string $function
+	 *
+	 * @return bool
+	 */
+	protected function isJsonFunction(string $function): bool
+	{
+		return in_array(strtoupper($function), ["JSON", "JSON_ARRAY_APPEND", "JSON_CONTAINS", "NOT JSON_CONTAINS"]);
+	}
+
 	protected function formatGroupConcatCol(array $table, ?string $col_alias, array $col): ?array
 	{
 		[$agg, $a] = $col;
@@ -586,41 +598,11 @@ abstract class Common {
 		}
 
 		if(is_array($and)){
-			$conditions['and'] = array_merge($conditions['and'] ?:[], $this->recursiveWhere($table, "and", $and));
-//			foreach($and as $key => $val){
-//				/**
-//				 * Sets of conditions can be wrapped inside an associative array
-//				 * and function as a collection of ORs inside a single AND condition.
-//				 */
-//				if(is_int($key) && str::isAssociativeArray($val)){
-//					$inside_or = [];
-//					foreach($val as $k => $v){
-//						$inside_or[] = $this->getValueComparison($table, $k, $v, true);
-//					}
-//					$conditions["and"][] = "(" . implode(" OR ", $inside_or) . ")";
-//					continue;
-//				}
-//				$conditions["and"][] = $this->getValueComparison($table, $key, $val, true);
-//			}
+			$conditions['and'] = array_merge($conditions['and'] ?:[], $this->recursiveWhere($table, "AND", $and));
 		}
 
 		if(is_array($or)){
-			$conditions['or'] = array_merge($conditions['or'] ?:[], $this->recursiveWhere($table, "or", $or));
-//			foreach($or as $key => $val){
-//				/**
-//				 * Sets of conditions can be wrapped inside an associative array
-//				 * and function as a collection of ANDs inside a single OR condition.
-//				 */
-//				if(is_int($key) && str::isAssociativeArray($val)){
-//					$inside_and = [];
-//					foreach($val as $k => $v){
-//						$inside_and[] = $this->getValueComparison($table, $k, $v, true);
-//					}
-//					$conditions["or"][] = "(" . implode(" AND ", $inside_and) . ")";
-//					continue;
-//				}
-//				$conditions["or"][] = $this->getValueComparison($table, $key, $val, true);
-//			}
+			$conditions['or'] = array_merge($conditions['or'] ?:[], $this->recursiveWhere($table, "OR", $or));
 		}
 		return $conditions;
 	}
@@ -642,12 +624,16 @@ abstract class Common {
 	{
 
 		foreach($array as $key => $val){
+
+			# Goes deeper if required
 			if(is_int($key) && (str::isAssociativeArray($val) || (is_array($val) && array_filter($val, "is_array") === $val))){
-				$opposite_glue = $glue == "and" ? "or" : "and";
+				$opposite_glue = $glue == "AND" ? "OR" : "AND";
 				$inner = array_filter($this->recursiveWhere($table, $opposite_glue, $val));
 				$outer[] = "(" . implode(" {$opposite_glue} ", $inner) . ")";
 				continue;
 			}
+
+			# Where the actual where string is created
 			$outer[] = $this->getValueComparison($table, $key, $val, true);
 		}
 
@@ -863,7 +849,7 @@ abstract class Common {
 			return $val;
 
 		} # "col" => ["JSON_FUNCTION", ["val"]]
-		else if(is_string($col) && is_array($val) && (count($val) == 2) && (strtoupper(substr($val[0],0,5)) == "JSON_")){
+		else if(is_string($col) && is_array($val) && (count($val) == 2) && $this->isJsonFunction($val[0])){
 			[$json_function, $v] = $val;
 
 			# Format function
@@ -879,6 +865,11 @@ abstract class Common {
 				$val = "'".str::i(json_encode($v))."'";
 			} else {
 				$val = "JSON_QUOTE('".str::i($v)."')";
+			}
+
+			if($json_function == "NOT JSON_CONTAINS"){
+				return "({$json_function}(`{$table['alias']}`.`{$col}`, {$val}) OR `{$table['alias']}`.`{$col}` IS NULL)";
+				//A special concession has to be made to the not contains condition, because if the column is NULL confusingly doesn't mean it doesn't contain
 			}
 
 			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
@@ -924,9 +915,13 @@ abstract class Common {
 
 			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
 
-		} # "col" => ["db", "name", "col"]
-		else if(is_string($col) && is_array($val) && (count($val) == 3)){
-			[$tbl_db, $tbl_name, $tbl_col] = $val;
+		} # "col" => ["db", "name", "col"], (optionally) "FUNC(", ")"]
+		else if(is_string($col) && is_array($val) && in_array(count($val),[3,4,5])){
+			switch(count($val)){
+				case 3: [$tbl_db, $tbl_name, $tbl_col] = $val; break;
+				case 4: [$tbl_db, $tbl_name, $tbl_col, $pre] = $val; break;
+				case 5: [$tbl_db, $tbl_name, $tbl_col, $pre, $post] = $val; break;
+			}
 
 			# Ensure the join table column exists
 			if(!$this->columnExists($table['db'], $table['name'], $col)){
@@ -971,7 +966,7 @@ abstract class Common {
 				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
 			}
 
-			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
+			return "`{$table['alias']}`.`{$col}` = {$pre}`{$tbl_alias}`.`{$tbl_col}`{$post}";
 			/**
 			 * In cases where the same table from the same database
 			 * is referenced, and tbl_db + tbl_name are given,
@@ -1073,7 +1068,7 @@ abstract class Common {
 				# Collecting all tables and parent tables with children that have where clauses
 				$this->setTableAliasWithWhere([$table['alias']]);
 
-				return "(`{$table['alias']}`.`{$col}` {$eq} {$val} OR `{$table['alias']}`.`{$col}` IS NULL)";
+				return "(`{$table['alias']}`.`{$col}` {$eq} `{$tbl_alias}`.`{$tbl_col}` OR `{$table['alias']}`.`{$col}` IS NULL)";
 				/**
 				 * In cases where a condition is that a value is NOT (!=, <>, NOT IN) something,
 				 * those values that are NULL will also be omitted. This prevents that from happening.
@@ -1499,7 +1494,9 @@ abstract class Common {
 			 * traditional datetime string. This ignores timezones.
 			 */
 			if(is_numeric($val)){
-				$val = date_create('@' . $val)->format("Y-m-d H:i:s");
+				$dt = date_create('@' . $val);
+				$dt->setTimeZone(new \DateTimeZone(date_default_timezone_get()));
+				$val = $dt->format("Y-m-d H:i:s");
 			}
 		}
 
@@ -1507,7 +1504,9 @@ abstract class Common {
 		if($table_metadata[$col]['DATA_TYPE'] == 'date'){
 			# To ensure that dates in other formats are understood
 			if(is_string($val) && strtotime($val)){
-				$val = date_create('@' . strtotime($val))->format("Y-m-d");
+				$dt = date_create('@' . strtotime($val));
+				$dt->setTimeZone(new \DateTimeZone(date_default_timezone_get()));
+				$val = $dt->format("Y-m-d");
 			}
 
 			if(!$val && is_string($val)){
@@ -1521,7 +1520,9 @@ abstract class Common {
 		if($table_metadata[$col]['DATA_TYPE'] == 'datetime'){
 			# To ensure that date-times in other formats are understood
 			if(is_string($val) && strtotime($val)){
-				$val = date_create('@' . strtotime($val))->format("Y-m-d H:i:s");
+				$dt = date_create('@' . strtotime($val));
+				$dt->setTimeZone(new \DateTimeZone(date_default_timezone_get()));
+				$val = $dt->format("Y-m-d H:i:s");
 			}
 
 			if(!$val && is_string($val)){
@@ -1616,9 +1617,20 @@ abstract class Common {
 			return "NULL";
 			//This could be problematic, because it means that no field can contain the '' (empty string) value.
 		}
+		/**
+		 * if someone searches for col = '' it return col = NULL, which isn't the same.
+		 * If it's commented out, it may cause problems
+		 * elsewhere when someone searches for col = '' but wanted the default to
+		 * be that we ignore this comparison all together.
+		 */
 
 		if($val == "NOW()"){
 			//If it's a datetime function
+			return $val;
+		}
+
+		if($val == "CURDATE()"){
+			//If it's a date function
 			return $val;
 		}
 
@@ -1759,6 +1771,19 @@ abstract class Common {
 		}
 
 		foreach($order_bys as $col => $dir){
+			# Make a copy of the table array
+			$tbl = $table;
+
+			# The direction variable can also be an array if the table is not the main table [tbl_alias, col, dir]
+			if(is_array($dir) && count($dir) == 3){
+				[$tbl_alias, $col, $dir] = $dir;
+
+				# Ensure the table exists in the database
+				if(!$tbl = $this->tableAliasExists($tbl_alias)){
+					throw new mysqli_sql_exception("The table alias {$tbl_alias} doesn't seem to exist in this query.");
+				}
+			}
+
 			$dir = strtoupper($dir);
 
 			if(!in_array($dir, ["ASC", "DESC"])){
@@ -1766,23 +1791,23 @@ abstract class Common {
 			}
 
 			# Column
-			if($key = array_search($col, array_column($columns, 'name')) !== false){
+			if($key = array_search($col, array_column($columns ?:[], 'name')) !== false){
 				//if the column being ordered is the name of a column
 				$order_by[] = "`{$columns[$key]['table_alias']}`.`$col` {$dir}";
 				continue;
 			}
 
 			# Alias
-			if($key = array_search($col, array_column($columns, 'alias')) !== false){
+			if($key = array_search($col, array_column($columns ?:[], 'alias')) !== false){
 				//if the column being ordered is the alias of a column
 				$order_by[] = "`$col` {$dir}";
 				continue;
 			}
 
 			# "Hidden" column
-			if($this->columnExists($table['db'], $table['name'], $col)){
+			if($this->columnExists($tbl['db'], $tbl['name'], $col)){
 				//If the table to order by is not part of the columns to display, but is still a valid column
-				$order_by[] = "`{$table['alias']}`.`{$col}` {$dir}";
+				$order_by[] = "`{$tbl['alias']}`.`{$col}` {$dir}";
 				continue;
 			}
 		}
@@ -1829,9 +1854,19 @@ abstract class Common {
 			}
 
 			# "col" => ["JSON", [array]] (array will be formatted as json and inserted if col is json)
-			if(is_string($col) && is_array($val) && (count($val) == 2) && strtoupper($val[0]) == "JSON"){
+			if(is_string($col) && is_array($val) && (count($val) == 2) && $this->isJsonFunction($val[0])){
 				$val = $this->formatInsertVal($this->table, $col, $val[1]);
 				$strings[] = "`{$this->table['alias']}`.`$col` = {$val}";
+				continue;
+			}
+
+			# "col" => ["JSON_ARRAY_APPEND", path, string] (array will be formatted as json and inserted if col is json)
+			if(is_string($col) && is_array($val) && (count($val) == 3) && $this->isJsonFunction($val[0])){
+				[$json_function, $path, $val] = $val;
+				$json_function = strtoupper($json_function);
+				$path = $path ?: '$';
+				$val = $this->formatInsertVal($this->table, $col, $val);
+				$strings[] = "{$json_function}(`{$this->table['alias']}`.`$col`, '{$path}', {$val})";
 				continue;
 			}
 

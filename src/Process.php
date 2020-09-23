@@ -32,45 +32,38 @@ class Process {
 	}
 
 	/**
-	 * Given a hash array, will execute the hash
-	 * as a separate thread.
+	 * Given a full class string and a method name,
+	 * will feed the method the params and execute it
+	 * asynchronously.
 	 *
-	 * I'm struggling to find a usecase for this approach,
-	 * over Process::request(). Unless perhaps when the requestor
-	 * is a CLI request itself, but other than Cron Jobs,
-	 * I can't think of any.
+	 * The process will be run in CLI and be owner-less.
 	 *
-	 * @param array      $a
+	 * This method should only be used to run class methods
+	 * that cannot be reached via a URL (`rel_table/rel_id/action`).
+	 * For all other methods, use the `Process::request` method
+	 * instead. It retains ownership, and can feed back
+	 * responses directly to the initiator.
+	 *
+	 * @param string     $class
+	 * @param string     $method
 	 * @param array|null $params
 	 *
 	 * @return int Returns the process ID (piD) of the thread created.
 	 *
 	 * @throws \Exception
 	 */
-	public static function generate (array $a, ?array $params = NULL): int
+	public static function execute(string $class, string $method, ?array $params = NULL): int
 	{
-		extract($a);
-
-		if(!$rel_table && !$action){
-			throw new \Exception("A valid hash array must be presented to generate a thread.");
-		}
-
-		if(!$class = str::findClass($rel_table)){
-			//if a class doesn't exist
-			unset($a['vars']);
-			throw new \Exception("No matching class for <code>".str::generate_uri($a)."</code> can be found.");
+		if(!class_exists($class)){
+			throw new \Exception("Cannot find the <code>{$class}</code> class.");
 		}
 
 		# Create a new instance of the class (to ensure the method exists)
 		$instance = new $class();
 
-		# Set the method (view is the default)
-		$method = str::getMethodCase($action) ?: "view";
-
 		# Ensure the method is available
 		if(!str::methodAvailable($instance, $method)){
-			unset($a['vars']);
-			throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
+			throw new \Exception("The <code>{$method}</code> method doesn't exist in the <code>{$class}</code> class, or is not public.");
 		}
 
 		# Format the (optional) params to feed to the method
@@ -78,9 +71,6 @@ class Process {
 			$params_json = str_replace(["\\", '"'],["\\\\",'\\"'],json_encode($params));
 			$params = "\"{$params_json}\"";
 			//Both \ and " must be escaped or else the command will fail
-		} else{
-			//If no params are sent, use the ones sent to _this_method
-			$params = self::stringifyArray($a);
 		}
 
 		# Build the command that executes the execute method
@@ -107,6 +97,8 @@ class Process {
 	 * Because ownership (user ID, or session ID)
 	 * is passed on to the request, it's as if
 	 * the user themselves was performing the task.
+	 *
+	 * This should be used for any method that can be reached via `rel_table/rel_id/action`.
 	 *
 	 * @param array $a
 	 *

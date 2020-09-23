@@ -337,6 +337,8 @@ abstract class Common {
 			$new_order = (int)$item_above['order'] + 1;
 		}
 
+		$new_order = $new_order ?: "0";
+
 		# Place the item in its new position
 //		echo
 		$this->sql->update([

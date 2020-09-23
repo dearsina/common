@@ -216,11 +216,46 @@ EOF;
 		]);
 
 		# Insert the error in the DB
-		$sql->insert([
-			"table" => 'error_log',
-			"set" => $alert_array,
-			"reconnect" => true // Reconnects in case the error was caused by a long running script
-		]);
+		try {
+			$sql->insert([
+				"table" => 'error_log',
+				"set" => $alert_array,
+				"reconnect" => true // Reconnects in case the error was caused by a long running script
+			]);
+		} catch (\Exception $e){
+			/**
+			 * There is a try/catch here because the SQL server itself
+			 * could be the cause of the error, thus this insert
+			 * will further exacerbate the problem. Instead we will
+			 * print the error.
+			 */
+			echo json_encode([
+				"success" => false,
+				"alerts" => [[
+					# Will display the entire SQL query on error, use with caution
+//					"reset" => true,
+//					"container" => "#ui-view",
+//					"type" => "warning",
+//					"title" => $alert['title'],
+//					"message" => $alert['message'].str::pre($_SESSION['query']),
+//					"icon" => "{$icon['type']} fa-{$icon['name']}",
+//					"seconds" => $alert['seconds'],
+//					"action" => $_REQUEST['action'],
+//					"rel_table" => $_REQUEST['rel_table'],
+//					"rel_id" => $_REQUEST['rel_id'],
+//					"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
+//					"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
+//				], [
+					"container" => "#ui-view",
+					"close" => false,
+					"type" => "error",
+					"title" => "SQL Connection error [{$e->getCode()}]",
+					"icon" => "far fa-ethernet",
+					"message" => $e->getMessage()
+				]]
+			]);
+			exit;
+		}
 	}
 
 	/**

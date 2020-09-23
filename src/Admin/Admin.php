@@ -4,6 +4,7 @@
 namespace App\Common\Admin;
 
 use App\Common\Common;
+use App\Common\Email\Email;
 use App\UI\Icon;
 use App\UI\Table;
 use Exception;
@@ -262,4 +263,34 @@ class Admin extends Common {
 
 		$this->output->update("#all_error_notification", Table::generate($rows));
 	}
+
+    /**
+     * Currently, emails every admin that is set to receive
+     * notifications with any frequency, and ignores those who
+     * don't want to know.
+     *
+     * Should be able to store emails and blast to admins at their
+     * requested notification frequency.
+     *
+     * @param string $template_name
+     * @param array $variables
+     * @throws Exception
+     */
+	public function notifyAdmins(string $template_name, array $variables): void
+    {
+        if($admins = $this->info([
+            "rel_table" => "admin",
+            "where" => [
+                ["notification_frequency", "IS NOT", NULL]
+            ]
+        ])){
+            # Email each and every admin that wants to be notified
+            foreach($admins as $admin){
+                $email = new Email();
+                $email->template($template_name, $variables)
+                    ->to([$admin['user']['email'] => $admin['user']['name']])
+                    ->send();
+            }
+        }
+    }
 }

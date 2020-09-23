@@ -81,12 +81,12 @@ class Request {
 	}
 
 	/**
-	 * When a request comes thru via Progress (async),
+	 * When a request comes thru via Process (async),
 	 * and is about to be executed (via CLI),
 	 * it will inherit the ownership of it's requester.
 	 *
 	 * This is because otherwise the CLI processed request,
-	 * will be ownerless. Which is a problem when you're
+	 * will be owner-less. Which is a problem when you're
 	 * managing permissions, updating databases and
 	 * sending alerts.
 	 *
@@ -221,7 +221,7 @@ class Request {
 		# Ensure the request was sent from our domain
 		if(substr($_SERVER["HTTP_ORIGIN"], strlen($_ENV['domain']) * -1) != $_ENV['domain']){
 			//if this request wasn't done from our own domain
-			throw new \Exception("A cross domain request was attempted.");
+			throw new \Exception("A cross domain request was attempted. {$_SERVER["HTTP_ORIGIN"]} != {$_ENV['domain']}");
 		}
 
 		# Ensure the request was sent from our domain via AJAX

@@ -384,7 +384,7 @@ class Permission extends Common {
 			$this->log->success([
 				"alert" => Icon::get("permission"),
 				"title" => str::title("{$rel} permissions updated"),
-				"message" => str::title(str::oxford_implode($narrative)) . ".",
+				"message" => str::title(str::oxfordImplode($narrative)) . ".",
 			]);
 		}
 

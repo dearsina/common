@@ -240,7 +240,21 @@ class PA {
 			throw new \Exception("No message provided.");
 		}
 
-		# Prepare the data as a single commandline friendly json string
+		if(str::runFromCLI()){
+			//If this method is called from the CLI
+
+			$client = new \Swoole\Coroutine\Http\Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
+			$client->upgrade("/");
+			$client->push(json_encode([
+				"fd" => $fd,
+				"data" => $message
+			]));
+			$client->close();
+
+			return true;
+		}
+
+		# If this method is NOT called from CLI, prepare the data as a single commandline friendly json string
 		$data = urlencode(json_encode([
 			"fd" => $fd,
 			"data" => $message
@@ -252,6 +266,8 @@ class PA {
 		$cmd .= "\$client->push(urldecode(\"{$data}\"));";
 		$cmd .= "\$client->close();";
 		$cmd .= "});'";
+
+		# TODO Figure out a fast way to send messages that are too long shell_exec php messages cannot be in the kbs
 
 		# Execute the command
 		$output = shell_exec("php -r {$cmd} 2>&1");
