@@ -3,6 +3,7 @@
 
 namespace App\Common;
 
+use App\Common\Email\Email;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
 
@@ -53,10 +54,39 @@ class Request {
 		$this->loadSessionVars();
 		$this->loadRequesterVars($requester);
 		$this->log = Log::getInstance();
+
+		# The connection to the SQL server may error out at construction (where we are now), thus it needs to be wrapped in it's own try/catch.
+		try {
+			$this->sql = Factory::getInstance();
+		} catch(\Exception $e) {
+			# Notify info@, as this is a huge problem
+			$email = new Email();
+			$variables = [
+				"ip" => $_SERVER['REMOTE_ADDR'],
+				"error_message" => $e->getMessage(),
+			];
+			$email->template("database_down", $variables)
+				->to("info@{$_ENV['domain']}")
+				->send();
+
+			# Create output to the user with a GENERIC error message
+			$output['success'] = false;
+			$output['alerts'][] = $this->log->prepareAlert("error", [
+				"container" => "#ui-view",
+				"icon" => "ethernet",
+				"title" => "System error",
+				"message" => "An error has been detected and the system has become inaccessible. System engineers have been notified and the matter should be resolved shortly. Apologies for the inconvenience.",
+			]);
+
+			# Pencils down, wait for backup
+			echo json_encode($output);
+			exit;
+		}
+
 		$this->hash = Hash::getInstance();
 		$this->output = Output::getInstance();
-		$this->sql = Factory::getInstance();
 		$this->pa = PA::getInstance();
+
 	}
 
 	/**
@@ -164,9 +194,11 @@ class Request {
 		 * This way, we don't need to place any try/catch
 		 * structures anywhere in the code as everything will
 		 * ultimately be caught here.
+		 *
 		 * Errors that are due to abuse, hacking, code errors,
 		 * and anything else that isn't business as usual,
 		 * should be reported as a system error.
+		 *
 		 * System errors are different from user errors,
 		 * as they're not the fault of the user unless
 		 * they're involved in foul play.
@@ -296,15 +328,15 @@ class Request {
 			$this->output->set_direction($vars);
 		}
 
-//		# Is the returning data meant to be set in a modal?
-//		if(is_array($vars) && $vars['modal']){
-//			$this->modal = $vars['modal'];
-//			if($this->modal != 'close'){
-//				$this->output->is_modal();
-//				$this->hash->silent();
-//			}
-//			//by default, modals don't affect the URL
-//		}
+		//		# Is the returning data meant to be set in a modal?
+		//		if(is_array($vars) && $vars['modal']){
+		//			$this->modal = $vars['modal'];
+		//			if($this->modal != 'close'){
+		//				$this->output->is_modal();
+		//				$this->hash->silent();
+		//			}
+		//			//by default, modals don't affect the URL
+		//		}
 		// I don't think we need this any more
 
 		if(is_array($vars) && $vars['_uri']){
@@ -338,6 +370,13 @@ class Request {
 			throw new \Exception("The <code>" . str::generate_uri($a) . "</code> method doesn't exist or is not public.");
 		}
 
+		# Make the subdomain variable global
+		if($subdomain != "app"){
+			$sd = $subdomain;
+			global $subdomain;
+			$subdomain = $sd;
+		}
+
 		if(!$classInstance->$method([
 			"subdomain" => $subdomain,
 			"action" => $method,
@@ -360,11 +399,11 @@ class Request {
 	 */
 	private function output($success): ?string
 	{
-//		if($_SESSION['database_calls']){
-//			$this->log->info("{$_SESSION['database_calls']} database calls.");
-//			print_r($_SESSION['queries']);
-//			exit;
-//		}
+		//		if($_SESSION['database_calls']){
+		//			$this->log->info("{$_SESSION['database_calls']} database calls.");
+		//			print_r($_SESSION['queries']);
+		//			exit;
+		//		}
 
 		$output = $this->output->get();
 
@@ -417,46 +456,8 @@ class Request {
 		if(str::runFromCLI()){
 			//If this is a CLI request
 
-			# See if there is global data about the requester
-			global $user_id;
-			global $session_id;
-
-			# Send the output to the requester if found
-			if($user_id || $session_id){
-				//if requester data is found
-				$recipients = [
-					"user_id" => $user_id,
-					"session_id" => $session_id
-				];
-
-				# Force to true
-				$output['success'] = true;
-				/**
-				 * The reason why success is forced to true,
-				 * even if scenarios where its not, is that
-				 * any success=false that reaches JS, will
-				 * automatically prompt the URL to silently
-				 * be reverted back one step. This could have
-				 * unintended consequences.
-				 *
-				 * Asynchronous requests should not
-				 * be able to dictate history steps because
-				 * the request is not aware of where the user
-				 * is at the time of output delivery.
-				 *
-				 * Asynchronous requests can, but only under
-				 * careful considerations, force a hash change
-				 * and direct the user to a particular page.
-				 *
-				 */
-
-				# Send the output to their screen
-				$pa = PA::getInstance();
-				$pa->speak($recipients, $output);
-
-				return NULL;
-			}
-
+			$pa = PA::getInstance();
+			$pa->asyncSpeak($output);
 			/**
 			 * This way, CLI requests are treated as normal
 			 * requests and the user gets the output just

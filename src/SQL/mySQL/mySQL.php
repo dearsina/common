@@ -60,7 +60,7 @@ class mySQL extends Common {
 //			$this->loadTableMetadata();
 		}
 
-		catch(\mysqli_sql_exception | \Exception $e) {
+		catch(\mysqli_sql_exception $e) {
 			/**
 			 * If there is an error connecting,
 			 * put together a custom response,
@@ -75,7 +75,7 @@ class mySQL extends Common {
 				# Will somehow throw an error saying "MySQL server has gone away"
 				throw new \Swoole\ExitException($message);
 			} else {
-				throw new \Exception($message, $e->getCode(), $e);
+				throw new \Exception($message, $e->getCode());
 			}
 		}
 	}

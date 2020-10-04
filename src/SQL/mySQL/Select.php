@@ -468,6 +468,11 @@ class Select extends Common {
 			return NULL;
 		}
 
+		# If a count has been requested, don't issue the distinct outside the COUNT()
+		if($this->table['count']){
+			return NULL;
+		}
+
 		return $this->distinct ? "DISTINCT" : NULL;
 	}
 

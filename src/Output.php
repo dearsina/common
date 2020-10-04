@@ -96,6 +96,16 @@ class Output {
 	}
 
 	/**
+	 * Clears away any stored data for output.
+	 *
+	 * @return void
+	 */
+	public function clear(): void
+	{
+		$this->output = [];
+	}
+
+	/**
 	 * Identifies which div to send the HTML output to,
 	 * and what to do with the HTML currently in the div (replace, append, prepend, replace div).
 	 *
@@ -126,13 +136,24 @@ class Output {
 	 * Will update the *contents* a given div, based on their div ID.
 	 * It will not touch the div tag itself.
 	 *
-	 * @param string $id Expects an ID that jQuery will understand (prefixed with # or . etc)
-	 * @param string $data
+	 * @param string     $id Expects an ID that jQuery will understand (prefixed with # or . etc)
+	 * @param string     $data
+	 *
+	 * @param array|null $recipients If set, will send the update asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
-	public function update(string $id, $data)
+	public function update(string $id, $data, ?array $recipients = NULL): bool
 	{
+		if($recipients){
+			$pa = PA::getInstance();
+			return $pa->speak($recipients, [
+				"success" => true,
+				"update" => [
+					$id => $data
+				]
+			]);
+		}
 		return $this->setData("update", $id, $data);
 	}
 

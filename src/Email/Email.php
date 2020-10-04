@@ -34,7 +34,8 @@ class Email extends Common {
 	 */
 	public function __construct($a = NULL)
 	{
-		parent::__construct();
+//		parent::__construct();
+		# We don't actually need this. And enabled, it will cause a problem if there ever is a mySQL outage.
 
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
@@ -51,36 +52,6 @@ class Email extends Common {
 		return true;
 	}
 
-	/**
-	 * @param $template
-	 * @param $variables
-	 *
-	 * @return $this
-	 * @throws \Exception
-	 */
-	public function template_OLD($template, $variables)
-	{
-		if(!$TemplateClass = str::getClassCase($template)){
-			throw new \Exception("No template provided");
-		}
-
-		# Find template class (first in App, then in Common)
-		if(!$class = str::findClass($TemplateClass, "Email\\Template")){
-			throw new \Exception("Cannot find the {$TemplateClass} template.");
-		}
-
-		$template = new $class($variables);
-
-		if(!$this->subject($template->getSubject())){
-			throw new \Exception("No subject generated");
-		}
-
-		if(!$this->message($template->getMessageHTML())){
-			throw new \Exception("No message generated");
-		}
-
-		return $this;
-	}
 
 	/**
 	 * By passing a template name and an array of variables,
@@ -104,7 +75,8 @@ class Email extends Common {
 		$template_factory->setTemplate($template_name);
 
 		# Get (and set) the subject
-		if(!$this->subject($template_factory->generateSubject()." ".date("H:i"))){
+//		if(!$this->subject($template_factory->generateSubject()." ".date("H:i"))){
+		if(!$this->subject($template_factory->generateSubject())){
 			throw new \Exception("No subject generated using the {$template_name} template.");
 		}
 

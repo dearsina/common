@@ -75,6 +75,7 @@ class PA {
 	 * go to _all_ connections, the recipients list must explicitly
 	 * be set to an (empty) array, making it a little harder to
 	 * accidentally send a message to all.
+	 * ABOVE DISABLED TO AVOID MASS MESSAGING
 	 *
 	 * @param array $recipients
 	 * @param array $data
@@ -100,6 +101,57 @@ class PA {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Sends a message to the _current_ user (only).
+	 *
+	 * Useful if messages are to be funnelled back
+	 * mid-process.
+	 *
+	 * @param array $output The output from $this->output->get() or other array of messages to send to the user.
+	 */
+	public function asyncSpeak(array $output): void
+	{
+		# See if there is global data about the requester
+		global $user_id;
+		global $session_id;
+		# Ensure there is a recipient
+		if(!$user_id && !$session_id){
+			//if no requester data is found
+			return;
+			//Pencils down
+		}
+
+		# Send the output to the requester if found
+		$recipients = [
+			"user_id" => $user_id,
+			"session_id" => $session_id
+		];
+
+		# Force to true
+		$output['success'] = true;
+		/**
+		 * The reason why success is forced to true,
+		 * even if scenarios where its not, is that
+		 * any success=false that reaches JS, will
+		 * automatically prompt the URL to silently
+		 * be reverted back one step. This could have
+		 * unintended consequences.
+		 *
+		 * Asynchronous requests should not
+		 * be able to dictate history steps because
+		 * the request is not aware of where the user
+		 * is at the time of output delivery.
+		 *
+		 * Asynchronous requests can, but only under
+		 * careful considerations, force a hash change
+		 * and direct the user to a particular page.
+		 *
+		 */
+
+		# Send the output to their screen
+		$this->speak($recipients, $output);
 	}
 
 	/**

@@ -135,16 +135,49 @@ class Template{
 	 *
 	 * When a template is generated via CLI, the server HTTP HOST value is not populated.
 	 *
+	 * @param string|null $subdomain If a custom subdomain is to be used.
+	 *
 	 * @return string
 	 */
-	public function getDomain(): string
+	public function getDomain(?string $subdomain = NULL): string
 	{
-		if($_SERVER['HTTP_HOST']){
-			$url = "https://{$_SERVER['HTTP_HOST']}/";
+		if($subdomain){
+			return "https://{$subdomain}.{$_ENV['domain']}/";
+		} else if($_SERVER['HTTP_HOST']){
+			return "https://{$_SERVER['HTTP_HOST']}/";
 		} else {
-			$url = "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
+			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
 		}
+	}
 
-		return $url;
+	/**
+	 * Email message header.
+	 *
+	 * @param array|null $logo
+	 *
+	 * @return array
+	 */
+	public function getHeader(?array $logo = NULL): ?array
+	{
+		if(!$logo){
+			//If there is no logo provided, return NULL
+			return NULL;
+		}
+		return [
+			"logo" => $logo
+		];
+	}
+
+	public function getFooter(?string $on_behalf_of = NULL): array
+	{
+		if($on_behalf_of){
+			$on_behalf_of = " on behalf of {$on_behalf_of}";
+		}
+		return [
+			"colour" => "grey",
+			"footer" => [
+				"Sent by {$_ENV['title']}{$on_behalf_of}."
+			]
+		];
 	}
 }

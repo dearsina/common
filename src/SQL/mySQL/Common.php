@@ -207,7 +207,7 @@ abstract class Common {
 		//A boolean flag that determines whether we should ignore removed ("removed IS NULL") or include them
 
 		$array["count"] = $count;
-		//A boolean flag that determines whether we should ignore all columns and just a straight COUNT(*)
+		//A boolean flag or string column name that determines whether we should ignore all columns and just a straight COUNT(*)
 
 		return $array;
 	}
