@@ -233,6 +233,25 @@ class str {
 	}
 
 	/**
+	 * Given a title string, will suffix with (n), where in is an incremental
+	 * number. Will not suffix (n) if an (n) already exists, instead it will
+	 * increase n by 1.
+	 *
+	 * @param string $title
+	 */
+	public static function copyTitle(string &$title): void
+	{
+		$pattern = '/^(.+?)\((\d+)\)$/';
+		if(preg_match($pattern, $title, $matches)){
+			$digit = $matches[2] + 1;
+			$suffix = "({$digit})";
+			$title = preg_replace($pattern, '$1'.$suffix, $title);
+		} else {
+			$title .= " (1)";
+		}
+	}
+
+	/**
 	 * Takes a float or decimal and converts it to a percentage string,
 	 * suffixed with the % sign.
 	 *
@@ -1377,14 +1396,14 @@ EOF;
 	 * Transforms int and float into readable numbers
 	 * or currency, with optional padding.
 	 *
-	 * @param float       $amount
+	 * @param float|null  $amount
 	 * @param string|null $currency
 	 * @param int|null    $padding
 	 * @param int|null    $decimals
 	 *
 	 * @return string|null
 	 */
-	static function number(float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2): ?string
+	static function number(?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2): ?string
 	{
 		# A number (even if it's "0") is required
 		if(!strlen($amount)){
@@ -1434,6 +1453,9 @@ EOF;
 			$text = strtoupper($text);
 		}
 
+		# Replace spaces with &nbsp; (seems to be the only way to enforce spacing)
+		$text = str_replace(" ", "&nbsp;", $text);
+
 		# ID (optional)
 		$id = str::getAttrTag("id", $id);
 
@@ -1448,6 +1470,20 @@ EOF;
 		$alt = str::getAttrTag("title", $alt);
 
 		return "<span{$id}{$class}{$style}{$alt}>{$text}</span>";
+	}
+
+	/**
+	 * Get today's date (only).
+	 * Time has been stripped away.
+	 *
+	 * @return \DateTime
+	 */
+	public static function today(): \DateTime
+	{
+		# Get today's date (only)
+		$today = new \DateTime();
+		$today->setTime(0, 0, 0, 0);
+		return $today;
 	}
 
 

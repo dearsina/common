@@ -54,9 +54,11 @@ class Img
         $class = str::getAttrTag("class", $class);
         $style = str::getAttrTag("style", $style);
         $alt = str::getAttrTag("title", $alt);
+        $width = str::getAttrTag("width", $width);
+        $height = str::getAttrTag("height", $height);
         $data = str::getDataAttr($data);
 
-        return "<object data=\"{$svg}\"{$type}{$id}{$class}{$style}{$alt}{$data}></object>";
+        return "<object data=\"{$svg}\"{$type}{$id}{$class}{$style}{$alt}{$data}{$width}{$height}></object>";
     }
 
 	/**

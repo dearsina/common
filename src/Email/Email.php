@@ -34,7 +34,7 @@ class Email extends Common {
 	 */
 	public function __construct($a = NULL)
 	{
-//		parent::__construct();
+		//		parent::__construct();
 		# We don't actually need this. And enabled, it will cause a problem if there ever is a mySQL outage.
 
 		# Create the envelope that will contain the email metadata and message
@@ -75,7 +75,7 @@ class Email extends Common {
 		$template_factory->setTemplate($template_name);
 
 		# Get (and set) the subject
-//		if(!$this->subject($template_factory->generateSubject()." ".date("H:i"))){
+		//		if(!$this->subject($template_factory->generateSubject()." ".date("H:i"))){
 		if(!$this->subject($template_factory->generateSubject())){
 			throw new \Exception("No subject generated using the {$template_name} template.");
 		}
@@ -288,6 +288,7 @@ class Email extends Common {
 		}
 
 		foreach($attachments as $attachment){
+
 			$this->envelope->attach(\Swift_Attachment::fromPath($attachment['path'])->setFilename($attachment['filename']));
 		}
 
@@ -311,8 +312,15 @@ class Email extends Common {
 			$this->envelope->setTo($to);
 		} else if(str::isNumericArray($to)){
 			foreach($to as $t){
-				$this->envelope->setTo($t);
+				if(is_string($t)){
+					$tos[] = $t;
+				} else {
+					foreach($t as $email => $name){
+						$tos[$email] = $name;
+					}
+				}
 			}
+			$this->envelope->setTo($tos);
 		} else {
 			throw new \Exception("An email was attempted sent without a recipient.");
 		}
@@ -335,8 +343,15 @@ class Email extends Common {
 			$this->envelope->setCc($cc);
 		} else if(str::isNumericArray($cc)){
 			foreach($cc as $t){
-				$this->envelope->setCc($t);
+				if(is_string($t)){
+					$tos[] = $t;
+				} else {
+					foreach($t as $email => $name){
+						$tos[$email] = $name;
+					}
+				}
 			}
+			$this->envelope->setCc($tos);
 		}
 
 		return $this;
@@ -357,8 +372,15 @@ class Email extends Common {
 			$this->envelope->setBcc($bcc);
 		} else if(str::isNumericArray($bcc)){
 			foreach($bcc as $t){
-				$this->envelope->setBcc($t);
+				if(is_string($t)){
+					$tos[] = $t;
+				} else {
+					foreach($t as $email => $name){
+						$tos[$email] = $name;
+					}
+				}
 			}
+			$this->envelope->setBcc($tos);
 		}
 
 		return $this;

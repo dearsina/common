@@ -248,6 +248,30 @@ class Output {
 	}
 
 	/**
+	 * Expects file dadta, or an array with:
+	 *  - $filename
+	 *  - $content_type
+	 *  - $data
+	 *
+	 * @param mixed $a
+	 */
+	public function save($a): void
+	{
+		if(!is_array($a)){
+			$a = ["data" => $a];
+		}
+
+		extract($a);
+
+		# Filename
+		$this->setVar("filename", $filename);
+		# Content type
+		$this->setVar("type", $content_type);
+		# The content itself
+		$this->setVar("save", base64_encode($data));
+	}
+
+	/**
 	 * Appends a modal HTML string to the #ui-view.
 	 *
 	 * @param string $html

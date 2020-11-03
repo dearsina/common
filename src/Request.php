@@ -328,17 +328,6 @@ class Request {
 			$this->output->set_direction($vars);
 		}
 
-		//		# Is the returning data meant to be set in a modal?
-		//		if(is_array($vars) && $vars['modal']){
-		//			$this->modal = $vars['modal'];
-		//			if($this->modal != 'close'){
-		//				$this->output->is_modal();
-		//				$this->hash->silent();
-		//			}
-		//			//by default, modals don't affect the URL
-		//		}
-		// I don't think we need this any more
-
 		if(is_array($vars) && $vars['_uri']){
 			//If the ajax call is due to a hash change
 			$this->output->uri();

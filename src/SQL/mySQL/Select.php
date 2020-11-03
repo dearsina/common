@@ -428,6 +428,11 @@ class Select extends Common {
 				$strings[$id]  = "{$column['agg']}({$this->getDistinctSQL(true)}{$strings[$id]})";
 			}
 
+			# You can feed a complete custom string
+			if($column['string']){
+				$strings[$id] = $column['string'];
+			}
+
 			$strings[$id] .= $column['alias'] ? " '{$column['alias']}'" : NULL;
 		}
 

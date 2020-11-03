@@ -30,18 +30,18 @@ class Field {
 		]];
 
 	    $size = [[
-			"name" => "min_sizex",
+			"name" => "min_width",
 			"title" => "Minimum width",
 			"placeholder" => false,
 			"desc" => "Whole number larger than 0.",
-			"value" => $min_sizex,
+			"value" => $min_width,
 			"required" => true
 		],[
-			"name" => "min_sizey",
+			"name" => "min_height",
 			"title" => "Minimum height",
 			"placeholder" => false,
 			"desc" => "Whole number larger than 0.",
-			"value" => $min_sizey,
+			"value" => $min_height,
 			"required" => true
 		],[
 			"name" => "name",

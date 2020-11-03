@@ -457,6 +457,14 @@ abstract class Common {
 			$agg = strtoupper($agg);
 		}
 
+		# "alias" => ["calculation or string"]
+		if(is_array($col) && (count($col) == 1 && is_string(reset($col)))){
+			return [
+				"alias" => is_string($col_alias) ? $col_alias : NULL,
+				"string" => reset($col)
+			];
+		}
+
 		# If the $col value is still an array, ignore it
 		if(is_array($col)){
 			return NULL;
