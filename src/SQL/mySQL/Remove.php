@@ -4,13 +4,15 @@
 namespace App\Common\SQL\mySQL;
 
 
+use App\Common\str;
+
 class Remove extends Common {
 	public function remove(array $a, ?bool $return_query = NULL)
 	{
 		extract($a);
 
-		# If the user_id has not been set (to either a particular user ID or to be ignored)
-		if (!array_key_exists("user_id", $a)){
+		# If the user_id has not been set (to either a particular user ID or to be ignored) AND the command is not being run as a CronJob (no user)
+		if (!array_key_exists("user_id", $a) && !str::runFromCLI()){
 			global $user_id;
 			if (!$user_id){
 				throw new \Exception("Removing without a user ID is not allowed.");

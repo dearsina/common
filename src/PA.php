@@ -5,6 +5,7 @@ namespace App\Common;
 
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
+use Swoole\Coroutine\Http\Client;
 
 /**
  * Class PA
@@ -168,15 +169,20 @@ class PA {
 	private function getConnectionFDs(array $a)
 	{
 		# If a list of recipient FDs was explicitly sent
-		if($a['fd']){
+		if($a['fd']){echo $i++;
 			return is_array($a['fd']) ? $a['fd'] : [$a['fd']];
 		}
 
 		# If we have to generate recipients
 		$this->join = [];
 		//Reset the class variables
-		$this->where = ["closed" => NULL];
-		//We're only interested in currently open connections
+
+		$this->where = [
+			# We're only interested in currently open connections
+			"closed" => NULL,
+			# And where there is an FD number
+			["fd", "IS NOT", NULL]
+		];
 
 		# User permissions based recipients
 		$this->getRecipientsBasedOnUserPermissions($a);
@@ -191,8 +197,11 @@ class PA {
 		 * While the recipient criteria can be combined,
 		 * they will only further limit each other.
 		 */
-
 		if(!$connections = $this->sql->select([
+			"distinct" => true,
+			"columns" => [
+				"fd",
+			],
 			"table" => "connection",
 			"join" => $this->join,
 			"where" => $this->where
@@ -201,11 +210,8 @@ class PA {
 			return false;
 		}
 
-		foreach($connections as $connection){
-			$recipients[] = $connection['fd'];
-		}
-
-		return $recipients;
+		# Return a simple array of fd's
+		return array_column($connections, "fd");
 	}
 
 	/**
@@ -225,6 +231,7 @@ class PA {
 		}
 
 		$this->join[] = [
+			"columns" => false,
 			"table" => "user_permission",
 			"on" => "user_id",
 			"where" => [
@@ -250,7 +257,8 @@ class PA {
 			return;
 		}
 
-		$join[] = [
+		$this->join[] = [
+			"columns" => false,
 			"table" => "user_role",
 			"on" => "user_id",
 			"where" => [
@@ -295,13 +303,19 @@ class PA {
 		if(str::runFromCLI()){
 			//If this method is called from the CLI
 
-			$client = new \Swoole\Coroutine\Http\Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
-			$client->upgrade("/");
-			$client->push(json_encode([
-				"fd" => $fd,
-				"data" => $message
-			]));
-			$client->close();
+			/**
+			 * The below needs to be in the go() function because Swoole said so
+			 * @link https://www.qinziheng.com/swoole/7477.htm
+			 */
+			go(function(){
+				$client = new Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
+				$client->upgrade("/");
+				$client->push(json_encode([
+					"fd" => $fd,
+					"data" => $message
+				]));
+				$client->close();
+			});
 
 			return true;
 		}

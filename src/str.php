@@ -245,7 +245,7 @@ class str {
 		if(preg_match($pattern, $title, $matches)){
 			$digit = $matches[2] + 1;
 			$suffix = "({$digit})";
-			$title = preg_replace($pattern, '$1'.$suffix, $title);
+			$title = preg_replace($pattern, '$1' . $suffix, $title);
 		} else {
 			$title .= " (1)";
 		}
@@ -671,7 +671,7 @@ class str {
 	 */
 	public static function camelToSnakeCase(string $string, string $us = "_"): string
 	{
-		return str_replace(" ", $us,strtolower(preg_replace(
+		return str_replace(" ", $us, strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string)));
 	}
 
@@ -1006,6 +1006,19 @@ class str {
 		}
 
 		return $haystack;
+	}
+
+	/**
+	 * Given a snippet of text, will replace
+	 * line breaks with HTML line breaks <br>.
+	 *
+	 * @param string|null $string
+	 *
+	 * @return string
+	 */
+	static function newline(?string $string): string
+	{
+		return str_replace(["\r\n", "\r", "\n"], "<br>", $string);
 	}
 
 	/**
@@ -1558,7 +1571,7 @@ EOF;
 	 * Reposition an array element by its key.
 	 *
 	 * @param array      $array The array being reordered.
-	 * @param string|int $key They key of the element you want to reposition.
+	 * @param string|int $key   They key of the element you want to reposition.
 	 * @param int        $order The position in the array you want to move the element to. (0 is first)
 	 */
 	static function repositionArrayElement(array &$array, $key, int $order): void
@@ -2871,7 +2884,11 @@ EOF;
 					continue;
 				}
 			}
+
+			# Treat array and string values differently
 			if(is_array($val)){
+				//Value is an array, store as single quoted string
+
 				# Remove empty (unless requested otherwise)
 				$val = $keep_empty ? $val : str::array_filter_recursive($val);
 
@@ -2880,11 +2897,19 @@ EOF;
 
 				# Escape single quotes
 				$val = str_replace("'", "&#39;", $val);
+
+				# Store as a single quoted string
+				$str .= " data-{$key}='{$val}'";
+
 			} else {
+				//Value is a string, store as double quoted string
+
 				# Escape double quotes
 				$val = str_replace("\"", "&quot;", $val);
+
+				# Store as a double quoted string
+				$str .= " data-{$key}=\"{$val}\"";
 			}
-			$str .= " data-{$key}='{$val}'";
 		}
 
 		return $str;
