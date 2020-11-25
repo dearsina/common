@@ -362,6 +362,18 @@ class str {
 	}
 
 	/**
+	 * Returns TRUE if this is an API call.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 */
+	public static function isApiCall(array $a): bool
+	{
+		return key_exists("sandbox", $a);
+	}
+
+	/**
 	 * Formats strings and ensures that they won't break SQL.
 	 * If a string is not a float, int or string,
 	 * it will be outright rejected.
@@ -429,6 +441,18 @@ class str {
 			new \Egulias\EmailValidator\Validation\DNSCheckValidation(),
 		]);
 		return $validator->isValid($email, $multipleValidations);
+	}
+
+	/**
+	 * Checks to see if a given string is JSON or not.
+	 *
+	 * @param string $str
+	 *
+	 * @return bool
+	 */
+	public static function isJson(string $str) {
+		$json = json_decode($str);
+		return $json && $str != $json;
 	}
 
 	/**
@@ -554,6 +578,20 @@ class str {
 		$finder = new \Symfony\Component\Finder\Finder;
 		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder->in($path));
 		return array_keys($iter->getClassMap());
+	}
+
+	/**
+	 * Returns an MD5 of an array or string.
+	 *
+	 * Case INsensitive.
+	 *
+	 * @param array|string $value
+	 *
+	 * @return string
+	 */
+	public static function getHash($value): string
+	{
+		return md5(strtolower(json_encode($value)));
 	}
 
 	/**
@@ -1237,6 +1275,19 @@ class str {
 			return $uuid;
 			break;
 		}
+	}
+
+	/**
+	 * Checks to see if a given string is a UUID (matches a UUID pattern).
+	 *
+	 * @param string $string String is case insensitive.
+	 *
+	 * @return bool Returns TRUE if the pattern matches given subject,
+	 * 				FALSE if it does not or if an error occurred.
+	 */
+	public static function isUuid(string $string): bool
+	{
+		return preg_match("/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i", $string);
 	}
 
 	/**
@@ -1959,6 +2010,7 @@ EOF;
 		if(!is_array($array)){
 			return $array;
 		}
+
 		return implode($glue, $array);
 	}
 
@@ -2636,6 +2688,37 @@ EOF;
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Checks to see if the number string
+	 * contains a valid Luhn suffix digit.
+	 *
+	 * @param $number
+	 * @link http://en.wikipedia.org/wiki/Luhn_algorithm
+	 *       https://gist.github.com/troelskn/1287893
+	 * @return bool
+	 */
+	static function isValidLuhn($number): bool
+	{
+		# Set the type to be a string
+		settype($number, 'string');
+
+		# Remove any non-numeric characters
+		$number = preg_replace("/[^0-9]/", "", $number);
+
+		# Do the calculations
+		$sumTable = array(
+			array(0,1,2,3,4,5,6,7,8,9),
+			array(0,2,4,6,8,1,3,5,7,9));
+		$sum = 0;
+		$flip = 0;
+		for ($i = strlen($number) - 1; $i >= 0; $i--) {
+			$sum += $sumTable[$flip++ & 0x1][$number[$i]];
+		}
+
+		# Return a boolean result
+		return $sum % 10 === 0;
 	}
 
 	/**

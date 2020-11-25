@@ -3,7 +3,7 @@
 
 namespace App\Common;
 
-use App\Common\Email\Email;
+use App\Common\API\Exception\BadRequest;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
 
@@ -48,45 +48,17 @@ class Request {
 	 * when requesting via Process (async).
 	 *
 	 * @param array|null $requester
+	 * @param bool|null  $api If this is an API call, set to TRUE
 	 */
-	function __construct(?array $requester = NULL)
+	function __construct(?array $requester = NULL, ?bool $api = NULL)
 	{
 		$this->loadSessionVars();
 		$this->loadRequesterVars($requester);
 		$this->log = Log::getInstance();
-
-		# The connection to the SQL server may error out at construction (where we are now), thus it needs to be wrapped in it's own try/catch.
-		try {
-			$this->sql = Factory::getInstance();
-		} catch(\Exception $e) {
-			# Notify info@, as this is a huge problem
-			$email = new Email();
-			$variables = [
-				"ip" => $_SERVER['REMOTE_ADDR'],
-				"error_message" => $e->getMessage(),
-			];
-			$email->template("database_down", $variables)
-				->to("info@{$_ENV['domain']}")
-				->send();
-
-			# Create output to the user with a GENERIC error message
-			$output['success'] = false;
-			$output['alerts'][] = $this->log->prepareAlert("error", [
-				"container" => "#ui-view",
-				"icon" => "ethernet",
-				"title" => "System error",
-				"message" => "An error has been detected and the system has become inaccessible. System engineers have been notified and the matter should be resolved shortly. Apologies for the inconvenience.",
-			]);
-
-			# Pencils down, wait for backup
-			echo json_encode($output);
-			exit;
-		}
-
+		$this->sql = Factory::getInstance("mySQL", $api);
 		$this->hash = Hash::getInstance();
 		$this->output = Output::getInstance();
 		$this->pa = PA::getInstance();
-
 	}
 
 	/**
@@ -171,6 +143,39 @@ class Request {
 		return false;
 	}
 
+	public function api(?bool $sandbox): string
+	{
+		try {
+			$response = $this->getApiResponse();
+		}
+		catch(\mysqli_sql_exception $e) {
+			$this->log->error([
+				"icon" => "database",
+				"title" => "mySQL error",
+				"message" => $e->getMessage(),
+			]);
+			$this->log->info([
+				"icon" => "code",
+				"title" => "Query",
+				"message" => $_SESSION['query'],
+			]);
+		}
+		catch(\TypeError $e) {
+			$this->log->error([
+				"icon" => "code",
+				"title" => "Type error",
+				"message" => $e->getMessage(),
+			]);
+		}
+		catch(\Exception $e) {
+			$this->log->error([
+				"icon" => "ethernet",
+				"title" => "System error",
+				"message" => $e->getMessage(),
+			]);
+		}
+	}
+
 
 	/**
 	 * AJAX gatekeeper
@@ -206,7 +211,8 @@ class Request {
 		try {
 			$this->preventCSRF($a);
 			$success = $this->input($a);
-		} catch(\mysqli_sql_exception $e) {
+		}
+		catch(\mysqli_sql_exception $e) {
 			$this->log->error([
 				"icon" => "database",
 				"title" => "mySQL error",
@@ -217,13 +223,22 @@ class Request {
 				"title" => "Query",
 				"message" => $_SESSION['query'],
 			]);
-		} catch(\TypeError $e) {
+		}
+		catch(\TypeError $e) {
 			$this->log->error([
 				"icon" => "code",
 				"title" => "Type error",
 				"message" => $e->getMessage(),
 			]);
-		} catch(\Exception $e) {
+		}
+		catch(BadRequest $e) {
+			$this->log->error([
+				"icon" => "times-octagon",
+				"title" => "Invalid or incomplete request",
+				"message" => $e->getMessage(),
+			]);
+		}
+		catch(\Exception $e) {
 			$this->log->error([
 				"icon" => "ethernet",
 				"title" => "System error",

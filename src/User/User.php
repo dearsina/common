@@ -1647,30 +1647,10 @@ class User extends Common {
 	 */
 	public function getSessionToken()
 	{
-		# Record the user's geolocation
-		Geolocation::get();
+		# Get the connection ID
+		$connection_id = Connection::set();
 
-		# Get the user's user agent ID
-		$user_agent_id = $this->getUserAgentId();
-
-		# If the user is logged in, get their user ID
-		global $user_id;
-
-		# Create a new connection
-		if(!$connection_id = $this->sql->insert([
-			"table" => "connection",
-			"set" => [
-				"session_id" => session_id(),
-				"ip" => $_SERVER['REMOTE_ADDR'],
-				"user_agent_id" => $user_agent_id,
-				"user_id" => $user_id
-			],
-		])){
-			//The new connection was not saved
-			throw new Exception("Unable to store connection details");
-		}
-
-		# The connection UUID is the CSRF token, return it to the user
+		# The CSRF token is the connection UUID, return it to the user
 		$this->output->setVar("token", $connection_id);
 
 		return true;
@@ -1696,41 +1676,7 @@ class User extends Common {
 	}
 
 	/**
-	 * Returns an ID for the current user's user agent
-	 * from the user_agent table.
-	 *
-	 * @return bool|int|mixed
-	 * @throws Exception
-	 */
-	private function getUserAgentId()
-	{
-		# If the agent already exists, get the existing one
-		if($user_agent = $this->sql->select([
-			"table" => "user_agent",
-			"where" => [
-				"desc" => $_SERVER['HTTP_USER_AGENT']
-			],
-			"limit" => 1
-		])) {
-			//if it already exists
-			return $user_agent['user_agent_id'];
-		}
-
-		//If the user agent does not exist, create a new record
-		if(!$user_agent_id = $this->sql->insert([
-			"table" => 'user_agent',
-			"set" => [
-				"desc" => $_SERVER['HTTP_USER_AGENT']
-			],
-		])){
-			throw new Exception("Unable to create a user agent record.");
-		}
-
-		return $user_agent_id;
-	}
-
-	/**
-	 * Confirms the reCAPTCHA responce with Google,
+	 * Confirms the reCAPTCHA response with Google,
 	 * and returns a score between 0 and 1, or NULL
 	 * if no score has been received.
 	 *

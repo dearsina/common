@@ -42,7 +42,7 @@ class IssueNote extends \App\Common\Common {
 		]);
 
 		# Remove the text that is currently in the note textarea field
-		$this->output->val($vars['textarea_id'], "");
+		$this->output->update($vars['textarea_id'], "");
 
 		# Get the latest issue types
 		$this->updateIssueNoteTable($vars['issue_tracker_id']);

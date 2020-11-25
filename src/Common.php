@@ -3,6 +3,7 @@
 
 namespace App\Common;
 
+use App\Common\API\Exception\BadRequest;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
@@ -115,7 +116,7 @@ abstract class Common {
 	 * @param array $a The $a array.
 	 * @param string|array $keys Can either be a single key (as a string), or an array of keys.
 	 *
-	 * @throws Exception
+	 * @throws BadRequest
 	 */
 	public function checkVars(array $a, $keys): void
 	{
@@ -126,8 +127,11 @@ abstract class Common {
 		}
 
 		foreach($keys as $key){
+			if(!key_exists($key, $vars)){
+				throw new BadRequest("You must supply a {$key} to this method.");
+			}
 			if(!$vars[$key]){
-				throw new \Exception("The expected <code>" . str::title($key) . "</code> value is missing");
+				throw new BadRequest("The {$key} value cannot be empty.");
 			}
 		}
 	}
@@ -273,6 +277,39 @@ abstract class Common {
 	{
 		extract($a);
 
+		if($vars['order']){
+			$push = 1;
+			foreach($vars['order'] as $original_order => $id){
+				$order = $original_order + $push;
+				while($this->sql->select([
+					"count" => true,
+					"table" => $rel_table,
+					"where" => [
+						"order" => $order,
+						$vars['limiting_key'] => $vars['limiting_val'],
+					]
+				])){
+					//if the order already exists, jump one
+					$push++;
+					$order = $original_order + $push;
+				}
+				$this->sql->update([
+					"table" => $rel_table,
+					"id" => $id,
+					"set" => [
+						"order" => $order
+					]
+				]);
+			}
+			if(!$silent){
+				$this->log->success([
+					"icon" => "random",
+					"message" => "Reordered",
+				]);
+			}
+			return;
+		}
+
 		# No change to order
 		if($vars['old_index'] == $vars['new_index']){
 			//Nothing to do
@@ -306,6 +343,7 @@ abstract class Common {
 			"table" => $rel_table,
 			"id" => $rel_id
 		]);
+		$old['order'] = $old['order'] ?: "0";
 
 		# The key of the item being shifted
 		$rel_key = array_search($rel_id, $vars['order']);

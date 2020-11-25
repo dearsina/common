@@ -1268,6 +1268,7 @@ abstract class Common {
 	 */
 	protected function getAllWhereConditions(?array $alias_only = NULL, ?array $except_alias = NULL): array
 	{
+		$wheres = [];
 		$where = [];
 
 		# From the main table
@@ -1712,9 +1713,6 @@ abstract class Common {
 			];
 		}
 
-		# Verify all the details are correct
-		$this->verifyTableArray($table);
-
 		if($refresh){
 			//If the table data is to be refreshed
 			$this->loadTableMetadata($table);
@@ -1723,8 +1721,16 @@ abstract class Common {
 			$this->loadTableMetadata($table);
 		}
 
+
+
 		if($all){
 			//if the user has requested *all* columns (including those the user cannot update)
+			if(!$this->table_column_names_all[$table["db"]][$table["name"]]){
+				//If the table cannot be found
+
+				# Verify all the details are correct
+				$this->verifyTableArray($table);
+			}
 			return $this->table_column_names_all[$table["db"]][$table["name"]];
 		}
 
@@ -1858,6 +1864,14 @@ abstract class Common {
 				 * assume $val is a set command
 				 */
 				$strings[] = $val;
+				continue;
+			}
+
+			# "JSON_col" => array() and array[0] is NOT a JSON function
+			// Experimental, should be able to take over from below at least with straight JSON import
+			if(is_string($col) && is_array($val) && $this->isColumnJson($this->table, $col) && !$this->isJsonFunction($val[0])){
+				$val = $this->formatInsertVal($this->table, $col, $val);
+				$strings[] = "`{$this->table['alias']}`.`$col` = {$val}";
 				continue;
 			}
 

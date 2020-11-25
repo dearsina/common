@@ -3,15 +3,135 @@
 namespace App\Common\Connection;
 
 use App\Common\Common;
+use App\Common\Geolocation\Geolocation;
+use Exception;
 
 class Connection extends Common {
+	/**
+	 * Given a user ID, get the most recent connection ID.
+	 *
+	 * @param string|null $user_id
+	 *
+	 * @return array|null
+	 */
 	public static function get(?string $user_id = NULL): ?array
 	{
 		$connection = new Connection();
 		return $connection->getConnection($user_id);
 	}
 
-	public function getConnection(string $user_id = NULL): ?array
+	/**
+	 * Records a connection's details, returns the connection ID.
+	 * The owner of the connection is mostly a user, but could also
+	 * be an API call. In which case the user is the subscription owner.
+	 *
+	 * @return string The current connection ID.
+	 * @throws Exception
+	 */
+	public static function set(): string
+	{
+		$connection = new Connection();
+		return $connection->setConnection();
+	}
+
+	/**
+	 * Records a connection's details, returns the connection ID.
+	 * The owner of the connection is mostly a user, but could also
+	 * be an API call. In which case the user is the subscription owner.
+	 *
+	 * Sets the opened column to NOW().
+	 *
+	 * @return string The current connection ID.
+	 * @throws Exception
+	 */
+	public static function open(): string
+	{
+		$connection = new Connection();
+		return $connection->setConnection([
+			"opened" => "NOW()"
+		]);
+	}
+	public static function close(string $connection_id, ?array $set = []): void
+	{
+		$connection = new Connection();
+		$connection->closeConnection($connection_id, $set);
+	}
+
+	private function closeConnection(string $connection_id, ?array $set = []): void
+	{
+		$this->sql->update([
+			"table" => "connection",
+			"id" => $connection_id,
+			"set" => array_merge([
+				"closed" => "NOW()"
+			], $set),
+			"user_id" => false
+		]);
+	}
+
+	private function setConnection(?array $set = []): string
+	{
+		# Record the user's geolocation
+		Geolocation::get();
+
+		# Get the user's user agent ID
+		$user_agent_id = $this->getUserAgentId();
+
+		# If the user is logged in, get their user ID
+		global $user_id;
+
+		# Create a new connection
+		if(!$connection_id = $this->sql->insert([
+			"table" => "connection",
+			"set" => array_merge([
+				"session_id" => session_id(),
+				"ip" => $_SERVER['REMOTE_ADDR'],
+				"user_agent_id" => $user_agent_id,
+				"user_id" => $user_id
+			],$set),
+		])){
+			//The new connection was not saved
+			throw new Exception("Unable to store connection details");
+		}
+
+		return $connection_id;
+	}
+
+	/**
+	 * Returns an ID for the current user's user agent
+	 * from the user_agent table.
+	 *
+	 * @return bool|int|mixed
+	 * @throws Exception
+	 */
+	private function getUserAgentId()
+	{
+		# If the agent already exists, get the existing one
+		if($user_agent = $this->sql->select([
+			"table" => "user_agent",
+			"where" => [
+				"desc" => $_SERVER['HTTP_USER_AGENT']
+			],
+			"limit" => 1
+		])) {
+			//if it already exists
+			return $user_agent['user_agent_id'];
+		}
+
+		//If the user agent does not exist, create a new record
+		if(!$user_agent_id = $this->sql->insert([
+			"table" => 'user_agent',
+			"set" => [
+				"desc" => $_SERVER['HTTP_USER_AGENT']
+			],
+		])){
+			throw new Exception("Unable to create a user agent record.");
+		}
+
+		return $user_agent_id;
+	}
+
+	private function getConnection(string $user_id = NULL): ?array
 	{
 		if(!$user_id){
 			// If no user ID has been given, use the global user ID

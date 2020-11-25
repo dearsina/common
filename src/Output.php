@@ -158,26 +158,6 @@ class Output {
 	}
 
 	/**
-	 * Will change the value of an element, based on their ID.
-	 * It will not touch the element itself.
-	 * Is predominantly for form elements that have a value="" attribute.
-	 *
-	 * I don't think this works, or is in use.
-	 * Only replace, prepend, append, update and remove are handled by app.js
-	 *
-	 * TODO Check to see if this method can be removed
-	 *
-	 * @param $id
-	 * @param $data
-	 *
-	 * @return bool
-	 */
-	public function val(string $id, $data)
-	{
-		return $this->setData("val", $id, $data);
-	}
-
-	/**
 	 * Will prepend a given div with data.
 	 *
 	 * @param $id

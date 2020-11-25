@@ -52,7 +52,7 @@ class Grow extends Common {
 
 				if(is_array($val)){
 					//If array values have accidentally been included, ignore them.
-					throw new TypeError("The <code>{$col}</code> column in <code>{$table}</code> table has array data as its value.".print_r($data,true));
+					throw new TypeError("The <code>{$col}</code> column in the <code>{$table['name']}</code> table has array data as its value.".print_r($data,true));
 				}
 
 				# Get the column data type based on the current value
@@ -138,6 +138,10 @@ class Grow extends Common {
 		# DATE (YYYY-MM-DD) is still treated as a varchar
 		if(preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $val)){
 			return 'varchar';
+		}
+
+		if(str::isJson($val)){
+			return 'json';
 		}
 
 		# INT, BIGINT
@@ -258,6 +262,11 @@ class Grow extends Common {
 				return false;
 			}
 		}
+		# If the current type is JSON
+		if($tableMetadata[$key]['DATA_TYPE'] == "json"){
+			//Leave JSON alone
+			return false;
+		}
 
 		# If the current type is INT
 		//Change it
@@ -311,7 +320,7 @@ class Grow extends Common {
 	 * @return bool|string
 	 */
 	private function getGrowColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata){
-		if(in_array($type, ["int", "bigint", "text", "datetime"])){
+		if(in_array($type, ["int", "bigint", "text", "datetime", "json"])){
 			//If the column data type is any of these, no need to change their lengths
 			return false;
 		}
