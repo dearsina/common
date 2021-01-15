@@ -10,6 +10,10 @@ use App\UI\Icon;
  * @package App\Common
  */
 class Permission extends Common {
+
+	public array $userPermissions = [];
+	private array $rolePermissions = [];
+
 	/**
 	 * Combines role and user permissions and checks
 	 * if they together amount to the requested permission
@@ -88,7 +92,15 @@ class Permission extends Common {
 			$where['rel_id'] = NULL;
 		}
 
-		if ($permission = $this->sql->select([
+		# Create a simple key from the where clauses
+		$key = json_encode($where);
+
+		# If the permission has been sought before, don't call the DB again
+		if(key_exists($key, $this->userPermissions)){
+			return $this->userPermissions[$key] ?: [];
+		}
+
+		$permission = $this->sql->select([
 			"columns" => [
 				"c",
 				"r",
@@ -98,12 +110,12 @@ class Permission extends Common {
 			"table" => "user_permission",
 			"where" => $where,
 			"limit" => 1
-		])) {
-			//if this user in particular has the access
-			return $permission;
-		}
+		]);
 
-		return [];
+		$this->userPermissions[$key] = $permission;
+		//Log for future calls
+
+		return $permission ?: [];
 	}
 
 	/**
@@ -138,7 +150,15 @@ class Permission extends Common {
 			$where['rel_id'] = [$rel_id, NULL];
 		}
 
-		if ($permission = $this->sql->select([
+		# Create a simple key from the where clauses
+		$key = json_encode($where);
+
+		# If the permission has been sought before, don't call the DB again
+		if(key_exists($key, $this->rolePermissions)){
+			return $this->rolePermissions[$key] ?: [];
+		}
+
+		$permission = $this->sql->select([
 			"columns" => [
 				"role_id",
 				"c",
@@ -157,12 +177,12 @@ class Permission extends Common {
 			]],
 			"where" => $where,
 			"limit" => 1
-		])) {
-			//if the role this user currently has, gives them access
-			return $permission;
-		}
+		]);
 
-		return [];
+		$this->rolePermissions[$key] = $permission;
+		//Log for future calls
+
+		return $permission ?: [];
 	}
 
 	/**

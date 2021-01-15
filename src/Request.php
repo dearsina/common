@@ -309,7 +309,8 @@ class Request {
 		# Ensure token belongs to this IP address
 		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			$this->hash->set("reload");
-			throw new \Exception("IP address does not match CSRF token supplied.");
+			throw new \Exception("Your connection has expired. It will now be refreshed.");
+//			throw new \Exception("IP address does not match CSRF token supplied.");
 		}
 
 		return true;
@@ -403,11 +404,11 @@ class Request {
 	 */
 	private function output($success): ?string
 	{
-		//		if($_SESSION['database_calls']){
-		//			$this->log->info("{$_SESSION['database_calls']} database calls.");
-		//			print_r($_SESSION['queries']);
-		//			exit;
-		//		}
+//		if($_SESSION['database_calls']){
+//			$this->log->info("{$_SESSION['database_calls']} database calls.");
+//			print_r($_SESSION['queries']);
+//			exit;
+//		}
 
 		$output = $this->output->get();
 

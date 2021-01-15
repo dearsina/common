@@ -182,6 +182,7 @@ class Info {
 	{
 		# Prepare the variables
 		$class_path::prepare($a);
+//		if($a['table'] == "doc_map"){echo $this->sql->select($a, true);exit;}
 
 		# Run the SQL query
 		if (!$rows = $this->sql->select($a)) {
@@ -259,8 +260,8 @@ class Info {
 	 * @return mixed
 	 */
 	public function setCachedResults($request, $results){
-		if($request['rel_id'] && str::isNumericArray($results)){
-			//if a rel_id is requested, only store the first (and only) value
+		if(($request['limit'] == 1 || $request['rel_id']) && str::isNumericArray($results)){
+			//if a rel_id is requested or limit =1 , only store the first (and only) value
 			//it also checks more than one result was in fact returned
 			$this->info[$this->fingerprint($request)] = reset($results);
 		} else {

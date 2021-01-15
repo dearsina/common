@@ -117,6 +117,7 @@ class PA {
 		# See if there is global data about the requester
 		global $user_id;
 		global $session_id;
+
 		# Ensure there is a recipient
 		if(!$user_id && !$session_id){
 			//if no requester data is found
@@ -307,7 +308,7 @@ class PA {
 			 * The below needs to be in the go() function because Swoole said so
 			 * @link https://www.qinziheng.com/swoole/7477.htm
 			 */
-			go(function(){
+			go(function() use($fd, $message){
 				$client = new Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
 				$client->upgrade("/");
 				$client->push(json_encode([

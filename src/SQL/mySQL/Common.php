@@ -505,9 +505,9 @@ abstract class Common {
 	 *
 	 * @param string $function
 	 *
-	 * @return bool
+	 * @return bool|NULL
 	 */
-	protected function isJsonFunction(string $function): bool
+	protected function isJsonFunction(?string $function): bool
 	{
 		return in_array(strtoupper($function), ["JSON", "JSON_ARRAY_APPEND", "JSON_CONTAINS", "NOT JSON_CONTAINS"]);
 	}
@@ -1479,6 +1479,11 @@ abstract class Common {
 			throw new mysqli_sql_exception("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>" . print_r($val, true) . "</pre>");
 		}
 
+		# Blobs (any data sent to blob columns must remain untouched)
+		if($table_metadata[$col]['DATA_TYPE'] == "blob"){
+			$html = true;
+		}
+
 		# HTML columns
 		if(in_array($col, $this->html ?: [])
 			&& $table_metadata[$col]['CHARACTER_MAXIMUM_LENGTH'] > 255){
@@ -1787,6 +1792,19 @@ abstract class Common {
 		foreach($order_bys as $col => $dir){
 			# Make a copy of the table array
 			$tbl = $table;
+
+//			# ["`db`.`table`.`col` ASC"]
+//			if(is_numeric($col) && !in_array($dir, ["ASC", "DESC"])){
+//				//if the whole string is an ORDER BY request
+//				$order_by[] = $dir;
+//				continue;
+//			}
+//
+//			# ["`db`.`table`.`col`` => "ASC"]
+//			if(substr($col, 0, 1) == "`"){
+//				$order_by[] = "{$col} {$dir}";
+//				continue;
+//			}
 
 			# The direction variable can also be an array if the table is not the main table [tbl_alias, col, dir]
 			if(is_array($dir) && count($dir) == 3){

@@ -12,6 +12,7 @@ use App\UI\Icon;
 use App\UI\Table;
 use Exception;
 use ReflectionClass;
+use function GuzzleHttp\Psr7\str;
 
 
 /**
@@ -127,11 +128,12 @@ abstract class Common {
 		}
 
 		foreach($keys as $key){
-			if(!key_exists($key, $vars)){
-				throw new BadRequest("You must supply a {$key} to this method.");
+			if(!is_array($vars) || !key_exists($key, $vars)){
+				throw new BadRequest(\App\Common\str::title("You must supply a <code>{$key}</code> to this method."));
 			}
+
 			if(!$vars[$key]){
-				throw new BadRequest("The {$key} value cannot be empty.");
+				throw new BadRequest(\App\Common\str::title("The <code>{$key}</code> value cannot be empty."));
 			}
 		}
 	}

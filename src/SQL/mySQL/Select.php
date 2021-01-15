@@ -4,6 +4,7 @@
 namespace App\Common\SQL\mySQL;
 
 
+use App\Common\SQL\DotNotation;
 use App\Common\str;
 use mysqli_sql_exception;
 
@@ -86,7 +87,8 @@ class Select extends Common {
 
 		# Normalise, unless requested not to
 		if(!$flat){
-			$rows = $this->normalise($results['rows']);
+//			$rows = $this->normalise($results['rows']);
+			$rows = DotNotation::normalise($results['rows']);
 		} else {
 			$rows = $results['rows'];
 		}

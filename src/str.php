@@ -293,6 +293,11 @@ class str {
 				$val = reset($val);
 			}
 
+			# This can happen if an array within an array is just a string
+			if(!is_array($val)){
+				continue;
+			}
+
 			# Go deeper
 			$array[$key] = str::flattenSingleChildren($val, $keys);
 		}
@@ -1550,6 +1555,22 @@ EOF;
 		return $today;
 	}
 
+	/**
+	 * Given a date string, returns a datetime object,
+	 * where the time is set to 00:00:00.
+	 *
+	 * @param string $date
+	 *
+	 * @return \DateTime
+	 * @throws \Exception
+	 */
+	public static function newDateTimeDateOnly(string $date): \DateTime
+	{
+		$dt = new \DateTime($date);
+		$dt->setTime(0,0,0);
+		return $dt;
+	}
+
 
 	/**
 	 * var_export() with square brackets and indented 4 spaces.
@@ -1664,9 +1685,8 @@ EOF;
 	 */
 	static function isNumericArray($arr)
 	{
-		if(!is_array($arr)){
+		if(!is_array($arr))
 			return false;
-		}
 		return array_keys($arr) === range(0, (count($arr) - 1));
 	}
 
@@ -1935,6 +1955,26 @@ EOF;
 			$result[join($glue, $keys)] = $leafValue;
 		}
 		return $result;
+	}
+
+	/**
+	 * Truncates a given string if it's longer than the max length.
+	 * If the last characters are spaces, will trim the spaces.
+	 * Will also add a suffix of your chosing. The default is an elipsis.
+	 *
+	 * @param string      $string
+	 * @param int         $max_length
+	 * @param string|null $suffix
+	 *
+	 * @return string|null
+	 */
+	public static function truncateIf(string $string, int $max_length, ?string $suffix = "..."): ?string
+	{
+		if(strlen($string) <= $max_length){
+			return $string;
+		}
+
+		return trim(substr($string, 0, $max_length)).$suffix;
 	}
 
 	/**

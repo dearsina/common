@@ -20,7 +20,7 @@ class Home extends Common {
 	/**
 	 * This is the junction method that is called
 	 * on both "/home" and "/". It will look for
-	 * custom rule home pages in App\Home, if none are found
+	 * custom role home pages in App\Home, if none are found
 	 * will display the generic home.
 	 *
 	 * @param $a
