@@ -15,22 +15,24 @@ class Info extends Common implements InfoInterface {
 	/**
 	 * @param array $a
 	 */
-	public static function prepare(array &$a) : void
+	public static function prepare(array &$a): void
 	{
+		$a['include_meta'] = true;
 		$a['left_join'][] = "user_role";
 		$a['left_join'][] = [
 			"columns" => [
 				"role_id",
 				"role",
-				"icon"
+				"icon",
 			],
 			"table" => "role",
 			"on" => [
-				"role" => ["user_role", "rel_table"]
-			]
+				"role" => ["user_role", "rel_table"],
+			],
 		];
 	}
-	public static function format(array &$row) : void
+
+	public static function format(array &$row): void
 	{
 		# Add "name" and "full_name", and format first and last names
 		str::addNames($row);
@@ -41,11 +43,15 @@ class Info extends Common implements InfoInterface {
 		//because they're used in string comparisons
 
 		# If no role hs been allocated, assume user
-		$row['last_role'] =	$row['last_role'] ?: "user";
+		$row['last_role'] = $row['last_role'] ?: "user";
 
 		# Grabs the role ID, title and icon and places it along the user role data
-		foreach($row['user_role'] as $id => $role){
-			$row['user_role'][$id] = array_merge($row['user_role'][$id], $role['role'][0]);
+		if($row['user_role']){
+			//if this method is used outside of the info() class
+			foreach($row['user_role'] as $id => $role){
+				$row['user_role'][$id] = array_merge($row['user_role'][$id], $role['role'][0]);
+			}
 		}
+
 	}
 }

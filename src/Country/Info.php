@@ -21,6 +21,11 @@ class Info implements \App\Common\SQL\Info\InfoInterface {
 	 */
 	public static function format(array &$row): void
 	{
-		// TODO: Implement format() method.
+		# The column contains several nationalities, only take the first one
+		if(strpos($row['nationality'], ",")){
+			$nationalities = explode(", ", $row['nationality']);
+			$row['nationality'] = $nationalities[0];
+		}
+		# TODO Clean the column up some time
 	}
 }

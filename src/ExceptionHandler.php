@@ -9,7 +9,8 @@ use App\Common\SQL\Factory;
 /**
  * Class ExceptionHandler
  *
- * Handles exceptions, primarily with APIs.
+ * Handles exceptions for the sanctions lists.
+ * Will need to be re-written to work with the Exceptions class.
  *
  * @package App\Common
  */

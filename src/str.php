@@ -2,6 +2,7 @@
 
 namespace App\Common;
 
+use App\UI\Badge;
 use App\UI\Button;
 use App\UI\Dropdown;
 use App\UI\Icon;
@@ -260,7 +261,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function percent(float $int_fraction, ?int $decimals = 0)
+	static function percent(?float $int_fraction, ?int $decimals = 0)
 	{
 		$int = round($int_fraction * 100, $decimals);
 		return "{$int}%";
@@ -682,6 +683,12 @@ class str {
 		$commonPath = str::getClassCase("\\App\\Common\\{$parent_class}\\{$rel_table}");
 		if(class_exists($commonPath)){
 			return $commonPath;
+		}
+
+		# Does an API path exist?
+		$corePath = str::getClassCase("\\API\\{$parent_class}\\{$rel_table}");
+		if(class_exists($corePath)){
+			return $corePath;
 		}
 
 		# If no class can be found
@@ -1309,12 +1316,12 @@ class str {
 	static function check($value, $cross = false, ?array $settings = [])
 	{
 		if($value){
-			$settings['name'] = "check";
-			$settings['colour'] = "success";
+			$settings['name'] = $settings['name'] ?: "check";
+			$settings['colour'] = $settings['colour'] ?: "success";
 			return Icon::generate($settings);
 		} else if($cross){
-			$settings['name'] = "times";
-			$settings['colour'] = "danger";
+			$settings['name'] = $settings['name'] ?: "times";
+			$settings['colour'] = $settings['colour'] ?: "danger";
 			return Icon::generate($settings);
 		}
 		return false;
@@ -1437,6 +1444,36 @@ EOF;
 			return "{$days_away} days";
 			break;
 		}
+	}
+
+	/**
+	 * Given an Y-m-d date, will return a formatted date
+	 * and a badge of how many years ago that was.
+	 *
+	 * @param string|null $ymd
+	 *
+	 * @return string|null
+	 * @throws \Exception
+	 */
+	static function birthday(?string $ymd): ?string
+	{
+		if(!$ymd){
+			return NULL;
+		}
+
+		$years_old = floor((time() - strtotime($ymd)) / 31556926);
+
+		$html = (new \DateTime($birthday['dob']))->format("d M Y");
+		$html .= Badge::generate([
+			"style" => [
+				"margin-left" => "0.5rem",
+			],
+			"basic" => true,
+			"title" => $years_old,
+			"alt" => "{$years_old} years old this year",
+		]);
+
+		return $html;
 	}
 
 	/**
@@ -1564,7 +1601,7 @@ EOF;
 	 * @return \DateTime
 	 * @throws \Exception
 	 */
-	public static function newDateTimeDateOnly(string $date): \DateTime
+	public static function newDateTimeDateOnly(?string $date = NULL): \DateTime
 	{
 		$dt = new \DateTime($date);
 		$dt->setTime(0,0,0);
@@ -1654,6 +1691,40 @@ EOF;
 		$p1 = array_splice($array, $a, 1);
 		$p2 = array_splice($array, 0, $order);
 		$array = array_merge($p2, $p1, $array);
+	}
+
+	/**
+	 * Orders a multidimensional array by one or many
+	 * key values.
+	 *
+	 * <code>
+	 * $order = [
+	 * 	"countryCode" => "asc",
+	 * 	"stateProv" => "asc",
+	 * 	"city" => "asc",
+	 * 	"addr1" => "asc",
+	 * ];
+	 * </code>
+	 * @param array $array
+	 * @param array $order
+	 * @link https://stackoverflow.com/a/9261304/429071
+	 */
+	static function multidimensionalOrderBy(array &$array, array $order): void
+	{
+		usort($array, function ($a, $b) use ($order) {
+			$t = array(true => -1, false => 1);
+			$r = true;
+			$k = 1;
+			foreach ($order as $key => $value) {
+				$k = ($value === 'asc') ? 1 : -1;
+				$r = ($a[$key] < $b[$key]);
+				if ($a[$key] !== $b[$key]) {
+					return $t[$r] * $k;
+				}
+
+			}
+			return $t[$r] * $k;
+		});
 	}
 
 	/**

@@ -270,6 +270,7 @@ class IssueTracker extends Common {
 		 * be supplemented with vars are where clauses.
 		 */
 		$base_query = [
+			"include_meta" => true,
 			"table" => $rel_table,
 			"join" => [[
 				"table" => "issue_type",
@@ -287,7 +288,7 @@ class IssueTracker extends Common {
 			]],
 			"order_by" => [
 				"issue_priority_id" => "desc",
-				"created" => "ASC"
+				"created" => "DESC",
 			]
 		];
 

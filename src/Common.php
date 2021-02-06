@@ -3,7 +3,7 @@
 
 namespace App\Common;
 
-use App\Common\API\Exception\BadRequest;
+use App\Common\Exception\BadRequest;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
@@ -465,8 +465,10 @@ abstract class Common {
 	}
 
 	/**
-	 * Generic updateRelTable method. Relies on the rowHandler method
+	 * VERY generic updateRelTable method. Relies on the rowHandler method
 	 * to format each line.
+	 *
+	 * Should ONLY be used for testing, beacuse it will pull the entire table.
 	 *
 	 * @param array $a
 	 *

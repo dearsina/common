@@ -182,6 +182,10 @@ EOF;
 				continue;
 			}
 			foreach($alerts as $alert){
+				if($alert['silent']){
+					//if the alert is not to be logged
+					continue;
+				}
 				$this->logAlert($type, $alert);
 			}
 		}

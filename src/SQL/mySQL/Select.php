@@ -39,7 +39,7 @@ class Select extends Common {
 		$this->setDistinct($distinct);
 
 		# Set columns
-		$this->setColumns($columns);
+		$this->setColumns($columns, $include_meta);
 
 		# Set joins
 		$this->setJoins("INNER", $join);
@@ -57,7 +57,8 @@ class Select extends Common {
 		# Generate the query
 		if($this->limit && $this->join){
 			$query = $this->generateLimitedJoinQuery();
-		} else {
+		}
+		else {
 			$query = $this->generateQuery();
 		}
 
@@ -72,8 +73,8 @@ class Select extends Common {
 
 		# No results found
 		if(!$results['num_rows']){
-			//if no rows are found, return false
-			return false;
+			//if no rows are found, return NULL
+			return NULL;
 		}
 
 		# Count (only) requested
@@ -87,14 +88,19 @@ class Select extends Common {
 
 		# Normalise, unless requested not to
 		if(!$flat){
-//			$rows = $this->normalise($results['rows']);
+			//			$rows = $this->normalise($results['rows']);
 			$rows = DotNotation::normalise($results['rows']);
-		} else {
+		}
+		else {
 			$rows = $results['rows'];
 		}
 
+		if(!$rows){
+			return NULL;
+		}
+
 		# Return without the root numeric array
-		if ($id || ($limit == 1)) {
+		if($id || ($limit == 1)){
 			/**
 			 * If a specific main table ID has been given,
 			 * or if the limit has been set to 1, only return
@@ -236,7 +242,7 @@ class Select extends Common {
 			"table_alias" => $table['alias'],
 			"name" => implode(" ", array_filter($query)),
 			"alias" => $col_alias,
-			"agg" => "GROUP_CONCAT"
+			"agg" => "GROUP_CONCAT",
 		];
 	}
 
@@ -274,7 +280,7 @@ class Select extends Common {
 					continue;
 				}
 			}
-			$order_by = array_merge($order_by ?:[], $conditions ?:[]);
+			$order_by = array_merge($order_by ?: [], $conditions ?: []);
 		}
 
 		if(!count($order_by)){
@@ -282,7 +288,7 @@ class Select extends Common {
 			return NULL;
 		}
 
-		return "ORDER BY ".implode(",\r\n", $order_by);
+		return "ORDER BY " . implode(",\r\n", $order_by);
 	}
 
 	/**
@@ -295,7 +301,7 @@ class Select extends Common {
 	private function getGroupBySQL(?array $alias_only = NULL, ?array $except_alias = NULL): ?string
 	{
 		$columns = $this->getAllColumns($alias_only, $except_alias);
-		if(!array_filter(array_column( $columns, "agg"))){
+		if(!array_filter(array_column($columns, "agg"))){
 			//If there are no columns to group by around
 			return NULL;
 		}
@@ -312,7 +318,7 @@ class Select extends Common {
 			return NULL;
 		}
 
-		return "GROUP BY ".implode(",\r\n", $strings);
+		return "GROUP BY " . implode(",\r\n", $strings);
 	}
 
 	/**
@@ -375,7 +381,7 @@ class Select extends Common {
 					continue;
 				}
 			}
-			$columns = array_merge($columns ?:[], $cols ?:[]);
+			$columns = array_merge($columns ?: [], $cols ?: []);
 		}
 
 		return $columns;
@@ -417,17 +423,19 @@ class Select extends Common {
 			if($column['agg'] == "GROUP_CONCAT"){
 				//GROUP_CONCAT columns have already been formatted
 				$strings[$id] = $column['name'];
-			} else if($column['name'] == "*"){
+			}
+			else if($column['name'] == "*"){
 				//* value does not need to be enclosed in `
 				$strings[$id] .= $column['name'];
-			} else if($column['name']){
+			}
+			else if($column['name']){
 				//For everyone else, enclose in `
 				$strings[$id] .= "`{$column['name']}`";
 			}
 
 			# Does the column have an aggregate function?
 			if($column['agg']){
-				$strings[$id]  = "{$column['agg']}({$this->getDistinctSQL(true)}{$strings[$id]})";
+				$strings[$id] = "{$column['agg']}({$this->getDistinctSQL(true)}{$strings[$id]})";
 			}
 
 			# You can feed a complete custom string
@@ -450,11 +458,12 @@ class Select extends Common {
 	}
 
 	/**
-	 * @param $columns
+	 * @param array|string $columns
+	 * @param bool|null    $include_meta If set to true, will include the created/by, updated/by, removed/by columns also
 	 */
-	private function setColumns($columns): void
+	private function setColumns($columns, ?bool $include_meta = NULL): void
 	{
-		$this->columns = $this->getColumns($this->table, $columns);
+		$this->columns = $this->getColumns($this->table, $columns, $include_meta);
 	}
 
 	/**
@@ -486,15 +495,15 @@ class Select extends Common {
 	/**
 	 * @param bool $distinct
 	 */
-	private function setDistinct (?bool $distinct): void
+	private function setDistinct(?bool $distinct): void
 	{
-		$this->distinct = (bool) $distinct;
+		$this->distinct = (bool)$distinct;
 	}
 
 	/**
 	 * @param string|null $separator
 	 */
-	private function setSeparator (?string $separator): void
+	private function setSeparator(?string $separator): void
 	{
 		$this->separator = $separator;
 	}
@@ -503,7 +512,7 @@ class Select extends Common {
 	 * Normalise a flat dot notation array.
 	 *
 	 * @param array  $rows The flat array
-	 * @param string $dot The character that separates the layers.
+	 * @param string $dot  The character that separates the layers.
 	 *
 	 * @return array
 	 */
@@ -551,7 +560,8 @@ class Select extends Common {
 					//if the column belongs to the main table
 					$main_table[$col] = $val;
 
-				} else {
+				}
+				else {
 					//If the column belongs to a joined table
 
 					# Remove the first database fragment in the alias
@@ -602,7 +612,7 @@ class Select extends Common {
 				$last_main_table = $main_table;
 
 				# merge all rows of columns belonging to joined tables
-				$joined_tables = array_merge_recursive($joined_tables ?:[], $joined_table ?:[]);
+				$joined_tables = array_merge_recursive($joined_tables ?: [], $joined_table ?: []);
 
 				# Go to the next row
 				continue;
@@ -620,7 +630,7 @@ class Select extends Common {
 			$joined_tables = [];
 
 			# Add this row's joined table columns
-			$joined_tables = array_merge_recursive($joined_tables ?:[], $joined_table ?:[]);
+			$joined_tables = array_merge_recursive($joined_tables ?: [], $joined_table ?: []);
 		}
 
 		# Capture the last row

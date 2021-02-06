@@ -180,6 +180,7 @@ class CronLog extends \App\Common\Common {
 		 * be supplemented with vars are where clauses.
 		 */
 		$base_query = [
+			"include_meta" => true,
 			"table" => $rel_table,
 			"join" => [[
 				"table" => "cron_job",

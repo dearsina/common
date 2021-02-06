@@ -4,8 +4,8 @@
 namespace App\Common\API;
 
 
-use App\Common\API\Exception\BadRequest;
-use App\Common\API\Exception\Unauthorized;
+use App\Common\Exception\BadRequest;
+use App\Common\Exception\Unauthorized;
 use App\Common\Connection\Connection;
 use App\Common\Log;
 use App\Common\Output;
@@ -66,36 +66,6 @@ class Call {
 		$this->log = Log::getInstance();
 		$this->sql = Factory::getInstance("mySQL", true);
 		$this->output = Output::getInstance();
-	}
-
-	/**
-	 * Easy access for Exception extensions to log API errors.
-	 *
-	 * @param string $exception_type
-	 * @param string $message
-	 */
-	public static function logException(string $exception_type, string $message, ?int $code = NULL): void
-	{
-		$sql = Factory::getInstance("mySQL", true);
-
-		$alert_array = array_filter([
-			"type" => "API",
-			"title" => $exception_type,
-			"code" => $code,
-			"message" => $message,
-			"action" => $_REQUEST['action'],
-			"rel_table" => $_REQUEST['rel_table'],
-			"rel_id" => $_REQUEST['rel_id'],
-			"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
-			"connection_id" => $_SERVER['HTTP_CSRF_TOKEN'],
-		]);
-
-		# Insert the error in the DB
-		$sql->insert([
-			"table" => 'error_log',
-			"set" => $alert_array,
-			"reconnect" => true // Reconnects in case the error was caused by a long running script
-		]);
 	}
 
 	/**
@@ -263,7 +233,7 @@ class Call {
 	 * Ensure API key is valid and active.
 	 * Assign subscription owner as user of this API call.
 	 *
-	 * @throws Unauthorized
+	 * @throws \App\Common\Exception\Unauthorized
 	 */
 	private function alignAccess(): void
 	{
@@ -339,7 +309,7 @@ class Call {
 	 * Get bearer token if it exists.
 	 *
 	 * @return string|null
-	 * @throws Unauthorized
+	 * @throws \App\Common\Exception\Unauthorized
 	 */
 	function getBearerToken(): ?string
 	{

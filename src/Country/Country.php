@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Common;
+namespace App\Common\Country;
 
 use App\Common\SQL\Factory;
+use App\Common\SQL\Info\Info;
 
 class Country {
 	/**
@@ -37,6 +38,47 @@ class Country {
 
 		return $currency_code_options;
 	}
+
+	/**
+	 * Given an ISO 3166 alpha 3 code, returns the alpha 2.
+	 * If it doesn't find it, will just return the alpha 3
+	 * value.
+	 *
+	 * @param string|null $iso3
+	 *
+	 * @return string|null
+	 * @throws \Exception
+	 */
+	public static function convertISO3toISO2(?string $iso3): ?string
+	{
+		if(!$iso3){
+			return $iso3;
+		}
+		$countries = Info::getInstance()->getInfo("country");
+		if(($key = array_search($iso3, array_column($countries, 'iso_alpha-3'))) === FALSE){
+			$key = array_search($iso3, array_column($countries, 'alt_iso_alpha-3'));
+		}
+
+		if($key == false){
+			return $iso3;
+		}
+		return $countries[$key]['country_code'];
+	}
+
+	public static function getNationalityFromISOAlpha2(?string $iso2): ?string
+	{
+		if(!$iso2){
+			return $iso2;
+		}
+
+		$countries = Info::getInstance()->getInfo("country");
+		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === FALSE){
+			return $iso2;
+		}
+
+		return $countries[$key]['nationality'];
+	}
+
 
 	/**
 	 * Given a user ID, get that user's local currency code.

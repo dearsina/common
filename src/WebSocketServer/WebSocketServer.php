@@ -200,7 +200,12 @@ class WebSocketServer extends Common {
 
 		# For each recipient (fd), send the (data) message
 		foreach($data_array['fd'] as $id => $fd){
-			$server->push($fd, json_encode($data_array['data']));
+			if($server->isEstablished($fd)){
+				$server->push($fd, json_encode($data_array['data']));
+			} else {
+				echo "The [{$fd}] connection is no longer established, thus the following message was not sent to them:\r\n".json_encode($data_array['data']);
+			}
+
 		}
 
 		return true;

@@ -235,6 +235,7 @@ class ErrorLog extends Common {
 		 * be supplemented with vars are where clauses.
 		 */
 		$base_query = [
+			"include_meta" => true,
 			"table" => "error_log",
 			"left_join" => [[
 				"table" => "user",

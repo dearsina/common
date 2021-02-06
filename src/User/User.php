@@ -102,6 +102,7 @@ class User extends Common {
 		 * be supplemented with vars are where clauses.
 		 */
 		$base_query = [
+			"include_meta" => true,
 			"table" => $rel_table,
 		];
 
@@ -2069,6 +2070,8 @@ class User extends Common {
 	public function verify2FACode($a) : bool
 	{
 		extract($a);
+
+		$this->checkVars($a, ["code"]);
 
 		# If no user ID has been provided
 		if(!$rel_id){

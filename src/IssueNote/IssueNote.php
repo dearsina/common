@@ -133,6 +133,7 @@ class IssueNote extends \App\Common\Common {
 			throw new \Exception("To update the issue note table, you'll need to provide a corresponding issue tracker ID.");
 		}
 		$issue_notes = $this->info([
+			"include_meta" => true,
 			"rel_table" => "issue_note",
 			"where" => [
 				"issue_tracker_id" => $issue_tracker_id

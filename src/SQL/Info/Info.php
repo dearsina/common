@@ -182,7 +182,7 @@ class Info {
 	{
 		# Prepare the variables
 		$class_path::prepare($a);
-//		if($a['table'] == "doc_map"){echo $this->sql->select($a, true);exit;}
+//		if($a['table'] == "entity"){echo json_encode($a);exit;}
 
 		# Run the SQL query
 		if (!$rows = $this->sql->select($a)) {

@@ -3,7 +3,8 @@
 
 namespace App\Common;
 
-use App\Common\API\Exception\BadRequest;
+use App\Common\Exception\BadRequest;
+use App\Common\Exception\Unauthorized;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
 
@@ -143,39 +144,39 @@ class Request {
 		return false;
 	}
 
-	public function api(?bool $sandbox): string
-	{
-		try {
-			$response = $this->getApiResponse();
-		}
-		catch(\mysqli_sql_exception $e) {
-			$this->log->error([
-				"icon" => "database",
-				"title" => "mySQL error",
-				"message" => $e->getMessage(),
-			]);
-			$this->log->info([
-				"icon" => "code",
-				"title" => "Query",
-				"message" => $_SESSION['query'],
-			]);
-		}
-		catch(\TypeError $e) {
-			$this->log->error([
-				"icon" => "code",
-				"title" => "Type error",
-				"message" => $e->getMessage(),
-			]);
-		}
-		catch(\Exception $e) {
-			$this->log->error([
-				"icon" => "ethernet",
-				"title" => "System error",
-				"message" => $e->getMessage(),
-			]);
-		}
-	}
-
+	# I don't think this is in use, delete if no adverse effects
+//	public function api(?bool $sandbox): string
+//	{
+//		try {
+//			$response = $this->getApiResponse();
+//		}
+//		catch(\mysqli_sql_exception $e) {
+//			$this->log->error([
+//				"icon" => "database",
+//				"title" => "mySQL error",
+//				"message" => $e->getMessage(),
+//			]);
+//			$this->log->info([
+//				"icon" => "code",
+//				"title" => "Query",
+//				"message" => $_SESSION['query'],
+//			]);
+//		}
+//		catch(\TypeError $e) {
+//			$this->log->error([
+//				"icon" => "code",
+//				"title" => "Type error",
+//				"message" => $e->getMessage(),
+//			]);
+//		}
+//		catch(\Exception $e) {
+//			$this->log->error([
+//				"icon" => "ethernet",
+//				"title" => "System error",
+//				"message" => $e->getMessage(),
+//			]);
+//		}
+//	}
 
 	/**
 	 * AJAX gatekeeper
@@ -233,8 +234,17 @@ class Request {
 		}
 		catch(BadRequest $e) {
 			$this->log->error([
+				"silent" => true, // this error is logged elsewhere already
 				"icon" => "times-octagon",
 				"title" => "Invalid or incomplete request",
+				"message" => $e->getMessage(),
+			]);
+		}
+		catch(Unauthorized $e) {
+			$this->log->error([
+				"silent" => true, // this error is logged elsewhere already
+				"icon" => "lock-alt",
+				"title" => "Authorisation issue",
 				"message" => $e->getMessage(),
 			]);
 		}
@@ -268,13 +278,13 @@ class Request {
 		# Ensure the request was sent from our domain
 		if(substr($_SERVER["HTTP_ORIGIN"], strlen($_ENV['domain']) * -1) != $_ENV['domain']){
 			//if this request wasn't done from our own domain
-			throw new \Exception("A cross domain request was attempted. {$_SERVER["HTTP_ORIGIN"]} != {$_ENV['domain']}");
+			throw new Unauthorized("A cross domain request was attempted. {$_SERVER["HTTP_ORIGIN"]} != {$_ENV['domain']}");
 		}
 
 		# Ensure the request was sent from our domain via AJAX
 		if($_SERVER["HTTP_X_REQUESTED_WITH"] != "XMLHttpRequest"){
 			//if this request wasn't done via AJAX on our own domain
-			throw new \Exception("A cross domain XHR request was attempted.");
+			throw new Unauthorized("A cross domain XHR request was attempted.");
 		}
 
 		if($a['action'] == "getSessionToken"){
@@ -289,7 +299,7 @@ class Request {
 		# Ensure token has been supplied
 		if(!$_SERVER['HTTP_CSRF_TOKEN']){
 			//if no token has been provided
-			throw new \Exception("No CSRF token supplied.");
+			throw new Unauthorized("No CSRF token supplied.");
 		}
 
 		# Ensure token exists
@@ -297,19 +307,19 @@ class Request {
 			"table" => "connection",
 			"id" => $_SERVER['HTTP_CSRF_TOKEN'],
 		])){
-			throw new \Exception("Invalid CSRF token supplied.");
+			throw new Unauthorized("Invalid CSRF token supplied.");
 		}
 
 		# Ensure token is still valid
 		if($connection['closed']){
 			$this->hash->set("reload");
-			throw new \Exception("Expired CSRF token supplied.");
+			throw new Unauthorized("Expired CSRF token supplied.");
 		}
 
 		# Ensure token belongs to this IP address
 		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			$this->hash->set("reload");
-			throw new \Exception("Your connection has expired. It will now be refreshed.");
+			throw new Unauthorized("Your connection has expired. It will now be refreshed.");
 //			throw new \Exception("IP address does not match CSRF token supplied.");
 		}
 
@@ -404,11 +414,11 @@ class Request {
 	 */
 	private function output($success): ?string
 	{
-//		if($_SESSION['database_calls']){
+		if($_SESSION['database_calls']){
 //			$this->log->info("{$_SESSION['database_calls']} database calls.");
 //			print_r($_SESSION['queries']);
 //			exit;
-//		}
+		}
 
 		$output = $this->output->get();
 

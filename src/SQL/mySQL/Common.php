@@ -37,6 +37,24 @@ abstract class Common {
 	protected bool $distinct = false;
 
 	/**
+	 * An array of meta-columns that exist
+	 * in (almost) every table on the database.
+	 *
+	 * They contain information about who and when
+	 * a record was created, updated or removed.
+	 *
+	 * @var array
+	 */
+	protected array $meta_columns = [
+		"created",
+		"created_by",
+		"updated",
+		"updated_by",
+		"removed",
+		"removed_by",
+	];
+
+	/**
 	 * Used exclusively by GROUP_CONCAT().
 	 * @var string|null
 	 */
@@ -179,11 +197,13 @@ abstract class Common {
 		if(is_string($table)){
 			//if the table name is a string
 			$name = $table;
-		} else if(str::isAssociativeArray($table)){
+		}
+		else if(str::isAssociativeArray($table)){
 			//if the table is an associative array
 			extract($table);
 			//This can override the db name
-		} else {
+		}
+		else {
 			//if table was not supplied or is in an unrecognisable format
 			throw new mysqli_sql_exception("No table name was given.");
 		}
@@ -301,9 +321,11 @@ abstract class Common {
 
 		if(str::isAssociativeArray($j)){
 			$joins[] = $j;
-		} else if(str::isNumericArray($j)){
+		}
+		else if(str::isNumericArray($j)){
 			$joins = $j;
-		} else if(is_string($j)){
+		}
+		else if(is_string($j)){
 			$joins[] = ["table" => $j];
 		}
 
@@ -323,16 +345,19 @@ abstract class Common {
 		if(str::isAssociativeArray($a)){
 			//most commonly
 			extract($a);
-		} else if(str::isNumericArray($a)){
+		}
+		else if(str::isNumericArray($a)){
 			//shouldn't happen, but just in case
 			foreach($a as $join){
 				$this->setJoin($type, $join);
 			}
 			return;
-		} else if(is_string($a)){
+		}
+		else if(is_string($a)){
 			//If the whole join is just the name of a table
 			$table = $a;
-		} else {
+		}
+		else {
 			//Otherwise, not sure what to do with this join
 			throw new mysqli_sql_exception("An incomprehensible join was passed: " . print_r($a, true));
 		}
@@ -350,7 +375,7 @@ abstract class Common {
 		$on_conditions = $this->getOnConditions($table, $on, $on_or);
 
 		# Get columns
-		$columns = $this->getColumns($table, $columns);
+		$columns = $this->getColumns($table, $columns, $include_meta);
 
 		# Get join where conditions
 		$where_conditions = $this->getWhereConditions($table, $where, $or);
@@ -370,12 +395,13 @@ abstract class Common {
 	/**
 	 * Formats the entire column key value.
 	 *
-	 * @param $table
-	 * @param $c
+	 * @param array             $table
+	 * @param array|string|null $c
+	 * @param bool|null         $include_meta
 	 *
-	 * @return array|null
+	 * @return array|array[]|null
 	 */
-	protected function getColumns($table, $c): ?array
+	protected function getColumns(array $table, $c, ?bool $include_meta = NULL): ?array
 	{
 		# A request for a count will override any other column requirements
 		if(($columns = $this->generateCountColumn($table)) !== NULL){
@@ -385,12 +411,19 @@ abstract class Common {
 			return NULL;
 		}
 
+		# If the column requested is in string form
 		if(is_string($c)){
 			$cols[] = $c;
-		} else if(is_array($c)){
+		}
+
+		# If one of many columns are requested as an array
+		else if(is_array($c)){
 			$cols = $c;
-		} else {
-			$cols = $this->getAllTableColumns($table);
+		}
+
+		# If no columns have explicitly been requested, the expectation is that all columns are returned
+		else {
+			$cols = $this->getAllTableColumns($table, $include_meta);
 		}
 
 		foreach($cols as $key => $val){
@@ -461,7 +494,7 @@ abstract class Common {
 		if(is_array($col) && (count($col) == 1 && is_string(reset($col)))){
 			return [
 				"alias" => is_string($col_alias) ? $col_alias : NULL,
-				"string" => reset($col)
+				"string" => reset($col),
 			];
 		}
 
@@ -549,9 +582,27 @@ abstract class Common {
 		return $table['alias'] . self::TABLE_COL_SEPARATOR . $col;
 	}
 
-	protected function getAllTableColumns(array $table)
+	/**
+	 * Returns all the columns of a given table.
+	 * Will exclude the meta columns (created/by, updated/by, removed/by) unless
+	 * explicitly told to include them.
+	 *
+	 * @param array     $table
+	 * @param bool|null $include_meta
+	 *
+	 * @return array|null
+	 * @throws Exception
+	 */
+	protected function getAllTableColumns(array $table, ?bool $include_meta = NULL): ?array
 	{
-		return array_keys($this->getTableMetadata($table, false, true));
+		if($include_meta){
+			return array_keys($this->getTableMetadata($table, false, true));
+		}
+
+		return array_filter(array_keys($this->getTableMetadata($table, false, true)), function($column){
+			return !in_array($column, $this->meta_columns);
+		});
+
 	}
 
 	/**
@@ -606,11 +657,11 @@ abstract class Common {
 		}
 
 		if(is_array($and)){
-			$conditions['and'] = array_merge($conditions['and'] ?:[], $this->recursiveWhere($table, "AND", $and));
+			$conditions['and'] = array_merge($conditions['and'] ?: [], $this->recursiveWhere($table, "AND", $and));
 		}
 
 		if(is_array($or)){
-			$conditions['or'] = array_merge($conditions['or'] ?:[], $this->recursiveWhere($table, "OR", $or));
+			$conditions['or'] = array_merge($conditions['or'] ?: [], $this->recursiveWhere($table, "OR", $or));
 		}
 		return $conditions;
 	}
@@ -671,7 +722,8 @@ abstract class Common {
 			foreach($and as $key => $val){
 				$conditions["and"][] = $this->getValueComparison($table, $key, $val);
 			}
-		} else if(is_string($and)){
+		}
+		else if(is_string($and)){
 			/**
 			 * If the $on is a string, it's assumed to be
 			 * the name of a column that exists in both
@@ -725,7 +777,8 @@ abstract class Common {
 		# AND conditions can be array or string
 		if(is_array($and)){
 			$parent_alias = $this->getParentAliasFromOnConditions($and);
-		} else if(is_string($and)){
+		}
+		else if(is_string($and)){
 			$parent_alias = $this->table['alias'];
 		}
 
@@ -870,9 +923,10 @@ abstract class Common {
 			}
 
 			if(is_array($v)){
-				$val = "'".str::i(json_encode($v))."'";
-			} else {
-				$val = "JSON_QUOTE('".str::i($v)."')";
+				$val = "'" . str::i(json_encode($v)) . "'";
+			}
+			else {
+				$val = "JSON_QUOTE('" . str::i($v) . "')";
 			}
 
 			if($json_function == "NOT JSON_CONTAINS"){
@@ -924,11 +978,17 @@ abstract class Common {
 			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
 
 		} # "col" => ["db", "name", "col"], (optionally) "FUNC(", ")"]
-		else if(is_string($col) && is_array($val) && in_array(count($val),[3,4,5])){
-			switch(count($val)){
-				case 3: [$tbl_db, $tbl_name, $tbl_col] = $val; break;
-				case 4: [$tbl_db, $tbl_name, $tbl_col, $pre] = $val; break;
-				case 5: [$tbl_db, $tbl_name, $tbl_col, $pre, $post] = $val; break;
+		else if(is_string($col) && is_array($val) && in_array(count($val), [3, 4, 5])){
+			switch(count($val)) {
+			case 3:
+				[$tbl_db, $tbl_name, $tbl_col] = $val;
+				break;
+			case 4:
+				[$tbl_db, $tbl_name, $tbl_col, $pre] = $val;
+				break;
+			case 5:
+				[$tbl_db, $tbl_name, $tbl_col, $pre, $post] = $val;
+				break;
 			}
 
 			# Ensure the join table column exists
@@ -1164,9 +1224,11 @@ abstract class Common {
 
 		if($start && $length){
 			$this->limit = "LIMIT {$start}, {$length}";
-		} else if($length){
+		}
+		else if($length){
 			$this->limit = "LIMIT {$length}";
-		} else if($limit){
+		}
+		else if($limit){
 			$this->limit = "LIMIT {$limit}";
 		}
 	}
@@ -1339,7 +1401,8 @@ abstract class Common {
 
 			if($type == "OR"){
 				$strings[] = "AND (\r\n\t" . implode("\r\n\t{$type} ", $conditions) . "\r\n)";
-			} else {
+			}
+			else {
 				$strings[] = implode("\r\n{$type} ", $conditions);
 			}
 		}
@@ -1369,9 +1432,9 @@ abstract class Common {
 	/**
 	 * Set the columns that are going to go to the SET section of the INSERT or UPDATE query.
 	 *
-	 * @param array|null $set
+	 * @param array|null        $set
 	 * @param array|string|null $html
-	 * @param bool|null  $ignore_empty If set to TRUE, will not throw an exception if no columns are to be set
+	 * @param bool|null         $ignore_empty If set to TRUE, will not throw an exception if no columns are to be set
 	 */
 	protected function setSet(?array $set, $html = NULL, ?bool $ignore_empty = NULL): void
 	{
@@ -1574,7 +1637,7 @@ abstract class Common {
 			}
 		}
 
-//		echo "{$col}: ";var_dump($val);echo "\r\n";
+		//		echo "{$col}: ";var_dump($val);echo "\r\n";
 
 		# Format the value, ensure it conforms
 		if(($val = $this->formatComparisonVal($val, $html)) === NULL){
@@ -1584,7 +1647,7 @@ abstract class Common {
 			//if the value is not accepted, set it to be NULL
 		}
 
-//		echo "{$col}: {$table_metadata[$col]['DATA_TYPE']}: {$val}\r\n";
+		//		echo "{$col}: {$table_metadata[$col]['DATA_TYPE']}: {$val}\r\n";
 
 		return $val;
 	}
@@ -1721,11 +1784,11 @@ abstract class Common {
 		if($refresh){
 			//If the table data is to be refreshed
 			$this->loadTableMetadata($table);
-		} else if(!$this->table_column_names_all[$table["db"]][$table["name"]]){
+		}
+		else if(!$this->table_column_names_all[$table["db"]][$table["name"]]){
 			//if the table data doesn't exist yet
 			$this->loadTableMetadata($table);
 		}
-
 
 
 		if($all){
@@ -1793,18 +1856,18 @@ abstract class Common {
 			# Make a copy of the table array
 			$tbl = $table;
 
-//			# ["`db`.`table`.`col` ASC"]
-//			if(is_numeric($col) && !in_array($dir, ["ASC", "DESC"])){
-//				//if the whole string is an ORDER BY request
-//				$order_by[] = $dir;
-//				continue;
-//			}
-//
-//			# ["`db`.`table`.`col`` => "ASC"]
-//			if(substr($col, 0, 1) == "`"){
-//				$order_by[] = "{$col} {$dir}";
-//				continue;
-//			}
+			//			# ["`db`.`table`.`col` ASC"]
+			//			if(is_numeric($col) && !in_array($dir, ["ASC", "DESC"])){
+			//				//if the whole string is an ORDER BY request
+			//				$order_by[] = $dir;
+			//				continue;
+			//			}
+			//
+			//			# ["`db`.`table`.`col`` => "ASC"]
+			//			if(substr($col, 0, 1) == "`"){
+			//				$order_by[] = "{$col} {$dir}";
+			//				continue;
+			//			}
 
 			# The direction variable can also be an array if the table is not the main table [tbl_alias, col, dir]
 			if(is_array($dir) && count($dir) == 3){
@@ -1823,14 +1886,14 @@ abstract class Common {
 			}
 
 			# Column
-			if($key = array_search($col, array_column($columns ?:[], 'name')) !== false){
+			if($key = array_search($col, array_column($columns ?: [], 'name')) !== false){
 				//if the column being ordered is the name of a column
 				$order_by[] = "`{$columns[$key]['table_alias']}`.`$col` {$dir}";
 				continue;
 			}
 
 			# Alias
-			if($key = array_search($col, array_column($columns ?:[], 'alias')) !== false){
+			if($key = array_search($col, array_column($columns ?: [], 'alias')) !== false){
 				//if the column being ordered is the alias of a column
 				$order_by[] = "`$col` {$dir}";
 				continue;
@@ -2222,14 +2285,6 @@ abstract class Common {
 	 */
 	public function getTableColumnsUsersCannotUpdate(string $table): array
 	{
-		return [
-			"${table}_id",
-			"created",
-			"created_by",
-			"updated",
-			"updated_by",
-			"removed",
-			"removed_by",
-		];
+		return array_merge(["${table}_id"],$this->meta_columns);
 	}
 }
