@@ -332,7 +332,24 @@ EOF;
 	 * @return bool
 	 */
 	public function log($a, string $type, $immediately = NULL){
-		$alert = is_array($a) ? $a : ["message" => $a];
+
+		# Multiple errors can be sent at once
+		if(str::isNumericArray($a)){
+			foreach($a as $m){
+				$this->log($m, $type, $immediately);
+			}
+			return true;
+		}
+
+		# If the error is fleshed out into an array
+		else if (str::isAssociativeArray($a)){
+			$alert = $a;
+		}
+
+		# If the error is just the message
+		else {
+			$alert = ["message" => $a];
+		}
 
 		if(!$alert['icon']){
 			$alert['icon'] = Icon::DEFAULTS[$type];

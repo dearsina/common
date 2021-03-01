@@ -2092,7 +2092,8 @@ class User extends Common {
 			"where" => [
 				"key" => $vars['code'],
 				"session_id" => session_id()
-			]
+			],
+			"include_meta" => true
 		])){
 			$this->log->error([
 				"title" => 'Incorrect key',
@@ -2386,7 +2387,8 @@ class User extends Common {
 		# Find the user
 		if(!$user = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
+			"include_meta" => true
 		])){
 			$this->log->error([
 				"container" => "#ui-view",

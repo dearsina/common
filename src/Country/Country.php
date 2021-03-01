@@ -39,6 +39,17 @@ class Country {
 		return $currency_code_options;
 	}
 
+	public static function getAllCountries(): array
+	{
+		$info = Info::getInstance();
+
+		foreach($info->getInfo("country") as $country){
+			$country_options[$country['country_code']] = $country['name'];
+		}
+
+		return $country_options;
+	}
+
 	/**
 	 * Given an ISO 3166 alpha 3 code, returns the alpha 2.
 	 * If it doesn't find it, will just return the alpha 3

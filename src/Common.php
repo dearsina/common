@@ -7,6 +7,7 @@ use App\Common\Exception\BadRequest;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
+use App\Common\str;
 use App\Common\User\User;
 use App\UI\Icon;
 use App\UI\Table;
@@ -516,6 +517,11 @@ abstract class Common {
 	public function rowHandler(array $cols, ?array $a = []): array
 	{
 		extract($a);
+
+		if(!$rel_table){
+			throw new \Exception("The row handler doesn't have enough metadata to go on. Make sure you feed it at least a rel_table.");
+		}
+
 		$cols_user_cannot_update = $this->sql->getTableColumnsUsersCannotUpdate($rel_table);
 
 		foreach($cols as $col => $val){

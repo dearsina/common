@@ -235,9 +235,18 @@ class IssueTracker extends Common {
 		# UrlDEcode the variables
 		if($a['vars']){
 			foreach($a['vars'] as $key => $val){
-				$a['vars'][$key] = urldecode($val);
+				if(is_array($val)){
+					$a['vars'][$key] = $val;
+				} else {
+					$a['vars'][$key] = urldecode($val);
+				}
+
 			}
 		}
+
+		$page->setGrid([
+			"html" => $this->card()->filters($a)
+		]);
 
 		$page->setGrid([
 			"html" => $this->card()->issues($a)

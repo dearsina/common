@@ -313,7 +313,8 @@ class Request {
 		# Ensure token is still valid
 		if($connection['closed']){
 			$this->hash->set("reload");
-			throw new Unauthorized("Expired CSRF token supplied.");
+			throw new Unauthorized("Your connection has expired. It will now be refreshed.");
+//			throw new Unauthorized("Expired CSRF token supplied.");
 		}
 
 		# Ensure token belongs to this IP address

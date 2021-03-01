@@ -163,9 +163,9 @@ class Img {
 
 	/**
 	 * The PHP getimagesize method on crack.
-	 *
+	 * TODO clean this up
 	 * @param string|null $filename
-	 *
+	 * @link https://stackoverflow.com/a/48994280/429071
 	 * @return array|null
 	 */
 	public static function getimagesize(?string $filename): ?array
@@ -174,7 +174,20 @@ class Img {
 			return NULL;
 		}
 
-		if(!$a = getimagesize($filename)){
+		if(str::isSvg($filename)){
+			//Treat SVGs a little different
+			$imagine = new \Contao\ImagineSvg\Imagine();
+			$size = $imagine->open($filename)->getSize();
+
+			# There is no guarantee we'll get these details, because not all SVGs have them
+			return [
+				"width" => $size->getWidth(),
+				"height" => $size->getHeight(),
+				"image_type" => "SVG",
+			];
+
+		} else if(!$a = getimagesize($filename)){
+			// If we cannot get details, pencils down
 			return NULL;
 		}
 

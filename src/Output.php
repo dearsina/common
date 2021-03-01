@@ -219,7 +219,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function function(string $function_name, $data)
+	public function function(string $function_name, $data = NULL)
 	{
 		if(is_array($data)){
 			$data = json_encode($data);

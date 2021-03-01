@@ -72,12 +72,12 @@ class Card extends Common {
 	{
 		extract($a);
 
-		$buttons = [[
+		$buttons = ["cancel", [
 			"colour" => "green",
 			"icon" => "save",
 			"title" => "Register",
 			"type" => "submit",
-		], "cancel"];
+		]];
 
 		$form = new Form([
 			"action" => "create",

@@ -143,6 +143,12 @@ abstract class Common {
 	protected ?array $where = [];
 	protected ?array $tableAliasWithWhere = [];
 
+	/**
+	 * All the table aliases with an order by
+	 * @var array|null
+	 */
+	protected ?array $tableAliasWithOrder = [];
+
 	public function __construct(\mysqli $mysqli)
 	{
 		$this->mysqli = $mysqli;
@@ -536,13 +542,16 @@ abstract class Common {
 	/**
 	 * Checks to see if the given string is a mySQL JSON function.
 	 *
+	 * - `JSON_CONTAINS` should be used to search for VALUES.
+	 * - `JSON_EXTRACT` should be used to search for KEYS.
+	 *
 	 * @param string $function
 	 *
 	 * @return bool|NULL
 	 */
 	protected function isJsonFunction(?string $function): bool
 	{
-		return in_array(strtoupper($function), ["JSON", "JSON_ARRAY_APPEND", "JSON_CONTAINS", "NOT JSON_CONTAINS"]);
+		return in_array(strtoupper($function), ["JSON", "JSON_ARRAY_APPEND", "JSON_CONTAINS", "NOT JSON_CONTAINS", "JSON_EXTRACT", "NOT JSON_EXTRACT"]);
 	}
 
 	protected function formatGroupConcatCol(array $table, ?string $col_alias, array $col): ?array
@@ -657,11 +666,11 @@ abstract class Common {
 		}
 
 		if(is_array($and)){
-			$conditions['and'] = array_merge($conditions['and'] ?: [], $this->recursiveWhere($table, "AND", $and));
+			$conditions['and'] = array_filter(array_merge($conditions['and'] ?: [], $this->recursiveWhere($table, "AND", $and)));
 		}
 
 		if(is_array($or)){
-			$conditions['or'] = array_merge($conditions['or'] ?: [], $this->recursiveWhere($table, "OR", $or));
+			$conditions['or'] = array_filter(array_merge($conditions['or'] ?: [], $this->recursiveWhere($table, "OR", $or)));
 		}
 		return $conditions;
 	}
@@ -686,9 +695,12 @@ abstract class Common {
 
 			# Goes deeper if required
 			if(is_int($key) && (str::isAssociativeArray($val) || (is_array($val) && array_filter($val, "is_array") === $val))){
+				//if the val is an array that leads us to further recursion
 				$opposite_glue = $glue == "AND" ? "OR" : "AND";
-				$inner = array_filter($this->recursiveWhere($table, $opposite_glue, $val));
-				$outer[] = "(" . implode(" {$opposite_glue} ", $inner) . ")";
+				if($inner = array_filter($this->recursiveWhere($table, $opposite_glue, $val))){
+					//If that actually resulted in anything
+					$outer[] = "(" . implode(" {$opposite_glue} ", $inner) . ")";
+				}
 				continue;
 			}
 
@@ -769,6 +781,11 @@ abstract class Common {
 	 */
 	protected function setParentTableAliasPrefix(&$table, $and, ?array $or): void
 	{
+		# If the table alias already includes ".", assume the user knows what they're doing
+		if(count(explode(".", $table['alias'])) > 1){
+			return;
+		}
+
 		# OR conditions have to be an array because we're comparing at least two options
 		if(is_array($or)){
 			$parent_alias = $this->getParentAliasFromOnConditions($or);
@@ -778,12 +795,13 @@ abstract class Common {
 		if(is_array($and)){
 			$parent_alias = $this->getParentAliasFromOnConditions($and);
 		}
+
 		else if(is_string($and)){
 			$parent_alias = $this->table['alias'];
 		}
 
 		# If no conditions have been explicitly mentioned
-		if(!$and && !$conditions){
+		if(!$and && !$or){
 			$parent_alias = $this->table['alias'];
 		}
 
@@ -857,6 +875,13 @@ abstract class Common {
 		}
 	}
 
+	/**
+	 * Returns an array of tables that have where clauses,
+	 * or their children have where clauses (and the parent
+	 * table just acts as a link).
+	 * 
+	 * @return array|null
+	 */
 	protected function getTableAliasWithWhere(): ?array
 	{
 		if(!$this->tableAliasWithWhere){
@@ -870,6 +895,52 @@ abstract class Common {
 			}
 		}
 		return $tables;
+	}
+
+	/**
+	 * Collecting all tables and parent tables with children that have order clauses
+	 *
+	 * @param string|null $tableAliasWithOrder
+	 */
+	protected function setTableAliasWithOrder(?string $tableAliasWithOrder): void
+	{
+		if(!$tableAliasWithOrder){
+			return;
+		}
+
+		$this->tableAliasWithOrder[$tableAliasWithOrder] = $tableAliasWithOrder;
+	}
+
+	/**
+	 * Returns an array of tables that have order clauses,
+	 * or their children have order clauses (and the parent
+	 * table just acts as a link).
+	 *
+	 * @return array|null
+	 */
+	protected function getTableAliasWithOrder(): ?array
+	{
+		if(!$this->tableAliasWithOrder){
+			return NULL;
+		}
+		$tables = [];
+		foreach($this->tableAliasWithOrder as $alias){
+			$tables[$alias] = $alias;
+			foreach(explode(".", $alias) as $section){
+				$tables[$section] = $section;
+			}
+		}
+		return $tables;
+	}
+
+	/**
+	 * Combined both the where and order by aliases.
+	 *
+	 * @return array|null
+	 */
+	protected function getTableAliasWithWhereAndOrder(): ?array
+	{
+		return array_merge($this->getTableAliasWithWhere() ?:[], $this->getTableAliasWithOrder() ?:[]);
 	}
 
 	/**
@@ -927,6 +998,16 @@ abstract class Common {
 			}
 			else {
 				$val = "JSON_QUOTE('" . str::i($v) . "')";
+			}
+
+			if($json_function == "JSON_EXTRACT"){
+				//Used to see if a *key* exists (instead of a value)
+				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\") IS NOT NULL";
+			}
+
+			if($json_function == "NOT JSON_EXTRACT"){
+				//Used to see if a *key* doesn't exist (instead of a value)
+				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\") IS NULL";
 			}
 
 			if($json_function == "NOT JSON_CONTAINS"){
@@ -1241,24 +1322,34 @@ abstract class Common {
 
 		$tables = [];
 
-		$table_alias_with_where = $this->getTableAliasWithWhere();
+//		$table_alias_with_where = $this->getTableAliasWithWhere();
+		$table_alias_with_where = $this->getTableAliasWithWhereAndOrder();
 
 		foreach($this->join as $type => $joins){
 			foreach($joins as $join){
 
-				# If we ONLY want those tables that HAVE a where clause
+				# If we ONLY want those tables that HAVE a where/order clause
 				if($with_where && !$without_where){
 					if(!$table_alias_with_where[$join['table']['alias']]){
 						continue;
 					}
+
+					$tables[] = $this->getJoinTableSQL($type, $join['table']);
+					$tables[] = $this->getConditionsSQL("ON", $join['on'], $table_alias_with_where, NULL);
+					continue;
 				}
 
-				# If we ONLY want those tables that DON'T have a where clause
+				# If we ONLY want those tables that DON'T have a where/order clause
 				if(!$with_where && $without_where){
 					if($table_alias_with_where[$join['table']['alias']]){
 						continue;
 					}
+
+					$tables[] = $this->getJoinTableSQL($type, $join['table']);
+					$tables[] = $this->getConditionsSQL("ON", $join['on'], NULL, $table_alias_with_where);
+					continue;
 				}
+
 
 				$tables[] = $this->getJoinTableSQL($type, $join['table']);
 				$tables[] = $this->getConditionsSQL("ON", $join['on']);
@@ -1385,7 +1476,7 @@ abstract class Common {
 	 *
 	 * @return string|null
 	 */
-	protected function getConditionsSQL(string $condition_type, ?array $on): ?string
+	protected function getConditionsSQL(string $condition_type, ?array $on, ?array $only_aliases = NULL, ?array $exclude_aliases = NULL): ?string
 	{
 		if(!is_array($on)){
 			return NULL;
@@ -1398,6 +1489,29 @@ abstract class Common {
 
 			# Trim the conditions
 			$conditions = array_unique(array_filter($conditions));
+
+			/**
+			 * This is a little bit hacky, but basically, as join (and where)
+			 * conditions are written out in string format in full before we know
+			 * what tables go in the sub-query (if there is a limit + join) and
+			 * which do not, the joins (and where) are written for a non-sub-query
+			 * query, meaning `alias`.`column`.
+			 *
+			 * In situations where we DO have a sub-query, and the column to join is
+			 * IN the sub-query, the only reference to it in the wider query is via
+			 * its alias `alias.column`. Thus, for those situations, we need to pull out
+			 * the `.` and replace it with a simple .
+			 */
+			if($exclude_aliases){
+				foreach($conditions as $id => $condition){
+					foreach($exclude_aliases as $alias){
+						if(strpos($condition, "`{$alias}`.`") && $alias != $this->table['alias']){
+							//the main table retains the `alias`.`column` format, so we don't need to do the replacement there
+							$conditions[$id] = str_replace("`{$alias}`.`", "`{$alias}.", $condition);
+						}
+					}
+				}
+			}
 
 			if($type == "OR"){
 				$strings[] = "AND (\r\n\t" . implode("\r\n\t{$type} ", $conditions) . "\r\n)";
@@ -1637,8 +1751,6 @@ abstract class Common {
 			}
 		}
 
-		//		echo "{$col}: ";var_dump($val);echo "\r\n";
-
 		# Format the value, ensure it conforms
 		if(($val = $this->formatComparisonVal($val, $html)) === NULL){
 			//A legit value can be "0"
@@ -1856,19 +1968,6 @@ abstract class Common {
 			# Make a copy of the table array
 			$tbl = $table;
 
-			//			# ["`db`.`table`.`col` ASC"]
-			//			if(is_numeric($col) && !in_array($dir, ["ASC", "DESC"])){
-			//				//if the whole string is an ORDER BY request
-			//				$order_by[] = $dir;
-			//				continue;
-			//			}
-			//
-			//			# ["`db`.`table`.`col`` => "ASC"]
-			//			if(substr($col, 0, 1) == "`"){
-			//				$order_by[] = "{$col} {$dir}";
-			//				continue;
-			//			}
-
 			# The direction variable can also be an array if the table is not the main table [tbl_alias, col, dir]
 			if(is_array($dir) && count($dir) == 3){
 				[$tbl_alias, $col, $dir] = $dir;
@@ -1877,6 +1976,12 @@ abstract class Common {
 				if(!$tbl = $this->tableAliasExists($tbl_alias)){
 					throw new mysqli_sql_exception("The table alias {$tbl_alias} doesn't seem to exist in this query.");
 				}
+
+				# Set the table as a table that has an order
+				$this->setTableAliasWithOrder($tbl_alias);
+
+				$order_by[] = "`{$tbl_alias}`.`{$col}` {$dir}";
+				continue;
 			}
 
 			$dir = strtoupper($dir);
@@ -1888,6 +1993,10 @@ abstract class Common {
 			# Column
 			if($key = array_search($col, array_column($columns ?: [], 'name')) !== false){
 				//if the column being ordered is the name of a column
+
+				# Set the table as a table that has an order
+				$this->setTableAliasWithOrder($columns[$key]['table_alias']);
+
 				$order_by[] = "`{$columns[$key]['table_alias']}`.`$col` {$dir}";
 				continue;
 			}
@@ -1895,6 +2004,10 @@ abstract class Common {
 			# Alias
 			if($key = array_search($col, array_column($columns ?: [], 'alias')) !== false){
 				//if the column being ordered is the alias of a column
+
+				# Set the table as a table that has an order
+				$this->setTableAliasWithOrder($table['alias']);
+
 				$order_by[] = "`$col` {$dir}";
 				continue;
 			}
@@ -1902,6 +2015,10 @@ abstract class Common {
 			# "Hidden" column
 			if($this->columnExists($tbl['db'], $tbl['name'], $col)){
 				//If the table to order by is not part of the columns to display, but is still a valid column
+
+				# Set the table as a table that has an order
+				$this->setTableAliasWithOrder($table['alias']);
+
 				$order_by[] = "`{$tbl['alias']}`.`{$col}` {$dir}";
 				continue;
 			}

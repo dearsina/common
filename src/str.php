@@ -362,9 +362,20 @@ class str {
 	 * or false if it's run from a browser (http).
 	 * @return bool
 	 */
-	static function runFromCLI()
+	static function runFromCLI(): bool
 	{
 		return (PHP_SAPI == "cli");
+	}
+
+	/**
+	 * Check if this is a headless chicken, I mean chrome.
+	 *
+	 * @return bool
+	 */
+	static function runHeadlessChrome(): bool
+	{
+		$headers = getallheaders();
+		return $headers['User-Agent'] == $_ENV['db_password'];
 	}
 
 	/**
@@ -377,6 +388,42 @@ class str {
 	public static function isApiCall(array $a): bool
 	{
 		return key_exists("sandbox", $a);
+	}
+
+	/**
+	 * For *external* files (only?)
+	 *
+	 * @param string $filePath
+	 * @link https://stackoverflow.com/a/10494842/429071
+	 * @return bool
+	 */
+	public static function isSvg(string $filePath)
+	{
+		return in_array("Content-Type: image/svg+xml", get_headers($filePath));
+	}
+
+	/**
+	 * Returns the domain, suffixed with /.
+	 * To be used as the basis for the URL for any (internal) link:
+	 * <code>
+	 * $url = $this->getDomain();
+	 * </code>
+	 *
+	 * When a template is generated via CLI, the server HTTP HOST value is not populated.
+	 *
+	 * @param string|null $subdomain If a custom subdomain is to be used.
+	 *
+	 * @return string
+	 */
+	public static function getDomain(?string $subdomain = NULL): string
+	{
+		if($subdomain){
+			return "https://{$subdomain}.{$_ENV['domain']}/";
+		} else if($_SERVER['HTTP_HOST']){
+			return "https://{$_SERVER['HTTP_HOST']}/";
+		} else {
+			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
+		}
 	}
 
 	/**
@@ -946,9 +993,16 @@ class str {
 		}
 		if(is_array($a)){
 			foreach($a as $key => $val){
+
 				if($val === NULL){
 					continue;
 				}
+
+				if(is_array($val)){
+					$a[$key] = $val;
+					continue;
+				}
+
 				$a[$key] = urldecode($val);
 			}
 			return $a;
@@ -1463,7 +1517,7 @@ EOF;
 
 		$years_old = floor((time() - strtotime($ymd)) / 31556926);
 
-		$html = (new \DateTime($birthday['dob']))->format("d M Y");
+		$html = (new \DateTime($ymd))->format("d M Y");
 		$html .= Badge::generate([
 			"style" => [
 				"margin-left" => "0.5rem",
@@ -1711,12 +1765,12 @@ EOF;
 	 */
 	static function multidimensionalOrderBy(array &$array, array $order): void
 	{
-		usort($array, function ($a, $b) use ($order) {
+		uasort($array, function ($a, $b) use ($order) {
 			$t = array(true => -1, false => 1);
 			$r = true;
 			$k = 1;
 			foreach ($order as $key => $value) {
-				$k = ($value === 'asc') ? 1 : -1;
+				$k = (strtolower($value) === 'asc') ? 1 : -1;
 				$r = ($a[$key] < $b[$key]);
 				if ($a[$key] !== $b[$key]) {
 					return $t[$r] * $k;

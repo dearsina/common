@@ -175,23 +175,23 @@ class Select extends Common {
 		# Generate table sub-query
 		$table[] = "SELECT";
 		$table[] = $this->getDistinctSQL();
-		$table[] = $this->getColumnsSQL($this->getTableAliasWithWhere());
+		$table[] = $this->getColumnsSQL($this->getTableAliasWithWhereAndOrder());
 		$table[] = $this->getTableSQL();
 		$table[] = $this->getJoinsSQL(true, false);
-		$table[] = $this->getWhereSQL($this->getTableAliasWithWhere());
-		$table[] = $this->getGroupBySQL($this->getTableAliasWithWhere());
-		$table[] = $this->getOrderBySQL($this->getTableAliasWithWhere());
+		$table[] = $this->getWhereSQL($this->getTableAliasWithWhereAndOrder());
+		$table[] = $this->getGroupBySQL($this->getTableAliasWithWhereAndOrder());
+		$table[] = $this->getOrderBySQL($this->getTableAliasWithWhereAndOrder());
 		$table[] = $this->getLimitSQL();
 
 		# Generate query (with sub-query)
 		$query[] = "SELECT";
 		$query[] = $this->getDistinctSQL();
-		$query[] = $this->getColumnsSQL(NULL, NULL, $this->getTableAliasWithWhere());
+		$query[] = $this->getColumnsSQL(NULL, NULL, $this->getTableAliasWithWhereAndOrder());
 		$query[] = $this->getTableSQL(implode("\r\n", array_filter($table)));
 		$query[] = $this->getJoinsSQL(false, true);
-		$query[] = $this->getWhereSQL(NULL, $this->getTableAliasWithWhere());
-		$query[] = $this->getGroupBySQL(NULL, $this->getTableAliasWithWhere());
-		$query[] = $this->getOrderBySQL();
+		$query[] = $this->getWhereSQL(NULL, $this->getTableAliasWithWhereAndOrder());
+		$query[] = $this->getGroupBySQL(NULL, $this->getTableAliasWithWhereAndOrder());
+		$query[] = $this->getOrderBySQL(NULL, $this->getTableAliasWithWhereAndOrder());
 
 		return implode("\r\n", array_filter($query));
 	}
@@ -283,7 +283,7 @@ class Select extends Common {
 			$order_by = array_merge($order_by ?: [], $conditions ?: []);
 		}
 
-		if(!count($order_by)){
+		if(!count($order_by ?:[])){
 			//if there are no order by, ignore
 			return NULL;
 		}

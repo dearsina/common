@@ -260,7 +260,7 @@ class Email extends Common {
 
 	/**
 	 * Can be a string to a path, or an array of paths,
-	 * or an array of "path" and "filename" key/value pairs.
+	 * or an array of `path` and `filename` key/value pairs.
 	 *
 	 * @param array|string|null $a
 	 *
