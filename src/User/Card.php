@@ -132,7 +132,8 @@ class Card extends Common {
 		$user = $this->user->get($rel_id);
 
 		$buttons = [[
-			"colour" => "green",
+			"basic" => true,
+			"colour" => "primary",
 			"icon" => "envelope",
 			"title" => "Resend",
 			"type" => "submit",
@@ -173,7 +174,7 @@ class Card extends Common {
 		]]);
 
 		$card = new \App\UI\Card\Card([
-			"draggable" => true,
+//			"draggable" => true,
 			"header" => "Verify your email address",
 			"body" => $body,
 			"footer" => $form->getHTML(),

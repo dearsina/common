@@ -31,6 +31,8 @@ class Home extends Common {
 	 */
 	public function view(array $a) : bool
 	{
+		extract($a);
+
 		# User needs to be logged in
 		if(!$this->user->isLoggedIn()){
 			return $this->accessDenied();
@@ -55,6 +57,7 @@ class Home extends Common {
 
 			# Use the app method
 			return $classInstance->$method([
+				"subdomain" => $subdomain,
 				"action" => $method,
 				"rel_table" => $rel_table,
 				"rel_id" => $rel_id,

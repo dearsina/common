@@ -122,7 +122,9 @@ class App extends Common implements NavigationInterface {
 		}
 
 		# Grab the user
-		$user = $this->info("user", $user_id);
+		if(!$user = $this->info("user", $user_id)){
+			return;
+		}
 
 		# User account
 		$children[] = [

@@ -4,7 +4,7 @@
 namespace App\Common\UserPermission;
 
 
-use App\Common\Permission;
+use App\Common\Permission\Permission;
 use App\Common\str;
 use App\UI\Icon;
 use App\UI\Page;

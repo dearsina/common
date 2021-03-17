@@ -362,7 +362,6 @@ class IssueTracker extends Common {
 			"col_name" => "title"
 		];
 
-
 		$row["Assigned to"] = [
 			"html" => $cols['user']['full_name'] ?: "(Not assigned)",
 			"class" => "text-flat",

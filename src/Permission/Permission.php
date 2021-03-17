@@ -1,12 +1,18 @@
 <?php
 
 
-namespace App\Common;
+namespace App\Common\Permission;
 
+use App\Common\Common;
+use App\Subscription\Subscription;
+use App\Subscription\SubscriptionHandler;
 use App\UI\Icon;
 
 /**
  * Class Permission
+ *
+ * Can be extended by creating a App\Permission\Permission class
+ *
  * @package App\Common
  */
 class Permission extends Common {

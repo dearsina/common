@@ -66,7 +66,7 @@ class Info {
      * @return array|null
      * @throws \Exception
      */
-	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL): ?array
+	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL, ?array $joins = NULL): ?array
 	{
 		if(is_string($a)){
 			$a = [
@@ -74,8 +74,9 @@ class Info {
 				"rel_id" => $rel_id
 			];
 		}
+
 		if(!is_array($a)){
-			throw new \Exception("Only arrays or strings can be fed to the first value of the <code>info</code> method.");
+			throw new \Exception("Only arrays or strings can be fed to the first value of the <code>info</code> method. You tried to pass a ".gettype($a).": ".var_export($a, true));
 		}
 		
 		# Clean up the request variables
@@ -92,7 +93,7 @@ class Info {
 
 		# Run either a custom or generic process to get the rows
 		if($class_path = str::findClass("Info", $a['rel_table'])){
-			$rows = $this->customProcess($class_path, $a);
+			$rows = $this->customProcess($class_path, $a, $joins);
 		} else {
 			$rows = $this->genericProcess($a);
 		}
@@ -178,14 +179,19 @@ class Info {
 	 *
 	 * @return array|bool|mixed|string
 	 */
-	private function customProcess(string $class_path, array $a)
+	private function customProcess(string $class_path, array $a, ?array $joins = NULL)
 	{
+		# The default variables
+		$default_a = [];
+
 		# Prepare the variables
-		$class_path::prepare($a);
-//		if($a['table'] == "entity"){echo json_encode($a);exit;}
+		$class_path::prepare($default_a, $joins);
+
+		# Add/override the default variables
+		$query = array_merge_recursive($default_a, $a);
 
 		# Run the SQL query
-		if (!$rows = $this->sql->select($a)) {
+		if (!$rows = $this->sql->select($query)) {
 			return false;
 		}
 

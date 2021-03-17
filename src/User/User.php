@@ -107,7 +107,7 @@ class User extends Common {
 		];
 
 		# Fatten the base query with prepare()
-		Info::prepare($base_query);
+		Info::prepare($base_query, NULL);
 
 		/**
 		 * The row handler gets one row of data from SQL,
@@ -711,6 +711,8 @@ class User extends Common {
 			"action" => "login"
 		]);
 
+//		$this->hash->set("https://kycdd.co.za");
+
 		if(!$user_id){
 			//if there is still no user id
 			if(!$silent){
@@ -735,9 +737,10 @@ class User extends Common {
 			return false;
 		}
 
-		$remove = ['user_id','role','session_id'];
+		$remove = ['user_id', 'role', 'session_id', 'subscription_id'];
 		foreach ($remove as $var) {
 			global $$var;
+			$GLOBALS[$var] = NULL;
 			unset($GLOBALS[$var]); //If a globalized variable is unset() inside of a function, only the local variable is destroyed.
 			unset($_SESSION[$var]);
 			unset($_COOKIE[$var]);
@@ -747,6 +750,18 @@ class User extends Common {
 
 		# Update the navigation
 		Navigation::update();
+
+		# Close all connections
+		$this->sql->update([
+			"table" => "connection",
+			"set" => [
+				"closed" => "NOW()",
+			],
+			"where" => [
+				"user_id" => $user_id
+			],
+			"user_id" => $user_id
+		]);
 
 		if(!$silent){
 			$this->log->info([
@@ -1907,6 +1922,17 @@ class User extends Common {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns the current user's ID, if they're logged in.
+	 *
+	 * @return string|null
+	 */
+	public function getId(): ?string
+	{
+		global $user_id;
+		return $user_id;
 	}
 
 	/**

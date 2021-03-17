@@ -15,7 +15,7 @@ class Info implements \App\Common\SQL\Info\InfoInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public static function prepare(array &$a): void
+	public static function prepare(array &$a, ?array $joins): void
 	{
 		$a['join'][] = [
 			"table" => "issue_type",
@@ -40,6 +40,7 @@ class Info implements \App\Common\SQL\Info\InfoInterface {
 	 */
 	public static function format (array &$row): void
 	{
+		str::flattenSingleChildren($row, ["user"]);
 		$row['progress_percent'] = ($row['progress'] * 100) . "%";
 		$row['issue_type'] = $row['issue_type'][0];
 		$row['issue_priority'] = $row['issue_priority'][0];

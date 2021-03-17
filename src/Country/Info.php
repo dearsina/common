@@ -9,7 +9,7 @@ class Info implements \App\Common\SQL\Info\InfoInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public static function prepare(array &$a): void
+	public static function prepare(array &$a, ?array $joins): void
 	{
 		$a['order_by'] = $a['order_by'] ?: [
 			"name" => "ASC",

@@ -8,15 +8,13 @@ use App\UI\Modal;
  * Tracks the output of a ajax call
  */
 class Output {
-	private $output = [];
-	private $direction = [];
+	private array $output = [];
+	private array $direction = [];
 
 	/**
-	 * Classes.
-	 *
-	 * @var log
+	 * @var Log
 	 */
-	protected $log;
+	protected Log $log;
 
 	protected function __construct()
 	{
@@ -67,10 +65,12 @@ class Output {
 				foreach($ids_or_data as $id => $data){
 					$this->$type($id, $data);
 				}
-			} else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "page_title", "page_title"])){
+			}
+			else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "page_title", "page_title"])){
 				//these types do not require an ID
 				$this->$type($ids_or_data);
-			} else {
+			}
+			else {
 				$this->log->error("The {$type} output type is not recognised.");
 				return false;
 			}
@@ -136,7 +136,7 @@ class Output {
 	 * Will update the *contents* a given div, based on their div ID.
 	 * It will not touch the div tag itself.
 	 *
-	 * @param string     $id Expects an ID that jQuery will understand (prefixed with # or . etc)
+	 * @param string     $id         Expects an ID that jQuery will understand (prefixed with # or . etc)
 	 * @param string     $data
 	 *
 	 * @param array|null $recipients If set, will send the update asynchronously to all relevant recipients
@@ -150,8 +150,8 @@ class Output {
 			return $pa->speak($recipients, [
 				"success" => true,
 				"update" => [
-					$id => $data
-				]
+					$id => $data,
+				],
 			]);
 		}
 		return $this->setData("update", $id, $data);
@@ -291,9 +291,10 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function html($data)
+	public function html($data, ?bool $first = true)
 	{
-		return $this->setData("update", "#ui-view", $data);
+		return $this->setData("update", "#ui-view", $data, $first);
+		//Updates to ui-view are by default always set first
 	}
 
 	/**
@@ -374,7 +375,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	private function setData($type, $id, $data)
+	private function setData($type, $id, $data, ?bool $first = NULL)
 	{
 		if($data === false){
 			//if data has by design been set as false
@@ -382,10 +383,12 @@ class Output {
 			# Remove the existing data
 			if($id){
 				unset($this->output[$type][$id]);
-			} else {
+			}
+			else {
 				unset($this->output[$type]);
 			}
-		} else {
+		}
+		else {
 			//If data has been submitted
 
 			# Modal can either be "close" or an array of modal data
@@ -398,28 +401,17 @@ class Output {
 			# Data is *appended* to the array, NOT replaced
 			if($id){
 				$this->output[$type][$id] .= $data;
-			} else {
+
+				# If the element is to be moved up to the top so that it's updated first
+				if($first){
+					str::repositionArrayElement($this->output[$type], $id, 0);
+				}
+			}
+			else {
 				$this->output[$type] .= $data;
 			}
 		}
 
 		return true;
-	}
-
-	/**
-	 * Request a certain kind of output data.
-	 *
-	 * @param $type
-	 * @param $id
-	 *
-	 * @return mixed
-	 */
-	private function getOutput($type, $id)
-	{
-		if($id){
-			return $this->output[$type][$id];
-		} else {
-			return $this->output[$type];
-		}
 	}
 }

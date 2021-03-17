@@ -4,6 +4,7 @@
 namespace App\Common;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Permission\Permission;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
@@ -71,9 +72,10 @@ abstract class Common {
 		 * classes that are extended by Common(),
 		 * but that also are initiated in Common(),
 		 * are excused.
+		 *
+		 * So far, that's only the App\Common\User\User class
 		 */
-		$class_array = explode("\\", get_called_class());
-		if(in_array(end($class_array), ["User"])){
+		if(in_array(get_called_class(), ['App\Common\User\User'])){
 			return true;
 		}
 
@@ -162,10 +164,10 @@ abstract class Common {
 	 * @return array|null
 	 * @throws Exception
 	 */
-	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL): ?array
+	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL, ?array $joins = NULL): ?array
 	{
 		$info = Info::getInstance();
-		return $info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh);
+		return $info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh, $joins);
 	}
 
 	/**
@@ -176,7 +178,10 @@ abstract class Common {
 	{
 		static $permission = NULL;
 		if(!$permission){
-			$permission = new Permission();
+			if(!$classPath = \App\Common\str::findClass("Permission")){
+				throw new \Exception("Cannot find a suitable Permissions class.");
+			}
+			$permission = new $classPath();
 		}
 		return $permission;
 	}

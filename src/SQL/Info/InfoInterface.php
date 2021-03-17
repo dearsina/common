@@ -21,7 +21,7 @@ interface InfoInterface {
 	 *
 	 * @param array $a
 	 */
-	public static function prepare(array &$a) : void;
+	public static function prepare(array &$a, ?array $joins) : void;
 
 	/**
 	 * Format a single result row.

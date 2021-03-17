@@ -90,6 +90,20 @@ class Country {
 		return $countries[$key]['nationality'];
 	}
 
+	public static function getCountryFromISOAlpha2(?string $iso2): ?string
+	{
+		if(!$iso2){
+			return $iso2;
+		}
+
+		$countries = Info::getInstance()->getInfo("country");
+		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === FALSE){
+			return $iso2;
+		}
+
+		return $countries[$key]['name'];
+	}
+
 
 	/**
 	 * Given a user ID, get that user's local currency code.

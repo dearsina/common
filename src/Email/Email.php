@@ -52,6 +52,13 @@ class Email extends Common {
 		return true;
 	}
 
+	public function from(string $from): object
+	{
+		$this->envelope->setFrom([$_ENV['email_username'] => "{$from} via {$_ENV['email_name']}"]);
+
+		return $this;
+	}
+
 
 	/**
 	 * By passing a template name and an array of variables,
@@ -75,7 +82,6 @@ class Email extends Common {
 		$template_factory->setTemplate($template_name);
 
 		# Get (and set) the subject
-		//		if(!$this->subject($template_factory->generateSubject()." ".date("H:i"))){
 		if(!$this->subject($template_factory->generateSubject())){
 			throw new \Exception("No subject generated using the {$template_name} template.");
 		}

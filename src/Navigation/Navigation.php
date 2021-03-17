@@ -25,8 +25,7 @@ class Navigation {
 	 * @throws \Exception
 	 */
 	public function generate(?array $a = NULL){
-		extract($a);
-		return Navigation::update();
+		return Navigation::update($a);
 	}
 
 	/**
@@ -43,7 +42,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public static function update(){
+	public static function update(?array $a = NULL){
 		$user = new User();
 		$output = Output::getInstance();
 
@@ -58,10 +57,10 @@ class Navigation {
 		$levels = [];
 
 		# Get the generic app levels
-		self::getAppLevels($levels);
+		self::getAppLevels($levels, $a);
 
 		# Get any role levels
-		self::getRoleLevels($levels);
+		self::getRoleLevels($levels, $a);
 
 		$footers = [];
 
@@ -87,8 +86,12 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getAppLevels(&$levels) : bool
+	private static function getAppLevels(&$levels, ?array $a = NULL) : bool
 	{
+		if(is_array($a)){
+			extract($a);
+		}
+
 		# Uses the Common class if it cannot find the App class
 		$classPath = str::findClass("App", "Navigation");
 
@@ -104,6 +107,7 @@ class Navigation {
 		}
 
 		$levels = $classInstance->$method([
+			"subdomain" => $subdomain,
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
@@ -119,7 +123,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getRoleLevels(&$levels) : bool
+	private static function getRoleLevels(&$levels, ?array $a = NULL) : bool
 	{
 		global $role;
 
@@ -129,6 +133,10 @@ class Navigation {
 
 		if(!$classPath = str::findClass($role, "Navigation")){
 			throw new \Exception("A navigation class for the <code>{$role}</code> role does not exist.");
+		}
+
+		if(is_array($a)){
+			extract($a);
 		}
 
 		# Create a new instance of the class
@@ -142,13 +150,10 @@ class Navigation {
 			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
 		}
 
+		$a['action'] = $method;
+
 		# Get the levels for this role
-		$role_levels = $classInstance->$method([
-			"action" => $method,
-			"rel_table" => $rel_table,
-			"rel_id" => $rel_id,
-			"vars" => $vars
-		]);
+		$role_levels = $classInstance->$method($a);
 
 		# Merge role levels into app levels
 		self::mergeLevels($levels, $role_levels);

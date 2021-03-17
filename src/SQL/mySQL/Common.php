@@ -549,8 +549,12 @@ abstract class Common {
 	 *
 	 * @return bool|NULL
 	 */
-	protected function isJsonFunction(?string $function): bool
+	protected function isJsonFunction($function): bool
 	{
+		if(!is_string($function)){
+			//if it's not even a string, it's definitely not a JSON function
+			return false;
+		}
 		return in_array(strtoupper($function), ["JSON", "JSON_ARRAY_APPEND", "JSON_CONTAINS", "NOT JSON_CONTAINS", "JSON_EXTRACT", "NOT JSON_EXTRACT"]);
 	}
 
@@ -879,7 +883,7 @@ abstract class Common {
 	 * Returns an array of tables that have where clauses,
 	 * or their children have where clauses (and the parent
 	 * table just acts as a link).
-	 * 
+	 *
 	 * @return array|null
 	 */
 	protected function getTableAliasWithWhere(): ?array
@@ -940,7 +944,7 @@ abstract class Common {
 	 */
 	protected function getTableAliasWithWhereAndOrder(): ?array
 	{
-		return array_merge($this->getTableAliasWithWhere() ?:[], $this->getTableAliasWithOrder() ?:[]);
+		return array_merge($this->getTableAliasWithWhere() ?: [], $this->getTableAliasWithOrder() ?: []);
 	}
 
 	/**
@@ -996,13 +1000,19 @@ abstract class Common {
 			if(is_array($v)){
 				$val = "'" . str::i(json_encode($v)) . "'";
 			}
+
+			else if(in_array($json_function, ["JSON EXTRACT", "NOT JSON EXTRACT"])){
+				$val = str::i($v);
+			}
+
 			else {
 				$val = "JSON_QUOTE('" . str::i($v) . "')";
 			}
 
 			if($json_function == "JSON_EXTRACT"){
 				//Used to see if a *key* exists (instead of a value)
-				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\") IS NOT NULL";
+//				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\") IS NOT NULL";
+				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.{$val}) IS NOT NULL";
 			}
 
 			if($json_function == "NOT JSON_EXTRACT"){
@@ -1322,7 +1332,7 @@ abstract class Common {
 
 		$tables = [];
 
-//		$table_alias_with_where = $this->getTableAliasWithWhere();
+		//		$table_alias_with_where = $this->getTableAliasWithWhere();
 		$table_alias_with_where = $this->getTableAliasWithWhereAndOrder();
 
 		foreach($this->join as $type => $joins){
@@ -1633,16 +1643,6 @@ abstract class Common {
 				return "NULL";
 			}
 
-			# Non-empty array with a single empty key and empty sub value
-			while(true) {
-				foreach($val as $k => $v){
-					if(trim($k) || trim($v)){
-						break 2;
-					}
-				}
-				return "NULL";
-			}
-
 			# JSON columns
 			if($table_metadata[$col]['DATA_TYPE'] == "json"){
 				$json = json_encode($val);
@@ -1650,6 +1650,19 @@ abstract class Common {
 				$json = str_replace("'", "\'", $json);
 				return "'{$json}'";
 				//The array will be converted to a JSON string, backslashes and  single quotes escaped and the whole string wrapped in single quotes
+			}
+
+			# Non-empty array with a single empty key and empty sub value
+			while(true) {
+				foreach($val as $k => $v){
+					if(is_array($k) || is_array($v)){
+						break 2;
+					}
+					if(trim($k) || trim($v)){
+						break 2;
+					}
+				}
+				return "NULL";
 			}
 
 			# Otherwise, arrays are not allowed and will return an error
@@ -2221,6 +2234,11 @@ abstract class Common {
 	 */
 	protected function dbExists(string $db): bool
 	{
+		# Account for meta tables that are not in the INFORMATION_SCHEMA database
+		if(in_array($db, ["INFORMATION_SCHEMA"])){
+			throw new \Exception("Meta databases like the <code>INFORMATION_SCHEMA</code> can only be accesse thru the <code>run()</code> method.");
+		}
+
 		$db = str::i($db);
 		if(key_exists($db, $this->exists['db'] ?: [])){
 			return $this->exists['db'][$db];
@@ -2402,6 +2420,6 @@ abstract class Common {
 	 */
 	public function getTableColumnsUsersCannotUpdate(string $table): array
 	{
-		return array_merge(["${table}_id"],$this->meta_columns);
+		return array_merge(["${table}_id"], $this->meta_columns);
 	}
 }

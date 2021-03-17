@@ -6,6 +6,7 @@ use App\UI\Badge;
 use App\UI\Button;
 use App\UI\Dropdown;
 use App\UI\Icon;
+use GuzzleHttp\Client;
 
 /**
  * Static class related mainly to string manipulation.
@@ -115,7 +116,6 @@ class str {
 	static function capitalise_name($str, $is_name = false, $all_words = false)
 	{
 		if(is_array($str)){
-			//			var_dump($str);exit;
 			return $str;
 			//TODO Fix this
 		}
@@ -126,7 +126,8 @@ class str {
 			$str = preg_replace_callback("/\\b(\\w)/u", function($matches){
 				return strtoupper($matches[1]);
 			}, strtolower(trim($str)));
-		} else if(!$all_words){
+		}
+		else if(!$all_words){
 			//if only the first word is to be capitalised
 			$str_array = explode(" ", $str);
 			$first_word = array_shift($str_array);
@@ -151,7 +152,8 @@ class str {
 					//set them all to lowercase
 				}
 			}
-		} else {
+		}
+		else {
 			// addresses, essay titles ... and anything else
 			if(is_array(self::ALL_UPPERCASE)){
 				foreach(self::ALL_UPPERCASE as $uc){
@@ -188,7 +190,8 @@ class str {
 				$str = preg_replace_callback("/\\b($all_lowercase)\\b/u", function($matches){
 					return strtolower($matches[1]);
 				}, $str);
-			} else {
+			}
+			else {
 				// first and last word will not be changed to lower case (i.e. titles)
 				//$str = preg_replace("/(?<=\\W)($all_lowercase)(?=\\W)/e", 'strtolower("$1")', $str);
 				$str = preg_replace_callback("/(?<=\\W)($all_lowercase)(?=\\W)/u", function($matches){
@@ -240,14 +243,19 @@ class str {
 	 *
 	 * @param string $title
 	 */
-	public static function copyTitle(string &$title): void
+	public static function copyTitle(?string &$title): void
 	{
+		if(!$title){
+			return;
+		}
+
 		$pattern = '/^(.+?)\((\d+)\)$/';
 		if(preg_match($pattern, $title, $matches)){
 			$digit = $matches[2] + 1;
 			$suffix = "({$digit})";
 			$title = preg_replace($pattern, '$1' . $suffix, $title);
-		} else {
+		}
+		else {
 			$title .= " (1)";
 		}
 	}
@@ -281,7 +289,7 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function flattenSingleChildren(array $array, array $keys): array
+	public static function flattenSingleChildren(array &$array, array $keys): void
 	{
 		foreach($array as $key => $val){
 			# We're not interested in non-array values
@@ -291,18 +299,17 @@ class str {
 
 			# Flatten keys in scope (that only have 1 child anyway)
 			if(str::isNumericArray($val) && in_array($key, $keys) && count($val) == 1){
-				$val = reset($val);
+				$array[$key] = reset($val);
 			}
 
 			# This can happen if an array within an array is just a string
-			if(!is_array($val)){
+			if(!is_array($array[$key])){
 				continue;
 			}
 
 			# Go deeper
-			$array[$key] = str::flattenSingleChildren($val, $keys);
+			str::flattenSingleChildren($array[$key], $keys);
 		}
-		return $array;
 	}
 
 	/**
@@ -394,8 +401,9 @@ class str {
 	 * For *external* files (only?)
 	 *
 	 * @param string $filePath
-	 * @link https://stackoverflow.com/a/10494842/429071
+	 *
 	 * @return bool
+	 * @link https://stackoverflow.com/a/10494842/429071
 	 */
 	public static function isSvg(string $filePath)
 	{
@@ -419,9 +427,11 @@ class str {
 	{
 		if($subdomain){
 			return "https://{$subdomain}.{$_ENV['domain']}/";
-		} else if($_SERVER['HTTP_HOST']){
+		}
+		else if($_SERVER['HTTP_HOST']){
 			return "https://{$_SERVER['HTTP_HOST']}/";
-		} else {
+		}
+		else {
 			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
 		}
 	}
@@ -497,13 +507,66 @@ class str {
 	}
 
 	/**
+	 * Checks to see whether an email is NOT a known spam email (or not, meaning it is).
+	 * Should be used after the `isValidEmail()` method for double safety.
+	 *
+	 * @param string $email
+	 * @link https://www.stopforumspam.com/usage
+	 * @return bool
+	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 */
+	public static function isNotSpamEmail(string $email): bool
+	{
+		$client = new Client([
+			"base_uri" => "http://api.stopforumspam.org/",
+		]);
+
+		$request = $client->request("POST", "api", [
+			"headers" => [
+				'Content-Type' => 'application/x-www-form-urlencoded',
+			],
+			"query" => [
+				"email" => $email,
+				"json" => true,
+			],
+		]);
+
+		# Get the body (as an array)
+		$json = $request->getBody()->getContents();
+		$array = json_decode($json, true);
+
+		/**
+		 * array(2) {
+		 * ["success"]=>
+		 * int(1)
+		 * ["email"]=>
+		 * array(5) {
+		 * ["value"]=>
+		 * string(23) "aleksandra.626@mail.com"
+		 * ["appears"]=>
+		 * int(1)
+		 * ["frequency"]=>
+		 * int(33)
+		 * ["lastseen"]=>
+		 * string(19) "2021-03-14 11:31:36"
+		 * ["confidence"]=>
+		 * string(5) "88.00"
+		 * }
+		 * }
+		 */
+
+		return !$array['email']['appears'];
+	}
+
+	/**
 	 * Checks to see if a given string is JSON or not.
 	 *
 	 * @param string $str
 	 *
 	 * @return bool
 	 */
-	public static function isJson(string $str) {
+	public static function isJson(string $str)
+	{
 		$json = json_decode($str);
 		return $json && $str != $json;
 	}
@@ -592,7 +655,8 @@ class str {
 
 		try {
 			$reflection = new \ReflectionMethod($class, $method);
-		} catch(\ReflectionException $e) {
+		}
+		catch(\ReflectionException $e) {
 			return false;
 		}
 
@@ -859,7 +923,8 @@ class str {
 					"access_key" => $_ENV['ipstack_access_key'],
 				],
 			]);
-		} catch(\Exception $e) {
+		}
+		catch(\Exception $e) {
 			//Catch errors
 			return false;
 		}
@@ -943,10 +1008,12 @@ class str {
 					}
 					$hash .= "/$key/$val";
 				}
-			} else {
+			}
+			else {
 				//if the vars array _is_ multidimensional
 				$hash .= "/" . json_encode($vars);
 				//Encode the entire vars array as a JSON string
+				//NULL values WILL be encoded also
 			}
 			/**
 			 * The reason why multi-dimensional variable arrays are
@@ -954,9 +1021,12 @@ class str {
 			 * fit into the key/val/.../key/val structure of the
 			 * URI string, and any second and n-level key values would
 			 * be lost.
+			 *
 			 * Instead, the entire multidimensional array is stored
 			 * as a string and converted back to an array by the
 			 * hashChange() method in Javascript.
+			 *
+			 * NULL values WILL be encoded. This is different from the key/val system.
 			 */
 		}
 
@@ -1045,7 +1115,8 @@ class str {
 		if(!is_array(($delimiters)) && !is_array($string)){
 			//if neither the delimiter nor the string are arrays
 			return explode($delimiters, $string);
-		} else if(!is_array($delimiters) && is_array($string)){
+		}
+		else if(!is_array($delimiters) && is_array($string)){
 			//if the delimiter is not an array but the string is
 			foreach($string as $item){
 				foreach(explode($delimiters, $item) as $sub_item){
@@ -1053,7 +1124,8 @@ class str {
 				}
 			}
 			return $items;
-		} else if(is_array($delimiters) && !is_array($string)){
+		}
+		else if(is_array($delimiters) && !is_array($string)){
 			//if the delimiter is an array but the string is not
 			$string_array[] = $string;
 			foreach($delimiters as $delimiter){
@@ -1101,7 +1173,8 @@ class str {
 	{
 		if($last){
 			$pos = strrpos($haystack, $needle);
-		} else {
+		}
+		else {
 			$pos = strpos($haystack, $needle);
 		}
 
@@ -1242,14 +1315,16 @@ class str {
 				//flatten the potentially multidimensional array
 				$val = implode(" ", array_unique(array_filter($flat_val_array)));
 				//remove empty and duplicate values, and then translate the array to a string
-			} else {
+			}
+			else {
 				//if keys do matter
 				foreach($val_array as $k => $v){
 					if(is_numeric($k) && is_array($v)){
 						foreach($v as $vk => $vv){
 							$val .= "{$vk}:{$vv};";
 						}
-					} else {
+					}
+					else {
 						if($k && strlen($v)){
 							$val .= "{$k}:{$v};";
 						}
@@ -1263,7 +1338,8 @@ class str {
 			if($if_null){
 				//if there is a replacement
 				$val = $if_null;
-			} else {
+			}
+			else {
 				//otherwise peace out
 				return false;
 			}
@@ -1349,9 +1425,9 @@ class str {
 	 * @param string $string String is case insensitive.
 	 *
 	 * @return bool Returns TRUE if the pattern matches given subject,
-	 * 				FALSE if it does not or if an error occurred.
+	 *                FALSE if it does not or if an error occurred.
 	 */
-	public static function isUuid(string $string): bool
+	public static function isUuid(?string $string): bool
 	{
 		return preg_match("/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i", $string);
 	}
@@ -1373,7 +1449,8 @@ class str {
 			$settings['name'] = $settings['name'] ?: "check";
 			$settings['colour'] = $settings['colour'] ?: "success";
 			return Icon::generate($settings);
-		} else if($cross){
+		}
+		else if($cross){
 			$settings['name'] = $settings['name'] ?: "times";
 			$settings['colour'] = $settings['colour'] ?: "danger";
 			return Icon::generate($settings);
@@ -1396,10 +1473,12 @@ class str {
 	{
 		if(!$datetime_or_time){
 			return '';
-		} else if(is_object($datetime_or_time)){
+		}
+		else if(is_object($datetime_or_time)){
 			$then = clone $datetime_or_time;
 			$datetime_or_time = $then->format("Y-m-d H:i:s");
-		} else {
+		}
+		else {
 			$then = new \DateTime($datetime_or_time);
 		}
 
@@ -1457,7 +1536,8 @@ EOF;
 		foreach($string as $k => &$v){
 			if($diff->$k){
 				$v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
-			} else {
+			}
+			else {
 				unset($string[$k]);
 			}
 		}
@@ -1658,7 +1738,7 @@ EOF;
 	public static function newDateTimeDateOnly(?string $date = NULL): \DateTime
 	{
 		$dt = new \DateTime($date);
-		$dt->setTime(0,0,0);
+		$dt->setTime(0, 0, 0);
 		return $dt;
 	}
 
@@ -1680,7 +1760,8 @@ EOF;
 		$array = preg_replace(["/\s*array\s\($/", "/\)(,)?$/", "/\s=>\s$/"], [NULL, ']$1', ' => ['], $array);
 		$export = join(PHP_EOL, array_filter(["["] + $array));
 		if((bool)$return)
-			return $export; else echo $export;
+			return $export;
+		else echo $export;
 	}
 
 	/**
@@ -1753,26 +1834,27 @@ EOF;
 	 *
 	 * <code>
 	 * $order = [
-	 * 	"countryCode" => "asc",
-	 * 	"stateProv" => "asc",
-	 * 	"city" => "asc",
-	 * 	"addr1" => "asc",
+	 *    "countryCode" => "asc",
+	 *    "stateProv" => "asc",
+	 *    "city" => "asc",
+	 *    "addr1" => "asc",
 	 * ];
 	 * </code>
 	 * @param array $array
 	 * @param array $order
+	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
 	static function multidimensionalOrderBy(array &$array, array $order): void
 	{
-		uasort($array, function ($a, $b) use ($order) {
-			$t = array(true => -1, false => 1);
+		uasort($array, function($a, $b) use ($order){
+			$t = [true => -1, false => 1];
 			$r = true;
 			$k = 1;
-			foreach ($order as $key => $value) {
+			foreach($order as $key => $value){
 				$k = (strtolower($value) === 'asc') ? 1 : -1;
 				$r = ($a[$key] < $b[$key]);
-				if ($a[$key] !== $b[$key]) {
+				if($a[$key] !== $b[$key]){
 					return $t[$r] * $k;
 				}
 
@@ -2093,39 +2175,129 @@ EOF;
 	 *
 	 * @return string|null
 	 */
-	public static function truncateIf(string $string, int $max_length, ?string $suffix = "..."): ?string
+	public static function truncateIf(?string $string, int $max_length, ?string $suffix = "..."): ?string
 	{
+		if(!$string){
+			return $string;
+		}
+
 		if(strlen($string) <= $max_length){
 			return $string;
 		}
 
-		return trim(substr($string, 0, $max_length)).$suffix;
+		return trim(substr($string, 0, $max_length)) . $suffix;
 	}
 
 	/**
 	 * Searches thru a multi-dimentional array for a key,
 	 * and returns an array of values belonging to matching keys.
-	 * @link https://www.experts-exchange.com/questions/27653578/search-multidimensional-array-by-key-and-return-array-value's-as-result.html
 	 *
 	 * @param $array
 	 * @param $key
 	 *
 	 * @return array
 	 */
-	static function array_key_search($array, $key)
+	public static function array_key_search($array, $key): ?array
 	{
 		$results = [];
 
-		if(is_array($array)){
-			if(isset($array[$key]) && !is_array($array[$key]))
-				$results[] = $array[$key];
+		if(!is_array($array)){
+			return $results;
+		}
 
-			foreach($array as $subarray)
-				$results = array_merge($results, self::array_key_search($subarray, $key));
+		if($array[$key]){
+			if(str::isNumericArray($array[$key])){
+				$results = array_merge($results, $array[$key]);
+			}
+			else {
+				$results[] = $array[$key];
+			}
+			unset($array[$key]);
+		}
+
+		foreach($array as $k => $v){
+			if(is_array($v)){
+				$results = array_merge($results, self::array_key_search($v, $key));
+			}
 		}
 
 		return $results;
 	}
+
+	/**
+	 * Given an array and a set of `old => new` keys,
+	 * will recursively replace all array keys that
+	 * are old with their corresponding new value.
+	 *
+	 * Updated from
+	 * @link https://programmer.group/php-recursive-multidimensional-array-replacement-key-name-and-value.html
+	 *
+	 * @param mixed $array
+	 * @param array $old_to_new_keys
+	 *
+	 * @return array
+	 */
+	public static function array_replace_keys($array, array $old_to_new_keys)
+	{
+		if(!is_array($array)){
+			return $array;
+		}
+
+		$temp_array = [];
+		$ak = array_keys($old_to_new_keys);
+		$av = array_values($old_to_new_keys);
+
+		foreach($array as $key => $value){
+			if(array_search($key, $ak, true) !== false){
+				$key = $av[array_search($key, $ak)];
+			}
+
+			if(is_array($value)){
+				$value = str::array_replace_keys($value, $old_to_new_keys);
+			}
+
+			$temp_array[$key] = $value;
+		}
+
+		return $temp_array;
+	}
+
+	/**
+	 * Given a multidimensional array, replaces all old values with new ones
+	 * from the `old => new` array.
+	 *
+	 * @param mixed $array
+	 * @param array $old_to_new_values
+	 *
+	 * @return array
+	 * @link https://programmer.group/php-recursive-multidimensional-array-replacement-key-name-and-value.html
+	 */
+	public static function array_replace_values($array, array $old_to_new_values)
+	{
+		if(!is_array($array)){
+			return $array;
+		}
+
+		$temp_array = [];
+		$ak = array_keys($old_to_new_values);
+		$av = array_values($old_to_new_values);
+
+		foreach($array as $key => $value){
+			if(is_array($value)){
+				$value = str::array_replace_values($value, $old_to_new_values);
+			}
+
+			else {
+				if(array_search($value, $ak, true) !== false){
+					$value = $av[array_search($value, $ak)];
+				}
+			}
+
+			$temp_array[$key] = $value;
+		}
+		return $temp_array;
+	}
+
 
 	/**
 	 * Will return all the keys for rows that contain a match in the $col for any of the $value.
@@ -2215,9 +2387,11 @@ EOF;
 	{
 		if(is_array($array)){
 			$count = count($array);
-		} else if(is_int($array) || is_string($array)){
+		}
+		else if(is_int($array) || is_string($array)){
 			$count = (int)$array;
-		} else {
+		}
+		else {
 			$count = 0;
 		}
 		if(!is_string($rel_table)){
@@ -2418,11 +2592,14 @@ EOF;
 	{
 		if(is_array($array)){
 			$count = count($array);
-		} else if(is_int($array) && $array){
+		}
+		else if(is_int($array) && $array){
 			$count = $array;
-		} else if(is_string($array) && $string = preg_replace("/[^0-9.]/", "", $array)){
+		}
+		else if(is_string($array) && $string = preg_replace("/[^0-9.]/", "", $array)){
 			$count = $string;
-		} else {
+		}
+		else {
 			$count = 0;
 		}
 		if(!is_string($rel_table)){
@@ -2515,14 +2692,26 @@ EOF;
         [{}^\~`]                 # URL unsafe characters https://www.ietf.org/rfc/rfc1738.txt
         ~x',
 			'-', $filename);
+
 		// avoids ".", ".." or ".hiddenFiles"
 		$filename = ltrim($filename, '.-');
+
 		// optional beautification
 		if($beautify)
 			$filename = self::beautify_filename($filename);
-		// maximise filename length to 255 bytes http://serverfault.com/a/9548/44086
+
+		# Get the file extension
 		$ext = pathinfo($filename, PATHINFO_EXTENSION);
+		$filename_without_extension = pathinfo($filename, PATHINFO_FILENAME);
+
+		# Strip double extensions
+		if(substr($filename_without_extension, strlen($ext) *-1) == $ext){
+			$fielname = $filename_without_extension;
+		}
+
+		// maximise filename length to 255 bytes http://serverfault.com/a/9548/44086
 		$filename = mb_strcut(pathinfo($filename, PATHINFO_FILENAME), 0, 255 - ($ext ? strlen($ext) + 1 : 0), mb_detect_encoding($filename)) . ($ext ? '.' . $ext : '');
+
 		return $filename;
 	}
 
@@ -2557,6 +2746,7 @@ EOF;
 		return $filename;
 	}
 
+
 	/**
 	 * Finds degrees of mismatches between two strings, returns the degree.
 	 * If strings are identical, returns 0.
@@ -2584,10 +2774,12 @@ EOF;
 			if(!is_array($excluded_words_case_insensitive)){
 				$string = mb_strtolower($excluded_words_case_insensitive);
 				$excluded_words[] = $string;
-			} else {
+			}
+			else {
 				$excluded_words = array_map("mb_strtolower", $excluded_words_case_insensitive);
 			}
-		} else {
+		}
+		else {
 			$excluded_words = [];
 		}
 
@@ -2753,7 +2945,8 @@ EOF;
 
 		if($max == $min){
 			$h = $s = 0;
-		} else {
+		}
+		else {
 			$diff = $max - $min;
 			$s = $l > 0.5 ? $diff / (2 - $max - $min) : $diff / ($max + $min);
 
@@ -2788,7 +2981,8 @@ EOF;
 
 		if($s == 0){
 			$r = $g = $b = 1;
-		} else {
+		}
+		else {
 			$q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
 			$p = 2 * $l - $q;
 
@@ -2860,9 +3054,10 @@ EOF;
 	 * contains a valid Luhn suffix digit.
 	 *
 	 * @param $number
+	 *
+	 * @return bool
 	 * @link http://en.wikipedia.org/wiki/Luhn_algorithm
 	 *       https://gist.github.com/troelskn/1287893
-	 * @return bool
 	 */
 	static function isValidLuhn($number): bool
 	{
@@ -2873,12 +3068,12 @@ EOF;
 		$number = preg_replace("/[^0-9]/", "", $number);
 
 		# Do the calculations
-		$sumTable = array(
-			array(0,1,2,3,4,5,6,7,8,9),
-			array(0,2,4,6,8,1,3,5,7,9));
+		$sumTable = [
+			[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+			[0, 2, 4, 6, 8, 1, 3, 5, 7, 9]];
 		$sum = 0;
 		$flip = 0;
-		for ($i = strlen($number) - 1; $i >= 0; $i--) {
+		for($i = strlen($number) - 1; $i >= 0; $i--){
 			$sum += $sumTable[$flip++ & 0x1][$number[$i]];
 		}
 
@@ -2923,7 +3118,8 @@ EOF;
 		if($colour){
 			$translated_colour = self::translate_approve_colour($colour);
 			return "{$prefix}-{$translated_colour}";
-		} else {
+		}
+		else {
 			return false;
 			//The default is no colour (black)
 		}
@@ -3022,9 +3218,11 @@ EOF;
 
 		if(is_array($approve)){
 			extract($approve);
-		} else if(is_bool($approve)){
+		}
+		else if(is_bool($approve)){
 			$message = "Are you sure you want to do this?";
-		} else if(is_string($approve)){
+		}
+		else if(is_string($approve)){
 			//if just the name of the thing to be removed is given
 			$message = str::title("Are you sure you want to {$approve}?");
 		}
@@ -3097,7 +3295,8 @@ EOF;
 			foreach($row as $key => $val){
 				if(!key_exists($key, $compareArr)){
 					$compareArr[$key] = $val;
-				} else if($compareArr[$key] !== $val){
+				}
+				else if($compareArr[$key] !== $val){
 					$keyDifferentArr[$key] = true;
 				}
 			}
@@ -3149,7 +3348,8 @@ EOF;
 				# Store as a single quoted string
 				$str .= " data-{$key}='{$val}'";
 
-			} else {
+			}
+			else {
 				//Value is a string, store as double quoted string
 
 				# Escape double quotes
