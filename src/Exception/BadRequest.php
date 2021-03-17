@@ -4,6 +4,10 @@
 namespace App\Common\Exception;
 
 
+/**
+ * Class BadRequest
+ * @package App\Common\Exception
+ */
 class BadRequest extends Common {
 	/**
 	 * Bad Request constructor.

@@ -4,7 +4,11 @@
 namespace App\Common\Exception;
 
 
-class Unauthorized extends Common {
+/**
+ * Class Unauthorized
+ * @package App\Common\Exception
+ */
+class Unauthorized extends Common{
 	/**
 	 * Unauthorized constructor.
 	 *

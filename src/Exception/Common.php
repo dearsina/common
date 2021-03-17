@@ -5,7 +5,6 @@ namespace App\Common\Exception;
 
 
 use App\Common\SQL\Factory;
-use App\Common\str;
 
 /**
  * Exceptions common methods.
