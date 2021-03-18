@@ -27,6 +27,16 @@ class Field {
 			"type" => "textarea",
 			"rows" => 4,
 			"required" => true
+		],[
+			"type" => "checkbox",
+			"name" => "display_only",
+			"checked" => $display_only,
+			"label" => [
+				"title" => "Display only",
+			],
+			"desc" => "Display only fields cannot be populated like a traditional form element.
+			Rather they only display information. This is an important distinction if you want to separate
+			out the fields that someone can populate for the sake of form completion, and those they cannot."
 		]];
 
 	    $size = [[
