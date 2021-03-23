@@ -187,8 +187,11 @@ class Info {
 		# Prepare the variables
 		$class_path::prepare($default_a, $joins);
 
+		# The default table value (if set) cannot be overwritten
+		$a['table'] = $default_a['table'] ?: $a['table'];
+
 		# Add/override the default variables
-		$query = array_merge_recursive($default_a, $a);
+		$query = str::array_merge_recursive_distinct($default_a, $a);
 
 		# Run the SQL query
 		if (!$rows = $this->sql->select($query)) {

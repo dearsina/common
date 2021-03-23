@@ -36,27 +36,27 @@ class str {
 	 * Cloning and wakeup are also set to private to prevent
 	 * cloning and unserialising of the Hash() object.
 	 */
-	private function __construct()
+	private function __construct ()
 	{
 		$this->str = false;
 	}
 
-	private function __clone()
+	private function __clone ()
 	{
 	}
 
-	private function __wakeup()
+	private function __wakeup ()
 	{
 	}
 
 	/**
 	 * @return str|null
 	 */
-	public static function getInstance()
+	public static function getInstance ()
 	{
 
 		// Check if instance is already exists
-		if(self::$instance == NULL){
+		if (self::$instance == NULL){
 			self::$instance = new str();
 		}
 
@@ -113,55 +113,53 @@ class str {
 	 * @return mixed
 	 * @link http://www.php.net/manual/en/function.ucwords.php#60064
 	 */
-	static function capitalise_name($str, $is_name = false, $all_words = false)
+	static function capitalise_name ($str, $is_name = false, $all_words = false)
 	{
-		if(is_array($str)){
+		if (is_array($str)){
 			return $str;
 			//TODO Fix this
 		}
 		// exceptions to standard case conversion
-		if($is_name){
+		if ($is_name){
 			$all_uppercase = 'MD';
 			$all_lowercase = 'De La|De Las|Der|Van De|Van Der|Vit De|Von|Or|And|D|Del';
 			$str = preg_replace_callback("/\\b(\\w)/u", function($matches){
 				return strtoupper($matches[1]);
 			}, strtolower(trim($str)));
-		}
-		else if(!$all_words){
+		} else if (!$all_words){
 			//if only the first word is to be capitalised
 			$str_array = explode(" ", $str);
 			$first_word = array_shift($str_array);
 			$str = ucfirst(strtolower(trim($str)));
-			if(is_array(self::ALL_UPPERCASE)){
+			if (is_array(self::ALL_UPPERCASE)){
 				$all_uppercase = '';
-				foreach(self::ALL_UPPERCASE as $uc){
-					if($first_word == strtolower($uc)){
+				foreach (self::ALL_UPPERCASE as $uc){
+					if ($first_word == strtolower($uc)){
 						$str = strtoupper($first_word) . " " . implode(" ", $str_array);
 					}
 					$all_uppercase .= strtolower($uc) . '|';
 					//set them all to lowercase
 				}
 			}
-			if(is_array(self::ALL_LOWERCASE)){
+			if (is_array(self::ALL_LOWERCASE)){
 				$all_lowercase = '';
-				foreach(self::ALL_LOWERCASE as $uc){
-					if($first_word == strtolower($uc)){
+				foreach (self::ALL_LOWERCASE as $uc){
+					if ($first_word == strtolower($uc)){
 						$str = strtolower($first_word) . " " . implode(" ", $str_array);
 					}
 					$all_lowercase .= strtolower($uc) . '|';
 					//set them all to lowercase
 				}
 			}
-		}
-		else {
+		} else {
 			// addresses, essay titles ... and anything else
-			if(is_array(self::ALL_UPPERCASE)){
-				foreach(self::ALL_UPPERCASE as $uc){
+			if (is_array(self::ALL_UPPERCASE)){
+				foreach (self::ALL_UPPERCASE as $uc){
 					$all_uppercase .= ucfirst(strtolower($uc)) . '|';
 				}
 			}
-			if(is_array(self::ALL_LOWERCASE)){
-				foreach(self::ALL_LOWERCASE as $uc){
+			if (is_array(self::ALL_LOWERCASE)){
+				foreach (self::ALL_LOWERCASE as $uc){
 					$all_lowercase .= ucfirst($uc) . '|';
 				}
 			}
@@ -175,23 +173,22 @@ class str {
 		$prefixes = "Mc";
 		$suffixes = "'S";
 
-		if($all_uppercase){
+		if ($all_uppercase){
 			// capitalize acronymns and initialisms e.g. PHP
 			//$str = preg_replace("/\\b($all_uppercase)\\b/e", 'strtoupper("$1")', $str);
 			$str = preg_replace_callback("/\\b($all_uppercase)\\b/u", function($matches){
 				return strtoupper($matches[1]);
 			}, $str);
 		}
-		if($all_lowercase){
+		if ($all_lowercase){
 			// decapitalize short words e.g. and
-			if($is_name){
+			if ($is_name){
 				// all occurences will be changed to lowercase
 				//$str = preg_replace("/\\b($all_lowercase)\\b/e", 'strtolower("$1")', $str);
 				$str = preg_replace_callback("/\\b($all_lowercase)\\b/u", function($matches){
 					return strtolower($matches[1]);
 				}, $str);
-			}
-			else {
+			} else {
 				// first and last word will not be changed to lower case (i.e. titles)
 				//$str = preg_replace("/(?<=\\W)($all_lowercase)(?=\\W)/e", 'strtolower("$1")', $str);
 				$str = preg_replace_callback("/(?<=\\W)($all_lowercase)(?=\\W)/u", function($matches){
@@ -199,14 +196,14 @@ class str {
 				}, $str);
 			}
 		}
-		if($prefixes){
+		if ($prefixes){
 			// capitalize letter after certain name prefixes e.g 'Mc'
 			//$str = preg_replace("/\\b($prefixes)(\\w)/e", '"$1".strtoupper("$2")', $str);
 			$str = preg_replace_callback("/\\b($prefixes)(\\w)/u", function($matches){
 				return "${matches[1]}" . strtoupper($matches[2]);
 			}, $str);
 		}
-		if($suffixes){
+		if ($suffixes){
 			// decapitalize certain word suffixes e.g. 's
 			//$str = preg_replace("/(\\w)($suffixes)\\b/e", '"$1".strtolower("$2")', $str);
 			$str = preg_replace_callback("/(\\w)($suffixes)\\b/u", function($matches){
@@ -230,7 +227,7 @@ class str {
 	 *
 	 * @return mixed
 	 */
-	static function title($string, $is_name = false, $all_words = false)
+	static function title ($string, $is_name = false, $all_words = false)
 	{
 		$string = str_replace("doc_", "document_", $string);
 		return self::capitalise_name(str_replace("_", " ", $string), $is_name, $all_words);
@@ -243,19 +240,18 @@ class str {
 	 *
 	 * @param string $title
 	 */
-	public static function copyTitle(?string &$title): void
+	public static function copyTitle (?string &$title): void
 	{
-		if(!$title){
+		if (!$title){
 			return;
 		}
 
 		$pattern = '/^(.+?)\((\d+)\)$/';
-		if(preg_match($pattern, $title, $matches)){
+		if (preg_match($pattern, $title, $matches)){
 			$digit = $matches[2] + 1;
 			$suffix = "({$digit})";
 			$title = preg_replace($pattern, '$1' . $suffix, $title);
-		}
-		else {
+		} else {
 			$title .= " (1)";
 		}
 	}
@@ -269,7 +265,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function percent(?float $int_fraction, ?int $decimals = 0)
+	static function percent (?float $int_fraction, ?int $decimals = 0)
 	{
 		$int = round($int_fraction * 100, $decimals);
 		return "{$int}%";
@@ -289,21 +285,21 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function flattenSingleChildren(array &$array, array $keys): void
+	public static function flattenSingleChildren (array &$array, array $keys): void
 	{
-		foreach($array as $key => $val){
+		foreach ($array as $key => $val){
 			# We're not interested in non-array values
-			if(!is_array($val)){
+			if (!is_array($val)){
 				continue;
 			}
 
 			# Flatten keys in scope (that only have 1 child anyway)
-			if(str::isNumericArray($val) && in_array($key, $keys) && count($val) == 1){
+			if (str::isNumericArray($val) && in_array($key, $keys) && count($val) == 1){
 				$array[$key] = reset($val);
 			}
 
 			# This can happen if an array within an array is just a string
-			if(!is_array($array[$key])){
+			if (!is_array($array[$key])){
 				continue;
 			}
 
@@ -325,7 +321,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function backtrace($return = NULL)
+	static function backtrace ($return = NULL)
 	{
 		$steps = [];
 		array_walk(debug_backtrace(), function($a) use (&$steps){
@@ -341,7 +337,7 @@ class str {
 		# Remove the last step, which is just the string "backtrace()"
 		array_pop($correctly_aligned_steps);
 
-		if($return){
+		if ($return){
 			return implode("\r\n", $correctly_aligned_steps);
 		}
 
@@ -369,7 +365,7 @@ class str {
 	 * or false if it's run from a browser (http).
 	 * @return bool
 	 */
-	static function runFromCLI(): bool
+	static function runFromCLI (): bool
 	{
 		return (PHP_SAPI == "cli");
 	}
@@ -379,7 +375,7 @@ class str {
 	 *
 	 * @return bool
 	 */
-	static function runHeadlessChrome(): bool
+	static function runHeadlessChrome (): bool
 	{
 		$headers = getallheaders();
 		return $headers['User-Agent'] == $_ENV['db_password'];
@@ -392,7 +388,7 @@ class str {
 	 *
 	 * @return bool
 	 */
-	public static function isApiCall(array $a): bool
+	public static function isApiCall (array $a): bool
 	{
 		return key_exists("sandbox", $a);
 	}
@@ -405,7 +401,7 @@ class str {
 	 * @return bool
 	 * @link https://stackoverflow.com/a/10494842/429071
 	 */
-	public static function isSvg(string $filePath)
+	public static function isSvg (string $filePath)
 	{
 		return in_array("Content-Type: image/svg+xml", get_headers($filePath));
 	}
@@ -423,15 +419,13 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function getDomain(?string $subdomain = NULL): string
+	public static function getDomain (?string $subdomain = NULL): string
 	{
-		if($subdomain){
+		if ($subdomain){
 			return "https://{$subdomain}.{$_ENV['domain']}/";
-		}
-		else if($_SERVER['HTTP_HOST']){
+		} else if ($_SERVER['HTTP_HOST']){
 			return "https://{$_SERVER['HTTP_HOST']}/";
-		}
-		else {
+		} else {
 			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
 		}
 	}
@@ -453,18 +447,18 @@ class str {
 	 *
 	 * @return mixed|string
 	 */
-	public static function i($i, $html_accepted = NULL)
+	public static function i ($i, $html_accepted = NULL)
 	{
 		# We don't really care about stuff that looks like numbers
-		if(is_numeric($i)){
+		if (is_numeric($i)){
 			return $i;
 		}
 
-		if(!is_string($i)){
+		if (!is_string($i)){
 			return false;
 		}
 
-		if(!$html_accepted){
+		if (!$html_accepted){
 			//if HTML is *NOT* accepted
 			$i = @strip_tags($i);
 			/**
@@ -496,7 +490,7 @@ class str {
 	 * @return boolean returns the email address on true or false on failure
 	 * @link: https://github.com/egulias/EmailValidator
 	 */
-	public static function isValidEmail($email)
+	public static function isValidEmail ($email)
 	{
 		$validator = new \Egulias\EmailValidator\EmailValidator();
 		$multipleValidations = new \Egulias\EmailValidator\Validation\MultipleValidationWithAnd([
@@ -511,11 +505,12 @@ class str {
 	 * Should be used after the `isValidEmail()` method for double safety.
 	 *
 	 * @param string $email
-	 * @link https://www.stopforumspam.com/usage
+	 *
 	 * @return bool
 	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 * @link https://www.stopforumspam.com/usage
 	 */
-	public static function isNotSpamEmail(string $email): bool
+	public static function isNotSpamEmail (string $email): bool
 	{
 		$client = new Client([
 			"base_uri" => "http://api.stopforumspam.org/",
@@ -565,7 +560,7 @@ class str {
 	 *
 	 * @return bool
 	 */
-	public static function isJson(string $str)
+	public static function isJson (string $str)
 	{
 		$json = json_decode($str);
 		return $json && $str != $json;
@@ -579,10 +574,10 @@ class str {
 	 *
 	 * @return bool
 	 */
-	public static function isValidPhoneNumber($number)
+	public static function isValidPhoneNumber ($number)
 	{
 		$number = preg_replace("/[^0-9+]/", "", $number);
-		if(strlen($number) < self::MINIMUM_PHONE_NUMBER_LENGTH){
+		if (strlen($number) < self::MINIMUM_PHONE_NUMBER_LENGTH){
 			return false;
 		}
 		return true;
@@ -595,12 +590,12 @@ class str {
 	 *
 	 * @return array|float|int|string
 	 */
-	public static function mysql_escape_mimic($inp)
+	public static function mysql_escape_mimic ($inp)
 	{
-		if(is_array($inp))
+		if (is_array($inp))
 			return array_map(__METHOD__, $inp);
 
-		if(!empty($inp) && is_string($inp)){
+		if (!empty($inp) && is_string($inp)){
 			return str_replace(['\\', "'", '"', "\x1a"], ['\\\\', "\\'", '\\"', '\\Z'], $inp);
 		}
 
@@ -614,11 +609,11 @@ class str {
 	 *
 	 * @param $a
 	 */
-	public static function replaceNullStrings(&$a): void
+	public static function replaceNullStrings (&$a): void
 	{
-		if(is_array($a['vars'])){
-			foreach($a['vars'] as $key => $val){
-				if($val == "NULL"){
+		if (is_array($a['vars'])){
+			foreach ($a['vars'] as $key => $val){
+				if ($val == "NULL"){
 					$a['vars'][$key] = NULL;
 				}
 			}
@@ -643,37 +638,36 @@ class str {
 	 * @return bool
 	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
 	 */
-	public static function methodAvailable(object $class, string $method, $modifier = "public"): bool
+	public static function methodAvailable (object $class, string $method, $modifier = "public"): bool
 	{
-		if(!$class || !$method){
+		if (!$class || !$method){
 			return false;
 		}
 
-		if(!method_exists($class, $method)){
+		if (!method_exists($class, $method)){
 			return false;
 		}
 
 		try {
 			$reflection = new \ReflectionMethod($class, $method);
-		}
-		catch(\ReflectionException $e) {
+		} catch (\ReflectionException $e) {
 			return false;
 		}
 
-		switch($modifier) {
+		switch ($modifier) {
 		case 'private':
-			if(!$reflection->isPrivate() && !$reflection->isProtected() && !$reflection->isPublic()){
+			if (!$reflection->isPrivate() && !$reflection->isProtected() && !$reflection->isPublic()){
 				return false;
 			}
 			break;
 		case 'protected':
-			if(!$reflection->isProtected() && !$reflection->isPublic()){
+			if (!$reflection->isProtected() && !$reflection->isPublic()){
 				return false;
 			}
 			break;
 		case 'public':
 		default:
-			if(!$reflection->isPublic()){
+			if (!$reflection->isPublic()){
 				return false;
 			}
 			break;
@@ -690,7 +684,7 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function getClassesFromPath(string $path): array
+	public static function getClassesFromPath (string $path): array
 	{
 		$finder = new \Symfony\Component\Finder\Finder;
 		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder->in($path));
@@ -706,7 +700,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function getHash($value): string
+	public static function getHash ($value): string
 	{
 		return md5(strtolower(json_encode($value)));
 	}
@@ -723,7 +717,7 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC"): array
+	public static function getMethodsFromClass (string $class, ?string $modifier = "PUBLIC"): array
 	{
 		$modifier = strtoupper($modifier);
 		$cmd = "go(function(){";
@@ -736,18 +730,18 @@ class str {
 		$json_output = shell_exec("php -r '{$cmd}' 2>&1");
 
 		# Return false if no methods matching are found
-		if(!$array = json_decode($json_output, true)){
+		if (!$array = json_decode($json_output, true)){
 			return [];
 		}
 
-		foreach($array as $method){
+		foreach ($array as $method){
 			# We're not interested in inherited classes
-			if($class != $method['class']){
+			if ($class != $method['class']){
 				continue;
 			}
 
 			# We're not interested in magic methods
-			if(substr($method['name'], 0, 2) == "__"){
+			if (substr($method['name'], 0, 2) == "__"){
 				continue;
 			}
 
@@ -766,7 +760,7 @@ class str {
 	 * @return string
 	 * @return string
 	 */
-	public static function getMethodCase($snake)
+	public static function getMethodCase ($snake)
 	{
 		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
 	}
@@ -779,26 +773,26 @@ class str {
 	 *
 	 * @return bool|string Returns the class with path or FALSE if it can't find it
 	 */
-	public static function findClass(string $rel_table, ?string $parent_class = NULL)
+	public static function findClass (string $rel_table, ?string $parent_class = NULL)
 	{
 		# An optional parent class can be supplied
 		$parent_class = $parent_class ?: $rel_table;
 
 		# Does an App path exist?
 		$corePath = str::getClassCase("\\App\\{$parent_class}\\{$rel_table}");
-		if(class_exists($corePath)){
+		if (class_exists($corePath)){
 			return $corePath;
 		}
 
 		# Does a Common path exist?
 		$commonPath = str::getClassCase("\\App\\Common\\{$parent_class}\\{$rel_table}");
-		if(class_exists($commonPath)){
+		if (class_exists($commonPath)){
 			return $commonPath;
 		}
 
 		# Does an API path exist?
 		$corePath = str::getClassCase("\\API\\{$parent_class}\\{$rel_table}");
-		if(class_exists($corePath)){
+		if (class_exists($corePath)){
 			return $corePath;
 		}
 
@@ -815,7 +809,7 @@ class str {
 	 * @return string|string[]
 	 * @return string|string[]
 	 */
-	public static function getClassCase($snake)
+	public static function getClassCase ($snake)
 	{
 		return str_replace("_", "", ucwords($snake, "_\\"));
 	}
@@ -830,7 +824,7 @@ class str {
 	 * @return string
 	 * @link https://stackoverflow.com/a/40514305/429071
 	 */
-	public static function camelToSnakeCase(string $string, string $us = "_"): string
+	public static function camelToSnakeCase (string $string, string $us = "_"): string
 	{
 		return str_replace(" ", $us, strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string)));
@@ -904,9 +898,9 @@ class str {
 	 *
 	 * @return bool|mixed
 	 */
-	public static function ip($ip = NULL)
+	public static function ip ($ip = NULL)
 	{
-		if(!$_ENV['ipstack_access_key']){
+		if (!$_ENV['ipstack_access_key']){
 			//if a key hasn't been set, ignore this
 			return false;
 		}
@@ -923,8 +917,7 @@ class str {
 					"access_key" => $_ENV['ipstack_access_key'],
 				],
 			]);
-		}
-		catch(\Exception $e) {
+		} catch (\Exception $e) {
 			//Catch errors
 			return false;
 		}
@@ -942,7 +935,7 @@ class str {
 	 *
 	 * @return int the CRC32 checksum
 	 */
-	public static function generateChecksum(array $a): int
+	public static function generateChecksum (array $a): int
 	{
 		array_multisort($a);
 		return crc32(implode("", str::flatten($a)));
@@ -957,7 +950,7 @@ class str {
 	 *
 	 * @return bool Returns TRUE if the data is complete, FALSE if not.
 	 */
-	public static function validateChecksum(array $a, string $checksum): bool
+	public static function validateChecksum (array $a, string $checksum): bool
 	{
 		return ($checksum == str::generateChecksum($a));
 	}
@@ -973,14 +966,14 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function generate_uri($array, $urlencoded = NULL)
+	static function generate_uri ($array, $urlencoded = NULL)
 	{
 
 		# If an array is given (most common)
-		if(is_array($array)){
+		if (is_array($array)){
 			extract($array);
 			$hash = "{$rel_table}/{$rel_id}/{$action}";
-			if(!is_array($vars)){
+			if (!is_array($vars)){
 				//if there are no variables attached
 
 				# Remove any surplus slashes at the end
@@ -989,27 +982,26 @@ class str {
 		}
 
 		# If a string is given (less common)
-		if(is_string($array)){
+		if (is_string($array)){
 			$hash = $array;
 		}
 
 		# If there are vars (in the array)
-		if(is_array($vars)){
+		if (is_array($vars)){
 			# Callbacks can be their own URI in array form, make sure they're converted to string
-			if(is_array($vars['callback'])){
+			if (is_array($vars['callback'])){
 				$vars['callback'] = str::generate_uri($vars['callback'], true);
 			}
-			if(count($vars) == count($vars, COUNT_RECURSIVE)){
+			if (count($vars) == count($vars, COUNT_RECURSIVE)){
 				//if the vars array is NOT multi-dimensional
-				foreach($vars as $key => $val){
-					if($val === NULL){
+				foreach ($vars as $key => $val){
+					if ($val === NULL){
 						//Only if they're literally NULL, shall they be ignored
 						continue;
 					}
 					$hash .= "/$key/$val";
 				}
-			}
-			else {
+			} else {
 				//if the vars array _is_ multidimensional
 				$hash .= "/" . json_encode($vars);
 				//Encode the entire vars array as a JSON string
@@ -1042,7 +1034,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function urlencode($str)
+	static function urlencode ($str)
 	{
 		return strpos($str, '/') !== false ? urlencode($str) : $str;
 	}
@@ -1056,19 +1048,19 @@ class str {
 	 *
 	 * @return array|string
 	 */
-	static function urldecode($a)
+	static function urldecode ($a)
 	{
-		if(!$a){
+		if (!$a){
 			return $a;
 		}
-		if(is_array($a)){
-			foreach($a as $key => $val){
+		if (is_array($a)){
+			foreach ($a as $key => $val){
 
-				if($val === NULL){
+				if ($val === NULL){
 					continue;
 				}
 
-				if(is_array($val)){
+				if (is_array($val)){
 					$a[$key] = $val;
 					continue;
 				}
@@ -1089,11 +1081,11 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function generate_url($url, $hash_array = NULL)
+	static function generate_url ($url, $hash_array = NULL)
 	{
-		if(is_array($hash_array)){
+		if (is_array($hash_array)){
 			$url .= "?";
-			foreach($hash_array as $key => $val){
+			foreach ($hash_array as $key => $val){
 				$keys[] = "{$key}={$val}";
 			}
 			$url .= implode("&", $keys);
@@ -1110,25 +1102,23 @@ class str {
 	 *
 	 * @return array|bool
 	 */
-	static function explode($delimiters, $string)
+	static function explode ($delimiters, $string)
 	{
-		if(!is_array(($delimiters)) && !is_array($string)){
+		if (!is_array(($delimiters)) && !is_array($string)){
 			//if neither the delimiter nor the string are arrays
 			return explode($delimiters, $string);
-		}
-		else if(!is_array($delimiters) && is_array($string)){
+		} else if (!is_array($delimiters) && is_array($string)){
 			//if the delimiter is not an array but the string is
-			foreach($string as $item){
-				foreach(explode($delimiters, $item) as $sub_item){
+			foreach ($string as $item){
+				foreach (explode($delimiters, $item) as $sub_item){
 					$items[] = $sub_item;
 				}
 			}
 			return $items;
-		}
-		else if(is_array($delimiters) && !is_array($string)){
+		} else if (is_array($delimiters) && !is_array($string)){
 			//if the delimiter is an array but the string is not
 			$string_array[] = $string;
-			foreach($delimiters as $delimiter){
+			foreach ($delimiters as $delimiter){
 				$string_array = self::explode($delimiter, $string_array);
 			}
 			return $string_array;
@@ -1146,12 +1136,12 @@ class str {
 	 * @return bool
 	 * @link http://stackoverflow.com/questions/6284553/using-an-array-as-needles-in-strpos
 	 */
-	public static function strposa($haystack, $needle, $offset = 0)
+	public static function strposa ($haystack, $needle, $offset = 0)
 	{
-		if(!is_array($needle))
+		if (!is_array($needle))
 			$needle = [$needle];
-		foreach($needle as $query){
-			if(strpos($haystack, $query, $offset) !== false)
+		foreach ($needle as $query){
+			if (strpos($haystack, $query, $offset) !== false)
 				return true; // stop on first true result
 		}
 		return false;
@@ -1169,16 +1159,15 @@ class str {
 	 * @return mixed
 	 * @link https://stackoverflow.com/a/1252710/429071
 	 */
-	static function str_replace_once($needle, $replace, $haystack, $last = NULL)
+	static function str_replace_once ($needle, $replace, $haystack, $last = NULL)
 	{
-		if($last){
+		if ($last){
 			$pos = strrpos($haystack, $needle);
-		}
-		else {
+		} else {
 			$pos = strpos($haystack, $needle);
 		}
 
-		if($pos !== false){
+		if ($pos !== false){
 			return substr_replace($haystack, $replace, $pos, strlen($needle));
 		}
 
@@ -1193,7 +1182,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function newline(?string $string): string
+	static function newline (?string $string): string
 	{
 		return str_replace(["\r\n", "\r", "\n"], "<br>", $string);
 	}
@@ -1208,7 +1197,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function bytes($bytes, $precision = 2)
+	static function bytes ($bytes, $precision = 2)
 	{
 		$units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
@@ -1229,13 +1218,13 @@ class str {
 	 *
 	 * @return bool|string
 	 */
-	static function getScriptTag($script)
+	static function getScriptTag ($script)
 	{
-		if(!$script){
+		if (!$script){
 			return false;
 		}
 
-		if(substr(trim(strtolower($script)), 0, strlen("<script>")) == "<script>"){
+		if (substr(trim(strtolower($script)), 0, strlen("<script>")) == "<script>"){
 			return $script;
 		}
 
@@ -1249,12 +1238,12 @@ class str {
 	 *
 	 * @return int
 	 */
-	static function get_array_depth($array)
+	static function get_array_depth ($array)
 	{
 		$depth = 0;
 		$iteIte = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($array));
 
-		foreach($iteIte as $ite){
+		foreach ($iteIte as $ite){
 			$d = $iteIte->getDepth();
 			$depth = $d > $depth ? $d : $depth;
 		}
@@ -1273,13 +1262,13 @@ class str {
 	 *
 	 * @return array|null
 	 */
-	static function getAttrArray($attr = NULL, $defaults = NULL, $only_attr = NULL)
+	static function getAttrArray ($attr = NULL, $defaults = NULL, $only_attr = NULL)
 	{
-		if($only_attr === false){
+		if ($only_attr === false){
 			return [];
 		}
 
-		if($only_attr){
+		if ($only_attr){
 			return is_array($only_attr) ? $only_attr : [$only_attr];
 		}
 
@@ -1302,12 +1291,12 @@ class str {
 	 *
 	 * @return bool|string
 	 */
-	static function getAttrTag($attr, $val, $if_null = NULL)
+	static function getAttrTag ($attr, $val, $if_null = NULL)
 	{
-		if(is_array($val)){
+		if (is_array($val)){
 			$val_array = $val;
 			unset($val);
-			if(str::isNumericArray($val_array)){
+			if (str::isNumericArray($val_array)){
 				//if keys don't matter
 				array_walk_recursive($val_array, function($a) use (&$flat_val_array){
 					$flat_val_array[] = $a;
@@ -1315,17 +1304,15 @@ class str {
 				//flatten the potentially multidimensional array
 				$val = implode(" ", array_unique(array_filter($flat_val_array)));
 				//remove empty and duplicate values, and then translate the array to a string
-			}
-			else {
+			} else {
 				//if keys do matter
-				foreach($val_array as $k => $v){
-					if(is_numeric($k) && is_array($v)){
-						foreach($v as $vk => $vv){
+				foreach ($val_array as $k => $v){
+					if (is_numeric($k) && is_array($v)){
+						foreach ($v as $vk => $vv){
 							$val .= "{$vk}:{$vv};";
 						}
-					}
-					else {
-						if($k && strlen($v)){
+					} else {
+						if ($k && strlen($v)){
 							$val .= "{$k}:{$v};";
 						}
 					}
@@ -1333,13 +1320,12 @@ class str {
 			}
 		}
 
-		if(!strlen(trim($val))){
+		if (!strlen(trim($val))){
 			//if there is no visible val
-			if($if_null){
+			if ($if_null){
 				//if there is a replacement
 				$val = $if_null;
-			}
-			else {
+			} else {
 				//otherwise peace out
 				return false;
 			}
@@ -1349,7 +1335,7 @@ class str {
 		//make sure the val doesn't break the whole tag
 		//@link https://stackoverflow.com/a/1081581/429071
 
-		if(!$attr){
+		if (!$attr){
 			//if there is no attribute, just return the value (now a string)
 			return " {$val}";
 		}
@@ -1364,7 +1350,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function muteText(?string $text): string
+	public static function muteText (?string $text): string
 	{
 		return "<i class=\"text-silent\">{$text}</i>";
 	}
@@ -1379,7 +1365,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function id($prefix = NULL)
+	public static function id ($prefix = NULL)
 	{
 		$prefix = $prefix ?: "id";
 		$prefix = preg_replace("/[^A-Za-z0-9]/", '_', $prefix);
@@ -1398,12 +1384,12 @@ class str {
 	 *
 	 * @return mixed|string
 	 */
-	public static function uuid($length = NULL)
+	public static function uuid ($length = NULL)
 	{
 		$obj = \Ramsey\Uuid\Uuid::uuid4();
 		$uuid = $obj->toString();
 
-		switch($length) {
+		switch ($length) {
 		case 4: # Return the second section (4 characteres) of the UUID
 			return explode("-", $uuid)[1];
 			break;
@@ -1427,7 +1413,7 @@ class str {
 	 * @return bool Returns TRUE if the pattern matches given subject,
 	 *                FALSE if it does not or if an error occurred.
 	 */
-	public static function isUuid(?string $string): bool
+	public static function isUuid (?string $string): bool
 	{
 		return preg_match("/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i", $string);
 	}
@@ -1443,14 +1429,13 @@ class str {
 	 *
 	 * @return string|bool
 	 */
-	static function check($value, $cross = false, ?array $settings = [])
+	static function check ($value, $cross = false, ?array $settings = [])
 	{
-		if($value){
+		if ($value){
 			$settings['name'] = $settings['name'] ?: "check";
 			$settings['colour'] = $settings['colour'] ?: "success";
 			return Icon::generate($settings);
-		}
-		else if($cross){
+		} else if ($cross){
 			$settings['name'] = $settings['name'] ?: "times";
 			$settings['colour'] = $settings['colour'] ?: "danger";
 			return Icon::generate($settings);
@@ -1469,20 +1454,18 @@ class str {
 	 * @return string
 	 * @throws \Exception
 	 */
-	static function ago($datetime_or_time, $future = NULL)
+	static function ago ($datetime_or_time, $future = NULL)
 	{
-		if(!$datetime_or_time){
+		if (!$datetime_or_time){
 			return '';
-		}
-		else if(is_object($datetime_or_time)){
+		} else if (is_object($datetime_or_time)){
 			$then = clone $datetime_or_time;
 			$datetime_or_time = $then->format("Y-m-d H:i:s");
-		}
-		else {
+		} else {
 			$then = new \DateTime($datetime_or_time);
 		}
 
-		if($future){
+		if ($future){
 			$future = "jQuery.timeago.settings.allowFuture = true;";
 		}
 
@@ -1515,7 +1498,7 @@ EOF;
 	 * @throws \Exception
 	 * @link https://stackoverflow.com/a/18602474/429071
 	 */
-	static function time_elapsed_string($datetime, $full = false)
+	static function time_elapsed_string ($datetime, $full = false)
 	{
 		$now = new \DateTime;
 		$ago = new \DateTime($datetime);
@@ -1533,16 +1516,15 @@ EOF;
 			'i' => 'minute',
 			's' => 'second',
 		];
-		foreach($string as $k => &$v){
-			if($diff->$k){
+		foreach ($string as $k => &$v){
+			if ($diff->$k){
 				$v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
-			}
-			else {
+			} else {
 				unset($string[$k]);
 			}
 		}
 
-		if(!$full)
+		if (!$full)
 			$string = array_slice($string, 0, 1);
 		return $string ? implode(', ', $string) . ' ago' : 'just now';
 	}
@@ -1556,18 +1538,18 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function days($date, $string = false)
+	static function days ($date, $string = false)
 	{
-		if(!$date){
+		if (!$date){
 			return false;
 		}
 		$then = \DateTime::createFromFormat("Y-m-d", $date);
 		$now = new \DateTime();
 		$days_away = (int)$then->diff($now)->format("%r%a");
-		if(!$string){
+		if (!$string){
 			return $days_away;
 		}
-		switch($days_away) {
+		switch ($days_away) {
 		case -1:
 			return "yesterday";
 			break;
@@ -1589,9 +1571,9 @@ EOF;
 	 * @return string|null
 	 * @throws \Exception
 	 */
-	static function birthday(?string $ymd): ?string
+	static function birthday (?string $ymd): ?string
 	{
-		if(!$ymd){
+		if (!$ymd){
 			return NULL;
 		}
 
@@ -1627,7 +1609,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function moreThanMinutesSince(float $minutes, string $since): bool
+	static function moreThanMinutesSince (float $minutes, string $since): bool
 	{
 		return (floor((strtotime("now") - strtotime($since)) / 60) >= $minutes);
 	}
@@ -1643,10 +1625,10 @@ EOF;
 	 *
 	 * @return string|null
 	 */
-	static function number(?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2): ?string
+	static function number (?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2): ?string
 	{
 		# A number (even if it's "0") is required
-		if(!strlen($amount)){
+		if (!strlen($amount)){
 			return NULL;
 		}
 
@@ -1654,12 +1636,12 @@ EOF;
 		$amount = number_format($amount, $decimals, '.', ',');
 
 		# Pad if required
-		if($padding){
+		if ($padding){
 			$amount = str_pad($amount, $padding, " ", STR_PAD_LEFT);
 		}
 
 		# Prefix with currency symbol + space
-		if($currency){
+		if ($currency){
 			$amount = "{$currency} {$amount}";
 		}
 
@@ -1673,11 +1655,11 @@ EOF;
 	 *
 	 * @return string
 	 */
-	static function monospace($a): ?string
+	static function monospace ($a): ?string
 	{
-		if(!is_array($a)){
+		if (!is_array($a)){
 			# There needs to be _something_ to monospace
-			if(!strlen($a)){
+			if (!strlen($a)){
 				return NULL;
 			}
 
@@ -1689,7 +1671,7 @@ EOF;
 		extract($a);
 
 		# Make uppercase
-		if($upper){
+		if ($upper){
 			$text = strtoupper($text);
 		}
 
@@ -1718,7 +1700,7 @@ EOF;
 	 *
 	 * @return \DateTime
 	 */
-	public static function today(): \DateTime
+	public static function today (): \DateTime
 	{
 		# Get today's date (only)
 		$today = new \DateTime();
@@ -1735,7 +1717,7 @@ EOF;
 	 * @return \DateTime
 	 * @throws \Exception
 	 */
-	public static function newDateTimeDateOnly(?string $date = NULL): \DateTime
+	public static function newDateTimeDateOnly (?string $date = NULL): \DateTime
 	{
 		$dt = new \DateTime($date);
 		$dt->setTime(0, 0, 0);
@@ -1752,14 +1734,14 @@ EOF;
 	 * @return string
 	 * @link https://www.php.net/manual/en/function.var-export.php#122853
 	 */
-	public static function var_export($expression, $return = false)
+	public static function var_export ($expression, $return = false)
 	{
 		$export = var_export($expression, true);
 		$export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
 		$array = preg_split("/\r\n|\n|\r/", $export);
 		$array = preg_replace(["/\s*array\s\($/", "/\)(,)?$/", "/\s=>\s$/"], [NULL, ']$1', ' => ['], $array);
 		$export = join(PHP_EOL, array_filter(["["] + $array));
-		if((bool)$return)
+		if ((bool)$return)
 			return $export;
 		else echo $export;
 	}
@@ -1773,13 +1755,13 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function pre($str, $crop = NULL, $language = NULL)
+	public static function pre ($str, $crop = NULL, $language = NULL)
 	{
-		if(is_array($str)){
+		if (is_array($str)){
 			$str = str::var_export($str, true);
 		}
 
-		if($crop){
+		if ($crop){
 			return /** @lang HTML */ <<<EOF
 <xmp style="
 	font-size: x-small;
@@ -1802,7 +1784,7 @@ EOF;
 		$str = "```\r\n{$str}\r\n```";
 		$str = $Parsedown->text($str);
 
-		if($language){
+		if ($language){
 			$class = str::getAttrTag("class", "language-{$language}");
 			$str = str_replace("<code>", "<code{$class}>", $str);
 		}
@@ -1818,9 +1800,9 @@ EOF;
 	 * @param string|int $key   They key of the element you want to reposition.
 	 * @param int        $order The position in the array you want to move the element to. (0 is first)
 	 */
-	static function repositionArrayElement(array &$array, $key, int $order): void
+	static function repositionArrayElement (array &$array, $key, int $order): void
 	{
-		if(($a = array_search($key, array_keys($array))) === false){
+		if (($a = array_search($key, array_keys($array))) === false){
 			return;
 		}
 		$p1 = array_splice($array, $a, 1);
@@ -1845,16 +1827,16 @@ EOF;
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
-	static function multidimensionalOrderBy(array &$array, array $order): void
+	static function multidimensionalOrderBy (array &$array, array $order): void
 	{
 		uasort($array, function($a, $b) use ($order){
 			$t = [true => -1, false => 1];
 			$r = true;
 			$k = 1;
-			foreach($order as $key => $value){
+			foreach ($order as $key => $value){
 				$k = (strtolower($value) === 'asc') ? 1 : -1;
 				$r = ($a[$key] < $b[$key]);
-				if($a[$key] !== $b[$key]){
+				if ($a[$key] !== $b[$key]){
 					return $t[$r] * $k;
 				}
 
@@ -1871,11 +1853,11 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function isAssociativeArray($arr)
+	static function isAssociativeArray ($arr)
 	{
-		if(!is_array($arr))
+		if (!is_array($arr))
 			return false;
-		if([] === $arr)
+		if ([] === $arr)
 			return false;
 		return array_keys($arr) !== range(0, count($arr) - 1);
 	}
@@ -1890,9 +1872,9 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function isNumericArray($arr)
+	static function isNumericArray ($arr)
 	{
-		if(!is_array($arr))
+		if (!is_array($arr))
 			return false;
 		return array_keys($arr) === range(0, (count($arr) - 1));
 	}
@@ -1905,7 +1887,7 @@ EOF;
 	 *
 	 * @return string A human readable XML string.
 	 */
-	public static function xmlify($array, $root)
+	public static function xmlify ($array, $root)
 	{
 		$xml = self::array_to_xml($array, new \SimpleXMLElement($root))->asXML();
 		$dom = new \DOMDocument;
@@ -1923,13 +1905,13 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function get_array_as_csv($array)
+	public static function get_array_as_csv ($array)
 	{
 		$f = fopen('php://memory', 'r+');
 		# Header row
 		fputcsv($f, array_keys(array_shift($array)));
 		# Data rows
-		foreach($array as $fields){
+		foreach ($array as $fields){
 			fputcsv($f, $fields);
 		}
 		rewind($f);
@@ -1948,18 +1930,18 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public static function csvAsArray(string $file, ?string $delimiter = ",", ?int $skip_rows = 0): array
+	public static function csvAsArray (string $file, ?string $delimiter = ",", ?int $skip_rows = 0): array
 	{
 		$all_rows = [];
 
 		$header = NULL;//null; // has header
-		if(($handle = fopen($file, "r")) !== false){
-			while(($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
-				if($skip_rows && $skip_rows > $rows_skipped){
+		if (($handle = fopen($file, "r")) !== false){
+			while (($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
+				if ($skip_rows && $skip_rows > $rows_skipped){
 					$rows_skipped++;
 					continue;
 				}
-				if($header === NULL){
+				if ($header === NULL){
 					$header = $row;
 					continue;
 				}
@@ -1980,7 +1962,7 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function AU($input, $count = 1)
+	public static function AU ($input, $count = 1)
 	{
 		return ucfirst(self::A($input, $count));
 	}
@@ -1993,7 +1975,7 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function AN($input, $count = 1)
+	public static function AN ($input, $count = 1)
 	{
 		return self::A($input, $count);
 	}
@@ -2004,12 +1986,12 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function A($input, $count = 1)
+	public static function A ($input, $count = 1)
 	{
 		$matches = [];
 		$matchCount = preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
 		[$all, $pre, $word, $post] = $matches;
-		if(!$word)
+		if (!$word)
 			return $input;
 		$result = self::_indef_article($word, $count);
 		return $pre . $result . $post;
@@ -2045,9 +2027,9 @@ EOF;
 	 *
 	 * @return string
 	 */
-	private static function _indef_article($word, $count)
+	private static function _indef_article ($word, $count)
 	{
-		if($count != 1) // TO DO: Check against $PL_count_one instead
+		if ($count != 1) // TO DO: Check against $PL_count_one instead
 			return "$count $word";
 
 		# HANDLE USER-DEFINED VARIANTS
@@ -2057,43 +2039,43 @@ EOF;
 		#These need to be checked early due to the methods used in some cases below
 
 		#any number starting with an '8' uses 'an'
-		if(preg_match("/^[8](\d+)?/", $word))
+		if (preg_match("/^[8](\d+)?/", $word))
 			return "an $word";
 
 		#numbers starting with a '1' are trickier, only use 'an'
 		#if there are 3, 6, 9, … digits after the 11 or 18
 
 		#check if word starts with 11 or 18
-		if(preg_match("/^[1][1](\d+)?/", $word) || (preg_match("/^[1][8](\d+)?/", $word))){
+		if (preg_match("/^[1][1](\d+)?/", $word) || (preg_match("/^[1][8](\d+)?/", $word))){
 
 			#first strip off any decimals and remove spaces or commas
 			#then if the number of digits modulus 3 is 2 we have a match
-			if(strlen(preg_replace(["/\s/", "/,/", "/\.(\d+)?/"], '', $word)) % 3 == 2)
+			if (strlen(preg_replace(["/\s/", "/,/", "/\.(\d+)?/"], '', $word)) % 3 == 2)
 				return "an $word";
 		}
 
 		# HANDLE ORDINAL FORMS
-		if(preg_match("/^(" . self::$A_ordinal_a . ")/i", $word))
+		if (preg_match("/^(" . self::$A_ordinal_a . ")/i", $word))
 			return "a $word";
-		if(preg_match("/^(" . self::$A_ordinal_an . ")/i", $word))
+		if (preg_match("/^(" . self::$A_ordinal_an . ")/i", $word))
 			return "an $word";
 
 		# HANDLE SPECIAL CASES
 
-		if(preg_match("/^(" . self::$A_explicit_an . ")/i", $word))
+		if (preg_match("/^(" . self::$A_explicit_an . ")/i", $word))
 			return "an $word";
-		if(preg_match("/^[aefhilmnorsx]$/i", $word))
+		if (preg_match("/^[aefhilmnorsx]$/i", $word))
 			return "an $word";
-		if(preg_match("/^[bcdgjkpqtuvwyz]$/i", $word))
+		if (preg_match("/^[bcdgjkpqtuvwyz]$/i", $word))
 			return "a $word";
 
 		# HANDLE ABBREVIATIONS
 
-		if(preg_match("/^(" . self::$A_abbrev . ")/x", $word))
+		if (preg_match("/^(" . self::$A_abbrev . ")/x", $word))
 			return "an $word";
-		if(preg_match("/^[aefhilmnorsx][.-]/i", $word))
+		if (preg_match("/^[aefhilmnorsx][.-]/i", $word))
 			return "an $word";
-		if(preg_match("/^[a-z][.-]/i", $word))
+		if (preg_match("/^[a-z][.-]/i", $word))
 			return "a $word";
 
 		# HANDLE CONSONANTS
@@ -2102,35 +2084,35 @@ EOF;
 		#But is necessary for later matching of some special cases.  Need to move digit
 		#recognition above this.
 		#rule is: case insensitive match any string that starts with a letter not in [aeiouy]
-		if(preg_match("/^[^aeiouy]/i", $word))
+		if (preg_match("/^[^aeiouy]/i", $word))
 			return "a $word";
 
 		# HANDLE SPECIAL VOWEL-FORMS
 
-		if(preg_match("/^e[uw]/i", $word))
+		if (preg_match("/^e[uw]/i", $word))
 			return "a $word";
-		if(preg_match("/^onc?e\b/i", $word))
+		if (preg_match("/^onc?e\b/i", $word))
 			return "a $word";
-		if(preg_match("/^uni([^nmd]|mo)/i", $word))
+		if (preg_match("/^uni([^nmd]|mo)/i", $word))
 			return "a $word";
-		if(preg_match("/^ut[th]/i", $word))
+		if (preg_match("/^ut[th]/i", $word))
 			return "an $word";
-		if(preg_match("/^u[bcfhjkqrst][aeiou]/i", $word))
+		if (preg_match("/^u[bcfhjkqrst][aeiou]/i", $word))
 			return "a $word";
 
 		# HANDLE SPECIAL CAPITALS
 
-		if(preg_match("/^U[NK][AIEO]?/", $word))
+		if (preg_match("/^U[NK][AIEO]?/", $word))
 			return "a $word";
 
 		# HANDLE VOWELS
 
-		if(preg_match("/^[aeiou]/i", $word))
+		if (preg_match("/^[aeiou]/i", $word))
 			return "an $word";
 
 		# HANDLE y... (BEFORE CERTAIN CONSONANTS IMPLIES (UNNATURALIZED) "i.." SOUND)
 
-		if(preg_match("/^(" . self::$A_y_cons . ")/i", $word))
+		if (preg_match("/^(" . self::$A_y_cons . ")/i", $word))
 			return "an $word";
 
 		#DEFAULT CONDITION BELOW
@@ -2147,16 +2129,16 @@ EOF;
 	 * @return array|bool
 	 * @link https://stackoverflow.com/a/10424516/429071
 	 */
-	public static function flatten($array, $glue = '.')
+	public static function flatten ($array, $glue = '.')
 	{
-		if(!is_array($array)){
+		if (!is_array($array)){
 			return false;
 		}
 		$ritit = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($array));
 		$result = [];
-		foreach($ritit as $leafValue){
+		foreach ($ritit as $leafValue){
 			$keys = [];
-			foreach(range(0, $ritit->getDepth()) as $depth){
+			foreach (range(0, $ritit->getDepth()) as $depth){
 				$keys[] = $ritit->getSubIterator($depth)->key();
 			}
 			$result[join($glue, $keys)] = $leafValue;
@@ -2175,13 +2157,13 @@ EOF;
 	 *
 	 * @return string|null
 	 */
-	public static function truncateIf(?string $string, int $max_length, ?string $suffix = "..."): ?string
+	public static function truncateIf (?string $string, int $max_length, ?string $suffix = "..."): ?string
 	{
-		if(!$string){
+		if (!$string){
 			return $string;
 		}
 
-		if(strlen($string) <= $max_length){
+		if (strlen($string) <= $max_length){
 			return $string;
 		}
 
@@ -2197,26 +2179,25 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public static function array_key_search($array, $key): ?array
+	public static function array_key_search ($array, $key): ?array
 	{
 		$results = [];
 
-		if(!is_array($array)){
+		if (!is_array($array)){
 			return $results;
 		}
 
-		if($array[$key]){
-			if(str::isNumericArray($array[$key])){
+		if ($array[$key]){
+			if (str::isNumericArray($array[$key])){
 				$results = array_merge($results, $array[$key]);
-			}
-			else {
+			} else {
 				$results[] = $array[$key];
 			}
 			unset($array[$key]);
 		}
 
-		foreach($array as $k => $v){
-			if(is_array($v)){
+		foreach ($array as $k => $v){
+			if (is_array($v)){
 				$results = array_merge($results, self::array_key_search($v, $key));
 			}
 		}
@@ -2237,9 +2218,9 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public static function array_replace_keys($array, array $old_to_new_keys)
+	public static function array_replace_keys ($array, array $old_to_new_keys)
 	{
-		if(!is_array($array)){
+		if (!is_array($array)){
 			return $array;
 		}
 
@@ -2247,12 +2228,12 @@ EOF;
 		$ak = array_keys($old_to_new_keys);
 		$av = array_values($old_to_new_keys);
 
-		foreach($array as $key => $value){
-			if(array_search($key, $ak, true) !== false){
+		foreach ($array as $key => $value){
+			if (array_search($key, $ak, true) !== false){
 				$key = $av[array_search($key, $ak)];
 			}
 
-			if(is_array($value)){
+			if (is_array($value)){
 				$value = str::array_replace_keys($value, $old_to_new_keys);
 			}
 
@@ -2272,9 +2253,9 @@ EOF;
 	 * @return array
 	 * @link https://programmer.group/php-recursive-multidimensional-array-replacement-key-name-and-value.html
 	 */
-	public static function array_replace_values($array, array $old_to_new_values)
+	public static function array_replace_values ($array, array $old_to_new_values)
 	{
-		if(!is_array($array)){
+		if (!is_array($array)){
 			return $array;
 		}
 
@@ -2282,13 +2263,11 @@ EOF;
 		$ak = array_keys($old_to_new_values);
 		$av = array_values($old_to_new_values);
 
-		foreach($array as $key => $value){
-			if(is_array($value)){
+		foreach ($array as $key => $value){
+			if (is_array($value)){
 				$value = str::array_replace_values($value, $old_to_new_values);
-			}
-
-			else {
-				if(array_search($value, $ak, true) !== false){
+			} else {
+				if (array_search($value, $ak, true) !== false){
 					$value = $av[array_search($value, $ak)];
 				}
 			}
@@ -2308,21 +2287,21 @@ EOF;
 	 *
 	 * @return array|null
 	 */
-	public static function array_intersect_key_multi_values(?array $array, ?string $col, ?array $values): ?array
+	public static function array_intersect_key_multi_values (?array $array, ?string $col, ?array $values): ?array
 	{
-		if(empty($array)){
+		if (empty($array)){
 			return NULL;
 		}
-		if(!$col){
+		if (!$col){
 			return NULL;
 		}
-		if(empty($values)){
+		if (empty($values)){
 			return NULL;
 		}
 
 		$matches = [];
 
-		foreach($values as $value){
+		foreach ($values as $value){
 			$matches = array_merge($matches, array_keys(array_column($array, $col), $value));
 		}
 		return $matches;
@@ -2336,15 +2315,15 @@ EOF;
 	 *
 	 * @return string|null
 	 */
-	public static function stringFromArray($array, ?string $glue = "|"): ?string
+	public static function stringFromArray ($array, ?string $glue = "|"): ?string
 	{
 		# If it's missing, return NULL
-		if(!$array){
+		if (!$array){
 			return NULL;
 		}
 
 		# If it's not an array, just return it
-		if(!is_array($array)){
+		if (!is_array($array)){
 			return $array;
 		}
 
@@ -2359,15 +2338,15 @@ EOF;
 	 *
 	 * @return array|null
 	 */
-	public static function arrayFromString($string, ?string $delimiter = "|"): ?array
+	public static function arrayFromString ($string, ?string $delimiter = "|"): ?array
 	{
 		# If it's missing, return NULL
-		if(!$string){
+		if (!$string){
 			return NULL;
 		}
 
 		# If it's already an array, just return it
-		if(is_array($string)){
+		if (is_array($string)){
 			return $string;
 		}
 
@@ -2383,23 +2362,21 @@ EOF;
 	 *
 	 * @return bool|mixed Returns a string if the vars have been entered correctly, otherwise FALSE.
 	 */
-	public static function were($array, $rel_table, $include_count = false)
+	public static function were ($array, $rel_table, $include_count = false)
 	{
-		if(is_array($array)){
+		if (is_array($array)){
 			$count = count($array);
-		}
-		else if(is_int($array) || is_string($array)){
+		} else if (is_int($array) || is_string($array)){
 			$count = (int)$array;
-		}
-		else {
+		} else {
 			$count = 0;
 		}
-		if(!is_string($rel_table)){
+		if (!is_string($rel_table)){
 			return false;
 		}
 
-		if($include_count){
-			switch($count) {
+		if ($include_count){
+			switch ($count) {
 			case 0:
 				return str::title("No " . str::pluralise($rel_table) . " were");
 				break;
@@ -2412,7 +2389,7 @@ EOF;
 			}
 		}
 
-		switch($count) {
+		switch ($count) {
 		case 0:
 			return str::pluralise($rel_table) . " were";
 			break;
@@ -2510,29 +2487,29 @@ EOF;
 	 * @return bool|string
 	 * @link http://kuwamoto.org/2007/12/17/improved-pluralizing-in-php-actionscript-and-ror/
 	 */
-	public static function pluralise($string)
+	public static function pluralise ($string)
 	{
 		// If no string is supplied
-		if(!$string){
+		if (!$string){
 			return false;
 		}
 
 		// save some time in the case that singular and plural are the same
-		if(in_array(strtolower($string), self::$uncountable))
+		if (in_array(strtolower($string), self::$uncountable))
 			return $string;
 
 
 		// check for irregular singular forms
-		foreach(self::$irregular as $pattern => $result){
+		foreach (self::$irregular as $pattern => $result){
 			$pattern = '/' . $pattern . '$/i';
 
-			if(preg_match($pattern, $string))
+			if (preg_match($pattern, $string))
 				return preg_replace($pattern, $result, $string);
 		}
 
 		// check for matches using regular expressions
-		foreach(self::$plural as $pattern => $result){
-			if(preg_match($pattern, $string))
+		foreach (self::$plural as $pattern => $result){
+			if (preg_match($pattern, $string))
 				return preg_replace($pattern, $result, $string);
 		}
 
@@ -2544,23 +2521,23 @@ EOF;
 	 *
 	 * @return string|string[]|null
 	 */
-	public static function singularise($string)
+	public static function singularise ($string)
 	{
 		// save some time in the case that singular and plural are the same
-		if(in_array(strtolower($string), self::$uncountable))
+		if (in_array(strtolower($string), self::$uncountable))
 			return $string;
 
 		// check for irregular plural forms
-		foreach(self::$irregular as $result => $pattern){
+		foreach (self::$irregular as $result => $pattern){
 			$pattern = '/' . $pattern . '$/i';
 
-			if(preg_match($pattern, $string))
+			if (preg_match($pattern, $string))
 				return preg_replace($pattern, $result, $string);
 		}
 
 		// check for matches using regular expressions
-		foreach(self::$singular as $pattern => $result){
-			if(preg_match($pattern, $string))
+		foreach (self::$singular as $pattern => $result){
+			if (preg_match($pattern, $string))
 				return preg_replace($pattern, $result, $string);
 		}
 
@@ -2588,30 +2565,27 @@ EOF;
 	 *
 	 * @return bool|null|string|string[]
 	 */
-	public static function pluralise_if($array, $rel_table, $include_count = NULL, $include_is_are = NULL)
+	public static function pluralise_if ($array, $rel_table, $include_count = NULL, $include_is_are = NULL)
 	{
-		if(is_array($array)){
+		if (is_array($array)){
 			$count = count($array);
-		}
-		else if(is_int($array) && $array){
+		} else if (is_int($array) && $array){
 			$count = $array;
-		}
-		else if(is_string($array) && $string = preg_replace("/[^0-9.]/", "", $array)){
+		} else if (is_string($array) && $string = preg_replace("/[^0-9.]/", "", $array)){
 			$count = $string;
-		}
-		else {
+		} else {
 			$count = 0;
 		}
-		if(!is_string($rel_table)){
+		if (!is_string($rel_table)){
 			return false;
 		}
-		if($include_count){
+		if ($include_count){
 			$return = "{$count} ";
 		}
 
 		$return .= $count == 1 ? $rel_table : str::pluralise($rel_table);
 
-		if($include_is_are){
+		if ($include_is_are){
 			$return .= $count == 1 ? " is" : " are";
 		}
 
@@ -2627,10 +2601,10 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function isAre($count, ?bool $passed_tense = NULL): string
+	public static function isAre ($count, ?bool $passed_tense = NULL): string
 	{
 		$count = is_array($count) ? count($count) : $count;
-		if($passed_tense){
+		if ($passed_tense){
 			return abs($count) == 1 ? "was" : "were";
 		}
 		return abs($count) == 1 ? "is" : "are";
@@ -2644,25 +2618,32 @@ EOF;
 	 * </code>
 	 * //Returns "apples, oranges, bananas and pears"
 	 *
-	 * @param        $array
-	 * @param string $glue
-	 * @param string $and_or
+	 * @param             $array
+	 * @param string|null $glue
+	 * @param string|null $and_or
+	 * @param string|null $tag
 	 *
 	 * @return bool|mixed|string
 	 */
-	public static function oxfordImplode($array, $glue = ", ", $and_or = "and")
+	public static function oxfordImplode (?array $array, ?string $glue = ", ", ?string $and_or = "and", ?string $tag = NULL)
 	{
-		if(empty($array)){
+		if (empty($array)){
 			return false;
 		}
 
-		if(count($array) == 1){
+		if($tag){
+			$array = array_map(function($item) use ($tag){
+				return "<{$tag}>{$item}</{$tag}>";
+			}, $array);
+		}
+
+		if (count($array) == 1){
 			return reset($array);
 		}
 
 		$and_or = " {$and_or} ";
 
-		if(count($array) == 2){
+		if (count($array) == 2){
 			return reset($array) . $and_or . end($array);
 		}
 
@@ -2680,7 +2661,7 @@ EOF;
 	 * @return null|string|string[]
 	 * @link https://stackoverflow.com/a/42058764/429071
 	 */
-	public static function filter_filename($filename, $beautify = true)
+	public static function filter_filename ($filename, $beautify = true)
 	{
 		// sanitize filename
 		$filename = preg_replace(
@@ -2697,7 +2678,7 @@ EOF;
 		$filename = ltrim($filename, '.-');
 
 		// optional beautification
-		if($beautify)
+		if ($beautify)
 			$filename = self::beautify_filename($filename);
 
 		# Get the file extension
@@ -2705,7 +2686,7 @@ EOF;
 		$filename_without_extension = pathinfo($filename, PATHINFO_FILENAME);
 
 		# Strip double extensions
-		if(substr($filename_without_extension, strlen($ext) *-1) == $ext){
+		if (substr($filename_without_extension, strlen($ext) * -1) == $ext){
 			$fielname = $filename_without_extension;
 		}
 
@@ -2722,7 +2703,7 @@ EOF;
 	 *
 	 * @return string|string[]|null
 	 */
-	public static function beautify_filename($filename)
+	public static function beautify_filename ($filename)
 	{
 		// reduce consecutive characters
 		$filename = preg_replace([
@@ -2767,26 +2748,24 @@ EOF;
 	 *
 	 * @return int
 	 */
-	public static function mismatch($a, $b, $excluded_words_case_insensitive = NULL)
+	public static function mismatch ($a, $b, $excluded_words_case_insensitive = NULL)
 	{
 		# Format the excluded words (if provided)
-		if($excluded_words_case_insensitive){
-			if(!is_array($excluded_words_case_insensitive)){
+		if ($excluded_words_case_insensitive){
+			if (!is_array($excluded_words_case_insensitive)){
 				$string = mb_strtolower($excluded_words_case_insensitive);
 				$excluded_words[] = $string;
-			}
-			else {
+			} else {
 				$excluded_words = array_map("mb_strtolower", $excluded_words_case_insensitive);
 			}
-		}
-		else {
+		} else {
 			$excluded_words = [];
 		}
 
 		# 0. Exact match
 		$mismatch = 0;
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
@@ -2797,7 +2776,7 @@ EOF;
 		$a = mb_strtolower($a);
 		$b = mb_strtolower($b);
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
@@ -2808,7 +2787,7 @@ EOF;
 		$a = preg_replace("/\pM*/u", "", normalizer_normalize($a, \Normalizer::FORM_D));
 		$b = preg_replace("/\pM*/u", "", normalizer_normalize($b, \Normalizer::FORM_D));
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
@@ -2819,7 +2798,7 @@ EOF;
 		$a = implode(" ", array_filter(preg_split('/\s+/', $a)));
 		$b = implode(" ", array_filter(preg_split('/\s+/', $b)));
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
@@ -2830,7 +2809,7 @@ EOF;
 		$a = trim(str_replace($excluded_words, "", $a));
 		$b = trim(str_replace($excluded_words, "", $b));
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
@@ -2841,7 +2820,7 @@ EOF;
 		$a = implode(" ", array_filter(preg_split('/[^A-Za-z0-9]+/', $a)));
 		$b = implode(" ", array_filter(preg_split('/[^A-Za-z0-9]+/', $b)));
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
@@ -2859,23 +2838,23 @@ EOF;
 			return $b;
 		}, preg_split('/\s+/', $b)));
 
-		if($a == $b){
+		if ($a == $b){
 			return $mismatch;
 		}
 
 		# 7. omitted words mismatch "a contains b, or b contains a, but also has additional strings"
 		$mismatch++;
 
-		if(empty(array_diff(explode(" ", $a), explode(" ", $b))) || empty(array_diff(explode(" ", $b), explode(" ", $a)))){
+		if (empty(array_diff(explode(" ", $a), explode(" ", $b))) || empty(array_diff(explode(" ", $b), explode(" ", $a)))){
 			return $mismatch;
 		}
 
 		# 8. spelling mismatch (a==b, except 1 character)
 		$mismatch++;
 
-		if(strlen($a) > 3 && strlen($b) > 3){
+		if (strlen($a) > 3 && strlen($b) > 3){
 			//this only applies is both strings are longer than 3 characters
-			if((strlen($a) > strlen($b) ? strlen($a) : strlen($b)) - similar_text($a, $b) == 1){
+			if ((strlen($a) > strlen($b) ? strlen($a) : strlen($b)) - similar_text($a, $b) == 1){
 				return $mismatch;
 			}
 		}
@@ -2893,9 +2872,9 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function mismatch_colour($mismatch)
+	public static function mismatch_colour ($mismatch)
 	{
-		switch($mismatch) {
+		switch ($mismatch) {
 		case 7:
 			return "danger";
 			break;
@@ -2931,7 +2910,7 @@ EOF;
 	 *
 	 * @return array
 	 */
-	static function hex2hsl($hex)
+	static function hex2hsl ($hex)
 	{
 		$hex = [$hex[0] . $hex[1], $hex[2] . $hex[3], $hex[4] . $hex[5]];
 		$rgb = array_map(function($part){
@@ -2943,14 +2922,13 @@ EOF;
 
 		$l = ($max + $min) / 2;
 
-		if($max == $min){
+		if ($max == $min){
 			$h = $s = 0;
-		}
-		else {
+		} else {
 			$diff = $max - $min;
 			$s = $l > 0.5 ? $diff / (2 - $max - $min) : $diff / ($max + $min);
 
-			switch($max) {
+			switch ($max) {
 			case $rgb[0]:
 				$h = ($rgb[1] - $rgb[2]) / $diff + ($rgb[1] < $rgb[2] ? 6 : 0);
 				break;
@@ -2975,14 +2953,13 @@ EOF;
 	 *
 	 * @return string A string containgin a HEX colour value (ex. FF0000 for red)
 	 */
-	static function hsl2hex($hsl)
+	static function hsl2hex ($hsl)
 	{
 		[$h, $s, $l] = $hsl;
 
-		if($s == 0){
+		if ($s == 0){
 			$r = $g = $b = 1;
-		}
-		else {
+		} else {
 			$q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
 			$p = 2 * $l - $q;
 
@@ -3003,17 +2980,17 @@ EOF;
 	 *
 	 * @return float|int
 	 */
-	static function hue2rgb($p, $q, $t)
+	static function hue2rgb ($p, $q, $t)
 	{
-		if($t < 0)
+		if ($t < 0)
 			$t += 1;
-		if($t > 1)
+		if ($t > 1)
 			$t -= 1;
-		if($t < 1 / 6)
+		if ($t < 1 / 6)
 			return $p + ($q - $p) * 6 * $t;
-		if($t < 1 / 2)
+		if ($t < 1 / 2)
 			return $q;
-		if($t < 2 / 3)
+		if ($t < 2 / 3)
 			return $p + ($q - $p) * (2 / 3 - $t) * 6;
 
 		return $p;
@@ -3026,7 +3003,7 @@ EOF;
 	 *
 	 * @return string
 	 */
-	static function rgb2hex($rgb)
+	static function rgb2hex ($rgb)
 	{
 		return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
 	}
@@ -3038,12 +3015,12 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	static function isHexColour($colour)
+	static function isHexColour ($colour)
 	{
-		if(!is_string($colour)){
+		if (!is_string($colour)){
 			return false;
 		}
-		if(preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', $colour)){
+		if (preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', $colour)){
 			return true;
 		}
 		return false;
@@ -3059,7 +3036,7 @@ EOF;
 	 * @link http://en.wikipedia.org/wiki/Luhn_algorithm
 	 *       https://gist.github.com/troelskn/1287893
 	 */
-	static function isValidLuhn($number): bool
+	static function isValidLuhn ($number): bool
 	{
 		# Set the type to be a string
 		settype($number, 'string');
@@ -3073,7 +3050,7 @@ EOF;
 			[0, 2, 4, 6, 8, 1, 3, 5, 7, 9]];
 		$sum = 0;
 		$flip = 0;
-		for($i = strlen($number) - 1; $i >= 0; $i--){
+		for ($i = strlen($number) - 1; $i >= 0; $i--){
 			$sum += $sumTable[$flip++ & 0x1][$number[$i]];
 		}
 
@@ -3088,11 +3065,11 @@ EOF;
 	 *
 	 * @return mixed
 	 */
-	static function get_style($a)
+	static function get_style ($a)
 	{
 		extract($a);
 
-		if($style){
+		if ($style){
 			return "style=\"{$style}\"";
 		}
 
@@ -3110,16 +3087,15 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function getColour($colour, $prefix = 'text')
+	static function getColour ($colour, $prefix = 'text')
 	{
-		if(!$colour){
+		if (!$colour){
 			return false;
 		}
-		if($colour){
+		if ($colour){
 			$translated_colour = self::translate_approve_colour($colour);
 			return "{$prefix}-{$translated_colour}";
-		}
-		else {
+		} else {
 			return false;
 			//The default is no colour (black)
 		}
@@ -3132,9 +3108,9 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function translate_approve_colour($colour)
+	static function translate_approve_colour ($colour)
 	{
-		switch($colour) {
+		switch ($colour) {
 		case 'primary'  :
 			return 'blue';
 			break;
@@ -3209,20 +3185,18 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	static function getApproveAttr($approve)
+	static function getApproveAttr ($approve)
 	{
-		if(!$approve){
+		if (!$approve){
 			//If no approve modal is required
 			return false;
 		}
 
-		if(is_array($approve)){
+		if (is_array($approve)){
 			extract($approve);
-		}
-		else if(is_bool($approve)){
+		} else if (is_bool($approve)){
 			$message = "Are you sure you want to do this?";
-		}
-		else if(is_string($approve)){
+		} else if (is_string($approve)){
 			//if just the name of the thing to be removed is given
 			$message = str::title("Are you sure you want to {$approve}?");
 		}
@@ -3263,7 +3237,7 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public static function getClassAndStyle(array $item, ?array $default_parent_class = NULL): array
+	public static function getClassAndStyle (array $item, ?array $default_parent_class = NULL): array
 	{
 		$parent_class_array = str::getAttrArray($item['parent_class'], $default_parent_class, $item['only_parent_class']);
 		$parent_class = str::getAttrTag("class", $parent_class_array);
@@ -3280,23 +3254,22 @@ EOF;
 	 * @return array
 	 * @link https://stackoverflow.com/a/58811601/429071
 	 */
-	public static function getFieldsNonIdentical(array $rows): array
+	public static function getFieldsNonIdentical (array $rows): array
 	{
-		if(!str::isNumericArray($rows)){
+		if (!str::isNumericArray($rows)){
 			throw new \InvalidArgumentException("A non numeric array was passed: " . print_r($rows, true));
 		}
-		if(count($rows) < 2){
+		if (count($rows) < 2){
 			throw new \InvalidArgumentException("You should pass at least 2 rows to compare");
 		}
 
 		$compareArr = [];
 		$keyDifferentArr = [];
-		foreach($rows as $row){
-			foreach($row as $key => $val){
-				if(!key_exists($key, $compareArr)){
+		foreach ($rows as $row){
+			foreach ($row as $key => $val){
+				if (!key_exists($key, $compareArr)){
 					$compareArr[$key] = $val;
-				}
-				else if($compareArr[$key] !== $val){
+				} else if ($compareArr[$key] !== $val){
 					$keyDifferentArr[$key] = true;
 				}
 			}
@@ -3319,21 +3292,21 @@ EOF;
 	 * @link https://stackoverflow.com/questions/13705473/escaping-quotes-and-html-in-a-data-attribute-json-object
 	 * @link https://stackoverflow.com/a/1081581/429071
 	 */
-	static function getDataAttr(?array $a, ?bool $keep_empty = NULL): ?string
+	static function getDataAttr (?array $a, ?bool $keep_empty = NULL): ?string
 	{
-		if(!is_array($a)){
+		if (!is_array($a)){
 			return false;
 		}
 
-		foreach($a as $key => $val){
-			if(!$keep_empty){
-				if(!$val){
+		foreach ($a as $key => $val){
+			if (!$keep_empty){
+				if (!$val){
 					continue;
 				}
 			}
 
 			# Treat array and string values differently
-			if(is_array($val)){
+			if (is_array($val)){
 				//Value is an array, store as single quoted string
 
 				# Remove empty (unless requested otherwise)
@@ -3348,8 +3321,7 @@ EOF;
 				# Store as a single quoted string
 				$str .= " data-{$key}='{$val}'";
 
-			}
-			else {
+			} else {
 				//Value is a string, store as double quoted string
 
 				# Escape double quotes
@@ -3371,9 +3343,9 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function addNames(&$row): void
+	public static function addNames (&$row): void
 	{
-		if(!$row){
+		if (!$row){
 			return;
 		}
 
@@ -3381,7 +3353,7 @@ EOF;
 		//If there is only one user, add a numerical key index
 
 		# Go thru each user, even if there is only one
-		foreach($users as $id => $user){
+		foreach ($users as $id => $user){
 			$user['first_name'] = str::title($user['first_name'], true);
 			$user['last_name'] = str::title($user['last_name'], true);
 			$name = "{$user['first_name']} {$user['last_name']}";
@@ -3400,9 +3372,9 @@ EOF;
 	 *
 	 * @param $row
 	 */
-	public static function formatAddress(&$row): void
+	public static function formatAddress (&$row): void
 	{
-		if(!$row){
+		if (!$row){
 			return;
 		}
 
@@ -3424,13 +3396,54 @@ EOF;
 	 *
 	 * @return array
 	 */
-	static function array_filter_recursive($input)
+	static function array_filter_recursive ($input)
 	{
-		foreach($input as &$value){
-			if(is_array($value)){
+		foreach ($input as &$value){
+			if (is_array($value)){
 				$value = str::array_filter_recursive($value);
 			}
 		}
 		return array_filter($input);
+	}
+
+	/**
+	 * array_merge_recursive does indeed merge arrays, but it converts values with duplicate
+	 * keys to arrays rather than overwriting the value in the first array with the duplicate
+	 * value in the second array, as array_merge does. I.e., with array_merge_recursive,
+	 * this happens (documented behavior):
+	 *
+	 * array_merge_recursive(array('key' => 'org value'), array('key' => 'new value'));
+	 *     => array('key' => array('org value', 'new value'));
+	 *
+	 * array_merge_recursive_distinct does not change the datatypes of the values in the arrays.
+	 * Matching keys' values in the second array overwrite those in the first array, as is the
+	 * case with array_merge, i.e.:
+	 *
+	 * array_merge_recursive_distinct(array('key' => 'org value'), array('key' => 'new value'));
+	 *     => array('key' => array('new value'));
+	 *
+	 * Parameters are passed by reference, though only for performance reasons. They're not
+	 * altered by this function.
+	 *
+	 * @param array $array1
+	 * @param array $array2
+	 *
+	 * @return array
+	 * @author Daniel <daniel (at) danielsmedegaardbuus (dot) dk>
+	 * @author Gabriel Sobrinho <gabriel (dot) sobrinho (at) gmail (dot) com>
+	 */
+	public static function array_merge_recursive_distinct (array &$array1, array &$array2)
+	{
+		$merged = $array1;
+
+		foreach ($array2 as $key => &$value){
+			if (is_array($value) && isset ($merged [$key]) && is_array($merged [$key])){
+				$merged [$key] = str::array_merge_recursive_distinct($merged [$key], $value);
+			} else {
+				$merged [$key] = $value;
+			}
+		}
+
+		return $merged;
 	}
 }
