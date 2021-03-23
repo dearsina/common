@@ -1001,7 +1001,7 @@ abstract class Common {
 				$val = "'" . str::i(json_encode($v)) . "'";
 			}
 
-			else if(in_array($json_function, ["JSON EXTRACT", "NOT JSON EXTRACT"])){
+			else if(in_array($json_function, ["JSON_EXTRACT", "NOT JSON_EXTRACT"])){
 				$val = str::i($v);
 			}
 
@@ -1011,13 +1011,12 @@ abstract class Common {
 
 			if($json_function == "JSON_EXTRACT"){
 				//Used to see if a *key* exists (instead of a value)
-//				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\") IS NOT NULL";
-				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.{$val}) IS NOT NULL";
+				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NOT NULL";
 			}
 
 			if($json_function == "NOT JSON_EXTRACT"){
 				//Used to see if a *key* doesn't exist (instead of a value)
-				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\") IS NULL";
+				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NULL";
 			}
 
 			if($json_function == "NOT JSON_CONTAINS"){
