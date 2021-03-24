@@ -179,8 +179,11 @@ class Process {
 
 	private function runCom (): void
 	{
-//		echo $this->command;exit;
 		$command = 'nohup ' . $this->command . ' >> /var/www/tmp/process.log 2>&1 & echo $!';
+
+		# Prevent null byte injection warnings by stripping away the null byte character
+		$command = str_replace(chr(0), "", $command);
+
 		exec($command, $op);
 		$this->pid = (int)$op[0];
 	}
