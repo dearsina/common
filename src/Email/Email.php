@@ -436,6 +436,13 @@ class Email extends Common {
 		// Create the Mailer using your created Transport
 		$mailer = new \Swift_Mailer($transport);
 
+		# Add the DKIM key
+		$privateKey = file_get_contents('/var/www/dkim.key');
+		$domainName = $_ENV['domain'];
+		$selector = 'default';
+		$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
+		$this->envelope->attachSigner($signer);
+
 		# Send the email
 		$mailer->send($this->envelope);
 
