@@ -2341,7 +2341,7 @@ EOF;
 	public static function arrayFromString ($string, ?string $delimiter = "|"): ?array
 	{
 		# If it's missing, return NULL
-		if (!$string){
+		if (!strlen($string)){
 			return NULL;
 		}
 
