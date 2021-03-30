@@ -2340,14 +2340,14 @@ EOF;
 	 */
 	public static function arrayFromString ($string, ?string $delimiter = "|"): ?array
 	{
-		# If it's missing, return NULL
-		if (!strlen($string)){
-			return NULL;
-		}
-
 		# If it's already an array, just return it
 		if (is_array($string)){
 			return $string;
+		}
+
+		# If it's missing, return NULL
+		if (!strlen($string)){
+			return NULL;
 		}
 
 		return explode($delimiter, $string);
