@@ -296,7 +296,7 @@ class IssueTracker extends Common {
 				"on" => "issue_tracker_id"
 			]],
 			"order_by" => [
-				"issue_priority_id" => "desc",
+				"issue_priority_id" => "DESC",
 				"created" => "DESC",
 			]
 		];
