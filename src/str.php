@@ -2253,9 +2253,13 @@ EOF;
 	 * @return array
 	 * @link https://programmer.group/php-recursive-multidimensional-array-replacement-key-name-and-value.html
 	 */
-	public static function array_replace_values ($array, array $old_to_new_values)
+	public static function array_replace_values ($array, ?array $old_to_new_values)
 	{
 		if (!is_array($array)){
+			return $array;
+		}
+
+		if (!is_array($old_to_new_values)){
 			return $array;
 		}
 
