@@ -22,21 +22,55 @@ class Country {
 					"distinct" => true,
 					"columns" => "name",
 					"order_by" => [
-						"country" => "ASC"
+						"country" => "ASC",
 					],
-					"separator" => ", "
-				]
-				]
+					"separator" => ", ",
+				],
+				],
 			],
 			"table" => "country",
 			"order_by" => [
-				"currency_code" => "ASC"
-			]
+				"currency_code" => "ASC",
+			],
 		]) as $id => $country){
 			$currency_code_options[$country['currency_code']] = "{$country['currency_code']}, used by {$country['countries']}";
 		}
 
 		return $currency_code_options;
+	}
+
+	public static function getUserCurrencyCode(): ?string
+	{
+		global $user_id;
+
+		if(!$user_id){
+			return NULL;
+		}
+
+		if(!$currency = Factory::getInstance()->select([
+			"columns" => "ip",
+			"table" => "connection",
+			"join" => [[
+				"columns" => false,
+				"table" => "geolocation",
+				"on" => "ip",
+			], [
+				"columns" => "currency_code",
+				"table" => "country",
+				"on" => [
+					"country_code" => ["geolocation", "country_code"],
+				],
+			]],
+			"where" => [
+				["closed", "IS", NULL],
+				"user_id" => $user_id,
+			],
+			"limit" => 1,
+		])){
+			return NULL;
+		}
+
+		return $currency['geolocation'][0]['country'][0]['currency_code'];
 	}
 
 	public static function getAllCountries(): array
@@ -66,7 +100,7 @@ class Country {
 			return $iso3;
 		}
 		$countries = Info::getInstance()->getInfo("country");
-		if(($key = array_search($iso3, array_column($countries, 'iso_alpha-3'))) === FALSE){
+		if(($key = array_search($iso3, array_column($countries, 'iso_alpha-3'))) === false){
 			$key = array_search($iso3, array_column($countries, 'alt_iso_alpha-3'));
 		}
 
@@ -83,7 +117,7 @@ class Country {
 		}
 
 		$countries = Info::getInstance()->getInfo("country");
-		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === FALSE){
+		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === false){
 			return $iso2;
 		}
 
@@ -97,7 +131,7 @@ class Country {
 		}
 
 		$countries = Info::getInstance()->getInfo("country");
-		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === FALSE){
+		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === false){
 			return $iso2;
 		}
 
@@ -127,22 +161,22 @@ class Country {
 			"join" => [[
 				"columns" => false,
 				"table" => "geolocation",
-				"on" => "ip"
-			],[
+				"on" => "ip",
+			], [
 				"columns" => "currency_code",
 				"table" => "country",
 				"on" => [
-					"country_code" => ["geolocation", "country_code"]
-				]
+					"country_code" => ["geolocation", "country_code"],
+				],
 			]],
 			"where" => [
 				["closed", "IS", NULL],
-				"user_id" => $user_id
+				"user_id" => $user_id,
 			],
 			"order_by" => [
-				"created" => "DESC"
+				"created" => "DESC",
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			return NULL;
 		}
