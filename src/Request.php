@@ -417,6 +417,7 @@ class Request {
 	{
 		if($_SESSION['database_calls']){
 //			$this->log->info("{$_SESSION['database_calls']} database calls.");
+//			var_dump(Info::getInstance()->info);
 //			print_r($_SESSION['queries']);
 //			exit;
 		}

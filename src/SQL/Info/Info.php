@@ -24,7 +24,7 @@ class Info {
 	 *
 	 * @var array
 	 */
-	protected $info = [];
+	public $info = [];
 
 	/**
 	 * @var mySQL
@@ -86,7 +86,7 @@ class Info {
 			//If force refresh is not set
 
 			# Get cached results if they exist
-			if(($cached_results = $this->getCachedResults($a)) !== FALSE){
+			if(($cached_results = $this->getCachedResults($a, $joins)) !== FALSE){
 				return $cached_results;
 			}
 		}
@@ -99,7 +99,7 @@ class Info {
 		}
 
 		# Store the cached results
-		$this->setCachedResults($a, $rows);
+		$this->setCachedResults($a, $joins, $rows);
 
 		# If there aren't any actual results
 		if(!$rows){
@@ -250,8 +250,8 @@ class Info {
 	 *
 	 * @return mixed
 	 */
-	private function getCachedResults($a){
-		$id = $this->fingerprint($a);
+	private function getCachedResults(array $a, ?array $joins = NULL){
+		$id = $this->fingerprint([$a, $joins]);
 		if(!key_exists($id, $this->info)){
 			return false;
 		}
@@ -262,22 +262,21 @@ class Info {
 	 * Store the information requested results, so that if future requests
 	 * are for the same data, the cached results are returned instead.
 	 *
-	 * @param $request
-	 *
-	 * @param $results
+	 * @param array      $request
+	 * @param array|null $joins
+	 * @param            $results
 	 *
 	 * @return mixed
 	 */
-	public function setCachedResults($request, $results){
+	public function setCachedResults(array $request, ?array $joins = NULL, $results): void
+	{
 		if(($request['limit'] == 1 || $request['rel_id']) && str::isNumericArray($results)){
 			//if a rel_id is requested or limit =1 , only store the first (and only) value
 			//it also checks more than one result was in fact returned
-			$this->info[$this->fingerprint($request)] = reset($results);
+			$this->info[$this->fingerprint([$request, $joins])] = reset($results);
 		} else {
-			$this->info[$this->fingerprint($request)] = $results;
+			$this->info[$this->fingerprint([$request, $joins])] = $results;
 		}
-
-		return true;
 	}
 
 	/**
