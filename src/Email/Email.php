@@ -216,7 +216,7 @@ class Email extends Common {
 
 				# Get the mime type
 				$finfo = new \finfo(FILEINFO_MIME_TYPE);
-				$mime_type = $finfo->buffer($buffer);
+				$mime_type = $finfo->buffer($data);
 
 				# Create image file
 				$image_file = new \Swift_Image($data, $filename, $mime_type);
