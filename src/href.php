@@ -7,7 +7,7 @@ namespace App\Common;
  * Generates the href (and optionally the onClick) attribute and value for the a tag.
  *
  * Class href
- * @package app\common
+ * @package App\common
  */
 class href {
 	/**

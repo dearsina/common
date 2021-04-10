@@ -186,9 +186,11 @@ class Img {
 				"image_type" => "SVG",
 			];
 
-		} else if(!$a = getimagesize($filename)){
-			// If we cannot get details, pencils down
-			return NULL;
+		} else {
+			if(!$a = getimagesize($filename)){
+				// If we cannot get details, pencils down
+				return NULL;
+			}
 		}
 
 		$size['width'] = $a[0];

@@ -138,75 +138,68 @@ class Output {
 	 *
 	 * @param string     $id         Expects an ID that jQuery will understand (prefixed with # or . etc)
 	 * @param string     $data
-	 *
 	 * @param array|null $recipients If set, will send the update asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
 	public function update(string $id, $data, ?array $recipients = NULL): bool
 	{
-		if($recipients){
-			$pa = PA::getInstance();
-			return $pa->speak($recipients, [
-				"success" => true,
-				"update" => [
-					$id => $data,
-				],
-			]);
-		}
-		return $this->setData("update", $id, $data);
+		return $this->setData("update", $id, $data, $recipients);
 	}
 
 	/**
 	 * Will prepend a given div with data.
 	 *
-	 * @param $id
-	 * @param $data
+	 * @param string     $id
+	 * @param            $data
+	 * @param array|null $recipients If set, will send the prepend asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
-	public function prepend(string $id, $data)
+	public function prepend(string $id, $data, ?array $recipients = NULL): bool
 	{
-		return $this->setData("prepend", $id, $data);
+		return $this->setData("prepend", $id, $data, $recipients);
 	}
 
 	/**
 	 * Will append a given div with data.
 	 *
-	 * @param $id
-	 * @param $data
+	 * @param string     $id
+	 * @param            $data
+	 * @param array|null $recipients If set, will send the append asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
-	public function append(string $id, $data)
+	public function append(string $id, $data, ?array $recipients = NULL): bool
 	{
-		return $this->setData("append", $id, $data);
+		return $this->setData("append", $id, $data, $recipients);
 	}
 
 	/**
 	 * Will replace a given div, including the div tag itself.
 	 *
-	 * @param $id
-	 * @param $data
+	 * @param string     $id
+	 * @param            $data
+	 * @param array|null $recipients If set, will send the replace asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
-	public function replace(string $id, $data)
+	public function replace(string $id, $data, ?array $recipients = NULL): bool
 	{
-		return $this->setData("replace", $id, $data);
+		return $this->setData("replace", $id, $data, $recipients);
 	}
 
 	/**
 	 * Will remove a given div, including the div tag itself.
 	 *
-	 * @param $id
-	 * @param $data
+	 * @param string     $id
+	 * @param array|null $recipients If set, will send the remove asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
-	public function remove(string $id)
+	public function remove(string $id, ?array $recipients = NULL): bool
 	{
-		return $this->setData("remove", $id, NULL);
+		return $this->setData("remove", $id, NULL, $recipients);
 	}
 
 	/**
@@ -214,21 +207,22 @@ class Output {
 	 * If `$data` is an array, will json_encode.
 	 * In app.js, json_encoded arrays will automatically be decoded.
 	 *
-	 * @param string $function_name
-	 * @param mixed  $data
+	 * @param string     $function_name
+	 * @param mixed      $data
+	 * @param array|null $recipients If set, will send the function asynchronously to all relevant recipients
 	 *
 	 * @return bool
 	 */
-	public function function(string $function_name, $data = NULL)
+	public function function(string $function_name, $data = NULL, ?array $recipients = NULL): bool
 	{
 		if(is_array($data)){
 			$data = json_encode($data);
 		}
-		return $this->setData("function", $function_name, $data);
+		return $this->setData("function", $function_name, $data, $recipients);
 	}
 
 	/**
-	 * Expects file dadta, or an array with:
+	 * Expects file data, or an array with:
 	 *  - $filename
 	 *  - $content_type
 	 *  - $data
@@ -293,7 +287,7 @@ class Output {
 	 */
 	public function html($data, ?bool $first = true)
 	{
-		return $this->setData("update", "#ui-view", $data, $first);
+		return $this->setData("update", "#ui-view", $data, NULL, $first);
 		//Updates to ui-view are by default always set first
 	}
 
@@ -369,14 +363,25 @@ class Output {
 
 	/**
 	 *
-	 * @param string $type The name of the data key, an instruction on what to do with the data
-	 * @param string $id   The div ID where the data is going
-	 * @param string $data The HTML or instructions.
+	 * @param string     $type The name of the data key, an instruction on what to do with the data
+	 * @param string     $id   The div ID where the data is going
+	 * @param string     $data The HTML or instructions.
+	 * @param array|null $recipients
+	 * @param bool|null  $first
 	 *
 	 * @return bool
 	 */
-	private function setData($type, $id, $data, ?bool $first = NULL)
+	private function setData($type, $id, $data, ?array $recipients = NULL, ?bool $first = NULL)
 	{
+		if($recipients){
+			return PA::getInstance()->speak($recipients, [
+				"success" => true,
+				$type => [
+					$id => $data,
+				],
+			]);
+		}
+
 		if($data === false){
 			//if data has by design been set as false
 

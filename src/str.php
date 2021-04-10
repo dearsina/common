@@ -802,7 +802,7 @@ class str {
 
 	/**
 	 * Converts snake_case to ClassCase (CamelCase).
-	 * Will also convert \app\common\rel_table to \App\Common\RelTable
+	 * Will also convert \App\common\rel_table to \App\Common\RelTable
 	 *
 	 * @param $snake
 	 *
