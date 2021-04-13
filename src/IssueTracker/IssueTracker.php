@@ -301,6 +301,15 @@ class IssueTracker extends Common {
 			]
 		];
 
+		# If a search query has been sent, search the title and desc (only)
+		if($vars['q']){
+			$base_query['where'][] = [
+				["title", "LIKE", "%{$vars['q']}%"],
+				["desc", "LIKE", "%{$vars['q']}%"],
+			];
+			unset($a['vars']['q']);
+		}
+
 		/**
 		 * The row handler gets one row of data from SQL,
 		 * and its job is to format the row and return
