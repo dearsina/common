@@ -556,12 +556,15 @@ class str {
 	/**
 	 * Checks to see if a given string is JSON or not.
 	 *
-	 * @param string $str
+	 * @param mixed|null $str
 	 *
 	 * @return bool
 	 */
-	public static function isJson (string $str)
+	public static function isJson ($str): bool
 	{
+		if(!is_string($str)){
+			return false;
+		}
 		$json = json_decode($str);
 		return $json && $str != $json;
 	}
