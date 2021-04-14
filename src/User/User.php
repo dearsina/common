@@ -155,6 +155,21 @@ class User extends Common {
 		return $this->info("user", $user_id);
 	}
 
+	/**
+	 * Returns a given (or global) user's email address.
+	 *
+	 * @param string|null $user_id
+	 *
+	 * @return string|null
+	 */
+	public function getEmail(?string $user_id = NULL): ?string
+	{
+		if(!$user = $this->get($user_id)){
+			return NULL;
+		}
+		return $user['email'];
+	}
+
 	public function rowHandler(array $cols, ?array $a = []): array
 	{
 		$info = new Info();
