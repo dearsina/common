@@ -263,6 +263,7 @@ class WebSocketServer extends Common {
 			"user_id" => false,
 		])){
 			//If the connection is not valid
+
 			var_dump($this->log->getAlerts());
 			$this->log->clearAlerts();
 			return false;
