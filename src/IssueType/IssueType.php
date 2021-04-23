@@ -3,7 +3,7 @@
 
 namespace App\Common\IssueType;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\UI\Icon;
 use App\UI\Table;
 
@@ -11,7 +11,7 @@ use App\UI\Table;
  * Class IssueType
  * @package App\Common\IssueType
  */
-class IssueType extends Common {
+class IssueType extends Prototype {
 	/**
 	 * @return Card
 	 */
@@ -213,7 +213,7 @@ class IssueType extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL) : bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

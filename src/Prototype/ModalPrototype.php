@@ -1,21 +1,20 @@
 <?php
 
 
-namespace App\Common;
+namespace App\Common\Prototype;
 
 
-use App\UI\Icon;
-use App\UI\Table;
+use App\Common\Prototype;
 
 /**
- * Class CommonModal
+ * Class ModalPrototype
  *
  * An abstract base class to be used if everything for this class
  * is to be done via modals.
  *
  * @package App\Common
  */
-abstract class CommonModal extends Common {
+abstract class ModalPrototype extends Prototype {
 	/**
 	 * Generic all method.
 	 *
@@ -178,7 +177,7 @@ abstract class CommonModal extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL) : bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

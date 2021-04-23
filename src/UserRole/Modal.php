@@ -7,7 +7,7 @@ namespace App\Common\UserRole;
 use App\UI\Form\Form;
 use App\UI\Icon;
 
-class Modal extends \App\Common\Common {
+class Modal extends \App\Common\Prototype {
 	public function all(array $a)
 	{
 		extract($a);

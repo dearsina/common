@@ -8,7 +8,7 @@ use App\Common\SQL\Info\Info;
 use App\Common\str;
 use App\UI\Badge;
 
-class FieldType extends \App\Common\CommonModal {
+class FieldType extends \App\Common\Prototype\ModalPrototype {
 	/**
 	 * @return Card
 	 */

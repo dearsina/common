@@ -13,7 +13,7 @@ use App\UI\Table;
  * Class Card
  * @package App\Common\IssueTracker
  */
-class Card extends \App\Common\Common {
+class Card extends \App\Common\Prototype {
 	/**
 	 * @param null $a
 	 *

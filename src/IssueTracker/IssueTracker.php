@@ -4,7 +4,7 @@
 namespace App\Common\IssueTracker;
 
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\ErrorLog\ErrorLog;
 use App\Common\str;
 use App\UI\Button;
@@ -17,7 +17,7 @@ use App\UI\Table;
  * Class IssueTracker
  * @package App\Common\IssueTracker
  */
-class IssueTracker extends Common {
+class IssueTracker extends Prototype {
 	/**
 	 * @return Card
 	 */
@@ -152,7 +152,7 @@ class IssueTracker extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL) : bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

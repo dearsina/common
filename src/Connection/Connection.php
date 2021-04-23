@@ -2,11 +2,11 @@
 
 namespace App\Common\Connection;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\Geolocation\Geolocation;
 use Exception;
 
-class Connection extends Common {
+class Connection extends Prototype {
 	/**
 	 * Given a user ID, get the most recent connection ID.
 	 *

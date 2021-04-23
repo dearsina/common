@@ -4,7 +4,7 @@
 namespace App\Common\IssueTracker;
 
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\ErrorLog\ErrorLog;
 use App\Common\IssueNote\IssueNote;
 use App\UI\Form\Form;
@@ -14,7 +14,7 @@ use App\UI\Icon;
  * Class Modal
  * @package App\Common\IssueTracker
  */
-class Modal extends Common {
+class Modal extends Prototype {
 	public function new($a){
 		extract($a);
 

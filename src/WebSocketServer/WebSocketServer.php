@@ -3,7 +3,7 @@
 
 namespace App\Common\WebSocketServer;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\Log;
 use App\Common\SQL\Factory;
 use App\Common\str;
@@ -24,7 +24,7 @@ use App\Common\str;
  * websocket_internal_ip="127.0.0.1"                      # Should always be set to 127.0.0.1
  * websocket_internal_port="8080"                         # The internal port, can be anything
  */
-class WebSocketServer extends Common {
+class WebSocketServer extends Prototype {
 	/**
 	 * Holds the actual server object.
 	 *

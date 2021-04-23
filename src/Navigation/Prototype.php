@@ -4,7 +4,7 @@
 namespace App\Common\Navigation;
 
 
-abstract class Common extends \App\Common\Common
+abstract class Prototype extends \App\Common\Prototype
 {
     protected $levels = [];
     protected $footers = [];

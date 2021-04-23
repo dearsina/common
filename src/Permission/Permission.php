@@ -3,7 +3,7 @@
 
 namespace App\Common\Permission;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\str;
 use App\UI\Icon;
 
@@ -14,7 +14,7 @@ use App\UI\Icon;
  *
  * @package App\Common
  */
-class Permission extends Common {
+class Permission extends Prototype {
 
 	public array $userPermissions = [];
 	private array $rolePermissions = [];

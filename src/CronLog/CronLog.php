@@ -13,7 +13,7 @@ use App\UI\Table;
  * Class CronLog
  * @package App\Common\CronLog
  */
-class CronLog extends \App\Common\Common {
+class CronLog extends \App\Common\Prototype {
 	/**
 	 * @param bool|null $output_to_email
 	 *
@@ -130,7 +130,7 @@ class CronLog extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL): bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

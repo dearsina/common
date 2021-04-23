@@ -10,7 +10,7 @@ use App\Common\str;
  * Class Info
  * @package App\Common\Admin
  */
-class Info extends \App\Common\Common implements \App\Common\SQL\Info\InfoInterface {
+class Info extends \App\Common\Prototype implements \App\Common\SQL\Info\InfoInterface {
 
 	/**
 	 * @inheritDoc

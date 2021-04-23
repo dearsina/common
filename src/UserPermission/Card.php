@@ -12,7 +12,7 @@ use App\UI\Icon;
  * Class Card
  * @package App\Common\UserPermission
  */
-class Card extends \App\Common\Common {
+class Card extends \App\Common\Prototype {
 	/**
 	 * @param array|null $user
 	 *

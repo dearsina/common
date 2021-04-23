@@ -3,7 +3,7 @@
 
 namespace App\Common\Admin;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\Email\Email;
 use App\UI\Icon;
 use App\UI\Table;
@@ -13,7 +13,7 @@ use Exception;
  * Class Admin
  * @package App\Common\Admin
  */
-class Admin extends Common {
+class Admin extends Prototype {
 	/**
 	 * @return Modal
 	 */

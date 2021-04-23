@@ -10,6 +10,6 @@ namespace App\Common\SQL\Info;
  * 
  * @package App\Common\SQL\Info
  */
-class Common extends \App\Common\Common {
+class Prototype extends \App\Common\Prototype {
 
 }

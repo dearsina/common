@@ -9,7 +9,7 @@ use App\Common\str;
 use App\UI\Icon;
 use App\UI\Modal\Modal;
 
-class Signature extends \App\Common\Common {
+class Signature extends \App\Common\Prototype {
 	public function new(array $a): bool
 	{
 		extract($a);

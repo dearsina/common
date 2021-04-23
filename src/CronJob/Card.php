@@ -7,7 +7,7 @@ namespace App\Common\CronJob;
 use App\UI\Countdown;
 use App\UI\Icon;
 
-class Card extends \App\Common\Common {
+class Card extends \App\Common\Prototype {
 	/**
 	 * @param array $a
 	 *

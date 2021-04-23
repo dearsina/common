@@ -14,7 +14,7 @@ use App\UI\ListGroup;
  * Class Card
  * @package App\Common\RolePermission
  */
-class Card extends \App\Common\Common {
+class Card extends \App\Common\Prototype {
 	/**
 	 * @param array      $roles
 	 * @param array|null $selected_role

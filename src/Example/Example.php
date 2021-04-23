@@ -4,7 +4,7 @@
 namespace App\Common\Example;
 
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\str;
 use App\UI\Button;
 use App\UI\Card\Card;
@@ -16,7 +16,7 @@ use App\UI\Page;
  * Class Example
  * @package App\Common\Example
  */
-class Example extends Common {
+class Example extends Prototype {
 	/**
 	 * @param $a
 	 *

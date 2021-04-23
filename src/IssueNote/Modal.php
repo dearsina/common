@@ -12,7 +12,7 @@ use App\UI\Icon;
  * Class Modal
  * @package App\Common\IssueNote
  */
-class Modal extends \App\Common\Common {
+class Modal extends \App\Common\Prototype {
 	/**
 	 * @param $a
 	 *

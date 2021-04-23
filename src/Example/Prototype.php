@@ -8,7 +8,7 @@ namespace App\Common\Example;
  * Class Common
  * @package App\Common\Example
  */
-class Common extends \App\Common\Common {
+class Prototype extends \App\Common\Prototype {
 	public $colours = [
 		"primary",
 		"secondary",

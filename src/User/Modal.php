@@ -3,7 +3,7 @@
 
 namespace App\Common\User;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\str;
 use App\UI\Button;
 use App\UI\Form\Form;
@@ -13,7 +13,7 @@ use App\UI\Icon;
  * Class Modal
  * @package App\Common\User
  */
-class Modal extends Common {
+class Modal extends Prototype {
 	/**
 	 * @param string $user_id
 	 * @param array  $roles

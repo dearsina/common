@@ -1,18 +1,20 @@
 <?php
 
 
-namespace App\Common;
+namespace App\Common\Prototype;
 
+use App\Common\Prototype;
+use App\Common\str;
 use App\UI\Icon;
 use App\UI\Page;
 
 /**
- * Class CommonCard
+ * Class CardPrototype
  * An abstract base class to be used if most things for this class
  * is to be done via cards.
  * @package App\Common
  */
-abstract class CommonCard extends Common {
+abstract class CardPrototype extends Prototype {
 	/**
 	 * Generic new card page.
 	 *
@@ -82,7 +84,7 @@ abstract class CommonCard extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL): bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

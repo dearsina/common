@@ -8,7 +8,7 @@ namespace App\Common\Geolocation;
 use App\Common\str;
 use Exception;
 
-class Geolocation extends \App\Common\Common {
+class Geolocation extends \App\Common\Prototype {
 	/**
 	 * The official IP data provider.
 	 */

@@ -3,26 +3,24 @@
 
 namespace App\Common;
 
+use API\Microsoft\Azure\Azure;
 use App\Common\Exception\BadRequest;
 use App\Common\Permission\Permission;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
-use App\Common\str;
 use App\Common\User\User;
 use App\UI\Icon;
 use App\UI\Table;
 use Exception;
 use ReflectionClass;
-use function GuzzleHttp\Psr7\str;
-
 
 /**
  * Class Common
- * The parent class for both CommonModal and CommonCard.
+ * The parent class for both ModalPrototype and CardPrototype.
  * @package App\Common
  */
-abstract class Common {
+abstract class Prototype {
 	/**
 	 * @var Log
 	 */
@@ -103,7 +101,8 @@ abstract class Common {
 			if(method_exists($this, $method)){
 				//if a custom setter method exists, use it
 				$this->$method($val);
-			} else {
+			}
+			else {
 				$this->$key = $val;
 			}
 		}
@@ -117,7 +116,7 @@ abstract class Common {
 	 * Should only be used in cases where a missing key
 	 * suggests tampering or a bug in the code.
 	 *
-	 * @param array $a The $a array.
+	 * @param array        $a    The $a array.
 	 * @param string|array $keys Can either be a single key (as a string), or an array of keys.
 	 *
 	 * @throws BadRequest
@@ -132,11 +131,11 @@ abstract class Common {
 
 		foreach($keys as $key){
 			if(!is_array($vars) || !key_exists($key, $vars)){
-				throw new BadRequest(\App\Common\str::title("You must supply a <code>{$key}</code> to this method."));
+				throw new BadRequest(str::title("You must supply a <code>{$key}</code> to this method."));
 			}
 
 			if(!$vars[$key]){
-				throw new BadRequest(\App\Common\str::title("The <code>{$key}</code> value cannot be empty."));
+				throw new BadRequest(str::title("The <code>{$key}</code> value cannot be empty."));
 			}
 		}
 	}
@@ -154,12 +153,13 @@ abstract class Common {
 	 *    "where" => [
 	 *        "key" => "val"
 	 *    ]
-	 * ], NULL, $refresh);
+	 * ], NULL, $refresh, ["joins"]);
 	 * </code>
 	 *
 	 * @param             $rel_table_or_array
 	 * @param string|null $rel_id
 	 * @param null        $refresh
+	 * @param array|null  $joins
 	 *
 	 * @return array|null
 	 * @throws Exception
@@ -178,7 +178,7 @@ abstract class Common {
 	{
 		static $permission = NULL;
 		if(!$permission){
-			if(!$classPath = \App\Common\str::findClass("Permission")){
+			if(!$classPath = str::findClass("Permission")){
 				throw new \Exception("Cannot find a suitable Permissions class.");
 			}
 			$permission = new $classPath();
@@ -248,7 +248,7 @@ abstract class Common {
 			],
 			"table" => $rel_table,
 			"where" => [
-				$limiting_key => $limiting_val
+				$limiting_key => $limiting_val,
 			],
 			"limit" => 1,
 		]);
@@ -295,8 +295,8 @@ abstract class Common {
 					"where" => [
 						"order" => $order,
 						$vars['limiting_key'] => $vars['limiting_val'],
-					]
-				])){
+					],
+				])) {
 					//if the order already exists, jump one
 					$push++;
 					$order = $original_order + $push;
@@ -305,8 +305,8 @@ abstract class Common {
 					"table" => $rel_table,
 					"id" => $id,
 					"set" => [
-						"order" => $order
-					]
+						"order" => $order,
+					],
 				]);
 			}
 			if(!$silent){
@@ -332,7 +332,8 @@ abstract class Common {
 			$dir2 = "-";
 			$eq2 = ">";
 			//All the greater than the old order are to be moved up (to fill the gap)
-		} else {
+		}
+		else {
 			//going DOWN (away from 1)
 			$dir1 = "-";
 			$eq1 = "<=";
@@ -345,39 +346,41 @@ abstract class Common {
 		# Get the _current_ (soon to be old) order number
 		$old = $this->sql->select([
 			"columns" => [
-				"order"
+				"order",
 			],
 			"db" => $this->db,
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 		$old['order'] = $old['order'] ?: "0";
 
 		# The key of the item being shifted
 		$rel_key = array_search($rel_id, $vars['order']);
 
-//		# Ensure there are no rows with NULL order values
-//		$this->sql->run("SET @a=1;");
-//		$this->sql->update([
-//			"db" => $this->db,
-//			"table" => $rel_table,
-//			"set" => [
-//				["`order` = @a:=@a+1"],
-//			],
-//			"where" => [
-//				$vars['limiting_key'] => $vars['limiting_val'],
-//				"order" => NULL,
-//			],
-//		]);
+		//		# Ensure there are no rows with NULL order values
+		//		$this->sql->run("SET @a=1;");
+		//		$this->sql->update([
+		//			"db" => $this->db,
+		//			"table" => $rel_table,
+		//			"set" => [
+		//				["`order` = @a:=@a+1"],
+		//			],
+		//			"where" => [
+		//				$vars['limiting_key'] => $vars['limiting_val'],
+		//				"order" => NULL,
+		//			],
+		//		]);
 
 		if(!$rel_key){
 			//if the item is being moved to the first (0) position
 			$new_order = 1;
-		} else if(($rel_key + 1) == count($vars['order'])){
+		}
+		else if(($rel_key + 1) == count($vars['order'])){
 			//if the item is being moved to the _last_ position
 			$item_above = $this->info($rel_table, $vars['order'][$rel_key - 1]);
 			$new_order = (int)$item_above['order'];
-		} else {
+		}
+		else {
 			//if the item is in any position except the first (0)
 			$item_above = $this->info($rel_table, $vars['order'][$rel_key - 1]);
 			$new_order = (int)$item_above['order'] + 1;
@@ -386,7 +389,7 @@ abstract class Common {
 		$new_order = $new_order ?: "0";
 
 		# Place the item in its new position
-//		echo
+		//		echo
 		$this->sql->update([
 			"db" => $this->db,
 			"table" => $rel_table,
@@ -395,10 +398,10 @@ abstract class Common {
 				"order" => $new_order,
 			],
 		], false);
-//		echo ";\r\n\r\n";
+		//		echo ";\r\n\r\n";
 
 		# Push all other items up/down to make space for our item
-//		echo
+		//		echo
 		$this->sql->update([
 			"db" => $this->db,
 			"table" => $rel_table,
@@ -408,17 +411,17 @@ abstract class Common {
 			"where" => [
 				$vars['limiting_key'] => $vars['limiting_val'],
 				["order", $eq1, $new_order],
-				["{$rel_table}_id", "<>", $rel_id]
+				["{$rel_table}_id", "<>", $rel_id],
 			],
 		], false);
-//		echo ";\r\n\r\n";
+		//		echo ";\r\n\r\n";
 
 		/**
 		 * As a consequence of the above update,
 		 * Some elements that were below/above the old order,
 		 * that _shouldn't_ have been pushed, were also pushed
 		 */
-//		echo
+		//		echo
 		$this->sql->update([
 			"db" => $this->db,
 			"table" => $rel_table,
@@ -428,10 +431,10 @@ abstract class Common {
 			"where" => [
 				$vars['limiting_key'] => $vars['limiting_val'],
 				["order", $eq2, $old['order']],
-				["{$rel_table}_id", "<>", $rel_id]
+				["{$rel_table}_id", "<>", $rel_id],
 			],
 		], false);
-//		echo ";\r\n\r\n";
+		//		echo ";\r\n\r\n";
 
 		if(!$silent){
 			$this->log->success([
@@ -490,7 +493,8 @@ abstract class Common {
 			foreach($$rel_table as $row){
 				$rows[] = $this->rowHandler($row, $a);
 			}
-		} else {
+		}
+		else {
 			$rows[] = Table::emptyTablePlaceholder($rel_table);
 		}
 
@@ -587,7 +591,8 @@ abstract class Common {
 						],
 					],
 				];
-			} else {
+			}
+			else {
 				$button[] = [
 					"alt" => str::title("Make {$rel_table} public"),
 					"icon" => "store",
@@ -636,6 +641,153 @@ abstract class Common {
 		];
 
 		return $button;
+	}
+
+	/**
+	 * Given a rel_table/id, will translate the rel_table to a
+	 * `rel_table_id` column name and remove all rows from
+	 * all tables with that column name and the corresponding
+	 * rel_id.
+	 *
+	 * Should be used with great caution
+	 *
+	 * @param string    $rel_table
+	 * @param string    $rel_id
+	 * @param bool|null $silent
+	 *
+	 * @throws Exception
+	 */
+	public function removeFromAllTables(string $rel_table, string $rel_id, ?bool $silent = NULL): void
+	{
+		# The column name is always table + _id
+		$column_name = "{$rel_table}_id";
+
+		# Look thru all tables across all DBs for this column name
+		$results = $this->sql->run("SELECT DISTINCT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME = '{$column_name}';");
+
+		if(!$results['num_rows']){
+			throw new \Exception("Could not find any tables with the <code>{$column_name}</code> column. Are you sure you got the right name?");
+		}
+
+		foreach($results['rows'] as $table){
+			if(!$count = $this->sql->select([
+				"db" => $table['TABLE_SCHEMA'],
+				"count" => true,
+				"table" => $table['TABLE_NAME'],
+				"where" => [
+					$column_name => $rel_id,
+				]
+			])){
+				continue;
+			}
+			$table_counts[$table['TABLE_NAME']] = $count;
+
+			$this->sql->remove([
+				"db" => $table['TABLE_SCHEMA'],
+				"table" => $table['TABLE_NAME'],
+				"where" => [
+					$column_name => $rel_id,
+				]
+			]);
+		}
+
+		# Delete all files belonging to this rel ID
+		$azure = new Azure();
+		$blob_count = $azure->getBlobCount($rel_id);
+		$azure->deleteContainer($rel_id);
+
+		foreach($table_counts as $table => $count){
+			$table_narratives[] = str::title(str::pluralise_if($count, "row", true)." from the <b>{$table}</b> table");
+		}
+
+		$narrative = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
+		$narrative .= " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
+
+		if(!$silent){
+			$this->log->info([
+				"icon" => Icon::get("remove"),
+				"message" => $narrative,
+			]);
+		}
+
+	}
+
+	/**
+	 * Given a rel_table/id, will translate the rel_table to a
+	 * `rel_table_id` column name and DELETE all rows from
+	 * all tables with that column name and the corresponding
+	 * rel_id.
+	 *
+	 * Should be used in very carefully.
+	 *
+	 * @param string    $rel_table
+	 * @param string    $rel_id
+	 * @param bool|null $silent
+	 *
+	 * @throws Exception
+	 */
+	public function deleteFromAllTables(string $rel_table, string $rel_id, ?bool $silent = NULL): void
+	{
+		# The column name is always table + _id
+		$column_name = "{$rel_table}_id";
+
+		# Look thru all tables for this column name
+		$results = $this->sql->run("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME IN ('{$column_name}') AND TABLE_SCHEMA='{$_ENV['db_database']}' ORDER BY TABLE_NAME DESC;");
+
+		if(!$results['num_rows']){
+			throw new \Exception("Could not find any tables with the <code>{$column_name}</code> column. Are you sure you got the right name?");
+		}
+
+		foreach($results['rows'] as $table){
+			if($table['TABLE_NAME'] == $rel_table){
+				continue;
+			}
+			if(!$count = $this->sql->select([
+				"count" => true,
+				"table" => $table['TABLE_NAME'],
+				"where" => [
+					$column_name => $rel_id,
+				],
+				"include_removed" => true
+			])){
+				continue;
+			}
+			$table_counts[$table['TABLE_NAME']] = $count;
+
+			$this->sql->delete([
+				"table" => $table['TABLE_NAME'],
+				"where" => [
+					$column_name => $rel_id,
+				],
+				"include_removed" => true
+			]);
+		}
+
+		# Otherwise it will fail on foreign key constraints
+		$this->sql->delete([
+			"table" => $rel_table,
+			"id" => $rel_id
+		]);
+		$table_counts[$rel_table] = 1;
+
+		# Delete all files belonging to this rel ID
+		$azure = new Azure();
+		$blob_count = $azure->getBlobCount($rel_id);
+		$azure->deleteContainer($rel_id);
+
+		foreach($table_counts as $table => $count){
+			$table_narratives[] = str::title(str::pluralise_if($count, "row", true)." from the <b>{$table}</b> table");
+		}
+
+		$narrative = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
+		$narrative .= " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
+
+		if(!$silent){
+			$this->log->info([
+				"icon" => Icon::get("remove"),
+				"message" => $narrative,
+			]);
+		}
 	}
 
 

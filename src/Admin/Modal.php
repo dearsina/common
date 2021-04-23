@@ -8,7 +8,7 @@ namespace App\Common\Admin;
  * Class Modal
  * @package App\Common\Admin
  */
-class Modal extends \App\Common\Common {
+class Modal extends \App\Common\Prototype {
 	/**
 	 * @param $a
 	 *

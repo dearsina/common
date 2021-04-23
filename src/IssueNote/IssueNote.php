@@ -12,7 +12,7 @@ use App\UI\Table;
  * Class IssueNote
  * @package App\Common\IssueNote
  */
-class IssueNote extends \App\Common\Common {
+class IssueNote extends \App\Common\Prototype {
 	/**
 	 * @return Card
 	 */
@@ -98,7 +98,7 @@ class IssueNote extends \App\Common\Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL) : bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

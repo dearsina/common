@@ -11,7 +11,7 @@ use App\UI\Icon;
  * Class Modal
  * @package App\Common\IssueType
  */
-class Modal extends \App\Common\Common {
+class Modal extends \App\Common\Prototype {
 	/**
 	 * @param array $a
 	 *

@@ -3,7 +3,7 @@
 
 namespace App\Common\Role;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\str;
 use App\UI\Icon;
 use App\UI\Table;
@@ -12,7 +12,7 @@ use App\UI\Table;
  * Class Role
  * @package App\Common\Role
  */
-class Role extends Common {
+class Role extends Prototype {
 	/**
 	 * @return Card
 	 */

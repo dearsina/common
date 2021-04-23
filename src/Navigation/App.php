@@ -11,7 +11,7 @@ use App\UI\Icon;
  * Class App
  * @package App\Common\Navigation
  */
-class App extends Common implements NavigationInterface {
+class App extends Prototype implements NavigationInterface {
 	/**
 	 * @inheritDoc
 	 */

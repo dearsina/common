@@ -3,7 +3,7 @@
 
 namespace App\Common\CronJob;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\Process;
 use App\Common\Request;
 use App\Common\str;
@@ -16,7 +16,7 @@ use App\UI\Table;
  * Class CronJob
  * @package App\Common\CronJob
  */
-class CronJob extends Common {
+class CronJob extends Prototype {
 	/**
 	 * @return Card
 	 */
@@ -225,7 +225,7 @@ class CronJob extends Common {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function remove(array $a, $silent = NULL) : bool
+	public function remove(array $a, ?bool $silent = NULL): bool
 	{
 		extract($a);
 

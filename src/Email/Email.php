@@ -3,7 +3,8 @@
 
 namespace App\Common\Email;
 
-use App\Common\Common;
+use App\Common\Log;
+use App\Common\Prototype;
 use App\Common\str;
 
 /**
@@ -11,7 +12,7 @@ use App\Common\str;
  * A wrapper for the Swift_Message() class.
  * @package App\Common
  */
-class Email extends Common {
+class Email extends Prototype {
 	/**
 	 * New-line symbol to use in text emails.
 	 */
@@ -415,9 +416,8 @@ class Email extends Common {
 		}
 
 		# Ensure no emails are sent from the dev environment
-		if($_SERVER['SERVER_ADDR'] === $_ENV['dev_ip']){
-			// === because when accessed from the CLI, SERVER_ADDR = NULL, and if the dev_ip is NOT set (""), will result is a false positive match
-			$this->log->info([
+		if(str::isDev()){
+			Log::getInstance()->info([
 				"icon" => "ban",
 				"title" => "Email not sent",
 				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",

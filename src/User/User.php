@@ -3,7 +3,7 @@
 
 namespace App\Common\User;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\Connection\Connection;
 use App\Common\Email\Email;
 use App\Common\Geolocation\Geolocation;
@@ -27,7 +27,7 @@ use Exception;
  *
  * @package App\Common\User
  */
-class User extends Common {
+class User extends Prototype {
 	/**
 	 * The threshold where which a user's action is ignored.
 	 * The recommended default is 0.5.

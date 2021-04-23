@@ -4,7 +4,7 @@
 namespace App\Common\Home;
 
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\str;
 
 use App\UI\Card\Card;
@@ -15,7 +15,7 @@ use App\UI\Page;
  * Class Home
  * @package App\Common\Home
  */
-class Home extends Common {
+class Home extends Prototype {
 
 	/**
 	 * This is the junction method that is called

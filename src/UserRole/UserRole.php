@@ -15,7 +15,7 @@ use App\UI\Icon;
  * Class UserRole
  * @package App\Common\UserRole
  */
-class UserRole extends \App\Common\Common {
+class UserRole extends \App\Common\Prototype {
 	/**
 	 * @return Card
 	 */

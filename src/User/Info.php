@@ -3,7 +3,7 @@
 
 namespace App\Common\User;
 
-use App\Common\SQL\Info\Common;
+use App\Common\SQL\Info\Prototype;
 use App\Common\SQL\Info\InfoInterface;
 use App\Common\str;
 
@@ -11,7 +11,7 @@ use App\Common\str;
  * Class Info
  * @package App\Common\User
  */
-class Info extends Common implements InfoInterface {
+class Info extends Prototype implements InfoInterface {
 	/**
 	 * @param array $a
 	 */

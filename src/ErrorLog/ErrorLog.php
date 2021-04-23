@@ -3,7 +3,7 @@
 
 namespace App\Common\ErrorLog;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\str;
 use App\UI\Button;
 use App\UI\Icon;
@@ -14,7 +14,7 @@ use App\UI\Table;
  * Class ErrorLog
  * @package App\Common\ErrorLog
  */
-class ErrorLog extends Common {
+class ErrorLog extends Prototype {
 	/**
 	 * Maximum number of characters to display of an error message.
 	 */

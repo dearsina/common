@@ -13,7 +13,7 @@ use App\UI\Table;
  * Class Card
  * @package App\Common\ErrorLog
  */
-class Card extends \App\Common\Common {
+class Card extends \App\Common\Prototype {
 	private $output_to_email;
 
 	/**

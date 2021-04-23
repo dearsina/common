@@ -3,7 +3,7 @@
 
 namespace App\Common\User;
 
-use App\Common\Common;
+use App\Common\Prototype;
 use App\Common\fields;
 use App\Common\str;
 use App\UI\Countdown;
@@ -17,7 +17,7 @@ use App\UI\Table;
  * Class Card
  * @package App\Common\User
  */
-class Card extends Common {
+class Card extends Prototype {
 	public function all(array $a): string
 	{
 		extract($a);
