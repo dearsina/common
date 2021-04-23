@@ -104,8 +104,18 @@ EOF;
 		return $alert;
 	}
 
+	/**
+	 * Clears the local alert array.
+	 */
 	public function clearAlerts(){
 		$this->alerts = [];
+	}
+
+	/**
+	 * Removes all component alerts from the current UI.
+	 */
+	public function resetAlerts(){
+		Output::getInstance()->function("removeAllAlerts");
 	}
 
 	/**
