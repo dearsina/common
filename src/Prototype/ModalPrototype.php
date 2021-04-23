@@ -16,6 +16,15 @@ use App\Common\Prototype;
  */
 abstract class ModalPrototype extends Prototype {
 	/**
+	 * The fields names that by default are treated as HTML,
+	 * where the tags are not stripped away.
+	 */
+	const html = [
+		"html",
+		"body",
+	];
+
+	/**
 	 * Generic all method.
 	 *
 	 * @param array $a
@@ -92,6 +101,7 @@ abstract class ModalPrototype extends Prototype {
 		$this->sql->insert([
 			"db" => $this->db,
 			"table" => $rel_table,
+			"html" => self::html,
 			"set" => $vars
 		]);
 
@@ -152,6 +162,7 @@ abstract class ModalPrototype extends Prototype {
 			"db" => $this->db,
 			"table" => $rel_table,
 			"set" => $vars,
+			"html" => self::html,
 			"id" => $rel_id
 		]);
 
