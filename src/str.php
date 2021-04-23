@@ -345,20 +345,16 @@ class str {
 		exit;
 	}
 
-	//	/**
-	//	 * Backtraces the function and gives dumps the trail
-	//	 * <code>
-	//	 * str::trace();
-	//	 * </code>
-	//	 * @return mixed
-	//	 */
-	//	static function trace(){
-	////		array_walk(debug_backtrace(),create_function('$a,$b','print "{$a[\'function\']}()(".basename($a[\'file\']).":{$a[\'line\']});\r\n";'));
-	//		array_walk(debug_backtrace(),function($a){
-	//			print "{$a['function']}()(".basename($a['file']).":{$a['line']});\r\n";
-	//		});
-	//		exit;
-	//	}
+	/**
+	 * Checks to see if this is the DEV environment.
+	 *
+	 * @return bool
+	 */
+	public static function isDev(): bool
+	{
+		return $_SERVER['SERVER_ADDR'] === $_ENV['dev_ip'];
+		// === because when accessed from the CLI, SERVER_ADDR = NULL, and if the dev_ip is NOT set (""), will result is a false positive match
+	}
 
 	/**
 	 * Returns TRUE if script is run from the command line (CLI),
