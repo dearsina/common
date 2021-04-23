@@ -3,6 +3,7 @@
 
 namespace App\Common\SQL\mySQL;
 
+use App\Common\Exception\BadRequest;
 use App\Common\str;
 use mysqli_sql_exception;
 use Exception;
@@ -1796,6 +1797,10 @@ abstract class Common {
 				$vals[] = $v;
 			}
 			return "(" . implode(",", array_unique($vals)) . ")";
+		}
+
+		if(is_array($val)){
+			throw new BadRequest("The following associative array was sent as part of a value comparison. Only numeric arrays are accepted. ". str::var_export($val, true));
 		}
 
 		if($val === NULL){
