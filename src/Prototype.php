@@ -10,6 +10,7 @@ use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
 use App\Common\User\User;
+use App\UI\Button;
 use App\UI\Icon;
 use App\UI\Table;
 use Exception;
@@ -611,16 +612,7 @@ abstract class Prototype {
 			}
 		}
 
-		$button[] = [
-			"size" => "s",
-			"hash" => [
-				"rel_table" => $rel_table,
-				"rel_id" => $cols["{$rel_table}_id"],
-				"action" => "edit",
-			],
-			"icon" => Icon::get("edit"),
-			"basic" => true,
-		];
+		$button[] = Button::generic("edit", $rel_table, $cols["{$rel_table}_id"]);
 
 		$button[] = [
 			"size" => "s",

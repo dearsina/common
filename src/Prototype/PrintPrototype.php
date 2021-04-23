@@ -101,15 +101,17 @@ abstract class PrintPrototype extends Prototype {
 		];
 	}
 
-	protected static function getSLA(): array
+	protected static function getSLA(): ?array
 	{
-		$narrative = mySQL::getInstance()->select([
+		if(!$narrative = mySQL::getInstance()->select([
 			"table" => "narrative",
 			"where" => [
 				"code" => "sla"
 			],
 			"limit" => 1
-		]);
+		])){
+			return NULL;
+		}
 
 		return [
 			"row_style" => [
