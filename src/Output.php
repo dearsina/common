@@ -246,14 +246,14 @@ class Output {
 	}
 
 	/**
-	 * Appends a modal HTML string to the #ui-view.
+	 * Appends a modal HTML string to the #ui-modal.
 	 *
 	 * @param string $html
 	 */
 	public function modal(string $html): void
 	{
 		$this->output['modal'][] = [
-			"id" => "#ui-view",
+			"id" => "#ui-modal",
 			"html" => $html,
 		];
 	}
