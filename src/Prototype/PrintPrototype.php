@@ -100,47 +100,4 @@ abstract class PrintPrototype extends Prototype {
 			]],
 		];
 	}
-
-	protected static function getSLA(): ?array
-	{
-		if(!$narrative = mySQL::getInstance()->select([
-			"table" => "narrative",
-			"where" => [
-				"code" => "sla"
-			],
-			"limit" => 1
-		])){
-			return NULL;
-		}
-
-		return [
-			"row_style" => [
-				"page-break-before" => "always",
-				"font-size" => "8pt !important",
-				"line-height" => "10pt"
-			],
-			"html" => [[
-				self::smallPrintCss(),
-				$narrative['body'],
-			]]
-		];
-	}
-
-	protected static function smallPrintCss(): string
-	{
-		return <<<EOF
-<style>
-p,
-.MsoListParagraph,
-.MsoNormal,
-.MsoNormal > span
-{
-	margin-bottom:0;
-	font-size: 8pt !important;
-	line-height: 12pt;
-}
-</style>
-EOF;
-
-	}
 }
