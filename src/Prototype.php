@@ -688,17 +688,20 @@ abstract class Prototype {
 		$blob_count = $azure->getBlobCount($rel_id);
 		$azure->deleteContainer($rel_id);
 
-		foreach($table_counts as $table => $count){
-			$table_narratives[] = str::title(str::pluralise_if($count, "row", true)." from the <b>{$table}</b> table");
+		if($table_counts){
+			foreach($table_counts as $table => $count){
+				$table_narratives[] = str::title(str::pluralise_if($count, "row", true)." from the <b>{$table}</b> table");
+			}
+			$narrative[] = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
 		}
 
-		$narrative = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
-		$narrative .= " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
+
+		$narrative[] = " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
 
 		if(!$silent){
 			$this->log->info([
 				"icon" => Icon::get("remove"),
-				"message" => $narrative,
+				"message" => implode(" ", $narrative),
 			]);
 		}
 
