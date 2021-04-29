@@ -144,40 +144,6 @@ class Request {
 		return false;
 	}
 
-	# I don't think this is in use, delete if no adverse effects
-//	public function api(?bool $sandbox): string
-//	{
-//		try {
-//			$response = $this->getApiResponse();
-//		}
-//		catch(\mysqli_sql_exception $e) {
-//			$this->log->error([
-//				"icon" => "database",
-//				"title" => "mySQL error",
-//				"message" => $e->getMessage(),
-//			]);
-//			$this->log->info([
-//				"icon" => "code",
-//				"title" => "Query",
-//				"message" => $_SESSION['query'],
-//			]);
-//		}
-//		catch(\TypeError $e) {
-//			$this->log->error([
-//				"icon" => "code",
-//				"title" => "Type error",
-//				"message" => $e->getMessage(),
-//			]);
-//		}
-//		catch(\Exception $e) {
-//			$this->log->error([
-//				"icon" => "ethernet",
-//				"title" => "System error",
-//				"message" => $e->getMessage(),
-//			]);
-//		}
-//	}
-
 	/**
 	 * AJAX gatekeeper
 	 * The method called every time an AJAX call is received from the browser.
@@ -268,7 +234,7 @@ class Request {
 	 * @return bool TRUE on token is valid, FALSE on token is missing or invalid.
 	 * @throws \Exception
 	 */
-	private function preventCSRF($a)
+	private function preventCSRF($a): bool
 	{
 		# CLI commands are exempt from CSRF checks
 		if(str::runFromCLI()){
@@ -313,14 +279,22 @@ class Request {
 		# Ensure token is still valid
 		if($connection['closed']){
 			$this->hash->set("reload");
-			throw new Unauthorized("Your connection has expired. It will now be refreshed.");
+			$this->log->warning([
+				"title" => "Expired connection",
+				"message" => "Your connection has expired. It will now be refreshed."
+			]);
+			return false;
 //			throw new Unauthorized("Expired CSRF token supplied.");
 		}
 
 		# Ensure token belongs to this IP address
 		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			$this->hash->set("reload");
-			throw new Unauthorized("Your connection has expired. It will now be refreshed.");
+			$this->log->warning([
+				"title" => "Expired connection",
+				"message" => "Your connection has expired. It will now be refreshed."
+			]);
+			return false;
 //			throw new \Exception("IP address does not match CSRF token supplied.");
 		}
 

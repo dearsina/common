@@ -695,7 +695,6 @@ abstract class Prototype {
 			$narrative[] = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
 		}
 
-
 		$narrative[] = " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
 
 		if(!$silent){
@@ -704,7 +703,6 @@ abstract class Prototype {
 				"message" => implode(" ", $narrative),
 			]);
 		}
-
 	}
 
 	/**

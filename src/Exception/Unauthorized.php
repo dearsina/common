@@ -8,7 +8,7 @@ namespace App\Common\Exception;
  * Class Unauthorized
  * @package App\Common\Exception
  */
-class Unauthorized extends Common{
+class Unauthorized extends Prototype{
 	/**
 	 * Unauthorized constructor.
 	 *

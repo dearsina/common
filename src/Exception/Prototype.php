@@ -9,10 +9,10 @@ use App\Common\SQL\Factory;
 /**
  * Exceptions common methods.
  * Extend any exceptions from this abstract class.
- * Class Common
+ * Class Prototype
  * @package App\Common\Exception
  */
-abstract class Common extends \Exception {
+abstract class Prototype extends \Exception {
 	/**
 	 * Logs an exception. Does not notify the end user.
 	 *
