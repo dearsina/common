@@ -133,10 +133,9 @@ class Field {
 					"pre" => "I accept the ",
 					"html" => "Terms and Conditions",
 					"post" => ".",
-					"target" => "_blank",
-					"alt" => "Will open a new window",
 					"hash" => [
-						"rel_table" => "terms_and_conditions"
+						"rel_table" => "narrative",
+						"rel_id" => "termsconditions"
 					]
 				]),
 			"validation" => [
