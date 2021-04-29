@@ -12,7 +12,7 @@ interface ExampleInterface {
 	/**
 	 * @param null $a
 	 *
-	 * @return mixed
+	 * @return void
 	 */
 	public function getHTML($a = NULL);
 }

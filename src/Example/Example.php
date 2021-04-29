@@ -52,15 +52,12 @@ class Example extends Prototype {
 				]]
 			]);
 
-//			$page->setGrid([
-//
-//			]);
-
 			$this->output->html($page->getHTML());
 
 			$class_path = str::getClassCase("\\App\\UI\\Examples\\{$rel_id}");
 			$class_instance = new $class_path();
 			$class_instance->getHTML($a);
+
 			return true;
 		}
 
