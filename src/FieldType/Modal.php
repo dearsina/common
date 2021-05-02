@@ -4,6 +4,8 @@
 namespace App\Common\FieldType;
 
 
-class Modal extends \App\UI\Modal\Common {
+use App\UI\Modal\Prototype;
+
+class Modal extends Prototype {
 
 }
