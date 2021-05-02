@@ -2,6 +2,7 @@
 
 namespace App\Common\Country;
 
+use API\ExchangeRates\ExchangeRates;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 
@@ -10,11 +11,14 @@ class Country {
 	 * Get an array of currency code options
 	 * to use in a dropdown select.
 	 *
+	 * Ignores currencies that we don't have an exchange rate for
+	 *
 	 * @return array
 	 */
 	public static function getCurrencyCodeOptions(): array
 	{
 		$sql = Factory::getInstance();
+		$exchange_rates = ExchangeRates::get();
 		foreach($sql->select([
 			"columns" => [
 				"currency_code",
@@ -33,6 +37,10 @@ class Country {
 				"currency_code" => "ASC",
 			],
 		]) as $id => $country){
+			if(!$exchange_rates[$country['currency_code']]){
+				//if we don't have an exchange rate for the currency, ignore it
+				continue;
+			}
 			$currency_code_options[$country['currency_code']] = "{$country['currency_code']}, used by {$country['countries']}";
 		}
 
