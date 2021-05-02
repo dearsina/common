@@ -835,7 +835,8 @@ class User extends Prototype {
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
-				"height" => "85% !important"
+				"height" => "85% !important",
+				"align-items" => "center"
 			],
 			"html" => [
 				"sm" => 4,
@@ -1745,7 +1746,7 @@ class User extends Prototype {
 			->verify($response, $_SERVER['REMOTE_ADDR']);
 
 		$resp_array = $resp->toArray();
-//		$this->alert->info(str::pre($resp_array));
+//		$this->log->info(str::pre($resp_array));
 
 		if ($resp_array['success']) {
 			//If the recapcha was a success

@@ -24,8 +24,15 @@ class Field {
 		# The core path
 		$core_path = $_SERVER['DOCUMENT_ROOT']."/../app/";
 
+		# The API path
+		$api_path = $_SERVER['DOCUMENT_ROOT']."/../api/";
+
 		# Get classes from both
-		$classes = array_merge(str::getClassesFromPath($common_path)?:[],str::getClassesFromPath($core_path)?:[]);
+		$classes = array_merge(
+			str::getClassesFromPath($common_path)?:[],
+			str::getClassesFromPath($core_path)?:[],
+			str::getClassesFromPath($api_path)?:[],
+		);
 
 		# Sort them alphabetically
 		sort($classes);

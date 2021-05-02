@@ -88,9 +88,12 @@ class Card extends Prototype {
 		]);
 
 		$card = new \App\UI\Card\Card([
-			"header" => "Fill in the details below to register",
+			"header" => "Fill in your details below to register",
 			"body" => $form->getHTML(),
-			"footer" => "After you have registered you will receive an email with a link to verify your email address.",
+			"footer" => [
+				"class" => "smaller",
+				"html" => "After you have registered you will receive an email with a link to verify your email address."
+			],
 			"post" => [
 				"class" => "text-muted",
 				"style" => [

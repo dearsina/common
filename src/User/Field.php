@@ -113,7 +113,6 @@ class Field {
 			"autocomplete" => "tel",
 			"name" => "phone",
 			"placeholder" => false,
-//			"icon" => "phone",
 			"validation" => [
 				"tel" => [
 					"rule" => true,
@@ -121,7 +120,8 @@ class Field {
 				],
 			],
 			"label" => false,
-			"value" => $phone
+			"value" => $phone,
+			"required" => true,
 		],[
 			"type" => "recaptcha",
 			"action" => "insert_user"
