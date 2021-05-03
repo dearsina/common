@@ -110,8 +110,8 @@ class UserRole extends \App\Common\Prototype {
 
 			$this->log->success([
 				"icon" => Icon::get("role"),
-				"title" => "{$user['first_name']} given {$vars['role']} role",
-				"message" => "{$user['first_name']} was successfully given the <code>{$vars['role']}</code> role. There may be additional settings for the role that user needs to set in order to fully operate as ".str::A($vars['role']).".",
+				"title" => "{$this->user->get()['first_name']} given {$vars['role']} role",
+				"message" => "{$this->user->get()['first_name']} was successfully given the <code>{$vars['role']}</code> role. There may be additional settings for the role that user needs to set in order to fully operate as ".str::A($vars['role']).".",
 				"container" => ".modal-body"
 			]);
 		}
