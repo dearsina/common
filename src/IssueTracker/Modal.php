@@ -92,7 +92,7 @@ class Modal extends Prototype {
 			"id" => $error_log_id
 		]);
 
-		$row = ErrorLog::rowHandler($error);
+		$row = (new ErrorLog())->rowHandler($error);
 
 		$error_fields['class'] = ["vl", "col-scroll"];
 
