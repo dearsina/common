@@ -281,10 +281,10 @@ class Request {
 			$this->hash->set("reload");
 			$this->log->warning([
 				"title" => "Expired connection",
-				"message" => "Your connection has expired. It will now be refreshed."
+				"message" => "Your connection has expired. It will now be refreshed.",
 			]);
 			return false;
-//			throw new Unauthorized("Expired CSRF token supplied.");
+			//			throw new Unauthorized("Expired CSRF token supplied.");
 		}
 
 		# Ensure token belongs to this IP address
@@ -292,10 +292,10 @@ class Request {
 			$this->hash->set("reload");
 			$this->log->warning([
 				"title" => "Expired connection",
-				"message" => "Your connection has expired. It will now be refreshed."
+				"message" => "Your connection has expired. It will now be refreshed.",
 			]);
 			return false;
-//			throw new \Exception("IP address does not match CSRF token supplied.");
+			//			throw new \Exception("IP address does not match CSRF token supplied.");
 		}
 
 		return true;
@@ -312,6 +312,18 @@ class Request {
 	 */
 	private function input($a)
 	{
+		# Handle var arrays encoded as base64 strings
+		if(is_string($a['vars'])){
+			$decoded_vars = str::base64_decode_url($a['vars']);
+			if(is_array($decoded_vars)){
+				$a['vars'] = str::base64_decode_url($a['vars']);
+			}
+			else {
+				$a['vars'] = [];
+			}
+		}
+		//If the string isn't a base64 encoded array, it will be completely ignored
+
 		# Extract the vars
 		extract($a);
 
@@ -390,10 +402,10 @@ class Request {
 	private function output($success): ?string
 	{
 		if($_SESSION['database_calls']){
-//			$this->log->info("{$_SESSION['database_calls']} database calls.");
-//			var_dump(Info::getInstance()->info);
-//			print_r($_SESSION['queries']);
-//			exit;
+//						$this->log->info("{$_SESSION['database_calls']} database calls.");
+			//			var_dump(Info::getInstance()->info);
+//						print_r($_SESSION['queries']);
+//						exit;
 		}
 
 		$output = $this->output->get();
@@ -432,14 +444,17 @@ class Request {
 		if($success === true){
 			//not sure if this will have unintended consequences
 			$output['success'] = true;
-		} else if($this->log->hasFailures()){
+		}
+		else if($this->log->hasFailures()){
 			//if there are any errors
 			$this->log->logFailures();
 			//alert them for posterity
 			$output['success'] = false;
-		} else if($success === false){
+		}
+		else if($success === false){
 			$output['success'] = false;
-		} else {
+		}
+		else {
 			//otherwise, everything is fantastic
 			$output['success'] = true;
 		}
@@ -454,7 +469,8 @@ class Request {
 			 * requests and the user gets the output just
 			 * as they would if this was a synchronous request.
 			 */
-		} else {
+		}
+		else {
 			//If this is NOT a CLI request
 
 			# Close the database connection
