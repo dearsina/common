@@ -5,6 +5,7 @@ namespace App\Common\Exception;
 
 
 use App\Common\SQL\Factory;
+use App\Common\str;
 
 /**
  * Exceptions common methods.
@@ -22,6 +23,9 @@ abstract class Prototype extends \Exception {
 	public static function logException(string $exception_type, string $message, ?int $code = NULL): void
 	{
 		$sql = Factory::getInstance("mySQL", true);
+
+		# Include backtrace to see how we got to this error
+		$message = implode("\r\n\r\n", array_filter([$message, str::backtrace(true)]));
 
 		$alert_array = array_filter([
 			"title" => $exception_type,
