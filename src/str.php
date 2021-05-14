@@ -352,6 +352,34 @@ class str {
 	}
 
 	/**
+	 * Simple array tree builder from a flat array where every row, bar the master
+	 * has a parent ID column populated.
+	 *
+	 * @param array       $elements
+	 * @param string      $id_col_name
+	 * @param string      $parent_id_col_name
+	 * @param string|null $parentId
+	 *
+	 * @return array
+	 */
+	public static function buildTree(array $elements, string $id_col_name, string $parent_id_col_name, ?string $parentId = NULL): array
+	{
+		$branch = [];
+
+		foreach ($elements as $element) {
+			if ($element[$parent_id_col_name] == $parentId) {
+				$children = self::buildTree($elements, $id_col_name, $parent_id_col_name, $element[$id_col_name]);
+				if ($children) {
+					$element['children'] = $children;
+				}
+				$branch[] = $element;
+			}
+		}
+
+		return $branch;
+	}
+
+	/**
 	 * Returns a readable method backtrace, like so:
 	 * <code>
 	 * [3176] whitelabel.php->load_ajax_call([{}]);
@@ -3522,7 +3550,7 @@ EOF;
 	 * case with array_merge, i.e.:
 	 *
 	 * ```
-	 * array_merge_recursive(['key' => 'org value'], ['key' => 'new value']);
+	 * array_merge_recursive_distinct(['key' => 'org value'], ['key' => 'new value']);
 	 *     => ['key' => 'new value'];
 	 * ```
 	 *
