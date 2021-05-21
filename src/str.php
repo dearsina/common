@@ -1047,7 +1047,7 @@ class str {
 		if(is_array($array)){
 			extract($array);
 			$hash = "{$rel_table}/{$rel_id}/{$action}";
-			if(!is_array($vars)){
+			if(!$vars){
 				//if there are no variables attached
 
 				# Remove any surplus slashes at the end
