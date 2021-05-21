@@ -334,7 +334,7 @@ class PA {
 		$cmd .= "\$client->close();";
 		$cmd .= "});'";
 
-		# TODO Figure out a fast way to send messages that are too long shell_exec php messages cannot be in the kbs
+		# TODO Figure out a fast way to send messages that are too long as shell_exec php messages cannot be in the kbs
 
 		# Execute the command
 		$output = shell_exec("php -r {$cmd} 2>&1");

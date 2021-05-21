@@ -1396,6 +1396,9 @@ class str {
 							$val .= "{$vk}:{$vv};";
 						}
 					}
+					else if (!is_array($k) && is_array($v)){
+						$val .= "{$k}:".end($v).";";
+					}
 					else {
 						if($k && strlen($v)){
 							$val .= "{$k}:{$v};";
