@@ -331,28 +331,55 @@ class PA {
 //
 //			return true;
 //		}
+//		# If this method is NOT called from CLI
+
 		/**
-		 * For some reason, this doesn't work.
+		 * For some reason, this doesn't work. So we're doing a hack-y version below,
+		 * where data > 100kb is stored in a file and the file link is sent instead.
+		 * This is to avoid hitting shell_exec max string limits.
+		 *
+		 * StackOverflow ticket:
+		 * @link https://stackoverflow.com/q/67708754/429071
 		 */
 
-		# If this method is NOT called from CLI, prepare the data as a single commandline friendly json string
+		# Prepare the data as a single commandline friendly json string
 		$data = urlencode(json_encode([
 			"fd" => $fd,
 			"data" => $message
 		]));
 
+		# Place the whole thing in a co-routine
 		$cmd  = "'go(function(){";
-		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
-		$cmd .= "\$client->upgrade(\"/\");";
-		$cmd .= "\$client->push(urldecode(\"{$data}\"));";
-		$cmd .= "\$client->close();";
-		$cmd .= "});'";
 
-		# TODO Figure out a fast way to send messages that are too long as shell_exec php messages cannot be in the kbs
+		# Fire up the http client
+		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
+
+		# Upgrade the connection (not exactly sure why)
+		$cmd .= "\$client->upgrade(\"/\");";
+
+		# If the data being sent is larger than ~100kb, create a tmp file and send the file link instead
+		if(strlen($data) > 100000){
+			//if more than ~100kb is being sent
+			$filename = $_ENV['tmp_dir'].rand();
+			file_put_contents($filename, $data);
+			$cmd .= "\$client->push(urldecode(file_get_contents(\"{$filename}\")));unset(\"{$filename}\");";
+		}
+
+		# For short messages, just sent the data
+		else {
+			$cmd .= "\$client->push(urldecode(\"{$data}\"));";
+		}
+
+		# Close the connection
+		$cmd .= "\$client->close();";
+
+		# And we're done
+		$cmd .= "});'";
 
 		# Execute the command
 		$output = shell_exec("php -r {$cmd} 2>&1");
 
+		# If there is any output, that's bad news
 		if($output){
 			throw new \Exception($output);
 		}
@@ -360,3 +387,29 @@ class PA {
 		return true;
 	}
 }
+
+/**
+ * The shell_exec character limit was calculated to be 131071 based on the following code:
+ *
+ * function generateRandomString($length = 25) {
+ * 	$characters = '0123456789';
+ * 	$charactersLength = strlen($characters);
+ * 	$randomString = '';
+ * 	for ($i = 0; $i < $length; $i++) {
+ * 		$randomString .= $characters[rand(0, $charactersLength - 1)];
+ * 	}
+ * 	return $randomString;
+ * }
+ *
+ * # Our starting point
+ * $times = 130000;
+ *
+ * while(true){
+ * 	$output = @shell_exec("echo ".generateRandomString($times));
+ * 	if(!preg_match("/[^0-9]+/", $output)){
+ * 		print "Can't do ".$times;
+ * 		exit;
+ * 	}
+ * 	$times += 1;
+ * }
+ */
