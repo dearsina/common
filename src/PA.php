@@ -194,6 +194,17 @@ class PA {
 		# Requester based recipient (there is only one requester at any time)
 		$this->getRecipientsBasedOnRequester($a);
 
+		# We're only interested in connections on the current server
+		$server = $this->sql->select([
+			"columns" => "server_id",
+			"table" => "connection",
+			"order_by" => [
+				"created" => "DESC"
+			],
+			"limit" => 1
+		]);
+		$this->where['server_id'] = $server['server_id'];
+
 		/**
 		 * While the recipient criteria can be combined,
 		 * they will only further limit each other.
@@ -301,25 +312,28 @@ class PA {
 			throw new \Exception("No message provided.");
 		}
 
-		if(str::runFromCLI()){
-			//If this method is called from the CLI
-
-			/**
-			 * The below needs to be in the go() function because Swoole said so
-			 * @link https://www.qinziheng.com/swoole/7477.htm
-			 */
-			go(function() use($fd, $message){
-				$client = new Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
-				$client->upgrade("/");
-				$client->push(json_encode([
-					"fd" => $fd,
-					"data" => $message
-				]));
-				$client->close();
-			});
-
-			return true;
-		}
+//		if(str::runFromCLI()){
+//			//If this method is called from the CLI
+//
+//			/**
+//			 * The below needs to be in the go() function because Swoole said so
+//			 * @link https://www.qinziheng.com/swoole/7477.htm
+//			 */
+//			go(function() use($fd, $message){
+//				$client = new Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
+//				$client->upgrade("/");
+//				$client->push(json_encode([
+//					"fd" => $fd,
+//					"data" => $message
+//				]));
+//				$client->close();
+//			});
+//
+//			return true;
+//		}
+		/**
+		 * For some reason, this doesn't work.
+		 */
 
 		# If this method is NOT called from CLI, prepare the data as a single commandline friendly json string
 		$data = urlencode(json_encode([

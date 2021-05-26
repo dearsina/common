@@ -4,6 +4,8 @@
 namespace App\Common;
 
 
+use App\Common\FastImage\FastImage;
+
 class Img {
 	/**
 	 * Given an array of image data, produces an svg or img tag.
@@ -162,18 +164,23 @@ class Img {
 	];
 
 	/**
-	 * The PHP getimagesize method on crack.
-	 * TODO clean this up
+	 * Expands on the PHP function getimagesize, making it useful for SVGs,
+	 * and faster for larger image files.
+	 *
 	 * @param string|null $filename
-	 * @link https://stackoverflow.com/a/48994280/429071
+	 * @param bool|null   $dimensions_only If set, will only return width and height.
+	 *
 	 * @return array|null
+	 * @link https://stackoverflow.com/a/48994280/429071
+	 *       https://github.com/tommoor/fastimage
 	 */
-	public static function getimagesize(?string $filename): ?array
+	public static function getimagesize(?string $filename, ?bool $dimensions_only = NULL): ?array
 	{
 		if(!$filename){
 			return NULL;
 		}
 
+		# SVGs
 		if(str::isSvg($filename)){
 			//Treat SVGs a little different
 			$imagine = new \Contao\ImagineSvg\Imagine();
@@ -186,7 +193,25 @@ class Img {
 				"image_type" => "SVG",
 			];
 
-		} else {
+		}
+
+		# Dimensions only (faster), will only return width/height
+		else if($dimensions_only){
+			# FastImage is a faster way of getting width/height of an image
+			$image = new FastImage($filename);
+			if(![$width, $height] = $image->getSize()){
+				// If we cannot get details, pencils down
+				return NULL;
+			}
+
+			return [
+				"width" => $width,
+				"height" => $height,
+			];
+		}
+
+		# All image data (quite slow)
+		else {
 			if(!$a = getimagesize($filename)){
 				// If we cannot get details, pencils down
 				return NULL;
