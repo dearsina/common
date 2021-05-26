@@ -2732,7 +2732,7 @@ class User extends Prototype {
 	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
 	 * @link https://www.php.net/manual/en/function.header.php
 	 */
-	private function setCookie(string $key, string $val, ?bool $remove = NULL) : bool
+	public function setCookie(string $key, string $val, ?bool $remove = NULL) : bool
 	{
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
 		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
