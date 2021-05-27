@@ -671,11 +671,11 @@ abstract class Common {
 		}
 
 		if(is_array($and)){
-			$conditions['and'] = array_filter(array_merge($conditions['and'] ?: [], $this->recursiveWhere($table, "AND", $and)));
+			$conditions['and'] = array_filter(array_merge($conditions['and'] ?: [], $this->recursiveWhere($table, "AND", $and, true)));
 		}
 
 		if(is_array($or)){
-			$conditions['or'] = array_filter(array_merge($conditions['or'] ?: [], $this->recursiveWhere($table, "OR", $or)));
+			$conditions['or'] = array_filter(array_merge($conditions['or'] ?: [], $this->recursiveWhere($table, "OR", $or, true)));
 		}
 		return $conditions;
 	}
@@ -693,7 +693,7 @@ abstract class Common {
 	 *
 	 * @return array
 	 */
-	private function recursiveWhere(array $table, string $glue, array $array): array
+	private function recursiveWhere(array $table, string $glue, array $array, ?bool $where = NULL): array
 	{
 
 		foreach($array as $key => $val){
@@ -702,7 +702,7 @@ abstract class Common {
 			if(is_int($key) && (str::isAssociativeArray($val) || (is_array($val) && array_filter($val, "is_array") === $val))){
 				//if the val is an array that leads us to further recursion
 				$opposite_glue = $glue == "AND" ? "OR" : "AND";
-				if($inner = array_filter($this->recursiveWhere($table, $opposite_glue, $val))){
+				if($inner = array_filter($this->recursiveWhere($table, $opposite_glue, $val, $where))){
 					//If that actually resulted in anything
 					$outer[] = "(" . implode(" {$opposite_glue} ", $inner) . ")";
 				}
@@ -710,7 +710,7 @@ abstract class Common {
 			}
 
 			# Where the actual where string is created
-			$outer[] = $this->getValueComparison($table, $key, $val, true);
+			$outer[] = $this->getValueComparison($table, $key, $val, $where);
 		}
 
 		return $outer;
@@ -728,18 +728,14 @@ abstract class Common {
 	 */
 	protected function getOnConditions(array $table, $and, ?array $or): ?array
 	{
-		# Or conditions have to be an array because we're comparing at least two options
 		if(is_array($or)){
-			foreach($or as $key => $val){
-				$conditions["or"][] = $this->getValueComparison($table, $key, $val);
-			}
+			$conditions['or'] = array_filter($this->recursiveWhere($table, "OR", $or));
 		}
 
 		if(is_array($and)){
-			foreach($and as $key => $val){
-				$conditions["and"][] = $this->getValueComparison($table, $key, $val);
-			}
+			$conditions['and'] = array_filter($this->recursiveWhere($table, "AND", $and));
 		}
+
 		else if(is_string($and)){
 			/**
 			 * If the $on is a string, it's assumed to be
