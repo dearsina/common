@@ -99,7 +99,7 @@ class ErrorLog extends Prototype {
 		$page = new Page([
 			"title" => "Resolved errors",
 			"icon" => [
-				"type" => "thin",
+				"type" => "light",
 				"name" => Icon::get("error")
 			],
 		]);

@@ -285,7 +285,7 @@ class Card extends \App\Common\Prototype {
 				"colour" => "blue",
 				"alt" => "View resolved errors",
 				"icon" => [
-					"type" => "thin",
+					"type" => "light",
 					"name" => "virus"
 				],
 				"hash" => [
@@ -299,7 +299,7 @@ class Card extends \App\Common\Prototype {
 		} else {
 			//if you're currently seeing the resolved
 			$icon = [
-				"type" => "thin",
+				"type" => "light",
 				"name" => "virus"
 			];
 			$button[] = [

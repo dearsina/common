@@ -281,7 +281,7 @@ class Admin extends Prototype implements NavigationInterface {
 		];
 		$children[] = [
 			"icon" => [
-				"type" => "thin",
+				"type" => "light",
 				"name" => Icon::get("error")
 			],
 			"title" => "Resolved errors",

@@ -264,7 +264,7 @@ EOF;
 					"close" => false,
 					"type" => "error",
 					"title" => "SQL Connection error [{$e->getCode()}]",
-					"icon" => "far fa-ethernet",
+					"icon" => "fa-light fa-ethernet",
 					"message" => $e->getMessage()
 				]]
 			]);
