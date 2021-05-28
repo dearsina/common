@@ -335,7 +335,7 @@ class PA {
 
 		/**
 		 * For some reason, this doesn't work. So we're doing a hack-y version below,
-		 * where data > 1kb is stored in a file and the file link is sent instead.
+		 * where data > 900 chars is stored in a file and the file link is sent instead.
 		 * This is to avoid hitting shell_exec max string limits.
 		 *
 		 * StackOverflow ticket:
@@ -362,7 +362,7 @@ class PA {
 			//if more than 900 chars is being sent
 			$filename = $_ENV['tmp_dir'].rand();
 			file_put_contents($filename, $data);
-			$cmd .= "\$client->push(urldecode(file_get_contents(\"{$filename}\")));";//unset(\"{$filename}\");";
+			$cmd .= "\$client->push(urldecode(file_get_contents(\"{$filename}\")));unset(\"{$filename}\");";
 		}
 
 		# For short messages, just sent the data
@@ -389,7 +389,8 @@ class PA {
 }
 
 /**
- * The shell_exec character limit was calculated to be 131071 based on the following code:
+ * To estimate the shell_exec character limit, the following code was run. It turned out
+ * to be incorrect and a far shorter limit (of ~900 chars) was established.
  *
  * function generateRandomString($length = 25) {
  * 	$characters = '0123456789';
