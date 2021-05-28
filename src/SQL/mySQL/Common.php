@@ -1857,7 +1857,7 @@ abstract class Common {
 	 */
 	protected function isValidComparisonOperator(string $operator): bool
 	{
-		return in_array(strtoupper($operator), ["=", "!=", "<", ">", "<=", ">=", "<>", "IS", "IS NOT", "LIKE", "NOT LIKE", "IN", "NOT IN"]);
+		return in_array(strtoupper($operator), ["=", "!=", "<", ">", "<=", ">=", "<>", "<=>", "IS", "IS NOT", "LIKE", "NOT LIKE", "IN", "NOT IN"]);
 	}
 
 	/**
