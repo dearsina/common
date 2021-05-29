@@ -21,13 +21,13 @@ class Process {
 	/**
 	 * Process constructor.
 	 *
-	 * @param bool $cl
+	 * @param string|null $command If a command is passed, the command will be executed
 	 */
-	public function __construct ($cl = false)
+	public function __construct (?string $command = NULL)
 	{
-		if ($cl != false) {
-			$this->command = $cl;
-			$this->runCom();
+		if ($command) {
+			$this->command = $command;
+			$this->runCommand();
 		}
 	}
 
@@ -177,7 +177,7 @@ class Process {
 		return $params;
 	}
 
-	private function runCom (): void
+	private function runCommand (): void
 	{
 		$command = 'nohup ' . $this->command . ' >> /var/www/tmp/process.log 2>&1 & echo $!';
 
@@ -217,7 +217,7 @@ class Process {
 	 */
 	public function start ()
 	{
-		if ($this->command != '') $this->runCom();
+		if ($this->command != '') $this->runCommand();
 		else return true;
 	}
 

@@ -362,7 +362,7 @@ class PA {
 			//if more than 900 chars is being sent
 			$filename = $_ENV['tmp_dir'].rand();
 			file_put_contents($filename, $data);
-			$cmd .= "\$client->push(urldecode(file_get_contents(\"{$filename}\")));unset(\"{$filename}\");";
+			$cmd .= "\$client->push(urldecode(file_get_contents(\"{$filename}\")));unlink(\"{$filename}\");";
 		}
 
 		# For short messages, just sent the data
@@ -377,7 +377,7 @@ class PA {
 		$cmd .= "});'";
 
 		# Execute the command
-		$output = shell_exec("php -r {$cmd} 2>&1");
+		$output = shell_exec("php -r {$cmd} 2>&1");var_dump($output);
 
 		# If there is any output, that's bad news
 		if($output){
