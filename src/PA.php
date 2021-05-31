@@ -377,7 +377,7 @@ class PA {
 		$cmd .= "});'";
 
 		# Execute the command
-		$output = shell_exec("php -r {$cmd} 2>&1");var_dump($output);
+		$output = shell_exec("php -r {$cmd} 2>&1");
 
 		# If there is any output, that's bad news
 		if($output){
