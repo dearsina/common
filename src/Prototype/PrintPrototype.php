@@ -21,6 +21,9 @@ abstract class PrintPrototype extends Prototype {
 	 * Returns the first page header with the KYCDD logo to the left,
 	 * and the document title to the right.
 	 *
+	 * The text to the right is set direction RTL, so any badges
+	 * must be placed BEFORE the text, not after.
+	 *
 	 * @param string $title
 	 *
 	 * @return array
@@ -33,9 +36,7 @@ abstract class PrintPrototype extends Prototype {
 				"width" => "200",
 				"height" => "60",
 			]),
-			"style" => [
-				"width" => "50%",
-			],
+			"sm" => "auto"
 		], [
 			"html" => $title,
 			"style" => [
@@ -44,7 +45,9 @@ abstract class PrintPrototype extends Prototype {
 				"text-transform" => "uppercase",
 				"border-bottom" => "3px solid black",
 				"text-align" => "right",
-				"width" => "50%",
+				"white-space" => "nowrap",
+				"overflow" => "hidden",
+				"direction" => "rtl"
 			],
 		]];
 
