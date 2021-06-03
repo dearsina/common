@@ -297,7 +297,7 @@ class ErrorLog extends Prototype {
 		$first_line = strip_tags($first_line);
 		$header = "<b>{$error['title']}</b> ".$first_line;
 
-		$body = trim($error['message']);
+		$body = html_entity_decode(trim($error['message']));
 		$message_len = strlen($body);
 		if($message_len > self::MAX_ERROR_BODY_LENGTH){
 			$body = substr($body, 0, self::MAX_ERROR_BODY_LENGTH);
