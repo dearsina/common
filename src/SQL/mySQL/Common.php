@@ -1796,6 +1796,10 @@ abstract class Common {
 		}
 
 		if(is_array($val)){
+			if(empty($val)){
+				//If an empty array has been passed, return NULL
+				return NULL;
+			}
 			throw new BadRequest("The following associative array was sent as part of a value comparison. Only numeric arrays are accepted. ". str::var_export($val, true));
 		}
 
