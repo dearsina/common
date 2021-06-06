@@ -176,8 +176,9 @@ class Request {
 		 * they're involved in foul play.
 		 */
 		try {
-			$this->preventCSRF($a);
-			$success = $this->input($a);
+			if($this->preventCSRF($a)){
+				$success = $this->input($a);
+			}
 		}
 		catch(\mysqli_sql_exception $e) {
 			$this->log->error([
