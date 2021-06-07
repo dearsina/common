@@ -556,7 +556,18 @@ abstract class Common {
 			//if it's not even a string, it's definitely not a JSON function
 			return false;
 		}
-		return in_array(strtoupper($function), ["JSON", "JSON_ARRAY_APPEND", "JSON_CONTAINS", "NOT JSON_CONTAINS", "JSON_EXTRACT", "NOT JSON_EXTRACT"]);
+
+		# The current batch of accepted JSON functions
+		return in_array(strtoupper($function), [
+			"JSON",
+			"JSON_ARRAY_APPEND",
+			"JSON_OVERLAPS",
+			"NOT JSON_OVERLAPS",
+			"JSON_CONTAINS",
+			"NOT JSON_CONTAINS",
+			"JSON_EXTRACT",
+			"NOT JSON_EXTRACT"
+		]);
 	}
 
 	protected function formatGroupConcatCol(array $table, ?string $col_alias, array $col): ?array
@@ -1019,6 +1030,16 @@ abstract class Common {
 			if($json_function == "NOT JSON_CONTAINS"){
 				return "({$json_function}(`{$table['alias']}`.`{$col}`, {$val}) OR `{$table['alias']}`.`{$col}` IS NULL)";
 				//A special concession has to be made to the not contains condition, because if the column is NULL confusingly doesn't mean it doesn't contain
+			}
+
+			# @link https://stackoverflow.com/a/62795451/429071
+			if($json_function == "JSON_OVERLAPS"){
+				return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val}) = 1";
+			}
+
+			# Same as JSON_OVERLAPS but with the expected value of zero instead of one
+			if($json_function == "NOT JSON_OVERLAPS"){
+				return "JSON_OVERLAPS(`{$table['alias']}`.`{$col}`, {$val}) = 0";
 			}
 
 			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
