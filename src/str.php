@@ -1858,7 +1858,7 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function pre($str, $crop = NULL, $language = NULL)
+	public static function pre($str, $crop = NULL, $language = NULL, ?array $class = NULL, ?array $style = NULL)
 	{
 		if(is_array($str)){
 			$str = str::var_export($str, true);
@@ -1888,8 +1888,13 @@ EOF;
 		$str = $Parsedown->text($str);
 
 		if($language){
-			$class = str::getAttrTag("class", "language-{$language}");
-			$str = str_replace("<code>", "<code{$class}>", $str);
+			# Class
+			$class_array = str::getAttrArray($class, "language-{$language}", $only_class);
+			$class = str::getAttrTag("class", $class_array);
+
+			# Style
+			$style = str::getAttrTag("style", $style);
+			$str = str_replace("<code>", "<code{$class}{$style}>", $str);
 		}
 
 		$str = "<div class=\"code-mute\">{$str}</div>";
