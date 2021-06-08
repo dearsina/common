@@ -198,6 +198,9 @@ class PA {
 		$server = $this->sql->select([
 			"columns" => "server_id",
 			"table" => "connection",
+			"where" => [
+				["server_id", "IS NOT", NULL]
+			],
 			"order_by" => [
 				"created" => "DESC"
 			],
