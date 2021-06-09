@@ -130,9 +130,15 @@ class DateFinder extends \App\Common\Prototype {
 
 	/**
 	 * Change YYYY/MM/DD to YYYY-MM-DD
-	 * Change DD/MM/YYYY to DD-MM-YYYY (ignoring US dates)
+	 *
+	 * The following date changes ignore US dates
+	 * Change DD/MM/YYYY to DD-MM-YYYY
 	 * Change DD.MM.YY to DD-MM-YYYY (split at this year's number)
+	 * Change DD-MM-YY to DD-MM-YYYY (split at this year's number)
+	 * Change DD/MM/YY to DD-MM-YYYY (split at this year's number)
+	 *
 	 * Change DDth of MMM YYYY to DD MMM YYYY
+	 *
 	 * @param $string
 	 */
 	private function changeCommonChallengingFormats(&$string): void
@@ -143,8 +149,8 @@ class DateFinder extends \App\Common\Prototype {
 		# Changing DD/MM/YYYY to DD-MM-YYYY (ignoring US dates)
 		$string = preg_replace("/(\d{2})\/(\d{2})\/(\d{4})/", "\$1-\$2-\$3", $string);
 
-		# Changing DD.MM.YY to DD-MM-YYYY
-		if(preg_match("/^(\d{2})(?:\.|\-)(\d{2})(?:\.|\-)(\d{2})$/", $string)){
+		# Changing DD.MM.YY and DD-MM-YY and DD/MM/YY to DD-MM-YYYY (ignoring US dates)
+		if(preg_match("/^(\d{2})(?:\.|\-|\/)(\d{2})(?:\.|\-|\/)(\d{2})$/", $string)){
 			$pieces = explode(".", $string);
 			$string = "{$pieces[0]}.{$pieces[1]}.".($pieces[2] > date("y") ? "19" : "20").$pieces[2];
 		}
