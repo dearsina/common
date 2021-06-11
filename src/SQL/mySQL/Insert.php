@@ -36,8 +36,10 @@ class Insert extends Common {
 		# Set the columns that are going to be SET into this table
 		$this->setSet($set, $html, $ignore_empty);
 
-		# Add ID, created by and time
-		$this->addRowMetadata();
+		if($include_meta !== false){
+			# Add ID, created by and time
+			$this->addRowMetadata();
+		}
 
 		# Generate the query
 		$query = $this->generateQuery();

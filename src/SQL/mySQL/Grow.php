@@ -39,6 +39,11 @@ class Grow extends Common {
 
 		# For each row
 		foreach($data as $row){
+			# Each row needs to be an array
+			if(!is_array($row)){
+				continue;
+			}
+
 			# For each column of data that is to be inserted
 			foreach($row as $col => $val) {
 				if(in_array($col, $columns_to_ignore)){
