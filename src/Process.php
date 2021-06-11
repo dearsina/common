@@ -231,4 +231,17 @@ class Process {
 		if ($this->status() == false) return true;
 		else return false;
 	}
+
+	public static function abort(string $pid, ?bool $ignore_errors = NULL): bool
+	{
+		$command = "kill {$pid} 2>&1";
+		exec($command, $output);
+		if($ignore_errors){
+			return true;
+		}
+		if($output){
+			throw new \Exception("There was an error aborting the process: ".implode("<br>", array_filter($output)));
+		}
+		return true;
+	}
 }
