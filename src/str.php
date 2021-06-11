@@ -2422,6 +2422,38 @@ EOF;
 	}
 
 	/**
+	 * Given an int number, returns the corresponding Excel-style
+	 * column name, 1 = A, 2 = B, 27 = AA, 28 = AB, etc.
+	 *
+	 * @param int $n
+	 *
+	 * @return string
+	 */
+	public static function excelKey(int $n): string
+	{
+		for($r = ""; $n >= 0; $n = intval($n / 26) - 1)
+			$r = chr($n%26 + 0x41) . $r;
+		return $r;
+	}
+
+	/**
+	 * Given (whole) seconds, returns the equivalent in hours,
+	 * minutes and seconds.
+	 *
+	 * @param int|null $seconds
+	 * @link https://stackoverflow.com/a/34681477/429071
+	 * @return string|null
+	 */
+	public static function getHisFromS(?int $seconds = NULL): ?string
+	{
+		if($seconds === NULL){
+			return NULL;
+		}
+
+		return str_pad(floor($seconds / 3600), 2, "0") . gmdate(":i:s", $seconds % 3600);;
+	}
+
+	/**
 	 * Given an array, will create a string from the values, with the glue as the glue.
 	 *
 	 * @param mixed       $array
