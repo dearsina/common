@@ -2327,7 +2327,7 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public static function array_replace_keys($array, array $old_to_new_keys)
+	public static function array_replace_keys($array, array $old_to_new_keys, ?bool $ignore_other_keys = NULL)
 	{
 		if(!is_array($array)){
 			return $array;
@@ -2342,8 +2342,14 @@ EOF;
 				$key = $av[array_search($key, $ak)];
 			}
 
+			# If we're going to ignore all keys we cannot find new matches to
+			else if($ignore_other_keys){
+				# Don't feed the key into the output, ignore it
+				continue;
+			}
+
 			if(is_array($value)){
-				$value = str::array_replace_keys($value, $old_to_new_keys);
+				$value = str::array_replace_keys($value, $old_to_new_keys, $ignore_other_keys);
 			}
 
 			$temp_array[$key] = $value;
