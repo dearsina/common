@@ -170,9 +170,9 @@ abstract class Common {
 	 * @param string|array $table
 	 * @param string|null  $id
 	 * @param bool|null    $include_removed
-	 * @param bool|null    $count
+	 * @param mixed|null    $count
 	 */
-	protected function setTable(?string $db, $table, ?string $id = NULL, ?bool $include_removed = NULL, ?bool $count = NULL): void
+	protected function setTable(?string $db, $table, ?string $id = NULL, ?bool $include_removed = NULL, $count = NULL): void
 	{
 		$this->table = $this->getTable($db, $table, $id, $include_removed, $count);
 	}
@@ -190,11 +190,13 @@ abstract class Common {
 	 *
 	 * @param string|null $db
 	 * @param             $table
+	 * @param string|null $id
 	 * @param bool|null   $include_removed
+	 * @param null        $count
 	 *
 	 * @return array
 	 */
-	protected function getTable(?string $db, $table, ?string $id, ?bool $include_removed, ?bool $count): array
+	protected function getTable(?string $db, $table, ?string $id, ?bool $include_removed, $count = NULL): array
 	{
 		# Get the database
 		$db = $db ?: $_ENV['db_database'];
@@ -276,7 +278,7 @@ abstract class Common {
 	{
 		# Clean up table name for alias purposes
 		# The assumption here is that the table name contains at least one alphanumeric character.
-		$table = preg_replace("/[^A-Za-z0-9_]/", '', $table);
+		$table = preg_replace("/[^A-Za-z0-9_\-]/", '', $table);
 
 		if($db != $_ENV['db_database']){
 			//if the table is NOT the same as the main database
@@ -462,7 +464,8 @@ abstract class Common {
 		return [[
 			"agg" => "COUNT",
 			"table_alias" => $this->table['alias'],
-			"name" => $this->table["id_col"],
+			# The count key could include the key to do the countable on
+			"name" => is_string($this->table['count']) ? $this->table['count'] : $this->table["id_col"],
 			"alias" => "C",
 			"distinct" => true,
 		]];
@@ -1755,7 +1758,7 @@ abstract class Common {
 
 		# Int columns
 		if($table_metadata[$col]['DATA_TYPE'] == 'int'){
-			if(!$val && is_string($val)){
+			if(!strlen($val) || !is_numeric($val)){
 				//if the value is ""
 				return "NULL";
 				// Because INT columns do not accept strings, even empty ones
@@ -1782,7 +1785,8 @@ abstract class Common {
 		}
 
 		# Format the value, ensure it conforms
-		if(($val = $this->formatComparisonVal($val, $html)) === NULL){
+		$val = $this->formatComparisonVal($val, $html);
+		if($val === NULL){
 			//A legit value can be "0"
 
 			return "NULL";

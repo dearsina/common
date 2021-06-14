@@ -51,8 +51,10 @@ class Update extends Common {
 		# Set the columns that are going to be SET into this table
 		$this->setSet($set, $html);
 
-		# Add ID, created by and time
-		$this->addRowMetadata($user_id);
+		if($include_meta !== false){
+			# Add ID, created by and time
+			$this->addRowMetadata($user_id);
+		}
 
 		# Generate the query
 		$query = $this->generateUpdateSQL();
