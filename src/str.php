@@ -366,10 +366,10 @@ class str {
 	{
 		$branch = [];
 
-		foreach ($elements as $element) {
-			if ($element[$parent_id_col_name] == $parentId) {
+		foreach($elements as $element){
+			if($element[$parent_id_col_name] == $parentId){
 				$children = self::buildTree($elements, $id_col_name, $parent_id_col_name, $element[$id_col_name]);
-				if ($children) {
+				if($children){
 					$element['children'] = $children;
 				}
 				$branch[] = $element;
@@ -1406,8 +1406,8 @@ class str {
 							$val .= "{$vk}:{$vv};";
 						}
 					}
-					else if (!is_array($k) && is_array($v)){
-						$val .= "{$k}:".end($v).";";
+					else if(!is_array($k) && is_array($v)){
+						$val .= "{$k}:" . end($v) . ";";
 					}
 					else {
 						if($k && strlen($v)){
@@ -2423,7 +2423,7 @@ EOF;
 
 	/**
 	 * Given an int number, returns the corresponding Excel-style
-	 * column name, 1 = A, 2 = B, 27 = AA, 28 = AB, etc.
+	 * column name, 0 = A, 1 = B, 26 = AA, 27 = AB, etc.
 	 *
 	 * @param int $n
 	 *
@@ -2432,7 +2432,7 @@ EOF;
 	public static function excelKey(int $n): string
 	{
 		for($r = ""; $n >= 0; $n = intval($n / 26) - 1)
-			$r = chr($n%26 + 0x41) . $r;
+			$r = chr($n % 26 + 0x41) . $r;
 		return $r;
 	}
 
@@ -2441,8 +2441,9 @@ EOF;
 	 * minutes and seconds.
 	 *
 	 * @param int|null $seconds
-	 * @link https://stackoverflow.com/a/34681477/429071
+	 *
 	 * @return string|null
+	 * @link https://stackoverflow.com/a/34681477/429071
 	 */
 	public static function getHisFromS(?int $seconds = NULL): ?string
 	{
