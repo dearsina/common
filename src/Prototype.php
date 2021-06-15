@@ -572,7 +572,7 @@ abstract class Prototype {
 	 *
 	 * @return array
 	 */
-	public function getRowButtons(array $cols, ?array $a = []): array
+	public function getRowButtons(array $cols, ?array $a = []): ?array
 	{
 		extract($a);
 
