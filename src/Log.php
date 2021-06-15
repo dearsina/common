@@ -216,6 +216,18 @@ EOF;
 		$sql = Factory::getInstance();
 		// Has to be initiated "locally" to prevent an infinite loop
 
+		# Ensure the message array is legit
+		foreach($alert['message'] as $key => $val){
+			if(is_array($val)){
+				continue;
+			}
+			if(!ctype_print($val)){
+				//if the $val variable contains unprintable characters
+				unset($alert['message'][$key]);
+				//strip the key away from the array (because it can't be stored in the message column
+			}
+		}
+
 		$alert_array = array_filter([
 			"type" => $type,
 			"title" => $alert['title'],
