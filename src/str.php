@@ -804,16 +804,22 @@ class str {
 	{
 		$modifier = strtoupper($modifier);
 		$cmd = "go(function(){";
+//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
 		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
 		$cmd .= "});";
 
 		# Run the command
-		$json_output = shell_exec("php -r '{$cmd}' 2>&1");
+		exec("php -r '{$cmd}' 2>&1", $output);
+
+		# Temporary filter before Swoole 4.6+
+		$output = array_filter($output, function($line){
+			return $line != "Deprecated: Swoole\Event::rshutdown(): Event::wait() in shutdown function is deprecated in Unknown on line 0";
+		});
 
 		# Return false if no methods matching are found
-		if(!$array = json_decode($json_output, true)){
+		if(!$array = json_decode($output[0], true)){
 			return [];
 		}
 
