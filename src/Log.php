@@ -22,11 +22,18 @@ class Log {
 	 * Cloning and wakeup are also set to private to prevent
 	 * cloning and unserialising of the Hash() object.
 	 */
-	private function __construct() {
+	private function __construct()
+	{
 		$this->startTimer();
 	}
-	private function __clone() {}
-	private function __wakeup() {}
+
+	private function __clone()
+	{
+	}
+
+	private function __wakeup()
+	{
+	}
 
 	/**
 	 * Used instead of new to ensure that the same instance is used every time it's initiated.
@@ -35,14 +42,15 @@ class Log {
 	 */
 	final public static function getInstance(): Log
 	{
-		static $instance = null;
-		if (!$instance) {
+		static $instance = NULL;
+		if(!$instance){
 			$instance = new Log();
 		}
 		return $instance;
 	}
 
-	public function startTimer(){
+	public function startTimer()
+	{
 		$this->script_start_time = microtime(true);
 	}
 
@@ -51,13 +59,14 @@ class Log {
 	 *
 	 * @return mixed
 	 */
-	public function getAlerts () {
+	public function getAlerts()
+	{
 		if(!empty($this->alerts)){
 			foreach($this->alerts as $type => $alerts){
 				foreach($alerts as $alert){
-//					$flat_error_array[] = str::array_filter_recursive(
-//						array_merge($alert,$this->prepareAlert($type, $alert))
-//					);
+					//					$flat_error_array[] = str::array_filter_recursive(
+					//						array_merge($alert,$this->prepareAlert($type, $alert))
+					//					);
 					$flat_error_array[] = $this->prepareAlert($type, $alert);
 				}
 			}
@@ -95,7 +104,7 @@ EOF;
 	 *
 	 * @return array
 	 */
-	public function prepareAlert (string $type, array $alert): array
+	public function prepareAlert(string $type, array $alert): array
 	{
 		$icon = Icon::getArray($alert['icon']);
 		$alert["type"] = $type;
@@ -107,14 +116,16 @@ EOF;
 	/**
 	 * Clears the local alert array.
 	 */
-	public function clearAlerts(){
+	public function clearAlerts()
+	{
 		$this->alerts = [];
 	}
 
 	/**
 	 * Removes all component alerts from the current UI.
 	 */
-	public function resetAlerts(){
+	public function resetAlerts()
+	{
 		Output::getInstance()->function("removeAllAlerts");
 	}
 
@@ -124,7 +135,8 @@ EOF;
 	 *
 	 * @return bool|string
 	 */
-	public function getStatus(){
+	public function getStatus()
+	{
 		if(!is_array($this->alerts)){
 			return false;
 		}
@@ -151,14 +163,15 @@ EOF;
 	 *
 	 * @return float
 	 */
-	public function getDuration(){
+	public function getDuration()
+	{
 		return $this->secondsSinceStart();
 	}
 
 	private $failure_error_types = [
 		"danger",
 		"error",
-		"red"
+		"red",
 	];
 
 	/**
@@ -167,11 +180,12 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public function hasFailures() {
+	public function hasFailures()
+	{
 		if(!$this->alerts){
 			return false;
 		}
-		if(count(array_intersect($this->failure_error_types,array_keys($this->alerts)))) {
+		if(count(array_intersect($this->failure_error_types, array_keys($this->alerts)))){
 			//if any error (types) are deemed as failures
 			return true;
 		}
@@ -182,13 +196,14 @@ EOF;
 	/**
 	 * Stores all failure messages in the DB.
 	 */
-	public function logFailures(){
+	public function logFailures()
+	{
 		if(!is_array($this->alerts)){
 			return false;
 		}
 
 		foreach($this->alerts as $type => $alerts){
-			if(!in_array($type,$this->failure_error_types)){
+			if(!in_array($type, $this->failure_error_types)){
 				continue;
 			}
 			foreach($alerts as $alert){
@@ -209,7 +224,7 @@ EOF;
 	 * @param string $type
 	 * @param array  $alert
 	 */
-	private function logAlert (string $type, array $alert): void
+	private function logAlert(string $type, array $alert): void
 	{
 		$icon = Icon::getArray($alert['icon']);
 
@@ -217,16 +232,19 @@ EOF;
 		// Has to be initiated "locally" to prevent an infinite loop
 
 		# Ensure the message array is legit
-		foreach($alert['message'] as $key => $val){
-			if(is_array($val)){
-				continue;
-			}
-			if(!ctype_print($val)){
-				//if the $val variable contains unprintable characters
-				unset($alert['message'][$key]);
-				//strip the key away from the array (because it can't be stored in the message column
+		if(is_array($alert['message'])){
+			foreach($alert['message'] as $key => $val){
+				if(is_array($val)){
+					continue;
+				}
+				if(!ctype_print($val)){
+					//if the $val variable contains unprintable characters
+					unset($alert['message'][$key]);
+					//strip the key away from the array (because it can't be stored in the message column
+				}
 			}
 		}
+
 
 		$alert_array = array_filter([
 			"type" => $type,
@@ -238,7 +256,7 @@ EOF;
 			"rel_table" => $_REQUEST['rel_table'],
 			"rel_id" => $_REQUEST['rel_id'],
 			"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
-			"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
+			"connection_id" => $_SERVER['HTTP_CSRF_TOKEN'],
 		]);
 
 		# Insert the error in the DB
@@ -248,7 +266,8 @@ EOF;
 				"set" => $alert_array,
 				"reconnect" => true // Reconnects in case the error was caused by a long running script
 			]);
-		} catch (\Exception $e){
+		}
+		catch(\Exception $e) {
 			/**
 			 * There is a try/catch here because the SQL server itself
 			 * could be the cause of the error, thus this insert
@@ -259,26 +278,26 @@ EOF;
 				"success" => false,
 				"alerts" => [[
 					# Will display the entire SQL query on error, use with caution
-//					"reset" => true,
-//					"container" => "#ui-view",
-//					"type" => "warning",
-//					"title" => $alert['title'],
-//					"message" => $alert['message'].str::pre($_SESSION['query']),
-//					"icon" => "{$icon['type']} fa-{$icon['name']}",
-//					"seconds" => $alert['seconds'],
-//					"action" => $_REQUEST['action'],
-//					"rel_table" => $_REQUEST['rel_table'],
-//					"rel_id" => $_REQUEST['rel_id'],
-//					"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
-//					"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
-//				], [
+					//					"reset" => true,
+					//					"container" => "#ui-view",
+					//					"type" => "warning",
+					//					"title" => $alert['title'],
+					//					"message" => $alert['message'].str::pre($_SESSION['query']),
+					//					"icon" => "{$icon['type']} fa-{$icon['name']}",
+					//					"seconds" => $alert['seconds'],
+					//					"action" => $_REQUEST['action'],
+					//					"rel_table" => $_REQUEST['rel_table'],
+					//					"rel_id" => $_REQUEST['rel_id'],
+					//					"vars" => $_REQUEST['vars'] ? json_encode($_REQUEST['vars']) : NULL,
+					//					"connection_id" => $_SERVER['HTTP_CSRF_TOKEN']
+					//				], [
 					"container" => "#ui-view",
 					"close" => false,
 					"type" => "error",
 					"title" => "SQL Connection error [{$e->getCode()}]",
 					"icon" => "fa-light fa-ethernet",
 					"message" => $e->getMessage(),
-				]]
+				]],
 			]);
 			exit;
 		}
@@ -289,7 +308,7 @@ EOF;
 	 * in the root of the project, when an error occurs
 	 * on the ajax.php pathway.
 	 */
-	public static function connectionError() : void
+	public static function connectionError(): void
 	{
 		# Load up SQL
 		$sql = Factory::getInstance();
@@ -315,7 +334,7 @@ EOF;
 		# Insert the error in the DB
 		if(!$sql->insert([
 			"table" => 'error_log',
-			"set" => $set
+			"set" => $set,
 		])){
 			echo "There was a problem logging your error.";
 		}
@@ -329,9 +348,10 @@ EOF;
 	 *
 	 * @return float
 	 */
-	private function secondsSinceStart(){
+	private function secondsSinceStart()
+	{
 		$now = microtime(true);
-		return round($now - $this->script_start_time,3);
+		return round($now - $this->script_start_time, 3);
 	}
 
 	/**
@@ -347,13 +367,14 @@ EOF;
 	 *
 	 * @param string|array $a
 	 *
-	 * @param string $type
+	 * @param string       $type
 	 *
-	 * @param mixed   $immediately
+	 * @param mixed        $immediately
 	 *
 	 * @return bool
 	 */
-	public function log($a, string $type, $immediately = NULL){
+	public function log($a, string $type, $immediately = NULL)
+	{
 
 		# Multiple errors can be sent at once
 		if(str::isNumericArray($a)){
@@ -364,7 +385,7 @@ EOF;
 		}
 
 		# If the error is fleshed out into an array
-		else if (str::isAssociativeArray($a)){
+		else if(str::isAssociativeArray($a)){
 			$alert = $a;
 		}
 
@@ -392,15 +413,16 @@ EOF;
 	 * Logs and sends an alert out immediately
 	 * to one or many users via WebSockets.
 	 *
-	 * @param string     $type
-	 * @param array      $alert
-	 * @param mixed $immediately
+	 * @param string $type
+	 * @param array  $alert
+	 * @param mixed  $immediately
 	 *
 	 * @return bool
 	 */
-	private function alertImmediately(string $type, array $alert, $immediately = NULL){
+	private function alertImmediately(string $type, array $alert, $immediately = NULL)
+	{
 		# Log the alert (if of a failure type)
-		if(in_array($type,$this->failure_error_types)){
+		if(in_array($type, $this->failure_error_types)){
 			$this->logAlert($type, $alert);
 		}
 
@@ -410,13 +432,14 @@ EOF;
 		# If the $immediately var contains recipients
 		if(is_array($immediately)){
 			$recipients = $immediately;
-		} else {
+		}
+		else {
 			//if no recipients have been identified
 			global $user_id;
 			global $session_id;
 			$recipients = [
 				"user_id" => $user_id,
-				"session_id" => $session_id
+				"session_id" => $session_id,
 			];
 			/**
 			 * If no individual or group of recipients
@@ -452,11 +475,12 @@ EOF;
 	 *
 	 * @param           $a
 	 *
-	 * @param mixed $immediately
+	 * @param mixed     $immediately
 	 *
 	 * @return true
 	 */
-	function error($a, $immediately = NULL){
+	function error($a, $immediately = NULL)
+	{
 		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
@@ -470,13 +494,14 @@ EOF;
 	 * ]);
 	 * </code>
 	 *
-	 * @param      $a
+	 * @param       $a
 	 *
 	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function warning($a, $immediately = NULL){
+	function warning($a, $immediately = NULL)
+	{
 		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
@@ -493,13 +518,14 @@ EOF;
 	 * ]);
 	 * </code>
 	 *
-	 * @param      $a
+	 * @param       $a
 	 *
 	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function info($a, $immediately = NULL){
+	function info($a, $immediately = NULL)
+	{
 		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
@@ -513,13 +539,14 @@ EOF;
 	 * ]);
 	 * </code>
 	 *
-	 * @param      $a
+	 * @param       $a
 	 *
 	 * @param mixed $immediately
 	 *
 	 * @return true
 	 */
-	function success($a, $immediately = NULL){
+	function success($a, $immediately = NULL)
+	{
 		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
