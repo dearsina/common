@@ -81,6 +81,19 @@ class Country {
 		return $currency['geolocation'][0]['country'][0]['currency_code'];
 	}
 
+	/**
+	 * Returns an array with the alpha-2 country code as the key,
+	 * and the English country name as the value.
+	 *
+	 * <code>
+	 * foreach(Country::getAllCountries() as $country_code => $country_name){
+	 *
+	 * }
+	 * </code>
+	 *
+	 * @return array
+	 * @throws \Exception#
+	 */
 	public static function getAllCountries(): array
 	{
 		$info = Info::getInstance();
