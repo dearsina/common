@@ -68,12 +68,13 @@ class Factory {
 				# Create output to the user with a GENERIC error message
 				$log = Log::getInstance();
 				$output['success'] = false;
-				$output['alerts'][] = $log->prepareAlert("error", [
+				$log->setAlertToDisplayedAlertsArray($output['alerts'], "error", [
 					"container" => "#ui-view",
 					"icon" => "ethernet",
 					"title" => "System error",
 					"message" => $message
 				]);
+				$output['alerts'] = array_values($output['alerts']);
 			}
 
 			# Pencils down, wait for backup

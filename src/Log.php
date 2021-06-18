@@ -59,20 +59,55 @@ class Log {
 	 *
 	 * @return mixed
 	 */
-	public function getAlerts()
+	public function getAlerts(): ?array
 	{
-		if(!empty($this->alerts)){
-			foreach($this->alerts as $type => $alerts){
-				foreach($alerts as $alert){
-					//					$flat_error_array[] = str::array_filter_recursive(
-					//						array_merge($alert,$this->prepareAlert($type, $alert))
-					//					);
-					$flat_error_array[] = $this->prepareAlert($type, $alert);
-				}
-			}
-			return $flat_error_array;
+		if(empty($this->alerts)){
+			return NULL;
 		}
-		return false;
+
+		$displayed_alerts = [];
+
+		foreach($this->alerts as $type => $alerts){
+			foreach($alerts as $alert){
+				$this->setAlertToDisplayedAlertsArray($displayed_alerts, $type, $alert);
+			}
+		}
+
+		return array_values($displayed_alerts);
+		// Returning the values (alerts), not the keys (the unique alert IDs)
+	}
+
+	/**
+	 * Prepare an alert to be displayed to the user.
+	 *
+	 * @param array  $alerts
+	 * @param string $type
+	 * @param array  $alert
+	 */
+	public function setAlertToDisplayedAlertsArray(array &$alerts, string $type, array $alert): void
+	{
+		# Get the icon string
+		$icon = Icon::getArray($alert['icon']);
+		$alert["type"] = $type;
+		$alert["icon"] = "{$icon['type']} fa-{$icon['name']}";
+
+		# Remove backtrace
+		unset($alert['backtrace']);
+
+		# Get the key
+		$md5 = md5(serialize([
+			$alert['icon'],
+			$alert['title'],
+			$alert['message'],
+		]));
+
+		# Don't alert the user more than once in the same go
+		if($alerts[$md5]){
+			return;
+		}
+
+		# Add the (unique) alert to the alerts
+		$alerts[$md5] = $alert;
 	}
 
 	public function getAlertMessages(): string
@@ -93,24 +128,6 @@ EOF;
 			return $str;
 		}
 		return false;
-	}
-
-	/**
-	 * Given an array type and the particulars,
-	 * prepare an array for the front end.
-	 *
-	 * @param string $type
-	 * @param array  $alert
-	 *
-	 * @return array
-	 */
-	public function prepareAlert(string $type, array $alert): array
-	{
-		$icon = Icon::getArray($alert['icon']);
-		$alert["type"] = $type;
-		$alert["icon"] = "{$icon['type']} fa-{$icon['name']}";
-		unset($alert['backtrace']);
-		return $alert;
 	}
 
 	/**
@@ -427,7 +444,8 @@ EOF;
 		}
 
 		# Prepare the alert for sharing with users
-		$alert = $this->prepareAlert($type, $alert);
+		$this->setAlertToDisplayedAlertsArray($data['alerts'], $type, $alert);
+		$data['alerts'] = array_values($data['alerts']);
 
 		# If the $immediately var contains recipients
 		if(is_array($immediately)){
@@ -454,9 +472,6 @@ EOF;
 			 * requester.
 			 */
 		}
-
-		# Prepare the message
-		$data['alerts'][] = $alert;
 
 		# Send the message to the recipients
 		$pa = PA::getInstance();
