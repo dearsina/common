@@ -5,6 +5,7 @@ namespace App\Common;
 
 
 use App\Common\FastImage\FastImage;
+use enshrined\svgSanitize\Sanitizer;
 
 class Img {
 	/**
@@ -227,5 +228,58 @@ class Img {
 		$size['bits'] = $a['6'];
 
 		return $size;
+	}
+
+	/**
+	 * Sanitises an SVG, preventing its use as a potential attack vector.
+	 * Can accept SVG XML strings, or base64-encoded strings.
+	 *
+	 * @param string|null $string
+	 * @param bool|null   $isBase64
+	 *
+	 * @return string|null
+	 * @link https://github.com/darylldoyle/svg-sanitizer
+	 */
+	public static function sanitiseSvg(?string $string, ?bool $isBase64 = NULL): ?string
+	{
+		if(!$string){
+			return $string;
+		}
+
+		if($isBase64){
+			if(!preg_match("/^data:image\/svg\+xml;base64,/", $string)){
+				//if the string doesn't start with the base64 marker, reject it
+				return NULL;
+			}
+
+			# Decode the base64 string, strip the prefix, replace spaces with plus
+			$base64_str = str_replace('data:image/svg+xml;base64,', '', $string);
+			$base64_str = str_replace(' ', '+', $base64_str);
+
+			if(!$string = base64_decode($base64_str)){
+				//if the string isn't pure base64
+				return NULL;
+			}
+		}
+
+		// Pass it to the sanitizer and get it back clean (and validate it)
+		if(!$sanitised = (new Sanitizer())->sanitize($string)){
+			//if nothing is returned, the string was not valid
+			return NULL;
+		}
+
+		if($isBase64){
+			//if the string was a base64 string, encode it back as such and return it
+
+			# Encode the string back to base64
+			$encoded = base64_encode($sanitised);
+			$base64_str = str_replace('+', ' ', $encoded);
+
+			# Return the string with the base64 prefix
+			return 'data:image/svg+xml;base64,' . $base64_str;
+		}
+
+		# Otherwise just return the sanitised string
+		return $sanitised;
 	}
 }
