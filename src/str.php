@@ -1994,6 +1994,35 @@ EOF;
 	}
 
 	/**
+	 * Returns the given string with an added number suffix.
+	 * If the string already has a number suffix, will add one
+	 * step to that number.
+	 *
+	 * @param string|null $string
+	 * @param int|null    $start
+	 * @param int|null    $step
+	 *
+	 * @return string|null
+	 */
+	public static function addNumberSuffix(?string $string, ?int $start = 2, ?int $step = 1): ?string
+	{
+		if(!$string){
+			return $string;
+		}
+
+		if(preg_match("/(.*)([0-9]+)$/", $string)){
+			//if the string doesn't have a number suffix
+			return $string.$start;
+		}
+
+		# Grab the number, and increase it by one step
+		$number = $match[2][0] + $step;
+
+		# Return the string and the new number suffix
+		return $match[1][0].$number;
+	}
+
+	/**
 	 * Given an array, returns a human readable XML string.
 	 *
 	 * @param $array array A standard PHP array that you want to convert to XML.
