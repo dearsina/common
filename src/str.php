@@ -69,7 +69,7 @@ class str {
 	const MIMINUM_PASSWORD_LENGTH = 8;
 
 	/**
-	 * Defines the mininum phone number length requirement.
+	 * Defines the minimum phone number length requirement.
 	 */
 	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
@@ -650,7 +650,15 @@ class str {
 
 	/**
 	 * Validates a phone number.
-	 * TODO Expand to include fixing/adding country codes etc.
+	 *
+	 * A valid phone number will consist of the following characters only:
+	 * - numbers 0123456789
+	 * - the plus symbol +27123456789
+	 * - periods +27.123.456.789
+	 * - dashes +27-123-456-789
+	 * - parenthesis +27(0)123-456-789
+	 * - spaces +27 (0)123-456-789
+	 * - the pound symbol +27(0)123-456-789#1234
 	 *
 	 * @param $number
 	 *
@@ -658,10 +666,16 @@ class str {
 	 */
 	public static function isValidPhoneNumber($number)
 	{
-		$number = preg_replace("/[^0-9+]/", "", $number);
-		if(strlen($number) < self::MINIMUM_PHONE_NUMBER_LENGTH){
+		# Ensure it only contains valid characters
+		if(preg_match("/[^0-9\.\-\(\)\s#\+']/", $number)){
 			return false;
 		}
+
+		# Ensure it fits the minimum length of a phone number
+		if(strlen(preg_replace("/[^0-9]+/", "", $number)) < self::MINIMUM_PHONE_NUMBER_LENGTH){
+			return false;
+		}
+
 		return true;
 	}
 
@@ -1948,6 +1962,9 @@ EOF;
 			$r = true;
 			$k = 1;
 			foreach($order as $key => $value){
+				if(is_array($value)){
+					continue;
+				}
 				$k = (strtolower($value) === 'asc') ? 1 : -1;
 				$r = ($a[$key] < $b[$key]);
 				if($a[$key] !== $b[$key]){
