@@ -7,6 +7,7 @@ namespace App\Common\API;
 use App\Common\Exception\BadRequest;
 use App\Common\Exception\Unauthorized;
 use App\Common\Connection\Connection;
+use App\Common\ExceptionHandler;
 use App\Common\Log;
 use App\Common\Output;
 use App\Common\SQL\Factory;
@@ -59,8 +60,26 @@ class Call {
 			exit(0);
 		}
 
-		# Fix up the $_REQUEST array
-		$this->alignRequestArray();
+		try {
+			# Fix up the $_REQUEST array
+			$this->alignRequestArray();
+		}
+
+		# If the data sent was in the wrong format
+		catch(BadRequest $e) {
+			# The error code is the HTTP response code
+			http_response_code($e->getCode());
+
+			# The error message can be made public
+			$output = [
+				"status" => "Bad request",
+				"error" => $e->getMessage(),
+			];
+
+			# Echo the output to the user
+			echo json_encode($output);
+			exit(0);
+		}
 
 		# Load the ancillary tables
 		$this->log = Log::getInstance();
@@ -123,7 +142,7 @@ class Call {
 
 			# The error message can be made public
 			$output = [
-				"status" => "Error",
+				"status" => "Unauthorised",
 				"error" => $e->getMessage(),
 			];
 		}
@@ -135,7 +154,7 @@ class Call {
 
 			# The error message can be made public
 			$output = [
-				"status" => "Error",
+				"status" => "Bad request",
 				"error" => $e->getMessage(),
 			];
 		}
@@ -146,11 +165,12 @@ class Call {
 			http_response_code(500);
 
 			# Log the error for closer examination
-			Call::logException("System error", $e->getMessage());
+			ExceptionHandler::logException("API", $e);
 
 			# Send a generic message to the API requester
 			$output = [
 				"status" => "Error",
+//				"error" => $e->getMessage(),
 				"error" => "An unexpected error has occurred. Our engineers have been notified. Please try again shortly.",
 			];
 		}
@@ -231,7 +251,7 @@ class Call {
 
 	/**
 	 * Ensure API key is valid and active.
-	 * Assign subscription owner as user of this API call.
+	 * Set the global subscription ID.
 	 *
 	 * @throws \App\Common\Exception\Unauthorized
 	 */
@@ -264,10 +284,6 @@ class Call {
 			"The subscription is {$subscription['status']} and the API is no longer accessible.",
 			"Subscription ID [{$subscription['subscription_id']}] API still active, subscription is {$subscription['status']}.");
 		}
-
-		# Make the subscription owner the user of this API call
-		global $user_id;
-		$user_id = $subscription['owner_id'];
 
 		# Make the subscription ID itself global
 		global $subscription_id;
@@ -342,6 +358,10 @@ class Call {
 	 */
 	private function alignRequestArray(): void
 	{
+		if($_GET){
+			throw new BadRequest("Send requests as multipart/form-data via POST, instead of as GET query parameters.");
+		}
+
 		# Explode the URL
 		$hash = array_filter(explode("/", $_SERVER['REDIRECT_URL']));
 
@@ -358,14 +378,14 @@ class Call {
 			# If there is a rel_id, check to see if there is a third variable
 			if($hash[3]){
 				//In which case that's the action
-				$_REQUEST['action'];
+				$_REQUEST['action'] = $hash[3];
 			}
 		} else {
 			//If the second variable is NOT a UUID, then it must be an action
 			$_REQUEST['action'] = $hash[2];
 		}
 
-		# Store all the variables sent via GET as the vars
-		$_REQUEST['vars'] = $_GET;
+		# All posted key-value pairs and all files are joined together as vars
+		$_REQUEST['vars'] = array_merge($_POST, $_FILES);
 	}
 }
