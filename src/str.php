@@ -125,30 +125,30 @@ class str {
 			$all_lowercase = 'De La|De Las|Der|Van De|Van Der|Vit De|Von|Or|And|D|Del';
 			$str = preg_replace_callback("/\\b(\\w)/u", function($matches){
 				return strtoupper($matches[1]);
-			}, strtolower(trim($str)));
+			}, mb_strtolower(trim($str)));
 		}
 		else if(!$all_words){
 			//if only the first word is to be capitalised
 			$str_array = explode(" ", $str);
 			$first_word = array_shift($str_array);
-			$str = ucfirst(strtolower(trim($str)));
+			$str = ucfirst(mb_strtolower(trim($str)));
 			if(is_array(self::ALL_UPPERCASE)){
 				$all_uppercase = '';
 				foreach(self::ALL_UPPERCASE as $uc){
-					if($first_word == strtolower($uc)){
+					if($first_word == mb_strtolower($uc)){
 						$str = strtoupper($first_word) . " " . implode(" ", $str_array);
 					}
-					$all_uppercase .= strtolower($uc) . '|';
+					$all_uppercase .= mb_strtolower($uc) . '|';
 					//set them all to lowercase
 				}
 			}
 			if(is_array(self::ALL_LOWERCASE)){
 				$all_lowercase = '';
 				foreach(self::ALL_LOWERCASE as $uc){
-					if($first_word == strtolower($uc)){
-						$str = strtolower($first_word) . " " . implode(" ", $str_array);
+					if($first_word == mb_strtolower($uc)){
+						$str = mb_strtolower($first_word) . " " . implode(" ", $str_array);
 					}
-					$all_lowercase .= strtolower($uc) . '|';
+					$all_lowercase .= mb_strtolower($uc) . '|';
 					//set them all to lowercase
 				}
 			}
@@ -157,7 +157,7 @@ class str {
 			// addresses, essay titles ... and anything else
 			if(is_array(self::ALL_UPPERCASE)){
 				foreach(self::ALL_UPPERCASE as $uc){
-					$all_uppercase .= ucfirst(strtolower($uc)) . '|';
+					$all_uppercase .= ucfirst(mb_strtolower($uc)) . '|';
 				}
 			}
 			if(is_array(self::ALL_LOWERCASE)){
@@ -166,10 +166,10 @@ class str {
 				}
 			}
 			// captialize all first letters
-			//$str = preg_replace('/\\b(\\w)/e', 'strtoupper("$1")', strtolower(trim($str)));
+			//$str = preg_replace('/\\b(\\w)/e', 'strtoupper("$1")', mb_strtolower(trim($str)));
 			$str = preg_replace_callback("/\\b(\\w)/u", function($matches){
 				return strtoupper($matches[1]);
-			}, strtolower(trim($str)));
+			}, mb_strtolower(trim($str)));
 		}
 		# Defaults
 		$prefixes = "Mc";
@@ -186,16 +186,16 @@ class str {
 			// decapitalize short words e.g. and
 			if($is_name){
 				// all occurences will be changed to lowercase
-				//$str = preg_replace("/\\b($all_lowercase)\\b/e", 'strtolower("$1")', $str);
+				//$str = preg_replace("/\\b($all_lowercase)\\b/e", 'mb_strtolower("$1")', $str);
 				$str = preg_replace_callback("/\\b($all_lowercase)\\b/u", function($matches){
-					return strtolower($matches[1]);
+					return mb_strtolower($matches[1]);
 				}, $str);
 			}
 			else {
 				// first and last word will not be changed to lower case (i.e. titles)
-				//$str = preg_replace("/(?<=\\W)($all_lowercase)(?=\\W)/e", 'strtolower("$1")', $str);
+				//$str = preg_replace("/(?<=\\W)($all_lowercase)(?=\\W)/e", 'mb_strtolower("$1")', $str);
 				$str = preg_replace_callback("/(?<=\\W)($all_lowercase)(?=\\W)/u", function($matches){
-					return strtolower($matches[1]);
+					return mb_strtolower($matches[1]);
 				}, $str);
 			}
 		}
@@ -208,9 +208,9 @@ class str {
 		}
 		if($suffixes){
 			// decapitalize certain word suffixes e.g. 's
-			//$str = preg_replace("/(\\w)($suffixes)\\b/e", '"$1".strtolower("$2")', $str);
+			//$str = preg_replace("/(\\w)($suffixes)\\b/e", '"$1".mb_strtolower("$2")', $str);
 			$str = preg_replace_callback("/(\\w)($suffixes)\\b/u", function($matches){
-				return "${matches[1]}" . strtolower($matches[2]);
+				return "${matches[1]}" . mb_strtolower($matches[2]);
 			}, $str);
 		}
 		return $str;
@@ -799,7 +799,7 @@ class str {
 	 */
 	public static function getHash($value): string
 	{
-		return md5(strtolower(json_encode($value)));
+		return md5(mb_strtolower(json_encode($value)));
 	}
 
 	/**
@@ -929,7 +929,7 @@ class str {
 	 */
 	public static function camelToSnakeCase(string $string, string $us = "_"): string
 	{
-		return str_replace(" ", $us, strtolower(preg_replace(
+		return str_replace(" ", $us, mb_strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string)));
 	}
 
@@ -1337,7 +1337,7 @@ class str {
 			return false;
 		}
 
-		if(substr(trim(strtolower($script)), 0, strlen("<script>")) == "<script>"){
+		if(substr(trim(mb_strtolower($script)), 0, strlen("<script>")) == "<script>"){
 			return $script;
 		}
 
@@ -1965,7 +1965,7 @@ EOF;
 				if(is_array($value)){
 					continue;
 				}
-				$k = (strtolower($value) === 'asc') ? 1 : -1;
+				$k = (mb_strtolower($value) === 'asc') ? 1 : -1;
 				$r = ($a[$key] < $b[$key]);
 				if($a[$key] !== $b[$key]){
 					return $t[$r] * $k;
@@ -2696,7 +2696,7 @@ EOF;
 		}
 
 		// save some time in the case that singular and plural are the same
-		if(in_array(strtolower($string), self::$uncountable))
+		if(in_array(mb_strtolower($string), self::$uncountable))
 			return $string;
 
 
@@ -2725,7 +2725,7 @@ EOF;
 	public static function singularise($string)
 	{
 		// save some time in the case that singular and plural are the same
-		if(in_array(strtolower($string), self::$uncountable))
+		if(in_array(mb_strtolower($string), self::$uncountable))
 			return $string;
 
 		// check for irregular plural forms
@@ -3572,7 +3572,7 @@ EOF;
 			$name = "{$user['first_name']} {$user['last_name']}";
 			$user['name'] = $name;
 			$user['full_name'] = $name;
-			$user['email'] = strtolower($user['email']);
+			$user['email'] = mb_strtolower($user['email']);
 			$users[$id] = $user;
 		}
 
