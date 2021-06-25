@@ -426,6 +426,12 @@ class str {
 		return $number % 2 == 0;
 	}
 
+	public static function isDate(?string $date, ?string $format = "Y-m-d"): bool
+	{
+		$dt = \DateTime::createFromFormat($format, $date);
+		return $dt !== false && !array_sum($dt::getLastErrors());
+	}
+
 	/**
 	 * Checks to see if this is the DEV environment.
 	 *
@@ -1834,6 +1840,8 @@ EOF;
 	/**
 	 * Given a date string, returns a datetime object,
 	 * where the time is set to 00:00:00.
+	 *
+	 * Will return today's datetime if no value is passed
 	 *
 	 * @param string $date
 	 *
