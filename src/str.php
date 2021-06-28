@@ -426,6 +426,14 @@ class str {
 		return $number % 2 == 0;
 	}
 
+	/**
+	 * Checks to see if the string is a date in the given format.
+	 *
+	 * @param string|null $date
+	 * @param string|null $format
+	 *
+	 * @return bool
+	 */
 	public static function isDate(?string $date, ?string $format = "Y-m-d"): bool
 	{
 		$dt = \DateTime::createFromFormat($format, $date);
