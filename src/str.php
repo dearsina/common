@@ -1851,15 +1851,23 @@ EOF;
 	 *
 	 * Will return today's datetime if no value is passed
 	 *
-	 * @param string $date
+	 * @param string|\DateTime $date
 	 *
 	 * @return \DateTime
 	 * @throws \Exception
 	 */
-	public static function newDateTimeDateOnly(?string $date = NULL): \DateTime
+	public static function newDateTimeDateOnly($date = NULL): \DateTime
 	{
-		$dt = new \DateTime($date);
+		if($date instanceof \DateTime){
+			$dt = $date;
+		}
+
+		else {
+			$dt = new \DateTime($date);
+		}
+
 		$dt->setTime(0, 0, 0);
+
 		return $dt;
 	}
 
