@@ -1966,6 +1966,8 @@ EOF;
 	 * Orders a multidimensional array by one or many
 	 * key values.
 	 *
+	 * Maintains the key values.
+	 *
 	 * <code>
 	 * $order = [
 	 *    "countryCode" => "asc",
