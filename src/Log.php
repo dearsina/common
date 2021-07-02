@@ -84,7 +84,7 @@ class Log {
 	 * @param string $type
 	 * @param array  $alert
 	 */
-	public function setAlertToDisplayedAlertsArray(array &$alerts, string $type, array $alert): void
+	public function setAlertToDisplayedAlertsArray(?array &$alerts, string $type, array $alert): void
 	{
 		# Get the icon string
 		$icon = Icon::getArray($alert['icon']);
