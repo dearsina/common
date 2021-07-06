@@ -1677,10 +1677,13 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function getSessionToken()
+	public function getSessionToken(array $a): bool
 	{
+		extract($a);
+
 		# Get the connection ID
-		$connection_id = Connection::set();
+		$connection = new Connection();
+		$connection_id = $connection->setConnection($vars);
 
 		# The CSRF token is the connection UUID, return it to the user
 		$this->output->setVar("token", $connection_id);

@@ -25,20 +25,6 @@ class Connection extends Prototype {
 	 * The owner of the connection is mostly a user, but could also
 	 * be an API call. In which case the user is the subscription owner.
 	 *
-	 * @return string The current connection ID.
-	 * @throws Exception
-	 */
-	public static function set(): string
-	{
-		$connection = new Connection();
-		return $connection->setConnection();
-	}
-
-	/**
-	 * Records a connection's details, returns the connection ID.
-	 * The owner of the connection is mostly a user, but could also
-	 * be an API call. In which case the user is the subscription owner.
-	 *
 	 * Sets the opened column to NOW().
 	 *
 	 * @return string The current connection ID.
@@ -69,7 +55,17 @@ class Connection extends Prototype {
 		]);
 	}
 
-	private function setConnection(?array $set = []): string
+	/**
+	 * Records a connection's details, returns the connection ID.
+	 * The owner of the connection is mostly a user, but could also
+	 * be an API call. In which case the user is the subscription owner.
+	 *
+	 * @param array|null $set
+	 *
+	 * @return string The current connection ID.
+	 * @throws Exception
+	 */
+	public function setConnection(?array $set = []): string
 	{
 		# Record the user's geolocation
 		Geolocation::get();
