@@ -84,7 +84,7 @@ class Connection extends Prototype {
 				"ip" => $_SERVER['REMOTE_ADDR'],
 				"user_agent_id" => $user_agent_id,
 				"user_id" => $user_id
-			],$set),
+			],$set ?: []),
 		])){
 			//The new connection was not saved
 			throw new Exception("Unable to store connection details");
