@@ -832,7 +832,7 @@ class str {
 	{
 		$modifier = strtoupper($modifier);
 		$cmd = "go(function(){";
-//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
+		//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
 		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
@@ -1578,6 +1578,23 @@ class str {
 	}
 
 	/**
+	 * Return an error message if the given pattern argument or its underlying regular expression
+	 * are not syntactically valid. Otherwise (if they are valid), NULL is returned.
+	 *
+	 * @param $pattern
+	 *
+	 * @return string|null
+	 */
+	public static function regexHasErrors(string $pattern): ?string
+	{
+		if(@preg_match($pattern, '') === false){
+			return str_replace("preg_match(): ", "", error_get_last()["message"]);
+			//Make it prettier by removing the function name prefix
+		}
+		return NULL;
+	}
+
+	/**
 	 * Given an mySQL datetime value, will return a HTML string with JavaScript
 	 * that will display the amount of time *ago* that timestap was.
 	 * The amount of time will change as time passes.
@@ -2055,14 +2072,14 @@ EOF;
 
 		if(preg_match("/(.*)([0-9]+)$/", $string)){
 			//if the string doesn't have a number suffix
-			return $string.$start;
+			return $string . $start;
 		}
 
 		# Grab the number, and increase it by one step
 		$number = $match[2][0] + $step;
 
 		# Return the string and the new number suffix
-		return $match[1][0].$number;
+		return $match[1][0] . $number;
 	}
 
 	/**
