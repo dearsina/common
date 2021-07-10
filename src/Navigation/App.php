@@ -187,19 +187,23 @@ class App extends Prototype implements NavigationInterface {
 				$disabled = false;
 				$badge = false;
 			}
+
+			$url = str::getDomain("app");
+			$url .= str::generate_uri([
+				"rel_table" => "user_role",
+				"action" => "switch",
+				"vars" => [
+					"user_id" => $user['user_id'],
+					"new_role" => $user_role['rel_table'],
+					"callback" => $this->hash->getCallback(true)
+				]
+			]);
+
 			$children[] = [
 				"title" => str::title($user_role['rel_table']),
 				"badge" => $badge,
 				"icon" => $user_role['icon'],
-				"hash" => [
-					"rel_table" => "user_role",
-					"action" => "switch",
-					"vars" => [
-						"user_id" => $user['user_id'],
-						"new_role" => $user_role['rel_table'],
-						"callback" => $this->hash->getCallback(true)
-					]
-				],
+				"url" => $url,
 				"disabled" => $disabled
 			];
 		}
