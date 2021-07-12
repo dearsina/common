@@ -45,7 +45,11 @@ class mySQL extends Common {
 	{
 		$driver = new \mysqli_driver();
 		$driver->report_mode = MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR;
+		$this->connect();
+	}
 
+	public function connect(): void
+	{
 		try {
 			# Connect to the mySQL server
 			$this->mysqli = new \mysqli($_ENV['db_servername'],$_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
@@ -57,7 +61,7 @@ class mySQL extends Common {
 			$offset = (new \DateTime())->format("P");
 			$this->mysqli->query("SET time_zone='$offset';");
 
-//			$this->loadTableMetadata();
+			//			$this->loadTableMetadata();
 		}
 
 		catch(\mysqli_sql_exception $e) {
@@ -221,7 +225,7 @@ class mySQL extends Common {
 	 *
 	 * @return bool
 	 */
-	private function reconnect(){
+	protected function reconnect(){
 		try {
 			if($this->mysqli->ping()){
 				return true;
