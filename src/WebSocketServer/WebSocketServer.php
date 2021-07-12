@@ -73,11 +73,12 @@ class WebSocketServer extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function start(){
+	public function start(): void
+	{
 		# Ensure the server isn't already running
 		if($this->serverAlreadyRunning()) {
 			$this->log->success("The server is already running.");
-			return true;
+			return;
 		}
 
 		# Set up the server
@@ -100,7 +101,11 @@ class WebSocketServer extends Prototype {
 		$this->server_id = date("YmdHis");
 
 		# The internal port
-		$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);
+		if(!$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP)){
+			//if we're unable to create a listener on localhost:808
+			$this->alert("Unable to create a WebSocket listener on {$_ENV['websocket_internal_ip']}:{$_ENV['websocket_internal_port']}. Ensure the port is open.");
+			return;
+		}
 
 		# Server start
 		$this->external_server->on("start", [$this, 'onStart']);
