@@ -1315,16 +1315,17 @@ class str {
 	}
 
 	/**
-	 * Given a nubmer, assumed to be bytes,
+	 * Given a number, assumed to be bytes,
 	 * returns the corresponding value in B-TB,
-	 * with suffix.
+	 * with suffix, or not.
 	 *
-	 * @param int $bytes     A number of bytes
-	 * @param int $precision How precise to represent the number
+	 * @param int       $bytes          A number of bytes
+	 * @param int|null  $precision      How precise to represent the number
+	 * @param bool|null $include_suffix Whether or not to include the suffix (default is yes)
 	 *
 	 * @return string
 	 */
-	static function bytes($bytes, $precision = 2)
+	static function bytes($bytes, ?int $precision = 2, ?bool $include_suffix = true)
 	{
 		$units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
@@ -1332,6 +1333,10 @@ class str {
 		$pow = floor(($bytes ? log($bytes) : 0) / log(1024));
 		$pow = min($pow, count($units) - 1);
 		$bytes /= pow(1024, $pow);
+
+		if(!$include_suffix){
+			return round($bytes, $precision);
+		}
 
 		return round($bytes, $precision) . ' ' . $units[$pow];
 	}
@@ -2595,6 +2600,7 @@ EOF;
 		$now = microtime(true);
 		return round($now - $startTime, 3);
 	}
+
 	/**
 	 * Given a string, will break it apart by the delimiter and return an array.
 	 *
