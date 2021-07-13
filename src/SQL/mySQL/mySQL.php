@@ -45,23 +45,21 @@ class mySQL extends Common {
 	{
 		$driver = new \mysqli_driver();
 		$driver->report_mode = MYSQLI_REPORT_STRICT | MYSQLI_REPORT_ERROR;
-		$this->connect();
+		$this->mysqli = self::getNewConnection();
 	}
 
-	public function connect(): void
+	public static function getNewConnection(): \mysqli
 	{
 		try {
 			# Connect to the mySQL server
-			$this->mysqli = new \mysqli($_ENV['db_servername'],$_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
+			$mysqli = new \mysqli($_ENV['db_servername'],$_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
 
 			# Ensure everything is UTF8mb4
-			$this->mysqli->set_charset('utf8mb4');
+			$mysqli->set_charset('utf8mb4');
 
 			# Ensure PHP and mySQL time zones are in sync
 			$offset = (new \DateTime())->format("P");
-			$this->mysqli->query("SET time_zone='$offset';");
-
-			//			$this->loadTableMetadata();
+			$mysqli->query("SET time_zone='$offset';");
 		}
 
 		catch(\mysqli_sql_exception $e) {
@@ -82,6 +80,8 @@ class mySQL extends Common {
 				throw new \Exception($message, $e->getCode());
 			}
 		}
+
+		return $mysqli;
 	}
 
 	private function __clone() {

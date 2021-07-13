@@ -1988,7 +1988,7 @@ abstract class Common {
 			if($retrying){
 				throw new \Exception("SQL reconnection error [{$e->getCode()}]: {$e->getMessage()}");
 			}
-			$this->connect();
+			$this->mysqli = mySQL::getNewConnection();
 			$this->loadTableMetadata($table, true);
 		}
 
