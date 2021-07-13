@@ -2573,6 +2573,29 @@ EOF;
 	}
 
 	/**
+	 * Starts a "timer". Returns the time started.
+	 *
+	 * @return float
+	 */
+	public static function startTimer(): float
+	{
+		return microtime(true);
+	}
+
+	/**
+	 * Stops a "timer". Returns the seconds passed since
+	 * the start time given.
+	 *
+	 * @param float $startTime
+	 *
+	 * @return float
+	 */
+	public static function stopTimer(float $startTime): float
+	{
+		$now = microtime(true);
+		return round($now - $startTime, 3);
+	}
+	/**
 	 * Given a string, will break it apart by the delimiter and return an array.
 	 *
 	 * @param mixed       $string
