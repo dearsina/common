@@ -57,13 +57,15 @@ class WebSocketServer extends Prototype {
 	}
 
 	/**
-	 * Eventually this needs to be changed to direct the message to the front end,
-	 * because right now, it's just screaming it into a void.
+	 * Write the alert to the log file.
 	 *
 	 * @param $msg
 	 */
 	private function alert($msg){
-		echo date("Y-m-d H:i:s")." | ".$msg."\r\n";
+		$line = "\r\n".date("Y-m-d H:i:s")." | ".$msg;
+		$f = fopen($_ENV['websocket_log_file'], "a");
+		fwrite($f, $line);
+		fclose($f);
 	}
 
 	/**
@@ -91,7 +93,7 @@ class WebSocketServer extends Prototype {
 			'ssl_key_file' => $_ENV['local_pk'],
 
 			# Log file
-			"log_file" => "/var/log/swoole.alert",
+			"log_file" => $_ENV['websocket_log_file'],
 
 			# Run as daemon
 			"daemonize" => true
