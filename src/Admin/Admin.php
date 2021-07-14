@@ -69,6 +69,9 @@ class Admin extends Prototype {
 		# Create a new admin role
 		$admin_id = $this->sql->insert([
 			"table" => "admin",
+			"set" => [
+				"last_notified" => NULL
+			]
 		]);
 
 		# Tie the new admin role to the user
