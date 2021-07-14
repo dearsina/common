@@ -49,7 +49,7 @@ class Info extends Prototype implements InfoInterface {
 		if($row['user_role']){
 			//if this method is used outside of the info() class
 			foreach($row['user_role'] as $id => $role){
-				$row['user_role'][$id] = array_merge($row['user_role'][$id], $role['role'][0]);
+				$row['user_role'][$id] = array_merge($row['user_role'][$id], $role['role'][0] ?:[]);
 			}
 		}
 
