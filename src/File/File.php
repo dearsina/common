@@ -1,10 +1,12 @@
 <?php
 
 
-namespace App\Common;
+namespace App\Common\File;
 
 
 use App\Common\Exception\BadRequest;
+use App\Common\str;
+use Exception;
 
 /**
  * Class File
@@ -53,7 +55,7 @@ class File {
 	 *                                     files
 	 *
 	 * @return array
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public static function handleUpload(?string $key = "file", ?bool $no_gifs_allowed = NULL): array
 	{
@@ -79,7 +81,7 @@ class File {
 
 		# Move the temp file to a semi-permanent location (so that we can hand over the file to a different php thread)
 		if(!move_uploaded_file($_FILES[$key]['tmp_name'], $tmp_name)){
-			throw new \Exception("Unable to move uploaded file. Please try uploading again.");
+			throw new Exception("Unable to move uploaded file. Please try uploading again.");
 		}
 
 		# Record the MD5 hash of the file
@@ -100,12 +102,12 @@ class File {
 	 * Checks to see if there are any errors with the
 	 * upload.
 	 *
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	private static function checkUpload(?string $key = "file"): void
 	{
 		if(!is_array($_FILES[$key])){
-			throw new \Exception("No file was uploaded or received. The <code>\$_FILES</code> array is empty.");
+			throw new Exception("No file was uploaded or received. The <code>\$_FILES</code> array is empty.");
 		}
 
 		if(is_array($_FILES[$key]['error'])){
@@ -153,7 +155,7 @@ class File {
 		}
 
 		if($message){
-			throw new \Exception("{$_FILES[$key]['name']} upload failed. {$message}");
+			throw new Exception("{$_FILES[$key]['name']} upload failed. {$message}");
 		}
 	}
 
@@ -167,7 +169,7 @@ class File {
 	 * @param string|null $key
 	 *
 	 * @return string
-	 * @throws \Exception
+	 * @throws Exception
 	 */
 	public static function getMatchingMimeType($mime_type, ?string $key = "file"): string
 	{
@@ -175,7 +177,7 @@ class File {
 			$mime_type = [$mime_type];
 		}
 		else if(!is_array($mime_type)){
-			throw new \Exception("The list of unwanted filetypes must be either a string or an array.");
+			throw new Exception("The list of unwanted filetypes must be either a string or an array.");
 		}
 
 		if(str::isNumericArray($_FILES[$key]['tmp_name'])){
@@ -194,5 +196,33 @@ class File {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Once a file is uploaded the cloud, run this method
+	 * to remove any local temp copies of it.
+	 * This method can be run multiple times.
+	 *
+	 * @param array $file
+	 */
+	public static function deleteLocalTemp(array $file): void
+	{
+		# Delete the local copy of the file (as it's now in the cloud)
+		if(file_exists($file['tmp_name'])){
+			//if the file exists of course
+			unlink($file['tmp_name']);
+		}
+
+		# Delete the JPG pages (if doc is a PDF)
+		if($file['pdf_info']['pages']){
+			//if the doc has multiple pages
+			for($page = 1; $page <= $file['pdf_info']['pages']; $page++){
+				$tmp_name = $file['tmp_name'] . "-{$page}";
+				if(file_exists($tmp_name)){
+					//we have this in place because sometimes the file doesn't exist. Not sure why.
+					unlink($tmp_name);
+				}
+			}
+		}
 	}
 }
