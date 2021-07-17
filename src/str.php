@@ -442,13 +442,33 @@ class str {
 
 	/**
 	 * Checks to see if this is the DEV environment.
+	 * When this method is called by a cron job, the $_SERVER
+	 * array is not set, thus we have to resort to using `ifconfig`.
 	 *
 	 * @return bool
 	 */
 	public static function isDev(): bool
 	{
-		return $_SERVER['SERVER_ADDR'] === $_ENV['dev_ip'];
-		// === because when accessed from the CLI, SERVER_ADDR = NULL, and if the dev_ip is NOT set (""), will result is a false positive match
+		if($_SERVER['SERVER_ADDR']){
+			//if the $_SERVER array is set
+			return $_SERVER['SERVER_ADDR'] == $_ENV['dev_ip'];
+		}
+
+		return in_array($_ENV['dev_ip'], str::getLocalServerIPs());
+	}
+
+	/**
+	 * Returns an array with all the local server addresses displayed
+	 * when running the *NIX command `ifconfig`.
+	 *
+	 * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
+	 *
+	 * @return array
+	 */
+	public static function getLocalServerIPs(?bool $withV6 = true): array
+	{
+		preg_match_all('/inet'.($withV6 ? '6?' : '').' ([^ ]+)/', `ifconfig`, $ips);
+		return $ips[1];
 	}
 
 	/**
