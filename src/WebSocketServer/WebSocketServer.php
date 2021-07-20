@@ -57,13 +57,15 @@ class WebSocketServer extends Prototype {
 	}
 
 	/**
-	 * Eventually this needs to be changed to direct the message to the front end,
-	 * because right now, it's just screaming it into a void.
+	 * Write the alert to the log file.
 	 *
 	 * @param $msg
 	 */
 	private function alert($msg){
-		echo date("Y-m-d H:i:s")." | ".$msg."\r\n";
+		$line = "\r\n".date("Y-m-d H:i:s")." | ".$msg;
+		$f = fopen($_ENV['websocket_log_file'], "a");
+		fwrite($f, $line);
+		fclose($f);
 	}
 
 	/**
@@ -73,11 +75,12 @@ class WebSocketServer extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function start(){
+	public function start(): void
+	{
 		# Ensure the server isn't already running
 		if($this->serverAlreadyRunning()) {
 			$this->log->success("The server is already running.");
-			return true;
+			return;
 		}
 
 		# Set up the server
@@ -90,7 +93,7 @@ class WebSocketServer extends Prototype {
 			'ssl_key_file' => $_ENV['local_pk'],
 
 			# Log file
-			"log_file" => "/var/log/swoole.alert",
+			"log_file" => $_ENV['websocket_log_file'],
 
 			# Run as daemon
 			"daemonize" => true
@@ -100,7 +103,11 @@ class WebSocketServer extends Prototype {
 		$this->server_id = date("YmdHis");
 
 		# The internal port
-		$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP);
+		if(!$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP)){
+			//if we're unable to create a listener on localhost:808
+			$this->alert("Unable to create a WebSocket listener on {$_ENV['websocket_internal_ip']}:{$_ENV['websocket_internal_port']}. Ensure the port is open.");
+			return;
+		}
 
 		# Server start
 		$this->external_server->on("start", [$this, 'onStart']);

@@ -227,6 +227,12 @@ class DateFinder extends \App\Common\Prototype {
 	 */
 	public function isADate(string $string): ?\DateTime
 	{
+		# Ensure string is long enough to be a date
+		if(strlen($string) < 6){
+			//Date string needs to be at least 6 characters (YYMMDD), all in
+			return NULL;
+		}
+
 		# Translate the date to English (if it's in a non-English language)
 		$this->translateDate($string);
 

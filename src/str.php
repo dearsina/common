@@ -442,13 +442,33 @@ class str {
 
 	/**
 	 * Checks to see if this is the DEV environment.
+	 * When this method is called by a cron job, the $_SERVER
+	 * array is not set, thus we have to resort to using `ifconfig`.
 	 *
 	 * @return bool
 	 */
 	public static function isDev(): bool
 	{
-		return $_SERVER['SERVER_ADDR'] === $_ENV['dev_ip'];
-		// === because when accessed from the CLI, SERVER_ADDR = NULL, and if the dev_ip is NOT set (""), will result is a false positive match
+		if($_SERVER['SERVER_ADDR']){
+			//if the $_SERVER array is set
+			return $_SERVER['SERVER_ADDR'] == $_ENV['dev_ip'];
+		}
+
+		return in_array($_ENV['dev_ip'], str::getLocalServerIPs());
+	}
+
+	/**
+	 * Returns an array with all the local server addresses displayed
+	 * when running the *NIX command `ifconfig`.
+	 *
+	 * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
+	 *
+	 * @return array
+	 */
+	public static function getLocalServerIPs(?bool $withV6 = true): array
+	{
+		preg_match_all('/inet'.($withV6 ? '6?' : '').' ([^ ]+)/', `ifconfig`, $ips);
+		return $ips[1];
 	}
 
 	/**
@@ -1315,16 +1335,17 @@ class str {
 	}
 
 	/**
-	 * Given a nubmer, assumed to be bytes,
+	 * Given a number, assumed to be bytes,
 	 * returns the corresponding value in B-TB,
-	 * with suffix.
+	 * with suffix, or not.
 	 *
-	 * @param int $bytes     A number of bytes
-	 * @param int $precision How precise to represent the number
+	 * @param int       $bytes          A number of bytes
+	 * @param int|null  $precision      How precise to represent the number
+	 * @param bool|null $include_suffix Whether or not to include the suffix (default is yes)
 	 *
 	 * @return string
 	 */
-	static function bytes($bytes, $precision = 2)
+	static function bytes($bytes, ?int $precision = 2, ?bool $include_suffix = true)
 	{
 		$units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
@@ -1332,6 +1353,10 @@ class str {
 		$pow = floor(($bytes ? log($bytes) : 0) / log(1024));
 		$pow = min($pow, count($units) - 1);
 		$bytes /= pow(1024, $pow);
+
+		if(!$include_suffix){
+			return round($bytes, $precision);
+		}
 
 		return round($bytes, $precision) . ' ' . $units[$pow];
 	}
@@ -2157,67 +2182,57 @@ EOF;
 	}
 
 	/**
-	 * AU for when you want to capitalise the first letter (only)
-	 * because it's placed in the beginning of a sentence.
-	 *
-	 * @param string $input
-	 * @param int    $count
+	 * @param string|null $input
+	 * @param bool|null   $include_word
 	 *
 	 * @return string
 	 */
-	public static function AU($input, $count = 1)
+	public static function A(?string $input, ?bool $include_word = true)
 	{
-		return ucfirst(self::A($input, $count));
-	}
+		# Filter out the word in case there are more than one
+		preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
 
-	/**
-	 * Mirror for self::A
-	 *
-	 * @param     $input
-	 * @param int $count
-	 *
-	 * @return string
-	 */
-	public static function AN($input, $count = 1)
-	{
-		return self::A($input, $count);
-	}
-
-	/**
-	 * @param     $input
-	 * @param int $count
-	 *
-	 * @return string
-	 */
-	public static function A($input, $count = 1)
-	{
-		$matches = [];
-		$matchCount = preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
+		# Break up the matches array into its constituent parts
 		[$all, $pre, $word, $post] = $matches;
-		if(!$word)
+
+		# Ensure we have a word to work with
+		if(!$word){
+			//if there is no word
 			return $input;
-		$result = self::_indef_article($word, $count);
+		}
+
+		# Get the indefinite article
+		$result = self::getIndefiniteArticle($word, $include_word);
 		return $pre . $result . $post;
 	}
 
-	# THIS PATTERN MATCHES STRINGS OF CAPITALS STARTING WITH A "VOWEL-SOUND"
-	# CONSONANT FOLLOWED BY ANOTHER CONSONANT, AND WHICH ARE NOT LIKELY
-	# TO BE REAL WORDS (OH, ALL RIGHT THEN, IT'S JUST MAGIC!)
-
+	/**
+	 * This pattern matches strings of capitals starting with a "vowel-sound"
+	 * consonant followed by another consonant, and which are not likely
+	 * to be real words (oh, all right then, it's just magic!).
+	 *
+	 * @var string
+	 */
 	private static $A_abbrev = "(?! FJO | [HLMNS]Y.  | RY[EO] | SQU
 		  | ( F[LR]? | [HL] | MN? | N | RH? | S[CHKLMNPTVW]? | X(YL)?) [AEIOU])
 			[FHLMNRSX][A-Z]
 		";
 
-	# THIS PATTERN CODES THE BEGINNINGS OF ALL ENGLISH WORDS BEGINING WITH A
-	# 'y' FOLLOWED BY A CONSONANT. ANY OTHER Y-CONSONANT PREFIX THEREFORE
-	# IMPLIES AN ABBREVIATION.
-
+	/**
+	 * This pattern codes the beginnings of all english words beginning with a
+	 * 'y' followed by a consonant. Any other y-consonant prefix therefore
+	 * implies an abbreviation.
+	 *
+	 * @var string
+	 */
 	private static $A_y_cons = 'y(b[lor]|cl[ea]|fere|gg|p[ios]|rou|tt)';
 
-	# EXCEPTIONS TO EXCEPTIONS
 
-	//private static $A_explicit_an = "euler|hour(?!i)|heir|honest|hono";
+	/**
+	 * Exceptions to exceptions.
+	 *
+	 * @var string
+	 */
 	private static $A_explicit_an = "euler|hour(?!i)|heir|honest|hono|mot";
 
 	private static $A_ordinal_an = "[aefhilmnorsx]-?th";
@@ -2225,25 +2240,23 @@ EOF;
 	private static $A_ordinal_a = "[bcdgjkpqtuvwyz]-?th";
 
 	/**
-	 * @param $word
-	 * @param $count
+	 * Given a word, will return the indefinite article,
+	 * which will either be "a" or "an", optionally followed
+	 * by the word.
+	 *
+	 * This method should not be called directly, and instead the
+	 * `str::A()` method should be called.
+	 *
+	 * @param string|null $word         The word to find the related indefinite article to
+	 * @param bool        $include_word If set, will include the word also
 	 *
 	 * @return string
 	 */
-	private static function _indef_article($word, $count)
+	private static function getIndefiniteArticle(?string $word, bool $include_word): string
 	{
-		if($count != 1) // TO DO: Check against $PL_count_one instead
-			return "$count $word";
-
-		# HANDLE USER-DEFINED VARIANTS
-		// TO DO
-
-		# HANDLE NUMBERS IN DIGIT FORM (1,2 …)
-		#These need to be checked early due to the methods used in some cases below
-
 		#any number starting with an '8' uses 'an'
 		if(preg_match("/^[8](\d+)?/", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 
 		#numbers starting with a '1' are trickier, only use 'an'
 		#if there are 3, 6, 9, … digits after the 11 or 18
@@ -2254,32 +2267,32 @@ EOF;
 			#first strip off any decimals and remove spaces or commas
 			#then if the number of digits modulus 3 is 2 we have a match
 			if(strlen(preg_replace(["/\s/", "/,/", "/\.(\d+)?/"], '', $word)) % 3 == 2)
-				return "an $word";
+				return $include_word ? "an {$word}" : "an";
 		}
 
 		# HANDLE ORDINAL FORMS
 		if(preg_match("/^(" . self::$A_ordinal_a . ")/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 		if(preg_match("/^(" . self::$A_ordinal_an . ")/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 
 		# HANDLE SPECIAL CASES
 
 		if(preg_match("/^(" . self::$A_explicit_an . ")/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 		if(preg_match("/^[aefhilmnorsx]$/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 		if(preg_match("/^[bcdgjkpqtuvwyz]$/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 
 		# HANDLE ABBREVIATIONS
 
 		if(preg_match("/^(" . self::$A_abbrev . ")/x", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 		if(preg_match("/^[aefhilmnorsx][.-]/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 		if(preg_match("/^[a-z][.-]/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 
 		# HANDLE CONSONANTS
 
@@ -2288,39 +2301,39 @@ EOF;
 		#recognition above this.
 		#rule is: case insensitive match any string that starts with a letter not in [aeiouy]
 		if(preg_match("/^[^aeiouy]/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 
 		# HANDLE SPECIAL VOWEL-FORMS
 
 		if(preg_match("/^e[uw]/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 		if(preg_match("/^onc?e\b/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 		if(preg_match("/^uni([^nmd]|mo)/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 		if(preg_match("/^ut[th]/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 		if(preg_match("/^u[bcfhjkqrst][aeiou]/i", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 
 		# HANDLE SPECIAL CAPITALS
 
 		if(preg_match("/^U[NK][AIEO]?/", $word))
-			return "a $word";
+			return $include_word ? "a {$word}" : "an";
 
 		# HANDLE VOWELS
 
 		if(preg_match("/^[aeiou]/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 
 		# HANDLE y... (BEFORE CERTAIN CONSONANTS IMPLIES (UNNATURALIZED) "i.." SOUND)
 
 		if(preg_match("/^(" . self::$A_y_cons . ")/i", $word))
-			return "an $word";
+			return $include_word ? "an {$word}" : "an";
 
 		#DEFAULT CONDITION BELOW
 		# OTHERWISE, GUESS "a"
-		return "a $word";
+		return $include_word ? "a {$word}" : "an";
 	}
 
 	/**
@@ -2570,6 +2583,30 @@ EOF;
 		}
 
 		return implode($glue, $array);
+	}
+
+	/**
+	 * Starts a "timer". Returns the time started.
+	 *
+	 * @return float
+	 */
+	public static function startTimer(): float
+	{
+		return microtime(true);
+	}
+
+	/**
+	 * Stops a "timer". Returns the seconds passed since
+	 * the start time given.
+	 *
+	 * @param float $startTime
+	 *
+	 * @return float
+	 */
+	public static function stopTimer(float $startTime): float
+	{
+		$now = microtime(true);
+		return round($now - $startTime, 3);
 	}
 
 	/**
@@ -3149,6 +3186,43 @@ EOF;
 			return "success";
 			break;
 		}
+	}
+
+	/**
+	 * Pretty print a binary string as hex.
+	 *
+	 *
+	 * @param string      $data
+	 * @param string|null $newline
+	 *
+	 * @return string
+	 * @link https://stackoverflow.com/a/4225813/429071
+	 */
+	public static function hexDump(string $data, ?string $newline = "\n"): string
+	{
+		static $from = '';
+		static $to = '';
+
+		static $width = 16; # number of bytes per line
+
+		static $pad = '.'; # padding for non-visible characters
+
+		if($from === ''){
+			for($i = 0; $i <= 0xFF; $i++){
+				$from .= chr($i);
+				$to .= ($i >= 0x20 && $i <= 0x7E) ? chr($i) : $pad;
+			}
+		}
+
+		$hex = str_split(bin2hex($data), $width * 2);
+		$chars = str_split(strtr($data, $from, $to), $width);
+
+		$offset = 0;
+		foreach($hex as $i => $line){
+			$output .= sprintf('%6X', $offset) . ' : ' . implode(' ', str_split($line, 2)) . ' [' . $chars[$i] . ']' . $newline;
+			$offset += $width;
+		}
+		return $output;
 	}
 
 	/**

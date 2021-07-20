@@ -1964,15 +1964,33 @@ abstract class Common {
 	 * Given a database-table, will load the table column metadata to the `tableColumnNamesAll` and
 	 * `tableColumnNames` arrays.
 	 *
-	 * @param array $table
+	 * This query is often the first query run, so there is a check in place that will re-run this
+	 * query if it doesn't work at the first go. This is because the query will always be valid,
+	 * and any error will probably be due to the connection dying, thus we re-connect and try again.
+	 *
+	 * @param array     $table
+	 * @param bool|null $retrying
+	 *
+	 * @throws Exception
 	 */
-	protected function loadTableMetadata(array $table): void
+	protected function loadTableMetadata(array $table, ?bool $retrying = NULL): void
 	{
 		# Write the query for table metadata
 		$query = "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$table['db']}' AND `TABLE_NAME` = '{$table['name']}' ORDER BY `ORDINAL_POSITION` ASC";
 
 		# Run the query to get table metadata (assuming the database-table combo exists)
-		$result = $this->mysqli->query($query);
+		try {
+			$result = $this->mysqli->query($query);
+		}
+
+		# Retry the query, just in case the connection died
+		catch(\mysqli_sql_exception $e) {
+			if($retrying){
+				throw new \Exception("SQL reconnection error [{$e->getCode()}]: {$e->getMessage()}");
+			}
+			$this->mysqli = mySQL::getNewConnection();
+			$this->loadTableMetadata($table, true);
+		}
 
 		# Go thru the result (assuming the database-table exists))
 		if(is_object($result)){
@@ -2265,7 +2283,7 @@ abstract class Common {
 	{
 		# Account for meta tables that are not in the INFORMATION_SCHEMA database
 		if(in_array($db, ["INFORMATION_SCHEMA"])){
-			throw new \Exception("Meta databases like the <code>INFORMATION_SCHEMA</code> can only be accesse thru the <code>run()</code> method.");
+			throw new \Exception("Meta databases like the <code>INFORMATION_SCHEMA</code> can only be accessed thru the <code>run()</code> method.");
 		}
 
 		$db = str::i($db);

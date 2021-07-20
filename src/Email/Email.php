@@ -204,12 +204,17 @@ class Email extends Prototype {
 			if(substr($image_path, 0, 1) == "/"){
 				//If this is a local file
 				$image_file = \Swift_Image::fromPath($image_path);
-			} else {
+			}
+			else {
 				//if this is an external file (even if it's hosted locally)
 
 				# Get the image content
 				if(!$data = @file_get_contents($image_path)){
-					throw new \Exception("An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email has not been sent.");
+					$this->log->error([
+						"title" => "Email image inaccessible",
+						"message" => "An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email was still sent, but without the image."
+					]);
+					return "";
 				}
 
 				# Get the filename
@@ -315,20 +320,24 @@ class Email extends Prototype {
 	{
 		if(is_string($to) && !empty($to)){
 			$this->envelope->setTo([$to => $to]);
-		} else if(str::isAssociativeArray($to)){
+		}
+		else if(str::isAssociativeArray($to)){
 			$this->envelope->setTo($to);
-		} else if(str::isNumericArray($to)){
+		}
+		else if(str::isNumericArray($to)){
 			foreach($to as $t){
 				if(is_string($t)){
 					$tos[] = $t;
-				} else {
+				}
+				else {
 					foreach($t as $email => $name){
 						$tos[$email] = $name;
 					}
 				}
 			}
 			$this->envelope->setTo($tos);
-		} else {
+		}
+		else {
 			throw new \Exception("An email was attempted sent without a recipient.");
 		}
 
@@ -346,13 +355,16 @@ class Email extends Prototype {
 	{
 		if(is_string($cc) && !empty($cc)){
 			$this->envelope->setCc([$cc => $cc]);
-		} else if(str::isAssociativeArray($cc)){
+		}
+		else if(str::isAssociativeArray($cc)){
 			$this->envelope->setCc($cc);
-		} else if(str::isNumericArray($cc)){
+		}
+		else if(str::isNumericArray($cc)){
 			foreach($cc as $t){
 				if(is_string($t)){
 					$tos[] = $t;
-				} else {
+				}
+				else {
 					foreach($t as $email => $name){
 						$tos[$email] = $name;
 					}
@@ -375,13 +387,16 @@ class Email extends Prototype {
 	{
 		if(is_string($bcc) && !empty($bcc)){
 			$this->envelope->setBcc([$bcc => $bcc]);
-		} else if(str::isAssociativeArray($bcc)){
+		}
+		else if(str::isAssociativeArray($bcc)){
 			$this->envelope->setBcc($bcc);
-		} else if(str::isNumericArray($bcc)){
+		}
+		else if(str::isNumericArray($bcc)){
 			foreach($bcc as $t){
 				if(is_string($t)){
 					$tos[] = $t;
-				} else {
+				}
+				else {
 					foreach($t as $email => $name){
 						$tos[$email] = $name;
 					}
