@@ -7,6 +7,7 @@ namespace App\Common\File;
 use App\Common\Exception\BadRequest;
 use App\Common\str;
 use Exception;
+use Imagick;
 
 /**
  * Class File
@@ -242,7 +243,8 @@ class File {
 	 * Will first compress down to the max quality, and if that's not enough,
 	 * will shrink the size of the image proportionately.
 	 *
-	 * @param array $file
+	 * @param array      $file
+	 * @param float|null $max_filesize_mb
 	 *
 	 * @throws \ImagickException
 	 */
@@ -264,13 +266,13 @@ class File {
 		}
 
 		# Open ImageMagik
-		$image = new \Imagick();
+		$image = new Imagick();
 
 		# Read the original file (as uploaded by the client)
 		$image->readImage($file['tmp_name']);
 
 		# Set new (reduced) image quality
-		$image->setImageCompression(\Imagick::COMPRESSION_JPEG);
+		$image->setImageCompression(Imagick::COMPRESSION_JPEG);
 		$image->setImageCompressionQuality(self::MAX_JPG_QUALITY);
 		$image->setImageFormat('jpg');
 		$image->stripImage();
@@ -293,7 +295,7 @@ class File {
 
 		# Reset the resolution
 		$image->setImageResolution(72, 72);
-		$image->resampleImage(72, 72, \Imagick::FILTER_UNDEFINED, 1);
+		$image->resampleImage(72, 72, Imagick::FILTER_UNDEFINED, 1);
 
 		# Get the dimensions
 		$geometry = $image->getImageGeometry();
