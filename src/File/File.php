@@ -8,6 +8,7 @@ use App\Common\Exception\BadRequest;
 use App\Common\str;
 use Exception;
 use Imagick;
+use ImagickException;
 
 /**
  * Class File
@@ -246,7 +247,7 @@ class File {
 	 * @param array      $file
 	 * @param float|null $max_filesize_mb
 	 *
-	 * @throws \ImagickException
+	 * @throws ImagickException
 	 */
 	public static function correctFileSize(array &$file, ?float $max_filesize_mb): void
 	{
@@ -286,6 +287,7 @@ class File {
 
 		# Get the new file size, if it's NOW small enough, stop
 		if($image->getImageLength() / 1048576 <= $max_filesize_mb){
+			$file['size'] = $image->getImageLength();
 			$image->clear();
 			return;
 		}
@@ -307,6 +309,9 @@ class File {
 
 		# Save it
 		$image->writeImage($file['tmp_name']);
+
+		# Save the new length
+		$file['size'] = $image->getImageLength();
 
 		# And we're done
 		$image->clear();
