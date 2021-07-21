@@ -246,7 +246,7 @@ class File {
 	 *
 	 * @throws \ImagickException
 	 */
-	public static function correctFileSize(array &$file, ?float $max_filesize_mb): void
+	public static function correctFileSize(array &$file, ?float $max_filesize_mb = NULL): void
 	{
 		if($file['pdf_info']){
 			//if the file is PDF
