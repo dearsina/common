@@ -17,6 +17,17 @@ use Exception;
  */
 class File {
 	/**
+	 * The maximum number of megabytes a file can be before
+	 * it is shrunk.
+	 */
+	const MAX_FILESIZE_MB = 4;
+
+	/**
+	 * The max JPG quality a file can be compressed down to.
+	 */
+	const MAX_JPG_QUALITY = 50;
+
+	/**
 	 * Takes the superglobal $_FILES array and converts
 	 * it into a local variable, copies the superglobal
 	 * file to a local version, because the superglobal
@@ -224,5 +235,75 @@ class File {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Shrinks image files that are bigger than the max number of set megabytes.
+	 * Will first compress down to the max quality, and if that's not enough,
+	 * will shrink the size of the image proportionately.
+	 *
+	 * @param array $file
+	 *
+	 * @throws \ImagickException
+	 */
+	public static function correctFileSize(array &$file): void
+	{
+		if($file['pdf_info']){
+			//if the file is PDF
+			return;
+			//do nothing
+		}
+
+		if($file['size'] / 1048576 <= self::MAX_FILESIZE_MB){
+			//if the filesize NOT bigger than the max number of allowed megabytes
+			return;
+			//do nothing
+		}
+
+		# Open ImageMagik
+		$image = new \Imagick();
+
+		# Read the original file (as uploaded by the client)
+		$image->readImage($file['tmp_name']);
+
+		# Set new (reduced) image quality
+		$image->setImageCompression(\Imagick::COMPRESSION_JPEG);
+		$image->setImageCompressionQuality(self::MAX_JPG_QUALITY);
+		$image->setImageFormat('jpg');
+		$image->stripImage();
+
+		# Save it
+		$image->writeImage($file['tmp_name']);
+		$image->clear();
+
+		# Read the new (compressed) image
+		$image->readImage($file['tmp_name']);
+
+		# Get the new file size, if it's NOW small enough, stop
+		if($image->getImageLength() / 1048576 <= self::MAX_FILESIZE_MB){
+			$image->clear();
+			return;
+		}
+
+		# If the image is still too big, calculate the proportional scale
+		$size_difference = $image->getImageLength() / (1048576 * self::MAX_FILESIZE_MB);
+
+		# Reset the resolution
+		$image->setImageResolution(72, 72);
+		$image->resampleImage(72, 72, \Imagick::FILTER_UNDEFINED, 1);
+
+		# Get the dimensions
+		$geometry = $image->getImageGeometry();
+
+		# Scale the image down proportionately (assuming a direct relationship between image and file size)
+		$new_width = floor($geometry['width'] / $size_difference);
+		$new_height = floor($geometry['height'] / $size_difference);
+		$image->scaleImage($new_width, $new_height);
+
+		# Save it
+		$image->writeImage($file['tmp_name']);
+
+		# And we're done
+		$image->clear();
 	}
 }
