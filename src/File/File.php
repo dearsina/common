@@ -246,7 +246,7 @@ class File {
 	 *
 	 * @throws \ImagickException
 	 */
-	public static function correctFileSize(array &$file): void
+	public static function correctFileSize(array &$file, ?float $max_filesize_mb): void
 	{
 		if($file['pdf_info']){
 			//if the file is PDF
@@ -254,7 +254,10 @@ class File {
 			//do nothing
 		}
 
-		if($file['size'] / 1048576 <= self::MAX_FILESIZE_MB){
+		# Allow for custom overrides of the max file size
+		$max_filesize_mb = $max_filesize_mb ?: self::MAX_FILESIZE_MB;
+
+		if($file['size'] / 1048576 <= $max_filesize_mb){
 			//if the filesize NOT bigger than the max number of allowed megabytes
 			return;
 			//do nothing
@@ -280,13 +283,13 @@ class File {
 		$image->readImage($file['tmp_name']);
 
 		# Get the new file size, if it's NOW small enough, stop
-		if($image->getImageLength() / 1048576 <= self::MAX_FILESIZE_MB){
+		if($image->getImageLength() / 1048576 <= $max_filesize_mb){
 			$image->clear();
 			return;
 		}
 
 		# If the image is still too big, calculate the proportional scale
-		$size_difference = $image->getImageLength() / (1048576 * self::MAX_FILESIZE_MB);
+		$size_difference = $image->getImageLength() / (1048576 * $max_filesize_mb);
 
 		# Reset the resolution
 		$image->setImageResolution(72, 72);
