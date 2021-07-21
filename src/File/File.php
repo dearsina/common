@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Common;
+namespace App\Common\File;
 
 
 use App\Common\Exception\BadRequest;
