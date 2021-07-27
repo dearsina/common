@@ -118,7 +118,7 @@ class mySQL extends Common {
 		if(is_string($a)){
 			//If the select method variable is just a SQL string
 			$sql = new Run($this->mysqli);
-			$results = $sql->run($query);
+			$results = $sql->run($a);
 			return $results['rows'];
 		}
 
