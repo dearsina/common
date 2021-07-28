@@ -248,10 +248,23 @@ class Output {
 	/**
 	 * Appends a modal HTML string to the #ui-modal.
 	 *
-	 * @param string $html
+	 * @param string     $html
+	 * @param array|null $recipients
 	 */
-	public function modal(string $html): void
+	public function modal(string $html, ?array $recipients = NULL): void
 	{
+		if($recipients){
+			PA::getInstance()->speak($recipients, [
+				"success" => true,
+				"modal" => [[
+					"id" => "#ui-modal",
+					"html" => $html,
+				]]
+			]);
+
+			return;
+		}
+
 		$this->output['modal'][] = [
 			"id" => "#ui-modal",
 			"html" => $html,
@@ -263,11 +276,24 @@ class Output {
 	 * Or include a particular modal ID to close.
 	 *
 	 * @param string|null $modal_id
+	 * @param array|null  $recipients
 	 *
 	 * @return mixed
 	 */
-	public function closeModal(?string $modal_id = NULL): void
+	public function closeModal(?string $modal_id = NULL, ?array $recipients = NULL): void
 	{
+		if($recipients){
+			PA::getInstance()->speak($recipients, [
+				"success" => true,
+				"modal" => [[
+					"id" => $modal_id,
+					"close" => true,
+				]]
+			]);
+
+			return;
+		}
+
 		$this->output['modal'][] = [
 			"id" => $modal_id,
 			"close" => true,
