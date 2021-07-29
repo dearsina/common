@@ -60,6 +60,26 @@ class Email extends Prototype {
 		return $this;
 	}
 
+	/**
+	 * The reply to is useful so that replies to emails sent on behalf of our clients
+	 * gets sent directly back to our clients.
+	 *
+	 * @param string|null $email
+	 * @param string|null $name
+	 *
+	 * @return object
+	 */
+	public function replyTo(?string $email, ?string $name = NULL): object
+	{
+		# Ensure a valid email address is included
+		if(!$email || !str::isValidEmail($email)){
+			return $this;
+		}
+
+		$this->envelope->setReplyTo($email, $name);
+
+		return $this;
+	}
 
 	/**
 	 * By passing a template name and an array of variables,
