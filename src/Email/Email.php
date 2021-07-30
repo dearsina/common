@@ -53,6 +53,11 @@ class Email extends Prototype {
 		return true;
 	}
 
+	/**
+	 * @param string $from
+	 *
+	 * @return $this
+	 */
 	public function from(string $from): object
 	{
 		$this->envelope->setFrom([$_ENV['email_username'] => "{$from} via {$_ENV['email_name']}"]);
@@ -67,7 +72,7 @@ class Email extends Prototype {
 	 * @param string|null $email
 	 * @param string|null $name
 	 *
-	 * @return object
+	 * @return $this
 	 */
 	public function replyTo(?string $email, ?string $name = NULL): object
 	{
@@ -457,7 +462,7 @@ class Email extends Prototype {
 				"title" => "Email not sent",
 				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
 			]);
-			return true;
+//			return true;
 		}
 
 		# Create the Transport
@@ -479,7 +484,6 @@ class Email extends Prototype {
 			$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
 			$this->envelope->attachSigner($signer);
 		}
-
 
 		# Send the email
 		$mailer->send($this->envelope);
