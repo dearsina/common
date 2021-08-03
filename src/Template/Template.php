@@ -101,14 +101,14 @@ class Template{
 	 *
 	 * @return string
 	 */
-	public function generateMessage(): string
+	public function generateMessage(?array $format = NULL): string
 	{
 		if(!$body = $this->generateBody()){
 			//if there is no message body to return
 			throw new \Exception("No message generated from the template.");
 		}
 
-		$email_message = new EmailMessage([
+		$email_message = new EmailMessage($format, [
 			"preheader" => $this->generatePreheader(),
 			"body" => $body,
 		]);
@@ -168,16 +168,19 @@ class Template{
 		];
 	}
 
-	public function getFooter(?string $on_behalf_of = NULL): array
+	public function getFooter(?array $format = []): array
 	{
-		if($on_behalf_of){
-			$on_behalf_of = " on behalf of {$on_behalf_of}";
+		if($format['footer_text']){
+			$footer[] = $format['footer_text'];
 		}
+
+		else {
+			$footer[] = "Sent by {$_ENV['title']}.";
+		}
+
 		return [
 			"colour" => "grey",
-			"footer" => [
-				"Sent by {$_ENV['title']}{$on_behalf_of}."
-			]
+			"footer" => $footer
 		];
 	}
 }
