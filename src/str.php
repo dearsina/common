@@ -505,7 +505,7 @@ class str {
 	}
 
 	/**
-	 * For *external* files (only?)
+	 * For *external* files only
 	 *
 	 * @param string $filePath
 	 *
