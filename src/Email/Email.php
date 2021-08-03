@@ -3,6 +3,7 @@
 
 namespace App\Common\Email;
 
+use App\Common\EmailWrapper\EmailWrapper;
 use App\Common\Log;
 use App\Common\Prototype;
 use App\Common\str;
@@ -23,32 +24,34 @@ class Email extends Prototype {
 	 * @var \Swift_Message
 	 */
 	private $envelope;
+
 	/**
 	 * @var bool
 	 */
 	private $silent;
 
 	/**
+	 * Contains the format.
+	 *
+	 * @var array
+	 */
+	private array $format;
+
+	/**
 	 * Email constructor.
 	 *
 	 * @param null $a
 	 */
-	public function __construct($a = NULL)
+	public function __construct(?array $format = NULL)
 	{
-		//		parent::__construct();
-		# We don't actually need this. And enabled, it will cause a problem if there ever is a mySQL outage.
-
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
 
 		# Set the From address with an associative array
 		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
 
-		if(is_array($a)){
-			foreach($a as $key => $val){
-				$this->{$key}($val);
-			}
-		}
+		# Set the email format
+		$this->format = $format ?: EmailWrapper::$defaults;
 
 		return true;
 	}
@@ -113,7 +116,7 @@ class Email extends Prototype {
 		}
 
 		# Get (and set) the message
-		if(!$this->message($template_factory->generateMessage())){
+		if(!$this->message($template_factory->generateMessage($this->format))){
 			throw new \Exception("No message generated using the {$template_name} template.");
 		}
 
