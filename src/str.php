@@ -467,7 +467,7 @@ class str {
 	 */
 	public static function getLocalServerIPs(?bool $withV6 = true): array
 	{
-		preg_match_all('/inet'.($withV6 ? '6?' : '').' ([^ ]+)/', `ifconfig`, $ips);
+		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ ]+)/', `ifconfig`, $ips);
 		return $ips[1];
 	}
 
@@ -1937,34 +1937,39 @@ EOF;
 
 	/**
 	 * Return text strings in a "raw" format.
+	 * Include settings for further customisation.
+	 *
+	 * Set crop to TRUE, the output will be cropped.
+	 * Set a language, the string will be formatted with PrismJS.
 	 *
 	 * @param string|array $str
-	 * @param bool         $crop     If set to TRUE, will crop the output length.
-	 * @param null         $language If a language is given, will become formatted with PrismJS
+	 * @param array|null   $settings
 	 *
 	 * @return string
 	 */
-	public static function pre($str, $crop = NULL, $language = NULL, ?array $class = NULL, ?array $style = NULL)
+	public static function pre($str, ?array $settings = [])
 	{
 		if(is_array($str)){
 			$str = str::var_export($str, true);
 		}
 
+		extract($settings);
+
 		if($crop){
 			return /** @lang HTML */ <<<EOF
-<xmp style="
-	font-size: x-small;
-    white-space: normal;
-    word-break: normal;
-    background: none;
-    border: none;
-    text-align: left;
-    color: inherit;
-    margin-bottom: -10px;
-    line-height:12px;
-    white-space:pre-wrap; word-wrap:break-word;
-    max-height:80vh;
-">$str</xmp>
+			<xmp style="
+				font-size: x-small;
+				white-space: normal;
+				word-break: normal;
+				background: none;
+				border: none;
+				text-align: left;
+				color: inherit;
+				margin-bottom: -10px;
+				line-height:12px;
+				white-space:pre-wrap; word-wrap:break-word;
+				max-height:80vh;
+			">$str</xmp>
 EOF;
 		}
 
@@ -1972,6 +1977,13 @@ EOF;
 		$Parsedown->setSafeMode(true);
 		$str = "```\r\n{$str}\r\n```";
 		$str = $Parsedown->text($str);
+
+		# Parent class
+		$parent_class_array = str::getAttrArray($parent_class, "code-mute", $parent_only_class);
+		$parent_class = str::getAttrTag("class", $parent_class_array);
+
+		# Parent style
+		$parent_style = str::getAttrTag("style", $parent_style);
 
 		if($language){
 			# Class
@@ -1983,7 +1995,8 @@ EOF;
 			$str = str_replace("<code>", "<code{$class}{$style}>", $str);
 		}
 
-		$str = "<div class=\"code-mute\">{$str}</div>";
+		$str = "<div{$parent_class}{$parent_style}>{$str}</div>";
+
 		return $str;
 	}
 
