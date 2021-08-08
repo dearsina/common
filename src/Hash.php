@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Common;
 
 
@@ -51,8 +52,8 @@ class Hash {
 	 */
 	final public static function getInstance(): Hash
 	{
-		static $instance = null;
-		if (!$instance) {
+		static $instance = NULL;
+		if(!$instance){
 			$instance = new Hash();
 		}
 		return $instance;
@@ -70,22 +71,28 @@ class Hash {
 	 *
 	 * @return bool
 	 */
-	function set($a){
+	function set($a)
+	{
 		if($a === false){
 			return $this->unset();
-		} else if(is_array($a)) {
+		}
+		else if(is_array($a)){
 			$this->hash = str::generate_uri($a);
-		} else if(is_int($a)){
+		}
+		else if(is_int($a)){
 			$this->hash = $a;
-		} else if(is_string($a)){
+		}
+		else if(is_string($a)){
 			$this->hash = urldecode($a);
-		} else {
+		}
+		else {
 			return false;
 		}
 		return true;
 	}
 
-	public function unset(){
+	public function unset()
+	{
 		$this->hash = false;
 		return true;
 	}
@@ -98,7 +105,8 @@ class Hash {
 	 *
 	 * @return string
 	 */
-	function get($urlencode = NULL){
+	function get($urlencode = NULL)
+	{
 		if($urlencode){
 			return str::urlencode($this->hash);
 		}
@@ -113,14 +121,16 @@ class Hash {
 	 *
 	 * @param bool $silent
 	 */
-	function silent($silent = TRUE){
+	function silent($silent = true): void
+	{
 		$this->silent = $silent;
 	}
 
 	/**
 	 * @return bool
 	 */
-	function getSilent(){
+	function getSilent()
+	{
 		return $this->silent;
 	}
 
@@ -135,16 +145,17 @@ class Hash {
 	 *
 	 * The callbacks will be produced in this order.
 	 *
-	 * @param      $a
+	 * @param mixed $a
 	 *
-	 * @param bool $urlencode If set to TRUE, will urlencode the callback
+	 * @param bool  $urlencode If set to TRUE, will urlencode the callback
 	 *
-	 * @return bool
+	 * @return void
 	 */
-	function setCallback($a, $urlencode = TRUE){
+	function setCallback($a, $urlencode = true): void
+	{
 		# No value sent
 		if(!$a){
-			return true;
+			return;
 		}
 
 		# If an array is sent
@@ -152,8 +163,10 @@ class Hash {
 
 			if($this->callback = $a['vars']['callback']){
 				//If the array already have a specified callback key/value
-				return true;
-			} else {
+				return;
+			}
+
+			else {
 				//Create a callback from the complete AJAX request
 				$this->callback = str::generate_uri($a, true);
 			}
@@ -162,7 +175,7 @@ class Hash {
 				$this->callback = str::urlencode($this->callback);
 			}
 
-			return true;
+			return;
 		}
 
 		# If a string or an int is sent
@@ -170,7 +183,7 @@ class Hash {
 			$this->callback = $urlencode ? str::urlencode($a) : $a;
 		}
 
-		return true;
+		return;
 	}
 
 	/**
@@ -178,21 +191,23 @@ class Hash {
 	 * Will by default urlDEcode the callback.
 	 * This is useful for when the callback is going into the $this->hash->set(); method.
 	 *
-	 * @param bool $urlencode If set to TRUE, the callback will be urlENcoded
+	 * @param bool|null $urlencode If set to TRUE, the callback will be urlENcoded
 	 *                        so that it can be stored as a variable.
 	 *
 	 * @return string
 	 */
-	function getCallback($urlencode = NULL){
+	function getCallback(?bool $urlencode = NULL): ?string
+	{
 
-		# Remvoe the first slash (not sure about the consequences)
+		# Remove the first slash (not sure about the consequences)
 		if(substr(urldecode($this->callback), 0, 1) == '/'){
 			$this->callback = substr(urldecode($this->callback), 1);
 		}
 
 		if($urlencode){
 			return str::urlencode($this->callback);
-		} else {
+		}
+		else {
 			return urldecode($this->callback);
 		}
 	}
