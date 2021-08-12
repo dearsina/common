@@ -81,17 +81,36 @@ class FieldType extends \App\Common\Prototype\ModalPrototype {
 	 * meaning the field doesn't actually contain a value
 	 * that can be changed by a user.
 	 *
+	 * Can include an array of exclusions, names of types
+	 * that will be ignored even if they're display only.
+	 *
 	 * @param string|null $field_type_id
+	 * @param array|null  $exclusions
 	 *
 	 * @return bool
+	 * @throws \Exception
 	 */
-	public static function isDisplayOnly(?string $field_type_id): bool
+	public static function isDisplayOnly(?string $field_type_id, ?array $exclusions = NULL): bool
 	{
 		if(!$field_type_id){
 			return false;
 		}
 
-		return (bool) FieldType::getDisplayOnlyFieldTypes()[$field_type_id];
+		# Get all the display only fields
+		$display_only_fields = FieldType::getDisplayOnlyFieldTypes();
+
+		# If the field is not display only
+		if(!$display_only_fields[$field_type_id]){
+			return false;
+		}
+
+		# If the field is display only, but is excluded
+		if($exclusions && in_array($display_only_fields[$field_type_id], $exclusions)){
+			return false;
+		}
+
+		# Otherwise, ya, it's a display only field
+		return true;
 	}
 
 	/**
@@ -111,7 +130,7 @@ class FieldType extends \App\Common\Prototype\ModalPrototype {
 			],
 			"rel_table" => "field_type",
 			"where" => [
-				"display_only" => 1
+				"display_only" => 1,
 			]
 		]) ?:[] as $field_type){
 			$display_only[$field_type['field_type_id']] = $field_type['name'];
