@@ -1695,14 +1695,10 @@ abstract class Common {
 		}
 
 		# HTML columns
-		if(in_array($col, $this->html ?: [])
-			&& $table_metadata[$col]['CHARACTER_MAXIMUM_LENGTH'] > 255){
+		if(in_array($col, $this->html ?: [])){
 			/**
-			 * Only columns that are of the TEXT/LONGTEXT type,
-			 * or columns that are VARCHAR but have a max length LONGER
-			 * than 255 are allowed to contain HTML.
-			 * In addition, the column needs to be explicitly marked
-			 * to allow for HTML.
+			 * Only if a column is explicitly marked as
+			 * can contain HTML can it contain HTML.
 			 */
 			$html = true;
 		}
