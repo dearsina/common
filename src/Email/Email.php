@@ -471,7 +471,7 @@ class Email extends Prototype {
 		# Create the Transport
 		$transport = new \Swift_SmtpTransport();
 		$transport->setHost($_ENV['email_smtp_host']);
-		$transport->setPort(587);
+		$transport->setPort($_ENV['email_smtp_port']);
 		$transport->setEncryption("TLS");
 		$transport->setUsername($_ENV['email_username']);
 		$transport->setPassword($_ENV['email_password']);
