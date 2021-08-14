@@ -209,7 +209,7 @@ abstract class Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function reorder($a): bool
+	public function reorder(array $a): bool
 	{
 		extract($a);
 
@@ -286,163 +286,38 @@ abstract class Prototype {
 	{
 		extract($a);
 
-		if($vars['order']){
-			$push = 1;
-			foreach($vars['order'] as $original_order => $id){
+		$this->checkVars($a, "order");
+
+		$push = 1;
+		foreach($vars['order'] as $original_order => $id){
+			$order = $original_order + $push;
+			while($this->sql->select([
+				"count" => true,
+				"table" => $rel_table,
+				"where" => [
+					"order" => $order,
+					$vars['limiting_key'] => $vars['limiting_val'],
+				],
+			])) {
+				//if the order already exists, jump one
+				$push++;
 				$order = $original_order + $push;
-				while($this->sql->select([
-					"count" => true,
-					"table" => $rel_table,
-					"where" => [
-						"order" => $order,
-						$vars['limiting_key'] => $vars['limiting_val'],
-					],
-				])) {
-					//if the order already exists, jump one
-					$push++;
-					$order = $original_order + $push;
-				}
-				$this->sql->update([
-					"table" => $rel_table,
-					"id" => $id,
-					"set" => [
-						"order" => $order,
-					],
-				]);
 			}
-			if(!$silent){
-				$this->log->success([
-					"icon" => "random",
-					"message" => "Reordered",
-				]);
-			}
-			return;
+			$this->sql->update([
+				"table" => $rel_table,
+				"id" => $id,
+				"set" => [
+					"order" => $order,
+				],
+			]);
 		}
-
-		# No change to order
-		if($vars['old_index'] == $vars['new_index']){
-			//Nothing to do
-			return;
-		}
-
-		if($vars['old_index'] > $vars['new_index']){
-			//going UP (towards 1)
-			$dir1 = "+";
-			$eq1 = ">=";
-			//All the items equal or greater than the new order are to be moved down
-			$dir2 = "-";
-			$eq2 = ">";
-			//All the greater than the old order are to be moved up (to fill the gap)
-		}
-		else {
-			//going DOWN (away from 1)
-			$dir1 = "-";
-			$eq1 = "<=";
-			//All the items equal to or less than the new order are to be moved up
-			$dir2 = "+";
-			$eq2 = "<";
-			//All the items less than the old order are to be moved down (to fill the gap)
-		}
-
-		# Get the _current_ (soon to be old) order number
-		$old = $this->sql->select([
-			"columns" => [
-				"order",
-			],
-			"db" => $this->db,
-			"table" => $rel_table,
-			"id" => $rel_id,
-		]);
-		$old['order'] = $old['order'] ?: "0";
-
-		# The key of the item being shifted
-		$rel_key = array_search($rel_id, $vars['order']);
-
-		//		# Ensure there are no rows with NULL order values
-		//		$this->sql->run("SET @a=1;");
-		//		$this->sql->update([
-		//			"db" => $this->db,
-		//			"table" => $rel_table,
-		//			"set" => [
-		//				["`order` = @a:=@a+1"],
-		//			],
-		//			"where" => [
-		//				$vars['limiting_key'] => $vars['limiting_val'],
-		//				"order" => NULL,
-		//			],
-		//		]);
-
-		if(!$rel_key){
-			//if the item is being moved to the first (0) position
-			$new_order = 1;
-		}
-		else if(($rel_key + 1) == count($vars['order'])){
-			//if the item is being moved to the _last_ position
-			$item_above = $this->info($rel_table, $vars['order'][$rel_key - 1]);
-			$new_order = (int)$item_above['order'];
-		}
-		else {
-			//if the item is in any position except the first (0)
-			$item_above = $this->info($rel_table, $vars['order'][$rel_key - 1]);
-			$new_order = (int)$item_above['order'] + 1;
-		}
-
-		$new_order = $new_order ?: "0";
-
-		# Place the item in its new position
-		//		echo
-		$this->sql->update([
-			"db" => $this->db,
-			"table" => $rel_table,
-			"id" => $rel_id,
-			"set" => [
-				"order" => $new_order,
-			],
-		], false);
-		//		echo ";\r\n\r\n";
-
-		# Push all other items up/down to make space for our item
-		//		echo
-		$this->sql->update([
-			"db" => $this->db,
-			"table" => $rel_table,
-			"set" => [
-				"order" => [$this->db, $rel_table, "order", "IFNULL(", ",{$new_order}) {$dir1} 1"],
-			],
-			"where" => [
-				$vars['limiting_key'] => $vars['limiting_val'],
-				["order", $eq1, $new_order],
-				["{$rel_table}_id", "<>", $rel_id],
-			],
-		], false);
-		//		echo ";\r\n\r\n";
-
-		/**
-		 * As a consequence of the above update,
-		 * Some elements that were below/above the old order,
-		 * that _shouldn't_ have been pushed, were also pushed
-		 */
-		//		echo
-		$this->sql->update([
-			"db" => $this->db,
-			"table" => $rel_table,
-			"set" => [
-				"order" => [$this->db, $rel_table, "order", "IFNULL(", ",{$old['order']}) {$dir2} 1"],
-			],
-			"where" => [
-				$vars['limiting_key'] => $vars['limiting_val'],
-				["order", $eq2, $old['order']],
-				["{$rel_table}_id", "<>", $rel_id],
-			],
-		], false);
-		//		echo ";\r\n\r\n";
-
 		if(!$silent){
 			$this->log->success([
 				"icon" => "random",
 				"message" => "Reordered",
 			]);
 		}
+		return;
 	}
 
 
@@ -668,7 +543,7 @@ abstract class Prototype {
 				"table" => $table['TABLE_NAME'],
 				"where" => [
 					$column_name => $rel_id,
-				]
+				],
 			])){
 				continue;
 			}
@@ -679,7 +554,7 @@ abstract class Prototype {
 				"table" => $table['TABLE_NAME'],
 				"where" => [
 					$column_name => $rel_id,
-				]
+				],
 			]);
 		}
 
@@ -690,9 +565,9 @@ abstract class Prototype {
 
 		if($table_counts){
 			foreach($table_counts as $table => $count){
-				$table_narratives[] = str::title(str::pluralise_if($count, "row", true)." from the <b>{$table}</b> table");
+				$table_narratives[] = str::title(str::pluralise_if($count, "row", true) . " from the <b>{$table}</b> table");
 			}
-			$narrative[] = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
+			$narrative[] = str::oxfordImplode($table_narratives, ", ", "and") . " were deleted.";
 		}
 
 		$narrative[] = " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
@@ -741,7 +616,7 @@ abstract class Prototype {
 				"where" => [
 					$column_name => $rel_id,
 				],
-				"include_removed" => true
+				"include_removed" => true,
 			])){
 				continue;
 			}
@@ -752,14 +627,14 @@ abstract class Prototype {
 				"where" => [
 					$column_name => $rel_id,
 				],
-				"include_removed" => true
+				"include_removed" => true,
 			]);
 		}
 
 		# Otherwise it will fail on foreign key constraints
 		$this->sql->delete([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 		$table_counts[$rel_table] = 1;
 
@@ -769,10 +644,10 @@ abstract class Prototype {
 		$azure->deleteContainer($rel_id);
 
 		foreach($table_counts as $table => $count){
-			$table_narratives[] = str::title(str::pluralise_if($count, "row", true)." from the <b>{$table}</b> table");
+			$table_narratives[] = str::title(str::pluralise_if($count, "row", true) . " from the <b>{$table}</b> table");
 		}
 
-		$narrative = str::oxfordImplode($table_narratives, ", ", "and")." were deleted.";
+		$narrative = str::oxfordImplode($table_narratives, ", ", "and") . " were deleted.";
 		$narrative .= " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
 
 		if(!$silent){
