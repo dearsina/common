@@ -170,7 +170,7 @@ abstract class Common {
 	 * @param string|array $table
 	 * @param string|null  $id
 	 * @param bool|null    $include_removed
-	 * @param mixed|null    $count
+	 * @param mixed|null   $count
 	 */
 	protected function setTable(?string $db, $table, ?string $id = NULL, ?bool $include_removed = NULL, $count = NULL): void
 	{
@@ -181,12 +181,13 @@ abstract class Common {
 	 * Given a database name (string) and a table array or string,
 	 * returns a table array. Doesn't check if any of the values are legit.
 	 * A table array contains the following child keys:
-	 *  - name, the name of the table
-	 *  - alias, the table alias
-	 *  - db, the database of the table
-	 *  - id, the table ID column name
-	 *  - include_removed, whether or not we should include removed columns (default is to exclude them)
-	 * All of the values can be given.
+	 * - name, the name of the table
+	 * - alias, the table alias
+	 * - db, the database of the table
+	 * - id, the table ID column name
+	 * - include_removed, whether we should include removed columns (default is to exclude them)
+	 * - is_tmp, if the table is a tmp table, set to TRUE
+	 * All the values can be given.
 	 *
 	 * @param string|null $db
 	 * @param             $table
@@ -207,18 +208,21 @@ abstract class Common {
 			//if the table name is a string
 			$name = $table;
 		}
+
 		else if(str::isAssociativeArray($table)){
 			//if the table is an associative array
 			extract($table);
 			//This can override the db name
 		}
+
 		else {
 			//if table was not supplied or is in an unrecognisable format
 			throw new mysqli_sql_exception("No table name was given.");
 		}
 
-		$array["db"] = str::i($db);
+		$array["db"] = $is_tmp ? NULL : str::i($db);
 		//The database name can also be in the table array, will override the explicitly given db name
+		//if the table is a tmp table, set the db to NULL
 
 		$array["name"] = str::i($name);
 		// The table name is the table name, cleaned up
@@ -232,11 +236,14 @@ abstract class Common {
 		$array["id"] = $id;
 		//If only this one ID value is to be extracted
 
-		$array["include_removed"] = $include_removed;
+		$array["include_removed"] = $is_tmp ?: $include_removed;
 		//A boolean flag that determines whether we should ignore removed ("removed IS NULL") or include them
 
 		$array["count"] = $count;
 		//A boolean flag or string column name that determines whether we should ignore all columns and just a straight COUNT(*)
+
+		# Set if the table is a temporary table
+		$array['is_tmp'] = $is_tmp;
 
 		return $array;
 	}
@@ -258,6 +265,11 @@ abstract class Common {
 			$sub_query = str_replace("\r\n", "\r\n\t", $sub_query);
 			return "FROM (\r\n\t{$sub_query}\r\n) AS `{$this->table['alias']}`";
 		}
+
+		# If it's a temp table, there is no DB reference.
+		if($this->table['is_tmp']){
+			return "FROM `{$this->table['name']}` AS `{$this->table['alias']}`";
+		}
 		return "FROM `{$this->table['db']}`.`{$this->table['name']}` AS `{$this->table['alias']}`";
 	}
 
@@ -270,11 +282,12 @@ abstract class Common {
 	 * table_name3,
 	 * etc.
 	 *
-	 * @param $table
+	 * @param string|null $db
+	 * @param string      $table
 	 *
-	 * @return string A alphanumeric string, not enclosed in SQL quotation marks
+	 * @return string An alphanumeric string, not enclosed in SQL quotation marks
 	 */
-	protected function getTableAlias(string $db, string $table)
+	protected function getTableAlias(?string $db, string $table)
 	{
 		# Clean up table name for alias purposes
 		# The assumption here is that the table name contains at least one alphanumeric character.
@@ -514,7 +527,11 @@ abstract class Common {
 		}
 
 		# Ensure the column exists
-		if(!$this->columnExists($table['db'], $table['name'], $col)){
+		if(!$this->columnExists($table, $col)){
+			if($table['is_tmp']){
+				var_dump($this->exists, $table, $col);
+				exit;
+			}
 			return NULL;
 		}
 
@@ -569,7 +586,7 @@ abstract class Common {
 			"JSON_CONTAINS",
 			"NOT JSON_CONTAINS",
 			"JSON_EXTRACT",
-			"NOT JSON_EXTRACT"
+			"NOT JSON_EXTRACT",
 		]);
 	}
 
@@ -756,8 +773,8 @@ abstract class Common {
 			 * the name of a column that exists in both
 			 * the joined table and the main table.
 			 */
-			if($this->columnExists($table['db'], $table['name'], $and)
-				&& $this->columnExists($this->table['db'], $this->table['name'], $and)){
+			if($this->columnExists($table, $and)
+				&& $this->columnExists($this->table, $and)){
 				$conditions["and"][] = "`{$table['alias']}`.`$and` = `{$this->table['alias']}`.`$and`";
 			}
 		}
@@ -768,7 +785,7 @@ abstract class Common {
 			 * it's assumed that the join is on the main table's ID column,
 			 * if it exists in both tables.
 			 */
-			if($this->columnExists($table['db'], $table['name'], $this->table["id_col"])){
+			if($this->columnExists($table, $this->table["id_col"])){
 				//if the joined table also has a column the same name as the main table's ID column
 				$conditions["and"][] = "`{$table['alias']}`.`{$this->table["id_col"]}` = `{$this->table['alias']}`.`{$this->table["id_col"]}`";
 			}
@@ -1057,7 +1074,7 @@ abstract class Common {
 			}
 
 			# Ensure the join table column exists
-			if(!$this->columnExists($table['db'], $table['name'], $col)){
+			if(!$this->columnExists($table, $col)){
 				return NULL;
 			}
 
@@ -1103,12 +1120,12 @@ abstract class Common {
 			}
 
 			# Ensure the join table column exists
-			if(!$this->columnExists($table['db'], $table['name'], $col)){
+			if(!$this->columnExists($table, $col)){
 				return NULL;
 			}
 
 			# Ensure the counterpart also exists
-			if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+			if(!$this->columnExists(["db" => $tbl_db, "name" => $tbl_name], $tbl_col)){
 				return NULL;
 			}
 
@@ -1158,7 +1175,7 @@ abstract class Common {
 			[$col, $eq, $val] = $val;
 
 			# Ensure the join table column exists
-			if(!$this->columnExists($table['db'], $table['name'], $col)){
+			if(!$this->columnExists($table, $col)){
 				return NULL;
 			}
 
@@ -1202,7 +1219,7 @@ abstract class Common {
 			[$col, $eq, $from_val, $to_val] = $val;
 
 			# Ensure the join table column exists
-			if(!$this->columnExists($table['db'], $table['name'], $col)){
+			if(!$this->columnExists($table, $col)){
 				return NULL;
 			}
 
@@ -1228,7 +1245,7 @@ abstract class Common {
 			[$col, $eq, $tbl_alias, $tbl_col] = $val;
 
 			# Ensure the join table column exists
-			if(!$this->columnExists($table['db'], $table['name'], $col)){
+			if(!$this->columnExists($table, $col)){
 				return NULL;
 			}
 
@@ -1272,7 +1289,7 @@ abstract class Common {
 		} # "col" => "val",
 		else {
 			# Ensure the join table column exists
-			if(!$this->columnExists($table['db'], $table['name'], $col)){
+			if(!$this->columnExists($table, $col)){
 				return NULL;
 			}
 
@@ -1570,6 +1587,9 @@ abstract class Common {
 	 */
 	protected function getJoinTableSQL(string $type, array $table): string
 	{
+		if($table['is_tmp']){
+			return "{$type} JOIN `{$table['name']}` AS `{$table['alias']}`";
+		}
 		return "{$type} JOIN `{$table['db']}`.`{$table['name']}` AS `{$table['alias']}`";
 	}
 
@@ -1821,7 +1841,7 @@ abstract class Common {
 				//If an empty array has been passed, return NULL
 				return NULL;
 			}
-			throw new BadRequest("The following associative array was sent as part of a value comparison. Only numeric arrays are accepted. ". str::var_export($val, true));
+			throw new BadRequest("The following associative array was sent as part of a value comparison. Only numeric arrays are accepted. " . str::var_export($val, true));
 		}
 
 		if($val === NULL){
@@ -1919,8 +1939,12 @@ abstract class Common {
 				throw new \Exception("Table name missing.");
 			}
 
-			# If no table DB has been provided, use the default one
-			$table['db'] = $table['db'] ?: $_ENV['db_database'];
+			if(!$table['is_tmp']){
+				//tmp tables don't have DBs
+
+				# If no table DB has been provided, use the default one
+				$table['db'] = $table['db'] ?: $_ENV['db_database'];
+			}
 		}
 
 		# Or it can be a string
@@ -1971,6 +1995,11 @@ abstract class Common {
 	 */
 	protected function loadTableMetadata(array $table, ?bool $retrying = NULL): void
 	{
+		if($table['is_tmp']){
+			$this->loadTmpTableMetadata($table, $retrying);
+			return;
+		}
+
 		# Write the query for table metadata
 		$query = "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$table['db']}' AND `TABLE_NAME` = '{$table['name']}' ORDER BY `ORDINAL_POSITION` ASC";
 
@@ -1979,7 +2008,7 @@ abstract class Common {
 			$result = $this->mysqli->query($query);
 		}
 
-		# Retry the query, just in case the connection died
+			# Retry the query, just in case the connection died
 		catch(\mysqli_sql_exception $e) {
 			if($retrying){
 				throw new \Exception("SQL reconnection error [{$e->getCode()}]: {$e->getMessage()}");
@@ -1988,7 +2017,7 @@ abstract class Common {
 			$this->loadTableMetadata($table, true);
 		}
 
-		# Go thru the result (assuming the database-table exists))
+		# Go through the result (assuming the database-table exists)
 		if(is_object($result)){
 			# Get the columns the user cannot update
 			$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
@@ -2002,6 +2031,99 @@ abstract class Common {
 			}
 			$result->close();
 		}
+	}
+
+	/**
+	 * Same as the loadTableMetadata method, but for temp tables.
+	 *
+	 * @param array     $table
+	 * @param bool|null $retrying
+	 *
+	 * @throws \Swoole\ExitException
+	 */
+	protected function loadTmpTableMetadata(array $table, ?bool $retrying = NULL): void
+	{
+		# Write the query for table metadata
+		$query = "SHOW COLUMNS FROM `{$table['name']}`";
+
+		# Run the query to get table metadata (assuming the database-table combo exists)
+		try {
+			$result = $this->mysqli->query($query);
+		}
+
+			# Retry the query, just in case the connection died
+		catch(\mysqli_sql_exception $e) {
+			if($retrying){
+				throw new \Exception("SQL reconnection error [{$e->getCode()}]: {$e->getMessage()}");
+			}
+			$this->mysqli = mySQL::getNewConnection();
+			$this->loadTmpTableMetadata($table, true);
+		}
+
+		# Go through the result (assuming the database-table exists)
+		if(is_object($result)){
+			# Get the columns the user cannot update
+			$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
+
+			# Convert and save each result row
+			while($c = $result->fetch_assoc()) {
+				$ordinal_position += 1;
+				$c = $this->convertShowColumnsRowToInformationSchemaFormat($table['name'], $c, $ordinal_position);
+				$this->table_column_names_all[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
+				if(!in_array($c['COLUMN_NAME'], $columns_user_cannot_update)){
+					$this->table_column_names[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
+				}
+			}
+			$result->close();
+		}
+	}
+
+	/**
+	 * If we get metadata from a temporary table, we have to use a different method, that requires
+	 * conversion to the traditional INFORMATION_SCHEMA COLUMNS format.
+	 *
+	 * @param array $c
+	 * @param int   $ordinal_position
+	 *
+	 * @return array
+	 */
+	private function convertShowColumnsRowToInformationSchemaFormat(string $name, array $c, int $ordinal_position): array
+	{
+		$numeric = [
+			"tinyint" => [
+				"NUMERIC_PRECISION" => 3,
+				"NUMERIC_SCALE" => 0,
+			],
+			"int" => [
+				"NUMERIC_PRECISION" => 10,
+				"NUMERIC_SCALE" => 0,
+			],
+			"bigint" => [
+				"NUMERIC_PRECISION" => 19,
+				"NUMERIC_SCALE" => 0,
+			],
+			"float" => [
+				"NUMERIC_PRECISION" => 12,
+				"NUMERIC_SCALE" => NULL,
+			],
+		];
+
+		$pattern = "/^([a-z]+)(?:\(([\d]+),?([\d]+)?\)(.*))?$/";
+		preg_match($pattern, $c['Type'], $type);
+
+		return [
+			"TABLE_NAME" => $name,
+			"COLUMN_NAME" => $c['Field'],
+			"ORDINAL_POSITION" => $ordinal_position,
+			"COLUMN_DEFAULT" => $c['Default'],
+			"IS_NULLABLE" => $c['Null'],
+			"DATA_TYPE" => $type[1],
+			"CHARACTER_MAXIMUM_LENGTH" => $type[2],
+			"NUMERIC_PRECISION" => $type[2] ?: $numeric[$type[1]]['NUMERIC_PRECISION'],
+			"NUMERIC_SCALE" => $type[3] ?: $numeric[$type[1]]['NUMERIC_SCALE'],
+			"COLUMN_TYPE" => $c['Type'],
+			"EXTRA" => $c['Extra'],
+		];
 	}
 
 	/**
@@ -2069,7 +2191,7 @@ abstract class Common {
 			}
 
 			# "Hidden" column
-			if($this->columnExists($tbl['db'], $tbl['name'], $col)){
+			if($this->columnExists($tbl, $col)){
 				//If the table to order by is not part of the columns to display, but is still a valid column
 
 				# Set the table as a table that has an order
@@ -2172,7 +2294,7 @@ abstract class Common {
 				[$tbl_db, $tbl_name, $tbl_col] = $val;
 
 				# Ensure the counterpart also exists
-				if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+				if(!$this->columnExists(["db" => $tbl_db, "name" => $tbl_name], $tbl_col)){
 					continue;
 				}
 
@@ -2191,7 +2313,7 @@ abstract class Common {
 				[$tbl_db, $tbl_name, $tbl_col, $calc] = $val;
 
 				# Ensure the counterpart also exists
-				if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+				if(!$this->columnExists(["db" => $tbl_db, "name" => $tbl_name], $tbl_col)){
 					continue;
 				}
 
@@ -2216,7 +2338,7 @@ abstract class Common {
 				[$tbl_db, $tbl_name, $tbl_col, $pre, $post] = $val;
 
 				# Ensure the counterpart also exists
-				if(!$this->columnExists($tbl_db, $tbl_name, $tbl_col)){
+				if(!$this->columnExists(["db" => $tbl_db, "name" => $tbl_name], $tbl_col)){
 					continue;
 				}
 
@@ -2254,12 +2376,12 @@ abstract class Common {
 	protected function verifyTableArray(array $table): bool
 	{
 		# Ensure the database exists
-		if(!$this->dbExists($table["db"])){
+		if($table["db"] && !$this->dbExists($table["db"])){
 			throw new mysqli_sql_exception("The database <code>{$table["db"]}</code> doesn't seem to exists or the current user does not have access to it.");
 		}
 
 		# Ensure the table exists in the database
-		if(!$this->tableExists($table["db"], $table["name"])){
+		if(!$this->tableExists($table["db"], $table["name"], $table['is_tmp'])){
 			throw new mysqli_sql_exception("The <code>{$table["name"]}</code> table does not seem to exist in the <code>{$table["db"]}</code> database, or the current user does not have access to it.");
 		}
 
@@ -2302,10 +2424,10 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	public function tableExists(string $db, string $table): bool
+	public function tableExists(?string $db, string $table, ?bool $is_tmp = false): bool
 	{
 		# Clean the database name
-		$db = str::i($db);
+		$db = $is_tmp ? "tmp" : str::i($db);
 
 		# Clean the table name
 		$table = str::i($table);
@@ -2317,8 +2439,14 @@ abstract class Common {
 			}
 		}
 
-		# Write the query for table metadata
-		$query = "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
+		if($is_tmp){
+			$query = "SHOW COLUMNS FROM `{$table}`";
+		}
+
+		else {
+			# Write the query for table metadata
+			$query = "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
+		}
 
 		$results = $this->mysqli->query($query)->fetch_all();
 
@@ -2345,16 +2473,22 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	protected function columnExists(?string $db, string $table, string $col): bool
+	protected function columnExists(array $table, string $col): bool
 	{
+		extract($table);
+
+		if($is_tmp){
+			$db = "tmp";
+		}
+
 		# Clean the database name
-		if(!$db = str::i($db)){
+		else if(!$db = str::i($db)){
 			//if none is supplied, assume the generic db
 			$db = $_ENV['db_database'];
 		}
 
 		# Clean the table name
-		if(!$table = str::i($table)){
+		if(!$name = str::i($name)){
 			return false;
 		}
 
@@ -2365,20 +2499,37 @@ abstract class Common {
 
 		# if the database-table-col combo has already been checked before, reuse results
 		if(key_exists($db, $this->exists['col'] ?: [])){
-			if(key_exists($table, $this->exists['col'][$db] ?: [])){
-				if(key_exists($col, $this->exists['col'][$db][$table] ?: [])){
-					return $this->exists['col'][$db][$table][$col];
+			if(key_exists($name, $this->exists['col'][$db] ?: [])){
+				if(key_exists($col, $this->exists['col'][$db][$name] ?: [])){
+					return $this->exists['col'][$db][$name][$col];
 				}
 			}
 		}
 
-		# Write the query for table metadata
-		$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}' AND `COLUMN_NAME` = '{$col}'";
+		if($is_tmp){
+			# Write the query for temp tables
+			$query = "SHOW COLUMNS FROM `{$name}`";
 
-		# Does this database-table-col combo exist?
-		$this->exists['col'][$db][$table][$col] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+			# Run the query
+			$results = $this->mysqli->query($query)->fetch_all();
 
-		return $this->exists['col'][$db][$table][$col];
+			# Set to true if the given column was found in the table
+			$this->exists['col'][$db][$name][$col] = (bool) array_filter($results ?: [], function($row) use ($col){
+				return $row[0] == $col;
+			});
+		}
+
+		else {
+			# Write the query for table metadata
+			$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$name}' AND `COLUMN_NAME` = '{$col}'";
+
+			# Does this database-table-col combo exist?
+			$this->exists['col'][$db][$name][$col] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+		}
+
+
+
+		return $this->exists['col'][$db][$name][$col];
 	}
 
 	/**

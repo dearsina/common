@@ -23,7 +23,7 @@ class Grow extends Common {
 	 */
 	public function growTable(array $table, array $set){
 		# Get the table metadata
-		if($this->tableExists($table['db'], $table['name'])){
+		if($this->tableExists($table['db'], $table['name'], $table['is_tmp'])){
 			//if table exists
 			$tableMetadata = $this->getTableMetadata($table, true, false);
 		} else {

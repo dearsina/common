@@ -62,6 +62,11 @@ class Select extends Common {
 			$query = $this->generateQuery();
 		}
 
+		# If output is to be stored in a tmp table
+		if($tmp){
+			$query = "CREATE TEMPORARY TABLE IF NOT EXISTS `{$tmp}` AS ({$query})";
+		}
+
 		# If only the SQL is requested
 		if($return_query){
 			return $query;
@@ -70,6 +75,11 @@ class Select extends Common {
 		# Execute the SQL
 		$sql = new Run($this->mysqli);
 		$results = $sql->run($query);
+
+		# If the output is stored in a tmp table, return how many rows were affected (created)
+		if($tmp){
+			return $results['affected_rows'];
+		}
 
 		# No results found
 		if(!$results['num_rows']){
@@ -339,7 +349,7 @@ class Select extends Common {
 		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
 
 		# Format all the columns
-		if(!$formatted_columns = array_filter($this->formatColumns($columns, $alias_only))){
+		if(!$formatted_columns = array_filter($this->formatColumns($columns, $alias_only))){var_dump($this->columns);
 			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
 				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated.");
