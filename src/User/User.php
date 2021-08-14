@@ -6,11 +6,9 @@ namespace App\Common\User;
 use App\Common\Prototype;
 use App\Common\Connection\Connection;
 use App\Common\Email\Email;
-use App\Common\Geolocation\Geolocation;
 use App\Common\href;
 use App\Common\Navigation\Navigation;
 use App\Common\Process;
-use App\Common\Role\Role;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
 use App\Subscription\Subscription;
@@ -1690,6 +1688,8 @@ class User extends Prototype {
 
 		return true;
 	}
+
+
 
 	/**
 	 * @param $a
