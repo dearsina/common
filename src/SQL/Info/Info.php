@@ -181,6 +181,7 @@ class Info {
 	 */
 	private function customProcess(string $class_path, array $a, ?array $joins = NULL)
 	{
+		/*
 		# The default variables
 		$default_a = [];
 
@@ -192,9 +193,20 @@ class Info {
 
 		# Add/override the default variables
 		$query = str::array_merge_recursive_distinct($default_a, $a);
+		*/
+
+		/**
+		 * That was the old way of doing this,
+		 * it gave priority to the prepare-variables,
+		 * the new way gives priority to the variables
+		 * sent. That seems to make more sense.
+		 */
+
+		# Fatten the variable array
+		$class_path::prepare($a, $joins);
 
 		# Run the SQL query
-		if (!$rows = $this->sql->select($query)) {
+		if (!$rows = $this->sql->select($a)) {
 			return false;
 		}
 
