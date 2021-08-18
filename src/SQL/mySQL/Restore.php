@@ -13,7 +13,7 @@ class Restore extends Common {
 		if (!array_key_exists("user_id", $a)){
 			global $user_id;
 			if (!$user_id){
-				throw new \Exception("Removing without a user ID is not allowed.");
+				throw new \Exception("Restoring without a user ID is not allowed.");
 			}
 		}
 
@@ -48,6 +48,7 @@ class Restore extends Common {
 
 		# Execute the SQL
 		$sql = new Run($this->mysqli);
+
 		return $sql->run($query);
 		// Return the results that will contain some metadata about the results
 	}
