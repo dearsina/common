@@ -528,10 +528,6 @@ abstract class Common {
 
 		# Ensure the column exists
 		if(!$this->columnExists($table, $col)){
-			if($table['is_tmp']){
-				var_dump($this->exists, $table, $col);
-				exit;
-			}
 			return NULL;
 		}
 
@@ -2405,12 +2401,14 @@ abstract class Common {
 		}
 
 		$db = str::i($db);
+
 		if(key_exists($db, $this->exists['db'] ?: [])){
 			return $this->exists['db'][$db];
 		}
-		$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}'";
 
-		$this->exists['db'][$db] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
+		$query = "SHOW DATABASES LIKE '{$db}'";
+
+		$this->exists['db'][$db] = (bool)$this->mysqli->query($query)->fetch_assoc();
 		return $this->exists['db'][$db];
 	}
 
@@ -2448,14 +2446,18 @@ abstract class Common {
 			$query = "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
 		}
 
-		$results = $this->mysqli->query($query)->fetch_all();
-
 		# Does this database-table combo exist?
-		if($this->exists['table'][$db][$table] = (bool)$results){
-			//If so, store all the columns also so we don't have to run a query for each column also
-			foreach($results as $row){
-				$this->exists['col'][$db][$table][$row[0]] = true;
-			}
+		if(!$results = $this->mysqli->query($query)->fetch_all()){
+			//if this table doesn't exist, don't store it, because it may be used outside of query running
+			return false;
+		}
+
+		# Store that it exists so we don't have to check it again
+		$this->exists['table'][$db][$table] = true;
+
+		//While we're at it, let's store all the columns also so we don't have to run a query for each column also
+		foreach($results as $row){
+			$this->exists['col'][$db][$table][$row[0]] = true;
 		}
 
 		return $this->exists['table'][$db][$table];
@@ -2514,7 +2516,7 @@ abstract class Common {
 			$results = $this->mysqli->query($query)->fetch_all();
 
 			# Set to true if the given column was found in the table
-			$this->exists['col'][$db][$name][$col] = (bool) array_filter($results ?: [], function($row) use ($col){
+			$this->exists['col'][$db][$name][$col] = (bool)array_filter($results ?: [], function($row) use ($col){
 				return $row[0] == $col;
 			});
 		}
@@ -2526,7 +2528,6 @@ abstract class Common {
 			# Does this database-table-col combo exist?
 			$this->exists['col'][$db][$name][$col] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
 		}
-
 
 
 		return $this->exists['col'][$db][$name][$col];
