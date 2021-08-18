@@ -36,7 +36,7 @@ abstract class ModalPrototype extends Prototype {
 	{
 		extract($a);
 
-		if (!$this->permission()->get($rel_table, $rel_id, "R")){
+		if(!$this->permission()->get($rel_table, $rel_id, "R")){
 			return $this->accessDenied($a);
 		}
 
@@ -60,17 +60,20 @@ abstract class ModalPrototype extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function new(array $a) : bool
+	public function new(array $a): bool
 	{
 		extract($a);
 
-		if (!$this->permission()->get($rel_table, NULL, "C")){
+		if(!$this->permission()->get($rel_table, NULL, "C")){
 			return $this->accessDenied($a);
 		}
 
 		$this->output->modal($this->modal()->new($a));
 
+		# Return the URL to what it was
 		$this->hash->set(-1);
+
+		# Don't refresh the whole page
 		$this->hash->silent();
 
 		return true;
@@ -86,11 +89,11 @@ abstract class ModalPrototype extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function insert(array $a) : bool
+	public function insert(array $a): bool
 	{
 		extract($a);
 
-		if (!$this->permission()->get($rel_table, NULL, "C")){
+		if(!$this->permission()->get($rel_table, NULL, "C")){
 			return $this->accessDenied();
 		}
 
@@ -102,7 +105,7 @@ abstract class ModalPrototype extends Prototype {
 			"db" => $this->db,
 			"table" => $rel_table,
 			"html" => self::html,
-			"set" => $vars
+			"set" => $vars,
 		]);
 
 		# Closes the (top-most) modal
@@ -122,7 +125,7 @@ abstract class ModalPrototype extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function edit(array $a) : bool
+	public function edit(array $a): bool
 	{
 		extract($a);
 
@@ -130,7 +133,7 @@ abstract class ModalPrototype extends Prototype {
 			throw new \Exception("An edit was requested without an ID.");
 		}
 
-		if (!$this->permission()->get($rel_table, $rel_id, "U")){
+		if(!$this->permission()->get($rel_table, $rel_id, "U")){
 			return $this->accessDenied($a);
 		}
 
@@ -150,11 +153,11 @@ abstract class ModalPrototype extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function update(array $a) : bool
+	public function update(array $a): bool
 	{
 		extract($a);
 
-		if (!$this->permission()->get($rel_table, $rel_id, "U")){
+		if(!$this->permission()->get($rel_table, $rel_id, "U")){
 			return $this->accessDenied();
 		}
 
@@ -163,7 +166,7 @@ abstract class ModalPrototype extends Prototype {
 			"table" => $rel_table,
 			"set" => $vars,
 			"html" => self::html,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		# Closes the (top-most) modal
@@ -192,14 +195,14 @@ abstract class ModalPrototype extends Prototype {
 	{
 		extract($a);
 
-		if (!$this->permission()->get($rel_table, $rel_id, "D")){
+		if(!$this->permission()->get($rel_table, $rel_id, "D")){
 			return $this->accessDenied();
 		}
 
 		$this->sql->remove([
 			"db" => $this->db,
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		if($silent){
