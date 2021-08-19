@@ -66,10 +66,13 @@ class ErrorLog extends Prototype {
 		}
 
 		$page->setGrid([[
+			"sm" => 4,
 			"html" => $this->card()->errorsByType($a)
 		],[
+			"sm" => 4,
 			"html" => $this->card()->errorsByUser($a)
 		],[
+			"sm" => 4,
 			"html" => $this->card()->errorsByReltable($a)
 		]]);
 
