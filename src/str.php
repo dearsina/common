@@ -2108,16 +2108,16 @@ EOF;
 			return $string;
 		}
 
-		if(preg_match("/(.*)([0-9]+)$/", $string)){
+		if(!preg_match("/^(.*?)\s\(([0-9]+)\)$/", $string, $match)){
 			//if the string doesn't have a number suffix
-			return $string . $start;
+			return "{$string} ({$start})";
 		}
 
 		# Grab the number, and increase it by one step
-		$number = $match[2][0] + $step;
+		$number = $match[2] + $step;
 
 		# Return the string and the new number suffix
-		return $match[1][0] . $number;
+		return "{$match[1]} ({$number})";
 	}
 
 	/**
