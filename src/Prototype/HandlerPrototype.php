@@ -18,7 +18,7 @@ abstract class HandlerPrototype extends \App\Common\Prototype {
 	 * add them to this method to ensure joins are included
 	 * before the method is executed.
 	 *
-	 * @param $needsJoins
+	 * @param array|string $needsJoins
 	 */
 	protected function needsJoin($needsJoins): void
 	{
