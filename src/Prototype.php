@@ -353,7 +353,7 @@ abstract class Prototype {
 	 * VERY generic updateRelTable method. Relies on the rowHandler method
 	 * to format each line.
 	 *
-	 * Should ONLY be used for testing, beacuse it will pull the entire table.
+	 * Should ONLY be used for testing, because it will pull the entire table.
 	 *
 	 * @param array $a
 	 *
