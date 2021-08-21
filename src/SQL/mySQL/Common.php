@@ -2475,8 +2475,12 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	protected function columnExists(array $table, string $col): bool
+	protected function columnExists(array $table, ?string $col): bool
 	{
+		if(!$col){
+			return false;
+		}
+
 		extract($table);
 
 		if($is_tmp){
