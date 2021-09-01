@@ -340,7 +340,7 @@ class str {
 	 *
 	 * @return mixed
 	 */
-	public static function base64_decode_url($string)
+	public static function base64_decode_url(?string $string)
 	{
 		$string = base64_decode(str_replace(['-', '_'], ['+', '/'], $string));
 
