@@ -168,6 +168,13 @@ class Template{
 		];
 	}
 
+	/**
+	 * The default footer text.
+	 *
+	 * @param array|null $format
+	 *
+	 * @return array
+	 */
 	public function getFooter(?array $format = []): array
 	{
 		if($format['footer_text']){
