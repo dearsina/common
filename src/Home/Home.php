@@ -42,7 +42,7 @@ class Home extends Prototype {
 
 		# Ideally there is an app method for this role
 		if($classPath = str::findClass($role, "Home")){
-			//if a App class for this role exists, use it
+			//if an App class for this role exists, use it
 
 			# Create a new instance of the class
 			$classInstance = new $classPath();
