@@ -2543,6 +2543,21 @@ EOF;
 	}
 
 	/**
+	 * Same as array unique, but works on multi-dimensional arrays.
+	 *
+	 * @param array $input
+	 *
+	 * @return array
+	 * @link https://stackoverflow.com/a/308955/429071
+	 */
+	public static function array_unique_multidimensional(array $input): array
+	{
+		$serialized = array_map('serialize', $input);
+		$unique = array_unique($serialized);
+		return array_intersect_key($input, $unique);
+	}
+
+	/**
 	 * Given an int number, returns the corresponding Excel-style
 	 * column name, 0 = A, 1 = B, 26 = AA, 27 = AB, etc.
 	 *
