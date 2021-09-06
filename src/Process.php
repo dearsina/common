@@ -100,6 +100,13 @@ class Process {
 	 *
 	 * This should be used for any method that can be reached via `rel_table/rel_id/action`.
 	 *
+	 * If the params being sent is larger than 900 chars,
+	 * a tmp file will be created with the data and the link
+	 * will be included in the command instead.
+	 *
+	 * This is to avoid hitting shell_exec max string
+	 * length limits.
+	 *
 	 * @param array $a
 	 *
 	 * @return int The process ID
@@ -116,7 +123,31 @@ class Process {
 		$cmd  = "go(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$request = new App\\Common\\Request({$requester});";
-		$cmd .= "\$request->handler({$params});";
+
+		# 900+ char params
+		if(strlen($params) > 900){
+			//if more than 900 chars is being sent
+
+			# Create temporary filename name
+			$filename = $_ENV['tmp_dir'].rand();
+
+			# Store the params in the temporary file
+			file_put_contents($filename, serialize($a));
+
+			# Get the handler to access the file containing the string
+			$cmd .= "\$request->handler(unserialize(file_get_contents(\"{$filename}\")));";
+
+			# Delete the temporary file
+			$cmd .= "unlink(\"{$filename}\");";
+		}
+
+		# < 900 char params
+		else {
+			//If the params being sent is NOT larger than 900 chars
+
+			$cmd .= "\$request->handler({$params});";
+		}
+
 		$cmd .= "});";
 
 		# Use the Process class to execute it with a pID that can be checked
