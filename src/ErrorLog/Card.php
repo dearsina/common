@@ -259,7 +259,13 @@ class Card extends \App\Common\Prototype {
 				"title" => $title,
 				"button" => $button
 			],
-			"body" => $body
+			"body" => [
+				"style" => [
+					"max-height" => "50vh",
+					"overflow" => "auto"
+				],
+				"html" => $body
+			]
 		]);
 
 		return $card->getHTML();
