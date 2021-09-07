@@ -156,6 +156,78 @@ class Country {
 		return $countries[$key]['nationality'];
 	}
 
+	/**
+	 * Given a nationality string (case-insensitive), will return
+	 * the ISO-alpha2 code of the country.
+	 *
+	 * Returns the nationality string if no match is found.
+	 *
+	 * @param string|null $nationality
+	 *
+	 * @return string|null
+	 * @throws \Exception
+	 */
+	public static function getISOAlpha2FromNationality(?string $nationality): ?string
+	{
+		if(!$nationality){
+			return $nationality;
+		}
+
+		# Make the string lowercase
+		$nationality = strtolower($nationality);
+
+		# Get all the countries
+		$countries = Info::getInstance()->getInfo("country");
+
+		# Run thru each country
+		foreach($countries as $country){
+
+			# Get all nationalities (some countries have more than one)
+			$nationalities = explode(", ", strtolower($country['nationality']));
+
+			# If it's one of them, return the country code
+			if(in_array($nationality, $nationalities)){
+				return $country['country_code'];
+			}
+		}
+
+		return $nationality;
+	}
+
+	/**
+	 * Given a nationality string (case-insensitive), will return
+	 * the ISO-alpha2 code of the country.
+	 *
+	 * Returns the nationality string if no match is found.
+	 *
+	 * @param string|null $name
+	 *
+	 * @return string|null
+	 * @throws \Exception
+	 */
+	public static function getISOAlpha2FromCountry(?string $name): ?string
+	{
+		if(!$name){
+			return $name;
+		}
+
+		# Make the string lowercase
+		$name = strtolower($name);
+
+		# Get all the countries
+		$countries = Info::getInstance()->getInfo("country");
+
+		# Run thru each country
+		foreach($countries as $country){
+			# If there is a match, return the ISO-alpha2
+			if($name == strtolower($country['name'])){
+				return $country['country_code'];
+			}
+		}
+
+		return $name;
+	}
+
 	public static function getCountryFromISOAlpha2(?string $iso2): ?string
 	{
 		if(!$iso2){
