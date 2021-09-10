@@ -2512,6 +2512,13 @@ EOF;
 		return $temp_array;
 	}
 
+	public static function array_intersect_reverse(array $arr1, array $arr2): array
+	{
+		$diff1 = array_diff($arr1, $arr2);
+		$diff2 = array_diff($arr2, $arr1);
+		return array_filter(array_merge($diff1 ?:[], $diff2 ?:[]));
+	}
+
 
 	/**
 	 * Will return all the keys for rows that contain a match in the $col for any of the $value.
