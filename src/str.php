@@ -2516,7 +2516,7 @@ EOF;
 	{
 		$diff1 = array_diff($arr1, $arr2);
 		$diff2 = array_diff($arr2, $arr1);
-		return array_filter(array_merge($diff1 ?:[], $diff2 ?:[]));
+		return array_filter(array_merge($diff1 ?: [], $diff2 ?: []));
 	}
 
 
@@ -2667,10 +2667,23 @@ EOF;
 		return explode($delimiter, $string);
 	}
 
-	public static function arrayFromJsonString(?string $json): ?array
+
+	/**
+	 * Takes a JSON string and converts it into an array.
+	 * If the JSON is already an array, returns the array.
+	 *
+	 * @param $json
+	 *
+	 * @return array|null
+	 */
+	public static function arrayFromJsonString($json): ?array
 	{
 		if(!$json){
 			return NULL;
+		}
+
+		if(is_array($json)){
+			return $json;
 		}
 
 		$decoded = json_decode($json, true);
