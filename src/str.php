@@ -2667,6 +2667,18 @@ EOF;
 		return explode($delimiter, $string);
 	}
 
+	public static function arrayFromJsonString(?string $json): ?array
+	{
+		if(!$json){
+			return NULL;
+		}
+
+		$decoded = json_decode($json, true);
+
+		# Will always return an array from JSON data
+		return is_array($decoded) ? $decoded : [$decoded];
+	}
+
 	/**
 	 * Does the leg work deciding "[1 ]thing was ", or "[2 ]things were ".
 	 *
@@ -3006,7 +3018,7 @@ EOF;
 
 		# Strip double extensions
 		if(substr($filename_without_extension, strlen($ext) * -1) == $ext){
-			$fielname = $filename_without_extension;
+			$filename = $filename_without_extension;
 		}
 
 		// maximise filename length to 255 bytes http://serverfault.com/a/9548/44086
