@@ -23,9 +23,9 @@ class Process {
 	 *
 	 * @param string|null $command If a command is passed, the command will be executed
 	 */
-	public function __construct (?string $command = NULL)
+	public function __construct(?string $command = NULL)
 	{
-		if ($command) {
+		if($command){
 			$this->command = $command;
 			$this->runCommand();
 		}
@@ -68,13 +68,13 @@ class Process {
 
 		# Format the (optional) params to feed to the method
 		if($params){
-			$params_json = str_replace(["\\", '"'],["\\\\",'\\"'],json_encode($params));
+			$params_json = str_replace(["\\", '"'], ["\\\\", '\\"'], json_encode($params));
 			$params = "\"{$params_json}\"";
 			//Both \ and " must be escaped or else the command will fail
 		}
 
 		# Build the command that executes the execute method
-		$cmd  = "go(function(){";
+		$cmd = "go(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$instance = new {$class}();";
 		$cmd .= "\$instance->{$method}({$params});";
@@ -120,7 +120,7 @@ class Process {
 		$params = self::stringifyArray($a);
 
 		# Build the command that executes the execute method
-		$cmd  = "go(function(){";
+		$cmd = "go(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$request = new App\\Common\\Request({$requester});";
 
@@ -129,7 +129,7 @@ class Process {
 			//if more than 900 chars is being sent
 
 			# Create temporary filename name
-			$filename = $_ENV['tmp_dir'].rand();
+			$filename = $_ENV['tmp_dir'] . rand();
 
 			# Store the params in the temporary file
 			file_put_contents($filename, serialize($a));
@@ -191,16 +191,24 @@ class Process {
 	 * @param $a
 	 *
 	 * @return string
+	 * @link https://stackoverflow.com/a/65878993/429071
 	 */
-	private static function stringifyArray($a){
+	private static function stringifyArray($a)
+	{
 		$params = "[";
 		foreach($a as $key => $val){
 			$key = str_replace('"', '\\"', $key);
 			if(is_array($val)){
 				$val = self::stringifyArray($val);
 				$params .= "\"{$key}\" => {$val},";
-			} else {
+			}
+			else {
+				# Escape any double quotes
 				$val = str_replace('"', '\\"', $val);
+
+				# Need to also escape any single quotes with their equivalent hex value
+				$val = str_replace("'", "\\x27", $val);
+
 				$params .= "\"{$key}\" => \"{$val}\",";
 			}
 		}
@@ -208,7 +216,7 @@ class Process {
 		return $params;
 	}
 
-	private function runCommand (): void
+	private function runCommand(): void
 	{
 		$command = 'nohup ' . $this->command . ' >> /var/www/tmp/process.log 2>&1 & echo $!';
 
@@ -222,12 +230,12 @@ class Process {
 	/**
 	 * @param $pid
 	 */
-	public function setPid ($pid)
+	public function setPid($pid)
 	{
 		$this->pid = $pid;
 	}
 
-	public function getPid ()
+	public function getPid()
 	{
 		return $this->pid;
 	}
@@ -235,31 +243,34 @@ class Process {
 	/**
 	 * @return bool
 	 */
-	public function status ()
+	public function status()
 	{
 		$command = 'ps -p ' . $this->pid;
 		exec($command, $op);
-		if (!isset($op[1])) return false;
+		if(!isset($op[1]))
+			return false;
 		else return true;
 	}
 
 	/**
 	 * @return bool
 	 */
-	public function start ()
+	public function start()
 	{
-		if ($this->command != '') $this->runCommand();
+		if($this->command != '')
+			$this->runCommand();
 		else return true;
 	}
 
 	/**
 	 * @return bool
 	 */
-	public function stop ()
+	public function stop()
 	{
 		$command = 'kill ' . $this->pid;
 		exec($command);
-		if ($this->status() == false) return true;
+		if($this->status() == false)
+			return true;
 		else return false;
 	}
 
@@ -271,7 +282,7 @@ class Process {
 			return true;
 		}
 		if($output){
-			throw new \Exception("There was an error aborting the process: ".implode("<br>", array_filter($output)));
+			throw new \Exception("There was an error aborting the process: " . implode("<br>", array_filter($output)));
 		}
 		return true;
 	}
