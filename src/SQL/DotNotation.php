@@ -116,9 +116,6 @@ class DotNotation {
 			}
 
 			# Save scalar values as is.
-//			$scalarValues = array_filter($element, function($value){
-//				return is_scalar($value) || $value === NULL || !self::isAssocArray($value);
-//			});
 			$scalarValues = [];
 			foreach($element as $k => $v){
 				if(is_scalar($v) || ($v === NULL) || !self::isAssocArray($v)){
@@ -148,9 +145,6 @@ class DotNotation {
 			for($i = 0; $i < count($array); $i++){
 				# Sift out the comparison scalar values (keep the NULLs and numerical arrays (most probably JSON) here also)
 
-//				$comparisonScalarValues = array_filter($array[$i], function($value){
-//					return is_scalar($value) || $value === NULL || !self::isAssocArray($value);
-//				});
 				$comparisonScalarValues = [];
 				foreach($array[$i] as $k => $v){
 					if(is_scalar($v) || ($v === NULL) || !self::isAssocArray($v)){
@@ -161,10 +155,6 @@ class DotNotation {
 				# If scalar values are same, add the array values to the containing arrays
 				if($scalarValues === $comparisonScalarValues){
 
-//					$comparisonArrayValues = array_filter($array[$i], function($value){
-//						return self::isAssocArray($value);
-//						//We only want the associative arrays (not the numerical ones)
-//					});
 					$comparisonArrayValues = [];
 					foreach($array[$i] as $k => $v){
 						if(self::isAssocArray($v)){
@@ -210,7 +200,6 @@ class DotNotation {
 	{
 		$array = self::expandKeys($array);
 		$array = self::complexMerge($array);
-		//		$array = self::mergeRows($array);
 		return $array;
 	}
 }

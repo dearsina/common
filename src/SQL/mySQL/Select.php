@@ -95,10 +95,10 @@ class Select extends Common {
 
 		# JSON decode (where applicable)
 		$this->jsonDecode($results['rows']);
+		// Has to be done before dot-notation normalisation because it uses column aliases using dot-notation
 
 		# Normalise, unless requested not to
 		if(!$flat){
-			//			$rows = $this->normalise($results['rows']);
 			$rows = DotNotation::normalise($results['rows']);
 		}
 		else {
