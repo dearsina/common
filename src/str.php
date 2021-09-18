@@ -514,6 +514,16 @@ class str {
 	 */
 	public static function isSvg(string $filePath)
 	{
+		if(substr($filePath, 0, 1) == "/"){
+			//if local file
+
+			# A svg suffix is sufficient if the file is local
+			if(substr($filePath, -3) == "svg"){
+				return true;
+			}
+		}
+
+		# Otherwise check the headers
 		return in_array("Content-Type: image/svg+xml", get_headers($filePath));
 	}
 
@@ -3069,6 +3079,33 @@ EOF;
 		// ".file-name.-" becomes "file-name"
 		$filename = trim($filename, '.-');
 		return $filename;
+	}
+
+	/**
+	 * Given the local path of an SVG file, will convert it to PNG
+	 * and return the PNG path.
+	 *
+	 * @param string   $svg_filename
+	 * @param int|null $width Set the width of the output file, default is 1000px
+	 *
+	 * @return string|null Returns NULL if the file could not be converted.
+	 */
+	public static function convertSvgToPng(string $svg_filename, ?int $width = 1000): ?string
+	{
+		$png_filename = "{$svg_filename}.png";
+
+		# Open SVG, convert to PNG, save
+		$cmd = "inkscape {$svg_filename} -w{$width} -e {$png_filename}";
+
+		# Run the command
+		exec($cmd, $output);
+
+		# Ensure the command was executed successfully
+		if(array_pop($output) != "Bitmap saved as: {$png_filename}"){
+			return NULL;
+		}
+
+		return $png_filename;
 	}
 
 
