@@ -4,11 +4,11 @@
 namespace App\Common\FieldType;
 
 
+use App\Common\Prototype\ModalPrototype;
 use App\Common\SQL\Info\Info;
-use App\Common\str;
-use App\UI\Badge;
+use App\UI\Icon;
 
-class FieldType extends \App\Common\Prototype\ModalPrototype {
+class FieldType extends ModalPrototype {
 	/**
 	 * @return Card
 	 */
@@ -45,6 +45,15 @@ class FieldType extends \App\Common\Prototype\ModalPrototype {
 				"colour" => "primary",
 				"basic" => true,
 				"alt" => "Display only"
+			];
+		}
+
+	    if($cols['form_value']){
+			$badges[] = [
+	    		"icon" => Icon::get("form_value"),
+				"colour" => "green",
+				"basic" => true,
+				"alt" => "Can be used as a field value type"
 			];
 		}
 

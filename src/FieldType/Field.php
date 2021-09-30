@@ -27,16 +27,6 @@ class Field {
 			"type" => "textarea",
 			"rows" => 4,
 			"required" => true
-		],[
-			"type" => "checkbox",
-			"name" => "display_only",
-			"checked" => $display_only,
-			"label" => [
-				"title" => "Display only",
-			],
-			"desc" => "Display only fields cannot be populated like a traditional form element.
-			Rather they only display information. This is an important distinction if you want to separate
-			out the fields that someone can populate for the sake of form completion, and those they cannot."
 		]];
 
 	    $size = [[
@@ -61,11 +51,31 @@ class Field {
 			"required" => true
 		]];
 
+	    $checkboxes = [[
+			"type" => "checkbox",
+			"name" => "display_only",
+			"checked" => $display_only,
+			"label" => [
+				"title" => "Display only",
+			],
+			"desc" => "Display only fields cannot be populated like a traditional form element.
+			Rather they only display information. This is an important distinction if you want to separate
+			out the fields that someone can populate for the sake of form completion, and those they cannot."
+		],[
+			"type" => "checkbox",
+			"name" => "form_value",
+			"checked" => $form_value,
+			"label" => [
+				"title" => "Form value",
+			],
+			"desc" => "This field type can also be a form value field type."
+		]];
+
 	    return [[[
 	    	"html" => $data,
 		],[
 			"html" => $size,
 			"sm" => 4
-		]]];
+		]],$checkboxes];
 	}
 }
