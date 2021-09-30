@@ -68,8 +68,13 @@ class Geolocation extends \App\Common\Prototype {
 	 */
 	public function getGeolocation(string $ip = NULL): ?array
 	{
-		$ip = $ip ?: $_SERVER['REMOTE_ADDR'];
-		//if an IP isn't explicitly given, use the requester's IP
+		if(!$ip){
+			//if an IP isn't explicitly given, use the requester IP
+			if(!$ip = $_SERVER['REMOTE_ADDR']){
+				//if a requester IP isn't given, use the global IP
+				global $ip;
+			}
+		}
 
 		# Most of the time, the data already exists
 		if($geolocation = $this->sql->select([

@@ -179,6 +179,10 @@ class Process {
 		# Session ID (will always exist)
 		$global_vars['session_id'] = session_id();
 
+		# IP
+		$global_vars['ip'] = $_SERVER['REMOTE_ADDR'];
+		// Process threads don't have an IP as they were initiated locally
+
 		# Return stringified
 		return self::stringifyArray($global_vars);
 	}
