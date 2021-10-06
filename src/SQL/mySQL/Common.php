@@ -62,11 +62,13 @@ abstract class Common {
 	protected ?string $separator;
 
 	/**
-	 * An array where the keys are the table name (prefixed with database if not the same database as the main table)
-	 * and values are the number of times that combo is being used by this query.
+	 * An array where the keys are table aliases (prefixed with database if not
+	 * the same database as the main table) and values are the number of times
+	 * that combo is being used by this query.
+	 *
 	 * @var array
 	 */
-	protected array $tables_in_use = [];
+	protected array $table_aliases_in_use = [];
 
 	/**
 	 * The main table.
@@ -175,6 +177,9 @@ abstract class Common {
 	protected function setTable(?string $db, $table, ?string $id = NULL, ?bool $include_removed = NULL, $count = NULL): void
 	{
 		$this->table = $this->getTable($db, $table, $id, $include_removed, $count);
+
+		# Add the main table to the alias list
+		$this->table_aliases_in_use[$this->table['alias']] += 1;
 	}
 
 	/**
@@ -275,12 +280,8 @@ abstract class Common {
 
 	/**
 	 * Takes a valid mySQL database and table name and returns an alias.
-	 * The alias is the table name + a suffix if it's the 2-n'th
-	 * instance of the table.
-	 * table_name,
-	 * table_name2,
-	 * table_name3,
-	 * etc.
+	 * The alias is the table name prefixed with the DB name, if it's different
+	 * from that of the main table.
 	 *
 	 * @param string|null $db
 	 * @param string      $table
@@ -300,16 +301,7 @@ abstract class Common {
 			//prefix the table name with the database name and separate them with the db-table separator
 		}
 
-		# If the table has been used before, increase the count
-		$this->tables_in_use[$table] += 1;
-
-		if($this->tables_in_use[$table] == 1){
-			//If this is the first table, omit the number suffix
-			return $table;
-		}
-
-		# If this is table 2, 3, n, add the number as a suffix
-		return $table . $this->tables_in_use[$table];
+		return $table;
 	}
 
 	/**
@@ -802,6 +794,9 @@ abstract class Common {
 
 	/**
 	 * Prefixes a parent table alias to a table alias, if required.
+	 * If the alias is already in use by another table, it will
+	 * add a number suffix to the alias. This can be overridden,
+	 * if a custom alias with a parent prefix has been included.
 	 *
 	 * @param            $table
 	 * @param            $and
@@ -819,7 +814,7 @@ abstract class Common {
 			$parent_alias = $this->getParentAliasFromOnConditions($or);
 		}
 
-		# AND conditions can be array or string
+		# AND conditions can be an array or string
 		if(is_array($and)){
 			$parent_alias = $this->getParentAliasFromOnConditions($and);
 		}
@@ -853,6 +848,17 @@ abstract class Common {
 		if($parent_alias && ($parent_alias != $this->table['alias'])){
 			$table['alias'] = "{$parent_alias}.{$table['alias']}";
 		}
+
+		# If the table alias has been used before, increase the count
+		$this->table_aliases_in_use[$table['alias']] += 1;
+
+		if($this->table_aliases_in_use[$table['alias']] == 1){
+			//If this is the first table, omit the number suffix
+			return;
+		}
+
+		# If this is table 2, 3, n, add the number as a suffix
+		$table['alias'] = str::addNumberSuffix($table['alias'], $this->table_aliases_in_use[$table['alias']]);
 	}
 
 	/**
