@@ -145,8 +145,14 @@ class Grow extends Common {
 			return 'varchar';
 		}
 
+		# JSON
 		if(str::isJson($val)){
 			return 'json';
+		}
+
+		# UUID
+		if(str::isUuid($val)){
+			return 'char';
 		}
 
 		# INT, BIGINT
