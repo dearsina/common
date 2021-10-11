@@ -389,7 +389,7 @@ class Grow extends Common {
 		}
 
 		# VARCHAR
-		if($type == "varchar"){
+		if(in_array($type, ["varchar", "char"])){
 			if($existing_column){
 				//If there is an existing column to compare against
 				if($existing_column['CHARACTER_MAXIMUM_LENGTH']){
