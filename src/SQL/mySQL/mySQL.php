@@ -52,7 +52,7 @@ class mySQL extends Common {
 	{
 		try {
 			# Connect to the mySQL server
-			$mysqli = new \mysqli($_ENV['db_servername'],$_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
+			$mysqli = new \mysqli($_ENV['db_servername'], $_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
 
 			# Ensure everything is UTF8mb4
 			$mysqli->set_charset('utf8mb4');
@@ -76,7 +76,8 @@ class mySQL extends Common {
 			if(str::runFromCLI()){
 				# Will somehow throw an error saying "MySQL server has gone away"
 				throw new \Swoole\ExitException($message);
-			} else {
+			}
+			else {
 				throw new \Exception($message, $e->getCode());
 			}
 		}
@@ -84,20 +85,23 @@ class mySQL extends Common {
 		return $mysqli;
 	}
 
-	private function __clone() {
+	private function __clone()
+	{
 		// Prevent the cloning of the object
 	}
 
-	private function __wakeup() {
+	private function __wakeup()
+	{
 		// Stopping unserializing of object
 	}
 
 	/**
 	 * @return mySQL
 	 */
-	public static function getInstance() {
+	public static function getInstance()
+	{
 		// Check if instance is already exists
-		if (self::$instance == null) {
+		if(self::$instance == NULL){
 			self::$instance = new mySQL();
 		}
 
@@ -108,8 +112,20 @@ class mySQL extends Common {
 	 * Run a SQL SELECT statement.
 	 * Expects either a query array or string.
 	 *
+	 * <code>
+	 * $this->sql->select([
+	 * 	"db" => "",
+	 * 	"table" => "",
+	 * 	"export" => [
+	 * 		"format" => $vars['format'],
+	 * 		"header" => $dashboard_tile['form_field_ids'],
+	 * 	],
+	 * 	"include_removed" => true,
+	 * ]);
+	 * </code>
+	 *
 	 * @param array|string $a
-	 * @param bool|null $return_query
+	 * @param bool|null    $return_query
 	 *
 	 * @return array|bool|string
 	 */
@@ -140,13 +156,14 @@ class mySQL extends Common {
 	/**
 	 * <code>
 	 * $rel_id = $this->sql->insert([
-	 * 	"table" => "",
-	 * 	"db" => "",
-	 * 	"set" => $set,
-	 * 	"user_id" => false,
-	 * 	"ignore_empty" => true
+	 *    "table" => "",
+	 *    "db" => "",
+	 *    "set" => $set,
+	 *    "user_id" => false,
+	 *    "ignore_empty" => true
 	 * ]);
 	 * </code>
+	 *
 	 * @param array     $a
 	 * @param bool|null $return_query
 	 *
@@ -179,16 +196,16 @@ class mySQL extends Common {
 
 	private function call(array $a, ?bool $return_query, $call)
 	{
-		if (!is_array($a)){
+		if(!is_array($a)){
 			throw new mysqli_sql_exception("SQL {$call} calls must be in an array format.");
 		}
 
 		# Reconnect (for long running scripts)
-		if ($a['reconnect']){
+		if($a['reconnect']){
 			$this->reconnect();
 		}
 
-		$class = __NAMESPACE__.'\\'.ucfirst($call);
+		$class = __NAMESPACE__ . '\\' . ucfirst($call);
 
 		# Generate SQL, run query, return results
 		$sql = new $class($this->mysqli);
@@ -225,15 +242,16 @@ class mySQL extends Common {
 	 *
 	 * @return bool
 	 */
-	protected function reconnect(){
+	protected function reconnect()
+	{
 		try {
 			if($this->mysqli->ping()){
 				return true;
 			}
 			return true;
 		}
-		catch (mysqli_sql_exception $e){
-			if (self::__construct()) {
+		catch(mysqli_sql_exception $e) {
+			if(self::__construct()){
 				return true;
 			}
 		}
@@ -246,7 +264,8 @@ class mySQL extends Common {
 	 *
 	 * @return bool
 	 */
-	public function freeUpMemory(){
+	public function freeUpMemory()
+	{
 		unset($_SESSION['queries']);
 		return true;
 	}
@@ -255,7 +274,8 @@ class mySQL extends Common {
 	 * Disconnects from the mySQL server.
 	 * @return bool
 	 */
-	public function disconnect(){
+	public function disconnect()
+	{
 		if($this->mysqli){
 			//if a connection has been opened
 			$this->mysqli->close();

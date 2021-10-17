@@ -6,10 +6,17 @@ use App\Common\str;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class Export extends Common {
-	private string $type = 'csv';
+	private string $format = 'csv';
 	private ?array $header = NULL;
 
-	public function __construct(\mysqli $mysqli, $export)
+	/**
+	 * Set up SQL result exports.
+	 *
+	 * @param \mysqli    $mysqli
+	 * @param array|null $export Optional array containing `format` (`csv` or `xlsx`) and `header`, an array containing
+	 *                           column => titles
+	 */
+	public function __construct(\mysqli $mysqli, ?array $export)
 	{
 		parent::__construct($mysqli);
 
@@ -17,13 +24,20 @@ class Export extends Common {
 			return;
 		}
 
-		$this->type = $export['type'] ?: $this->type;
+		$this->format = $export['format'] ?: $this->format;
 		$this->header = is_array($export['header']) ? $export['header'] : NULL;
 	}
 
-	public function export($query): string
+	/**
+	 * Export SQL results, returning an array.
+	 *
+	 * @param $query
+	 *
+	 * @return string
+	 */
+	public function export(string $query): string
 	{
-		return $this->{$this->type}($query);
+		return $this->{$this->format}($query);
 	}
 
 	/**
