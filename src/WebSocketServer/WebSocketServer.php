@@ -63,7 +63,14 @@ class WebSocketServer extends Prototype {
 	 */
 	private function alert($msg){
 		$line = "\r\n".date("Y-m-d H:i:s")." | ".$msg;
-		$f = fopen($_ENV['websocket_log_file'], "a");
+
+		if(!$log_file = $_ENV['websocket_log_file']){
+			// If for some reason the $_ENV variables haven't been loaded
+			$log_file = "/var/log/swoole.alert";
+			// Have a backup
+		}
+		
+		$f = fopen($log_file, "a");
 		fwrite($f, $line);
 		fclose($f);
 	}
