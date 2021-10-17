@@ -72,6 +72,12 @@ class Select extends Common {
 			return $query;
 		}
 
+		# If we're to export the result
+		if($export){
+			$sql = new Export($this->mysqli, $export);
+			return $sql->export($query);
+		}
+
 		# Execute the SQL
 		$sql = new Run($this->mysqli);
 		$results = $sql->run($query);
@@ -293,7 +299,7 @@ class Select extends Common {
 			$order_by = array_merge($order_by ?: [], $conditions ?: []);
 		}
 
-		if(!count($order_by ?:[])){
+		if(!count($order_by ?: [])){
 			//if there are no order by, ignore
 			return NULL;
 		}
@@ -349,7 +355,8 @@ class Select extends Common {
 		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
 
 		# Format all the columns
-		if(!$formatted_columns = array_filter($this->formatColumns($columns, $alias_only))){var_dump($this->columns);
+		if(!$formatted_columns = array_filter($this->formatColumns($columns, $alias_only))){
+			var_dump($this->columns);
 			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
 				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated.");
@@ -469,7 +476,8 @@ class Select extends Common {
 
 	/**
 	 * @param array|string $columns
-	 * @param bool|null    $include_meta If set to true, will include the created/by, updated/by, removed/by columns also
+	 * @param bool|null    $include_meta If set to true, will include the created/by, updated/by, removed/by columns
+	 *                                   also
 	 */
 	private function setColumns($columns, ?bool $include_meta = NULL): void
 	{
