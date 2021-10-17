@@ -3015,7 +3015,7 @@ EOF;
 	 * @return null|string|string[]
 	 * @link https://stackoverflow.com/a/42058764/429071
 	 */
-	public static function filter_filename($filename, $beautify = true)
+	public static function filter_filename($filename, ?bool $beautify = false)
 	{
 		// sanitize filename
 		$filename = preg_replace(
