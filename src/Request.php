@@ -245,7 +245,16 @@ class Request {
 		# Ensure the request was sent from our domain
 		if(substr($_SERVER["HTTP_ORIGIN"], strlen($_ENV['domain']) * -1) != $_ENV['domain']){
 			//if this request wasn't done from our own domain
-			throw new Unauthorized("A cross domain request was attempted. {$_SERVER["HTTP_ORIGIN"]} != {$_ENV['domain']}");
+
+			# If we know where it's coming from
+			if($_SERVER["HTTP_ORIGIN"]){
+				throw new Unauthorized("A cross domain request was attempted. {$_SERVER["HTTP_ORIGIN"]} != {$_ENV['domain']}");
+			}
+
+			# If we haven't been given that information
+			else {
+				throw new \Exception("Unknown domain request origin.");
+			}
 		}
 
 		# Ensure the request was sent from our domain via AJAX
