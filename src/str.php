@@ -2729,14 +2729,14 @@ EOF;
 		if($include_count){
 			switch($count) {
 			case 0:
-				return str::title("No " . str::pluralise($rel_table) . " were");
-				break;
+				if($rel_table == ucwords($rel_table)){
+					return str::title("No " . strtolower(str::pluralise($rel_table)) . " were");
+				}
+				return str::title("no " . str::pluralise($rel_table) . " were");
 			case 1:
 				return str::title("1 {$rel_table} was");
-				break;
 			default:
 				return str::title("{$count} " . str::pluralise($rel_table) . " were");
-				break;
 			}
 		}
 
