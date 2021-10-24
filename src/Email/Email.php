@@ -79,8 +79,9 @@ class Email extends Prototype {
 	 */
 	public function replyTo(?string $email, ?string $name = NULL): object
 	{
-		# Ensure a valid email address is included
-		if(!$email || !str::isValidEmail($email)){
+		# Ensure an email address is included
+		if(!$email){
+			//We don't check for validity because it seems to error?
 			return $this;
 		}
 
