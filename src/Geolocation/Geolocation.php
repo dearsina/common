@@ -12,7 +12,8 @@ class Geolocation extends \App\Common\Prototype {
 	/**
 	 * The official IP data provider.
 	 */
-	const PROVIDER = "ipstack";
+//	const PROVIDER = "ipstack";
+	const PROVIDER = "ipdata";
 
 	/**
 	 * Each provider's particulars to feed in to the Guzzle request.
