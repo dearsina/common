@@ -128,6 +128,11 @@ class Geolocation extends \App\Common\Prototype {
 		# Flatten (don't really need this, as the data *should* be flat already)
 		$set = str::flatten($array);
 
+		# Set the type based on the length if it's not given by the API
+		if(!$set['type']){
+			$set['type'] = strlen($ip) <= 15 ? "ipv4" : "ipv6";
+		}
+
 		$this->sql->insert([
 			"table" => "geolocation",
 			"set" => $set,
