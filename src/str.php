@@ -954,7 +954,6 @@ class str {
 	 * @param $snake
 	 *
 	 * @return string|string[]
-	 * @return string|string[]
 	 */
 	public static function getClassCase($snake)
 	{
@@ -975,102 +974,6 @@ class str {
 	{
 		return str_replace(" ", $us, mb_strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string)));
-	}
-
-	/**
-	 * Returns an array of the following:
-	 * <code>
-	 * {
-	 *   "ip": "134.201.250.155",
-	 *   "hostname": "134.201.250.155",
-	 *   "type": "ipv4",
-	 *   "continent_code": "NA",
-	 *   "continent_name": "North America",
-	 *   "country_code": "US",
-	 *   "country_name": "United States",
-	 *   "region_code": "CA",
-	 *   "region_name": "California",
-	 *   "city": "Los Angeles",
-	 *   "zip": "90013",
-	 *   "latitude": 34.0453,
-	 *   "longitude": -118.2413,
-	 *   "location": {
-	 *     "geoname_id": 5368361,
-	 *     "capital": "Washington D.C.",
-	 *     "languages": [
-	 *         {
-	 *           "code": "en",
-	 *           "name": "English",
-	 *           "native": "English"
-	 *         }
-	 *     ],
-	 *     "country_flag": "https://assets.ipstack.com/images/assets/flags_svg/us.svg",
-	 *     "country_flag_emoji": "🇺🇸",
-	 *     "country_flag_emoji_unicode": "U+1F1FA U+1F1F8",
-	 *     "calling_code": "1",
-	 *     "is_eu": false
-	 *   },
-	 *   "time_zone": {
-	 *     "id": "America/Los_Angeles",
-	 *     "current_time": "2018-03-29T07:35:08-07:00",
-	 *     "gmt_offset": -25200,
-	 *     "code": "PDT",
-	 *     "is_daylight_saving": true
-	 *   },
-	 *   "currency": {
-	 *     "code": "USD",
-	 *     "name": "US Dollar",
-	 *     "plural": "US dollars",
-	 *     "symbol": "$",
-	 *     "symbol_native": "$"
-	 *   },
-	 *   "connection": {
-	 *     "asn": 25876,
-	 *     "isp": "Los Angeles Department of Water & Power"
-	 *   },
-	 *   "security": {
-	 *     "is_proxy": false,
-	 *     "proxy_type": null,
-	 *     "is_crawler": false,
-	 *     "crawler_name": null,
-	 *     "crawler_type": null,
-	 *     "is_tor": false,
-	 *     "threat_level": "low",
-	 *     "threat_types": null
-	 *   }
-	 * }
-	 * </code>
-	 *
-	 * @param null $ip
-	 *
-	 * @return bool|mixed
-	 */
-	public static function ip($ip = NULL)
-	{
-		if(!$_ENV['ipstack_access_key']){
-			//if a key hasn't been set, ignore this
-			return false;
-		}
-		$ip = $ip ?: $_SERVER['REMOTE_ADDR'];
-		//if an IP isn't explicitly given, use the requester's IP
-
-		$client = new \GuzzleHttp\Client([
-			"base_uri" => "http://api.ipstack.com/",
-		]);
-
-		try {
-			$response = $client->request("GET", $ip, [
-				"query" => [
-					"access_key" => $_ENV['ipstack_access_key'],
-				],
-			]);
-		}
-		catch(\Exception $e) {
-			//Catch errors
-			return false;
-		}
-
-		return json_decode($response->getBody()->getContents(), true);
 	}
 
 	/**
