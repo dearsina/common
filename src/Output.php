@@ -387,6 +387,76 @@ class Output {
 		return $this->output[$type] = $data;
 	}
 
+	public function setOptions(array $rows, ?string $placeholder = ""): void
+	{
+		# If a numeric options array is passed
+		if(str::isNumericArray($rows)){
+			foreach($rows as $id => $row){
+				# If even the value is an array of data
+				if(is_array($row)){
+					# We'll accept the entire array wholesale
+					$option = $row;
+
+					# And the text is replaced with the title, unless a text has been provided
+					$option['text'] = $option['text'] ?: $row['title'];
+
+					# Adn the ID is the same as the text
+					$option['id'] = $option['text'];
+
+					$options[] = $option;
+				}
+
+				# If the value is a string
+				else {
+					$options[] = [
+						"id" => $row,
+						"text" => $row
+					];
+				}
+
+				$options[] = [
+					"id" => $row['Field'],
+					"text" => $row['Field']
+				];
+			}
+		}
+
+		# If the keys matter
+		else {
+			foreach($rows as $id => $text){
+
+				# If even the value is an array of data
+				if(is_array($text)){
+					# We'll accept the entire array wholesale
+					$option = $text;
+
+					# Except the ID, which will be taken from the key
+					$option['id'] = $id;
+
+					# And the text is replaced with the title, unless a text has been provided
+					$option['text'] = $option['text'] ?: $text['title'];
+
+					$options[] = $option;
+				}
+
+				else {
+					$options[] = [
+						"id" => $id,
+						"text" => $text
+					];
+				}
+
+			}
+		}
+
+		usort($options, function($a, $b) {
+			return $a['text'] <=> $b['text'];
+		});
+
+		$this->output["options"] = $options;
+		$this->output["placeholder"] = $placeholder;
+	}
+
 	/**
 	 *
 	 * @param string     $type The name of the data key, an instruction on what to do with the data
