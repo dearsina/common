@@ -359,7 +359,7 @@ class Select extends Common {
 //			var_dump($this->columns);
 			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
-				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated to the <code>{$table_alias_only}</code> table.");
+				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated to the <code>{$this->table['name']}</code> table.");
 			}
 		}
 
