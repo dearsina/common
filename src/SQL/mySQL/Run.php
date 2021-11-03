@@ -26,8 +26,26 @@ class Run extends Common {
 			$SESSION['database_calls']++;
 		}
 
-		# Run the query
-		$result = $this->mysqli->query($query);
+		if(strpos($query, ";")){
+			//If there are more than one query to run
+
+			# Run the multi-query
+			$result = $this->mysqli->multi_query($query);
+
+			# Consume the results so that a query can be run afterwards
+			while($this->mysqli->next_result()){
+				//Otherwise threads will collide
+			}
+		}
+
+		else {
+			//if there is only one query to run
+
+			# Run the query
+			$result = $this->mysqli->query($query);
+		}
+
+
 
 		/**
 		 * For successful SELECT, SHOW, DESCRIBE or EXPLAIN queries

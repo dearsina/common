@@ -505,6 +505,15 @@ abstract class Common {
 			$agg = strtoupper($agg);
 		}
 
+		# "c" => ["length", "last_name"] (mySQL functions)
+		if(is_array($col) && (count($col) == 2) && $this->isMySqlFunction($col[0])){
+			# Break it open
+			[$func, $col] = $col;
+
+			# Format the function
+			$func = strtoupper($func);
+		}
+
 		# "alias" => ["calculation or string"]
 		if(is_array($col) && (count($col) == 1 && is_string(reset($col)))){
 			return [
@@ -525,6 +534,13 @@ abstract class Common {
 
 		# Get the alias
 		$col_alias = $this->generateColumnAlias($table, $col_alias, $col);
+
+		if($func){
+			return [
+				"string" => "{$func}(`{$col}`)",
+				"alias" => $col_alias,
+			];
+		}
 
 		return [
 			"table_alias" => $table['alias'],
@@ -648,6 +664,18 @@ abstract class Common {
 	protected function isAggregateFunction(string $function): bool
 	{
 		return in_array(strtoupper($function), ["COUNT", "MAX", "MIN", "AVG", "SUM", "GROUP_CONCAT"]);
+	}
+
+	/**
+	 * Boolean check to ensure the function is a mySQL function.
+	 *
+	 * @param string $function
+	 *
+	 * @return bool
+	 */
+	protected function isMySqlFunction(string $function): bool
+	{
+		return in_array(strtoupper($function), ["ASCII","BIN","BIT_LENGTH","CHAR","CHAR_LENGTH","CHARACTER_LENGTH","CONCAT","CONCAT_WS","ELT","EXPORT_SET","FORMAT","FROM_BASE64","HEX","INSTR","LCASE","LEFT","LENGTH","LOCATE","LOWER","LPAD","LTRIM","MAKE_SET","MID","OCT","OCTET_LENGTH","ORD","POSITION","REGEXP_INSTR","REGEXP_LIKE","REGEXP_REPLACE","REGEXP_SUBSTR","REPEAT","REPLACE","REVERSE","RIGHT","RPAD","RTRIM","SOUNDEX","SPACE","SUBSTR","SUBSTRING","SUBSTRING_INDEX","TO_BASE64","TRIM","UCASE","UNHEX","UPPER","WEIGHT_STRING"]);
 	}
 
 	/**
@@ -1601,8 +1629,9 @@ abstract class Common {
 	 * @param array|null        $set
 	 * @param array|string|null $html
 	 * @param bool|null         $ignore_empty If set to TRUE, will not throw an exception if no columns are to be set
+	 * @param bool|null         $include_meta If set to FALSE, will allow insert/update of *any* column
 	 */
-	protected function setSet(?array $set, $html = NULL, ?bool $ignore_empty = NULL): void
+	protected function setSet(?array $set, $html = NULL, ?bool $ignore_empty = NULL, ?bool $include_meta = NULL): void
 	{
 		if(!$set){
 			if($ignore_empty){
@@ -1629,7 +1658,10 @@ abstract class Common {
 		}
 
 		# Remove columns the user cannot set
-		$this->removeIllegalColumns();
+		if($include_meta !== false){
+			//But only if include meta hasn't explicitly been set to false
+			$this->removeIllegalColumns();
+		}
 	}
 
 	/**

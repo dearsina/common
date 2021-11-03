@@ -34,7 +34,7 @@ class Insert extends Common {
 		}
 
 		# Set the columns that are going to be SET into this table
-		$this->setSet($set, $html, $ignore_empty);
+		$this->setSet($set, $html, $ignore_empty, $include_meta);
 
 		if($include_meta !== false){
 			# Add ID, created by and time

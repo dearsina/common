@@ -48,7 +48,7 @@ class mySQL extends Common {
 		$this->mysqli = self::getNewConnection();
 	}
 
-	public static function getNewConnection(): \mysqli
+	public static function getNewConnection(?int $retry = 0): \mysqli
 	{
 		try {
 			# Connect to the mySQL server
@@ -63,6 +63,16 @@ class mySQL extends Common {
 		}
 
 		catch(\mysqli_sql_exception $e) {
+			if($e->getCode() == "2002"){
+				//if it's a connection error, retry 3 times
+				if($retry <= 3){
+					$retry++;
+					# Wait 3, 6, 9 seconds between tries
+					sleep($retry * 3);
+					return self::getNewConnection($retry);
+				}
+			}
+
 			/**
 			 * If there is an error connecting,
 			 * put together a custom response,
@@ -70,7 +80,7 @@ class mySQL extends Common {
 			 * without a database connection,
 			 * nothing can be done.
 			 */
-			$message = "SQL Connection error [{$e->getCode()}]: {$e->getMessage()}";
+			$message = "New SQL connection error [{$e->getCode()}]: {$e->getMessage()}. Retried {$retry} times.";
 
 			# There is no point in continuing
 			if(str::runFromCLI()){
