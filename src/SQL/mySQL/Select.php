@@ -356,10 +356,10 @@ class Select extends Common {
 
 		# Format all the columns
 		if(!$formatted_columns = array_filter($this->formatColumns($columns, $alias_only))){
-			var_dump($this->columns);
+//			var_dump($this->columns);
 			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
-				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated.");
+				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated to the <code>{$table_alias_only}</code> table.");
 			}
 		}
 
