@@ -1767,6 +1767,9 @@ EOF;
 			$text = strtoupper($text);
 		}
 
+		// In case the string contains <
+		$text = htmlspecialchars($text);
+
 		# Replace spaces with &nbsp; (seems to be the only way to enforce spacing)
 		$text = str_replace(" ", "&nbsp;", $text);
 
