@@ -294,7 +294,7 @@ class str {
 		if(!is_array($array)){
 			return;
 		}
-		
+
 		foreach($array as $key => $val){
 			# We're not interested in non-array values
 			if(!is_array($val)){
