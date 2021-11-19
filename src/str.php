@@ -1953,8 +1953,12 @@ EOF;
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
-	static function multidimensionalOrderBy(array &$array, array $order): void
+	static function multidimensionalOrderBy(?array &$array, array $order): void
 	{
+		if(!$array){
+			return;
+		}
+
 		uasort($array, function($a, $b) use ($order){
 			$t = [true => -1, false => 1];
 			$r = true;
