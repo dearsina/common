@@ -1965,7 +1965,7 @@ abstract class Common {
 	 *
 	 * @return array
 	 */
-	public function getTableMetadata(&$table, ?bool $refresh = NULL, ?bool $all = NULL): array
+	public function getTableMetadata($table, ?bool $refresh = NULL, ?bool $all = NULL): array
 	{
 		# The table variable can either be an array
 		if(is_array($table)){
@@ -2408,7 +2408,7 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	protected function verifyTableArray(array &$table): bool
+	protected function verifyTableArray(array $table): bool
 	{
 		# Ensure the database exists
 		if($table["db"] && !$this->dbExists($table["db"])){
