@@ -4,6 +4,7 @@
 namespace App\Common\SQL\mySQL;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Log;
 use App\Common\str;
 use mysqli_sql_exception;
 use Exception;
@@ -1964,7 +1965,7 @@ abstract class Common {
 	 *
 	 * @return array
 	 */
-	public function getTableMetadata($table, ?bool $refresh = NULL, ?bool $all = NULL): array
+	public function getTableMetadata(&$table, ?bool $refresh = NULL, ?bool $all = NULL): array
 	{
 		# The table variable can either be an array
 		if(is_array($table)){
@@ -2407,7 +2408,7 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	protected function verifyTableArray(array $table): bool
+	protected function verifyTableArray(array &$table): bool
 	{
 		# Ensure the database exists
 		if($table["db"] && !$this->dbExists($table["db"])){
@@ -2416,7 +2417,29 @@ abstract class Common {
 
 		# Ensure the table exists in the database
 		if(!$this->tableExists($table["db"], $table["name"], $table['is_tmp'])){
-			throw new mysqli_sql_exception("The <code>{$table["name"]}</code> table does not seem to exist in the <code>{$table["db"]}</code> database, or the current user does not have access to it.");
+			//If the table doesn't exist in the given database
+
+			# Query to find the table across _all_ databases
+			$query = "
+			select table_schema as 'db'
+			from information_schema.tables
+			where table_type = 'BASE TABLE'
+			and table_schema not in ('information_schema','mysql','performance_schema','sys')
+			and TABLE_NAME = '{$table["name"]}'
+			";
+
+			# If the table can't be found _anywhere_ return an exception
+			if(!$row = $this->mysqli->query($query)->fetch_assoc()){
+				throw new mysqli_sql_exception("Cannot find the <code>{$table["name"]}</code> table anywhere in the database, or the current user does not have access to it.");
+			}
+
+			# Show them how they got there
+			Log::getInstance()->info([
+				"message" => str::backtrace(true)
+			]);
+
+			# As the table _is_ found (but in a different database), give the user a different exception
+			throw new mysqli_sql_exception("The <code>{$table["name"]}</code> table is in the <code>{$row['db']}</code> database, not the <code>{$table["db"]}</code> database. Please address.");
 		}
 
 		return true;
