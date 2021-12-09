@@ -119,7 +119,8 @@ class Img {
 		$style = str::getAttrTag("style", $style_array);
 
 		# Alt (alt specifies text to be displayed if the image can't be displayed)
-		$alt = str::getAttrTag("alt", $alt);
+		$alt = str::getAttrTag("alt", $alt, true);
+		//if_null is set to true, because we always want an alt tag, even without a value (at least for emails)
 
 		# Title (the title attribute will provide a tooltip)
 		$title = str::getAttrTag("title", $title);
