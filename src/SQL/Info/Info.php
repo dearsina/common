@@ -92,7 +92,7 @@ class Info {
 		}
 
 		# Run either a custom or generic process to get the rows
-		if($class_path = str::findClass("Info", $a['rel_table'])){
+		if($class_path = str::findClass("Info", $a['rel_table'], $a['grandparent_class'])){
 			$rows = $this->customProcess($class_path, $a, $joins);
 		} else {
 			$rows = $this->genericProcess($a);
