@@ -47,6 +47,11 @@ class Email extends Prototype {
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
 
+		# Set a unique message ID
+		$headers = $this->envelope->getHeaders();
+		$headers->addIdHeader('Message-ID', str::uuid()."@".$_ENV['domain']);
+		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
+
 		# Set the From address with an associative array
 		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
 
