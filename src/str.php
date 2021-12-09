@@ -917,38 +917,41 @@ class str {
 	}
 
 	/**
-	 * Given a rel_table, and an optional parent_class, find a class
+	 * Given a rel_table, and an optional parent and grandparent class, find a class
 	 *
-	 * @param string      $rel_table    The class you're looking for
-	 * @param string|null $parent_class The parent class if it's different from the class itself
+	 * @param string      $rel_table    		The class you're looking for
+	 * @param string|null $parent_class 		The parent class if it's different from the class itself
+	 * @param string|null $grandparent_class	The optional grandparent class, if the info class is a level deeper. Only applies to API info classes
 	 *
 	 * @return bool|string Returns the class with path or FALSE if it can't find it
 	 */
-	public static function findClass(string $rel_table, ?string $parent_class = NULL)
+	public static function findClass(string $rel_table, ?string $parent_class = NULL, ?string $grandparent_class = NULL): ?string
 	{
-		# An optional parent class can be supplied
-		$parent_class = $parent_class ?: $rel_table;
+		# An optional grandparent class can be supplied, and the parent class will be the same as the rel_table if not provided
+		$suffix = implode("\\", array_filter([$grandparent_class ?: NULL, $parent_class ?: $rel_table, $rel_table]));
 
-		# Does an App path exist?
-		$corePath = str::getClassCase("\\App\\{$parent_class}\\{$rel_table}");
-		if(class_exists($corePath)){
-			return $corePath;
-		}
+		$prefixes = [
+			# App path
+			"\\App\\",
 
-		# Does a Common path exist?
-		$commonPath = str::getClassCase("\\App\\Common\\{$parent_class}\\{$rel_table}");
-		if(class_exists($commonPath)){
-			return $commonPath;
-		}
+			# Common path
+			"\\App\\Common\\",
 
-		# Does an API path exist?
-		$corePath = str::getClassCase("\\API\\{$parent_class}\\{$rel_table}");
-		if(class_exists($corePath)){
-			return $corePath;
+			# API path
+			"\\API\\",
+		];
+
+		foreach($prefixes as $prefix){
+			$path = str::getClassCase($prefix.$suffix);
+			$paths[] = $path;
+
+			if(class_exists($path)){
+				return $path;
+			}
 		}
 
 		# If no class can be found
-		return false;
+		return NULL;
 	}
 
 	/**
@@ -1396,7 +1399,12 @@ class str {
 
 		if(!strlen(trim($val))){
 			//if there is no visible val
-			if($if_null){
+
+			if($if_null === true){
+				//If you just need there to be a tag, even if the value is empty
+				$val = "";
+			}
+			else if($if_null){
 				//if there is a replacement
 				$val = $if_null;
 			}
@@ -1787,7 +1795,10 @@ EOF;
 		# Alt
 		$alt = str::getAttrTag("title", $alt);
 
-		return "<span{$id}{$class}{$style}{$alt}>{$text}</span>";
+		# Tag
+		$tag = $tag ?: "span";
+
+		return "<{$tag}{$id}{$class}{$style}{$alt}>{$text}</{$tag}>";
 	}
 
 	/**
