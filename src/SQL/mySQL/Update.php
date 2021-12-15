@@ -4,6 +4,7 @@
 namespace App\Common\SQL\mySQL;
 
 
+use App\Common\Log;
 use App\Common\str;
 
 class Update extends Common {
@@ -44,6 +45,9 @@ class Update extends Common {
 		if (!array_key_exists("user_id", $a) && !str::runFromCLI()){
 			global $user_id;
 			if (!$user_id){
+				Log::getInstance()->error([
+					"message" => str::pre(str::backtrace(true))
+				]);
 				throw new \Exception("Updating without a user ID is not allowed.");
 			}
 		}

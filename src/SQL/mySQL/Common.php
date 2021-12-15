@@ -223,6 +223,9 @@ abstract class Common {
 
 		else {
 			//if table was not supplied or is in an unrecognisable format
+			Log::getInstance()->error([
+				"message" => str::pre(str::backtrace(true))
+			]);
 			throw new mysqli_sql_exception("No table name was given.");
 		}
 
@@ -2434,8 +2437,8 @@ abstract class Common {
 			}
 
 			# Show them how they got there
-			Log::getInstance()->info([
-				"message" => str::backtrace(true)
+			Log::getInstance()->error([
+				"message" => str::pre(str::backtrace(true))
 			]);
 
 			# As the table _is_ found (but in a different database), give the user a different exception
