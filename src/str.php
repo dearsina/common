@@ -74,34 +74,8 @@ class str {
 	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
 	/**
-	 * Words or abbreviations that should always be all uppercase
-	 */
-	const ALL_UPPERCASE = [
-		"VAT",
-		"CT",
-		"YE",
-		"PE",
-		"BK",
-		"MA",
-		"SEIS",
-		"LLP",
-	];
-
-	/**
-	 * Words or abbreviations that should always be all lowercase
-	 */
-	const ALL_LOWERCASE = [
-		"a",
-		"and",
-		"as",
-		"by",
-		"in",
-		"of",
-		"or",
-		"to",
-	];
-
-	/**
+	 * DEPRECIATED, USE capitalise() INSTEAD
+	 *
 	 * Standardizes the capitalization on people's names and the titles of reports and essays.
 	 * You may need to adapt the lists in "$all_uppercase" and "$all_lowercase" to suit the data that you are working
 	 * with.
@@ -224,16 +198,199 @@ class str {
 	 * str::title("not only first word",false,true);
 	 * </code>
 	 *
-	 * @param      $string
-	 * @param bool $is_name
-	 * @param bool $all_words
+	 * @param string|null $string
+	 * @param bool|null   $is_name
+	 * @param bool|null   $all_words
 	 *
-	 * @return mixed
+	 * @return string|null
 	 */
-	static function title($string, $is_name = false, $all_words = false)
+	static function title(?string $string, ?bool $is_name = NULL, ?bool $all_words = NULL): ?string
 	{
 		$string = str_replace("doc_", "document_", $string);
-		return self::capitalise_name(str_replace("_", " ", $string), $is_name, $all_words);
+		$string = str_replace("_", " ", $string);
+		if($is_name || $all_words){
+			return self::capitalise($string);
+		}
+		return self::capitalise_name($string, $is_name, $all_words);
+	}
+
+	/**
+	 * Words or abbreviations that should always be all uppercase
+	 */
+	const ALL_UPPERCASE = [
+		"UK",
+		"VAT",
+	];
+
+	/**
+	 * Words or abbreviations that should always be all lowercase
+	 */
+	const ALL_LOWERCASE = [
+		"a",
+		"and",
+		"as",
+		"by",
+		"in",
+		"of",
+		"or",
+		"to",
+	];
+
+	/**
+	 * Honorifics that only contain vowels.
+	 *
+	 */
+	const CONSONANT_ONLY_HONORIFICS = [
+		# English
+		"Mr",
+		"Mrs",
+		"Ms",
+		"Dr",
+		"Br",
+		"Sr",
+		"Fr",
+		"Pr",
+		"St",
+
+		# Afrikaans
+		"Mnr",
+	];
+
+	/**
+	 * Surname prefixes that should be lowercase,
+	 * unless not following another word (firstname).
+	 */
+	const SURNAME_PREFIXES = [
+		"de la",
+		"de las",
+		"van de",
+		"van der",
+		"vit de",
+		"von",
+		"van",
+		"del",
+		"der",
+	];
+
+	/**
+	 * Capitalises every (appropriate) word in a given string.
+	 *
+	 * @author https://stackoverflow.com/users/429071/dearsina
+	 * @version 1.0
+	 *
+	 * @param string|null $string
+	 *
+	 * @return string|null
+	 */
+	public static function capitalise(?string $string): ?string
+	{
+		if(!$string){
+			return $string;
+		}
+
+		# Strip away multi-spaces
+		$string = preg_replace("/\s{2,}/", " ", $string);
+
+		# Ensure there is always a space after a comma
+		$string = preg_replace("/,([^\s])/", ", $1", $string);
+
+		# A word is anything separated by spaces or a dash
+		$string = preg_replace_callback("/([^\s\-\.]+)/", function($matches){
+			# Make the word lowercase
+			$word = mb_strtolower($matches[1]);
+
+			# If the word needs to be all lowercase
+			if(in_array($word, self::ALL_LOWERCASE)){
+				return strtolower($word);
+			}
+
+			# If the word needs to be all uppercase
+			if(in_array(mb_strtoupper($word), self::ALL_UPPERCASE)){
+				return strtoupper($word);
+			}
+
+			# Create a version without diacritics
+			$transliterator = \Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', \Transliterator::FORWARD);
+			$ascii_word = $transliterator->transliterate($word);
+
+
+			# If the word contains non-alpha characters (numbers, &, etc), with exceptions (comma, '), assume it's an abbreviation
+			if(preg_match("/[^a-z,']/i", $ascii_word)){
+				return strtoupper($word);
+			}
+
+			# If the word doesn't contain any vowels, assume it's an abbreviation
+			if(!preg_match("/[aeiouy]/i", $ascii_word)){
+				# Unless the word is an honorific
+				if(!in_array(ucfirst($word), self::CONSONANT_ONLY_HONORIFICS)){
+					return strtoupper($word);
+				}
+			}
+
+			# If the word contains two of the same vowel and is 3 characters or fewer, assume it's an abbreviation
+			if(strlen($word) <= 3 && preg_match("/([aeiouy])\1/", $word)){
+				return strtoupper($word);
+			}
+
+			# Ensure O'Connor, L'Oreal, etc, are double capitalised, with exceptions (d')
+			if(preg_match("/\b([a-z]')(\w+)\b/i", $word, $match)){
+				# Some prefixes (like d') are not capitalised
+				if(in_array($match[1], ["d'"])){
+					return $match[1] . ucfirst($match[2]);
+				}
+
+				# Otherwise, everything is capitalised
+				return strtoupper($match[1]) . ucfirst($match[2]);
+			}
+
+			# Otherwise, return the word with the first letter (only) capitalised
+			return ucfirst($word);
+			//The most common outcome
+		}, $string);
+
+		# Cater for the Mc prefix
+		$pattern = "/(Mc)([b-df-hj-np-tv-z])/";
+		//Mc followed by a consonant
+		$string = preg_replace_callback($pattern, function($matches){
+			return "Mc" . ucfirst($matches[2]);
+		}, $string);
+
+		# Cater for Roman numerals (need to be in all caps)
+		$pattern = "/\b((?<![MDCLXVI])(?=[MDCLXVI])M{0,3}(?:C[MD]|D?C{0,3})(?:X[CL]|L?X{0,3})(?:I[XV]|V?I{0,3}))([^ ])\b/i";
+		$string = preg_replace_callback($pattern, function($matches){
+			return strtoupper($matches[1]).$matches[2];
+		}, $string);
+
+		# Cater for surname prefixes (must be after the Roman numerals)
+		$pattern = "/\b (".implode("|", self::SURNAME_PREFIXES).") \b/i";
+		//A surname prefix, bookended by words
+		$string = preg_replace_callback($pattern, function($matches){
+			return strtolower(" {$matches[1]} ");
+		}, $string);
+
+		# Cater for ordinal numbers
+		$pattern = "/^(?:the )?\d+(st|nd|rd|th)$/i";
+		//A surname prefix, bookended by words
+		$string = preg_replace_callback($pattern, function($matches){
+			return strtolower(" {$matches[1]} ");
+		}, $string);
+
+		# And we're done
+		return $string;
+	}
+
+	/**
+	 * Case-insensitive in_array function.
+	 *
+	 * @param $needle
+	 * @param $haystack
+	 *
+	 * @return bool
+	 * @link https://www.php.net/manual/en/function.in-array.php#89256
+	 */
+	public static function in_arrayi($needle, $haystack)
+	{
+		return in_array(strtolower($needle), array_map('strtolower', $haystack));
 	}
 
 	/**
@@ -919,9 +1076,10 @@ class str {
 	/**
 	 * Given a rel_table, and an optional parent and grandparent class, find a class
 	 *
-	 * @param string      $rel_table    		The class you're looking for
-	 * @param string|null $parent_class 		The parent class if it's different from the class itself
-	 * @param string|null $grandparent_class	The optional grandparent class, if the info class is a level deeper. Only applies to API info classes
+	 * @param string      $rel_table         The class you're looking for
+	 * @param string|null $parent_class      The parent class if it's different from the class itself
+	 * @param string|null $grandparent_class The optional grandparent class, if the info class is a level deeper. Only
+	 *                                       applies to API info classes
 	 *
 	 * @return bool|string Returns the class with path or FALSE if it can't find it
 	 */
@@ -942,7 +1100,7 @@ class str {
 		];
 
 		foreach($prefixes as $prefix){
-			$path = str::getClassCase($prefix.$suffix);
+			$path = str::getClassCase($prefix . $suffix);
 			$paths[] = $path;
 
 			if(class_exists($path)){

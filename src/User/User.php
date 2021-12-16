@@ -1043,7 +1043,8 @@ class User extends Prototype {
 			]);
 			return false;
 		}
-		$name = str::capitalise_name($name, true, true);
+//		$name = str::capitalise_name($name, true, true);
+		$name = str::capitalise($name);
 		return true;
 	}
 
