@@ -226,7 +226,8 @@ class str {
 	 * Words or abbreviations that should always be all lowercase
 	 */
 	const ALL_LOWERCASE = [
-		"a",
+//		"a",
+		//In a title, a shouldn't be capitalised, but in name (initial), it should be
 		"and",
 		"as",
 		"by",
