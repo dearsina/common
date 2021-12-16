@@ -270,6 +270,7 @@ class str {
 		"van",
 		"del",
 		"der",
+		"du"
 	];
 
 	/**
@@ -356,9 +357,9 @@ class str {
 		}, $string);
 
 		# Cater for Roman numerals (need to be in all caps)
-		$pattern = "/\b((?<![MDCLXVI])(?=[MDCLXVI])M{0,3}(?:C[MD]|D?C{0,3})(?:X[CL]|L?X{0,3})(?:I[XV]|V?I{0,3}))([^ ])\b/i";
+		$pattern = "/\b((?<![MDCLXVI])(?=[MDCLXVI])M{0,3}(?:C[MD]|D?C{0,3})(?:X[CL]|L?X{0,3})(?:I[XV]|V?I{0,3}))\b/i";
 		$string = preg_replace_callback($pattern, function($matches){
-			return strtoupper($matches[1]).$matches[2];
+			return strtoupper($matches[1]);
 		}, $string);
 
 		# Cater for surname prefixes (must be after the Roman numerals)
