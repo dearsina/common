@@ -242,19 +242,30 @@ class Request {
 			return true;
 		}
 
+		# If we have been given the HTTP origin, grab the domain from there
+		if($_SERVER['HTTP_ORIGIN']){
+			// HTTP_ORIGIN: "https://subdomain.example.com"
+			$domain = $_SERVER["HTTP_ORIGIN"];
+		}
+
+		# Or if we've been given the HTTP referer
+		else if ($_SERVER['HTTP_REFERER']){
+			// HTTP_REFERER: "https://subdomain.example.com/folder"
+			$domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
+		}
+
+		# If we haven't been given that information
+		else {
+			throw new \Exception("Unknown domain request origin.");
+		}
+
+		# Remove the subdomain
+		$domain = substr($domain, strlen($_ENV['domain']) * -1);
+
 		# Ensure the request was sent from our domain
-		if(substr($_SERVER["HTTP_ORIGIN"], strlen($_ENV['domain']) * -1) != $_ENV['domain']){
+		if($domain != $_ENV['domain']){
 			//if this request wasn't done from our own domain
-
-			# If we know where it's coming from
-			if($_SERVER["HTTP_ORIGIN"]){
-				throw new Unauthorized("A cross domain request was attempted. {$_SERVER["HTTP_ORIGIN"]} != {$_ENV['domain']}");
-			}
-
-			# If we haven't been given that information
-			else {
-				throw new \Exception("Unknown domain request origin.");
-			}
+			throw new Unauthorized("A cross domain request was attempted. {$domain} != {$_ENV['domain']}");
 		}
 
 		# Ensure the request was sent from our domain via AJAX
