@@ -371,10 +371,10 @@ class str {
 		}, $string);
 
 		# Cater for ordinal numbers
-		$pattern = "/^(?:the )?\d+(st|nd|rd|th)$/i";
-		//A surname prefix, bookended by words
+		$pattern = "/\b(\d+(?:st|nd|rd|th))\b/i";
+		//A number suffixed with an ordinal
 		$string = preg_replace_callback($pattern, function($matches){
-			return strtolower(" {$matches[1]} ");
+			return strtolower($matches[1]);
 		}, $string);
 
 		# And we're done
