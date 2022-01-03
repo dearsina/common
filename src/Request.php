@@ -301,8 +301,8 @@ class Request {
 		if($connection['closed']){
 			$this->hash->set("reload");
 			$this->log->warning([
-				"title" => "Expired connection",
-				"message" => "Your connection has expired. It will now be refreshed.",
+				"title" => "Closed connection",
+				"message" => "Your connection was closed. It will now be reopened.",
 			]);
 			return false;
 			//			throw new Unauthorized("Expired CSRF token supplied.");
