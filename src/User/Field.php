@@ -338,13 +338,18 @@ class Field {
 			"icon" => "key",
 			"name" => "new_password",
 			"label" => "New password",
-			"required" => true,
 			"validation" => [
-				"minlength" => [
-					"rule" => self::minimumPasswordLength,
-					"msg" => "Your password must be at least {0} characters."
+				"password" => [
+					"rule" => [
+						"min_length" => self::minimumPasswordLength,
+						"uppercase" => true,
+						"lowercase" => true,
+						"special" => true,
+						"number" => true
+					]
 				]
-			]
+			],
+			"required" => true
 		],[
 			"type" => "password",
 			"icon" => "key",
