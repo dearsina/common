@@ -80,7 +80,13 @@ class WebSocketServer extends Prototype {
 	 * It is running as a daemon, so the script will complete,
 	 * even if the server continues.
 	 *
-	 * @return bool
+	 * You can set the package_max_length option to increase the
+	 * maximum length limit. But this takes more memory, because
+	 * Swoole-HTTP-Server keeps all requested data in memory,
+	 * not disk.
+	 *
+	 * @return void
+	 * @link https://github.com/swoole/swoole-src/issues/3125
 	 */
 	public function start(): void
 	{
@@ -103,7 +109,10 @@ class WebSocketServer extends Prototype {
 			"log_file" => $_ENV['websocket_log_file'],
 
 			# Run as daemon
-			"daemonize" => true
+			"daemonize" => true,
+
+			# Raise the message size limit from the default 2mb to 32mb
+			"package_max_length" => 32 * 1024 * 1024
 		]);
 
 		# Generate the server ID

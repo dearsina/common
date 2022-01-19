@@ -226,7 +226,7 @@ class str {
 	 * Words or abbreviations that should always be all lowercase
 	 */
 	const ALL_LOWERCASE = [
-//		"a",
+		//		"a",
 		//In a title, a shouldn't be capitalised, but in name (initial), it should be
 		"and",
 		"as",
@@ -271,13 +271,13 @@ class str {
 		"van",
 		"del",
 		"der",
-		"du"
+		"du",
 	];
 
 	/**
 	 * Capitalises every (appropriate) word in a given string.
 	 *
-	 * @author https://stackoverflow.com/users/429071/dearsina
+	 * @author  https://stackoverflow.com/users/429071/dearsina
 	 * @version 1.0
 	 *
 	 * @param string|null $string
@@ -364,7 +364,7 @@ class str {
 		}, $string);
 
 		# Cater for surname prefixes (must be after the Roman numerals)
-		$pattern = "/\b (".implode("|", self::SURNAME_PREFIXES).") \b/i";
+		$pattern = "/\b (" . implode("|", self::SURNAME_PREFIXES) . ") \b/i";
 		//A surname prefix, bookended by words
 		$string = preg_replace_callback($pattern, function($matches){
 			return strtolower(" {$matches[1]} ");
@@ -2492,7 +2492,7 @@ EOF;
 	}
 
 	/**
-	 * Searches thru a multi-dimentional array for a key,
+	 * Searches through a multi-dimensional array for a key,
 	 * and returns an array of values belonging to matching keys.
 	 *
 	 * @param $array
@@ -2525,6 +2525,28 @@ EOF;
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Returns all the keys of the values that match $needle in $haystack.
+	 * Same as array_search, but returns *all* the hits, not just the first one.
+	 *
+	 * @param       $needle
+	 * @param array $haystack
+	 *
+	 * @return array|null
+	 * @link https://www.php.net/manual/en/function.array-search.php#88465
+	 */
+	public static function array_search_all($needle, array $haystack): ?array
+	{
+		foreach($haystack as $k => $v){
+
+			if($haystack[$k] == $needle){
+
+				$array[] = $k;
+			}
+		}
+		return $array;
 	}
 
 	/**
@@ -3102,7 +3124,7 @@ EOF;
 		// sanitize filename
 		$filename = preg_replace(
 			'~
-        [<>:"/|?*]|            # file system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+        [<>:"/|?*]|              # File system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
         [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
         [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
         [#\[\]@!$&\'()+,;=]|     # URI reserved https://tools.ietf.org/html/rfc3986#section-2.2

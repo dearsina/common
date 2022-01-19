@@ -18,7 +18,7 @@ class ErrorLog extends Prototype {
 	/**
 	 * Maximum number of characters to display of an error message.
 	 */
-	const MAX_ERROR_BODY_LENGTH = 1000;
+	const MAX_ERROR_BODY_LENGTH = 5000;
 
 	/**
 	 * @param bool|null $output_to_email
