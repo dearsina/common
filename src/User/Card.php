@@ -240,7 +240,7 @@ class Card extends Prototype {
 				],
 			],
 			"footer" => [
-				"html" => "Your password must be " . Field::minimumPasswordLength . " characters or longer.",
+				"html" => "Your password must be " . Field::minimumPasswordLength . " characters or longer, contain upper and lower case letters, special characters and numbers.",
 				"class" => "smaller",
 			],
 		]);
