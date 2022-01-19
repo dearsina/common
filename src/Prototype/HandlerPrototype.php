@@ -11,7 +11,7 @@ namespace App\Common\Prototype;
  * @package App\Common\Prototype
  */
 abstract class HandlerPrototype extends \App\Common\Prototype {
-	protected ?array $joins = [];
+	public ?array $joins = [];
 
 	/**
 	 * If a method in the handler har join pre-requisites,
