@@ -530,7 +530,14 @@ abstract class Prototype {
 		$column_name = "{$rel_table}_id";
 
 		# Look thru all tables across all DBs for this column name
-		$results = $this->sql->run("SELECT DISTINCT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME = '{$column_name}';");
+		$results = $this->sql->run("
+			SELECT DISTINCT TABLE_SCHEMA, TABLE_NAME 
+			FROM INFORMATION_SCHEMA.COLUMNS
+			WHERE 0=0
+			-- We're interested in all tables except the cache tables
+			AND TABLE_SCHEMA <> 'cache'
+			-- Where the column name appears
+			AND COLUMN_NAME = '{$column_name}';");
 
 		if(!$results['num_rows']){
 			throw new \Exception("Could not find any tables with the <code>{$column_name}</code> column. Are you sure you got the right name?");
