@@ -2,7 +2,8 @@
 
 namespace App\Common;
 
-use App\UI\Modal;
+use App\Common\Exception\BadRequest;
+use App\Common\Output\Tab;
 
 /**
  * Tracks the output of a ajax call
@@ -16,9 +17,15 @@ class Output {
 	 */
 	protected Log $log;
 
+	/**
+	 * @var Tab
+	 */
+	public Tab $tab;
+
 	protected function __construct()
 	{
 		$this->log = Log::getInstance();
+		$this->tab = new Tab($this);
 	}
 
 	private function __clone()
@@ -207,6 +214,9 @@ class Output {
 	 * If `$data` is an array, will json_encode.
 	 * In app.js, json_encoded arrays will automatically be decoded.
 	 *
+	 * Functions are treated a little different in as the data is not appended,
+	 * a new instance of the function method is called.
+	 *
 	 * @param string     $function_name
 	 * @param mixed      $data
 	 * @param array|null $recipients If set, will send the function asynchronously to all relevant recipients
@@ -218,7 +228,19 @@ class Output {
 		if(is_array($data)){
 			$data = json_encode($data);
 		}
-		return $this->setData("function", $function_name, $data, $recipients);
+
+		if($recipients){
+			return PA::getInstance()->speak($recipients, [
+				"success" => true,
+				$type => [[
+					$id => $data,
+				]],
+			]);
+		}
+
+		$this->output["function"][][$function_name] = $data;
+
+		return true;
 	}
 
 	/**
@@ -241,8 +263,20 @@ class Output {
 		$this->setVar("filename", $filename);
 		# Content type
 		$this->setVar("type", $content_type);
-		# The content itself
-		$this->setVar("save", base64_encode($data));
+
+		if($data){
+			# The content itself
+			$this->setVar("save", base64_encode($data));
+		}
+
+		else if ($url){
+			$this->setVar("save", true);
+			$this->setVar("url", $url);
+		}
+
+		else {
+			throw new BadRequest("Either a URL or data contents must be passed to save.");
+		}
 	}
 
 	/**
@@ -467,7 +501,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	private function setData($type, $id, $data, ?array $recipients = NULL, ?bool $first = NULL)
+	public function setData($type, $id, $data, ?array $recipients = NULL, ?bool $first = NULL)
 	{
 		if($recipients){
 			return PA::getInstance()->speak($recipients, [
