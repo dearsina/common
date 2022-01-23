@@ -56,8 +56,11 @@ class Grow extends Common {
 				}
 
 				if(is_array($val)){
-					//If array values have accidentally been included, ignore them.
-					throw new TypeError("The <code>{$col}</code> column in the <code>{$table['name']}</code> table has array data as its value.".print_r($data,true));
+					//If array values have been included, convert them to JSON
+					if(!$val = json_encode($val)){
+						// If the array contains data that cannot be converted
+						throw new TypeError("The <code>{$col}</code> column in the <code>{$table['name']}</code> table has array data as its value that cannot be converted to a JSON string.".print_r($data,true));
+					}
 				}
 
 				# Get the column data type based on the current value
