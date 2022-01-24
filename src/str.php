@@ -1177,7 +1177,7 @@ class str {
 	/**
 	 * Given an array of rel_table/id and action, and an array of vars,
 	 * creates a hash string and returns it.
-	 * Crucually, the string is not prefixed with a slash.
+	 * Crucially, the string is not prefixed with a slash.
 	 *
 	 * @param array $array
 	 * @param bool  $urlencoded If set to yes, will urlencode the hash string
