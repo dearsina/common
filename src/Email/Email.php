@@ -204,6 +204,8 @@ class Email extends Prototype {
 	 *  - `i` makes it case insensitive (Not sure why this is needed here).
 	 *  - `s` means that newlines are allowed inside the comments too.
 	 *
+	 * Excludes [if] comment hacks.
+	 *
 	 * @param $message
 	 *
 	 * @return string
@@ -211,7 +213,7 @@ class Email extends Prototype {
 	 */
 	private function removeHTMLComments($message): string
 	{
-		return preg_replace('/<!--(.*)-->/Uis', '', $message);
+		return preg_replace('/<!--([^\[].*)-->/Uis', '', $message);
 	}
 
 	/**
