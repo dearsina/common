@@ -101,7 +101,7 @@ class Email extends Prototype {
 	 * with a populated template.
 	 *
 	 * @param string     $template_name
-	 * @param array|null $variables
+	 * @param array|null $variables The entire email_template table row
 	 *
 	 * @return $this|object
 	 */
