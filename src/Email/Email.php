@@ -166,7 +166,7 @@ class Email extends Prototype {
 
 		$message = $this->removeHTMLComments($message);
 
-		# Converts images to CIDs
+		# Convert images to CIDs
 		$message = $this->convertImages($message);
 
 		$this->envelope->setContentType('text/html');
@@ -235,10 +235,27 @@ class Email extends Prototype {
 		$message = preg_replace_callback($pattern, function($img_tag){
 			//for each image link
 			$image_path = $img_tag[2];
+
+			# Local file
 			if(substr($image_path, 0, 1) == "/"){
 				//If this is a local file
 				$image_file = \Swift_Image::fromPath($image_path);
 			}
+
+			# Base64 image data
+			else if(preg_match("/data:([a-z]+\/[a-z]+);base64,(.*)/i", $image_path, $image_data)){
+				//Image path is base64 image data
+
+				$content_type = $image_data[1];
+				[$type, $ext] = explode("/", $content_type);
+
+				$base64 = $image_data[2];
+				$filename = str::id("image").".{$ext}";
+
+				$image_file = new \Swift_Image(base64_decode($base64), $filename, $content_type);
+			}
+
+			# External file
 			else {
 				//if this is an external file (even if it's hosted locally)
 
