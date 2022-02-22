@@ -3111,6 +3111,27 @@ EOF;
 	}
 
 	/**
+	 * Strict regex pattern for characters that are not allowed in a filename.
+	 */
+	const STRICT_PATTERN = /** @lang RegExp */'~
+        [<>:"/|?*]|              # File system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+        [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+        [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
+        [#\[\]@!$&\'()+,;=]|     # URI reserved https://tools.ietf.org/html/rfc3986#section-2.2
+        [{}^\~`]                 # URL unsafe characters https://www.ietf.org/rfc/rfc1738.txt
+	~x';
+
+	/**
+	 * Regex pattern for what characters are not allowed in a Windows OS filename.
+	 */
+	const WINDOWS_PATTERN = /** @lang RegExp */'~
+        [<>:"/|?*]|              # File system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+        [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+        [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
+        [{}^\~`]                 # URL unsafe characters https://www.ietf.org/rfc/rfc1738.txt
+	~x';
+
+	/**
 	 * Sanitise a string to be used as a filename.
 	 *
 	 * @param      $filename
@@ -3119,18 +3140,10 @@ EOF;
 	 * @return null|string|string[]
 	 * @link https://stackoverflow.com/a/42058764/429071
 	 */
-	public static function filter_filename($filename, ?bool $beautify = false)
+	public static function filter_filename($filename, ?bool $beautify = false, ?bool $strict = NULL): ?string
 	{
 		// sanitize filename
-		$filename = preg_replace(
-			'~
-        [<>:"/|?*]|              # File system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
-        [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-        [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
-        [#\[\]@!$&\'()+,;=]|     # URI reserved https://tools.ietf.org/html/rfc3986#section-2.2
-        [{}^\~`]                 # URL unsafe characters https://www.ietf.org/rfc/rfc1738.txt
-        ~x',
-			'-', $filename);
+		$filename = preg_replace($strict ? self::STRICT_PATTERN : self::WINDOWS_PATTERN, '-', $filename);
 
 		// avoids ".", ".." or ".hiddenFiles"
 		$filename = ltrim($filename, '.-');
@@ -3172,14 +3185,14 @@ EOF;
 			// "file---name.zip" becomes "file-name.zip"
 			'/-+/',
 		], '-', $filename);
+
 		$filename = preg_replace([
 			// "file--.--.-.--name.zip" becomes "file.name.zip"
 			'/-*\.-*/',
 			// "file...name..zip" becomes "file.name.zip"
 			'/\.{2,}/',
 		], '.', $filename);
-		// lowercase for windows/unix interoperability http://support.microsoft.com/kb/100625
-		$filename = mb_strtolower($filename, mb_detect_encoding($filename));
+
 		// ".file-name.-" becomes "file-name"
 		$filename = trim($filename, '.-');
 		return $filename;
