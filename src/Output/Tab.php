@@ -21,21 +21,22 @@ class Tab {
 	 * @param bool|null  $active     If set, will set the new tab as the active tab.
 	 * @param array|null $recipients If set, will perform this action asynchronously to the given recipients
 	 */
-	public function append(string $id, ?array $tab = NULL, ?bool $active = false, ?array $recipients = NULL): void
+	public function append(string $id, ?array $tab = NULL, ?array $recipients = NULL): void
 	{
 		if(!$tab){
 			return;
 		}
 
 		[$header, $pane] = Tabs::generateTab($tab);
-		$data = [
-			"id" => $id,
-			"tab_id" => $tab['id'],
-			"header" => $header,
-			"pane" => $pane,
-			"active" => $active,
-		];
-		$this->output->function("appendTab", $data, $recipients);
+
+		# Switch IDs around so that the tab_id is the ID of the tab, and the id, is the ID of the parent
+		$tab['tab_id'] = $tab['id'];
+		$tab['id'] = $id;
+
+		$tab['header'] = $header;
+		$tab['pane'] = $pane;
+
+		$this->output->function("appendTab", $tab, $recipients);
 	}
 
 	/**
@@ -53,14 +54,15 @@ class Tab {
 		}
 
 		[$header, $pane] = Tabs::generateTab($tab);
-		$data = [
-			"id" => $id,
-			"tab_id" => $tab['id'],
-			"header" => $header,
-			"pane" => $pane,
-			"active" => $active,
-		];
-		$this->output->function("prependTab", $data, $recipients);
+
+		# Switch IDs around so that the tab_id is the ID of the tab, and the id, is the ID of the parent
+		$tab['tab_id'] = $tab['id'];
+		$tab['id'] = $id;
+
+		$tab['header'] = $header;
+		$tab['pane'] = $pane;
+
+		$this->output->function("prependTab", $tab, $recipients);
 	}
 
 	/**
@@ -86,7 +88,7 @@ class Tab {
 	 * @param bool|null  $active     If set, will set the updated tab as the active tab.
 	 * @param array|null $recipients If set, will perform this action asynchronously to the given recipients
 	 */
-	public function update(string $tab_id, ?array $tab = NULL, ?bool $active = false, ?array $recipients = NULL): void
+	public function update(string $tab_id, ?array $tab = NULL, ?array $recipients = NULL): void
 	{
 		if(!$tab){
 			return;
@@ -94,14 +96,12 @@ class Tab {
 
 		[$header, $pane] = Tabs::generateTab($tab);
 
-		$data = [
-			"tab_id" => $tab_id,
-			"header" => $header,
-			"pane" => $pane,
-			"active" => $active,
-		];
+		$tab['tab_id'] = $tab_id;
 
-		$this->output->function("updateTab", $data, $recipients);
+		$tab['header'] = $header;
+		$tab['pane'] = $pane;
+
+		$this->output->function("updateTab", $tab, $recipients);
 	}
 
 	/**

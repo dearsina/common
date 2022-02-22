@@ -238,7 +238,7 @@ class Output {
 			]);
 		}
 
-		$this->output["function"][][$function_name] = $data;
+		$this->setData("function", NULL, [$function_name => $data]);
 
 		return true;
 	}
@@ -269,7 +269,7 @@ class Output {
 			$this->setVar("save", base64_encode($data));
 		}
 
-		else if ($url){
+		else if($url){
 			$this->setVar("save", true);
 			$this->setVar("url", $url);
 		}
@@ -285,24 +285,14 @@ class Output {
 	 * @param string     $html
 	 * @param array|null $recipients
 	 */
-	public function modal(string $html, ?array $recipients = NULL): void
+	public function modal(string $html, ?array $recipients = NULL, ?bool $first = NULL): void
 	{
-		if($recipients){
-			PA::getInstance()->speak($recipients, [
-				"success" => true,
-				"modal" => [[
-					"id" => "#ui-modal",
-					"html" => $html,
-				]]
-			]);
-
-			return;
-		}
-
-		$this->output['modal'][] = [
+		$data = [
 			"id" => "#ui-modal",
 			"html" => $html,
 		];
+
+		$this->setData("modal", NULL,  $data, $recipients, $first);
 	}
 
 	/**
@@ -316,22 +306,12 @@ class Output {
 	 */
 	public function closeModal(?string $modal_id = NULL, ?array $recipients = NULL): void
 	{
-		if($recipients){
-			PA::getInstance()->speak($recipients, [
-				"success" => true,
-				"modal" => [[
-					"id" => $modal_id,
-					"close" => true,
-				]]
-			]);
-
-			return;
-		}
-
-		$this->output['modal'][] = [
+		$data = [
 			"id" => $modal_id,
 			"close" => true,
 		];
+		
+		$this->setData("modal", NULL,  $data, $recipients);
 	}
 
 	/**
@@ -363,7 +343,7 @@ class Output {
 	 */
 	public function navigation(?string $data)
 	{
-		$this->output['update']["#ui-navigation"] = $data;
+		$this->setData("update", "#ui-navigation", $data);
 		return true;
 	}
 
@@ -379,7 +359,7 @@ class Output {
 	 */
 	public function footer(?string $data)
 	{
-		$this->output['update']["#ui-footer"] = $data;
+		$this->setData("update", "#ui-footer", $data);
 		return true;
 	}
 
@@ -444,13 +424,13 @@ class Output {
 				else {
 					$options[] = [
 						"id" => $row,
-						"text" => $row
+						"text" => $row,
 					];
 				}
 
 				$options[] = [
 					"id" => $row['Field'],
-					"text" => $row['Field']
+					"text" => $row['Field'],
 				];
 			}
 		}
@@ -476,14 +456,14 @@ class Output {
 				else {
 					$options[] = [
 						"id" => $id,
-						"text" => $text
+						"text" => $text,
 					];
 				}
 
 			}
 		}
 
-		usort($options, function($a, $b) {
+		usort($options, function($a, $b){
 			return $a['text'] <=> $b['text'];
 		});
 
@@ -493,16 +473,21 @@ class Output {
 
 	/**
 	 *
-	 * @param string     $type The name of the data key, an instruction on what to do with the data
-	 * @param string     $id   The div ID where the data is going
-	 * @param string     $data The HTML or instructions.
-	 * @param array|null $recipients
-	 * @param bool|null  $first
+	 * @param string      $type The name of the data key, an instruction on what to do with the data
+	 * @param string|null $id   The div ID where the data is going
+	 * @param mixed       $data The HTML or instructions.
+	 * @param array|null  $recipients
+	 * @param bool|null   $first
 	 *
 	 * @return bool
 	 */
-	public function setData($type, $id, $data, ?array $recipients = NULL, ?bool $first = NULL)
+	public function setData(string $type, ?string $id, $data, ?array $recipients = NULL, ?bool $first = NULL)
 	{
+		if(in_array($type, ["modal", "function", "remove", "replace", "update", "prepend", "append"])){
+			$this->setAction($type, $id, $data, $recipients, $first);
+			return true;
+		}
+
 		if($recipients){
 			return PA::getInstance()->speak($recipients, [
 				"success" => true,
@@ -548,5 +533,93 @@ class Output {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Some output types need to be processed in a particular order.
+	 * This way, the order it was sent to the output array will be
+	 * the order the type is processed.
+	 *
+	 * @param string      $type
+	 * @param string|null $id
+	 * @param             $data
+	 * @param array|null  $recipients
+	 * @param bool|null   $first
+	 */
+	private function setAction(string $type, ?string $id, $data, ?array $recipients = NULL, ?bool $first = NULL): void
+	{
+		if($recipients){
+			PA::getInstance()->speak($recipients, [
+				"success" => true,
+				"actions" => [[
+					$type => [
+						$id => $data,
+					],
+				]],
+			]);
+			return;
+		}
+
+		# The default order of the action is last
+		$order = count($this->output['actions'] ?: []);
+
+		# Unless we're appending to an existing type-id
+		if($id && $order){
+			foreach($this->output['actions'] as $i => $action){
+				if($action[$type][$id]){
+					$order = $i;
+					break;
+				}
+			}
+		}
+
+		# If data has been set to false by design
+		if($data === false){
+			# Remove the existing data
+			if($id){
+				// With an ID
+				unset($this->output['actions'][$order][$type][$id]);
+			}
+
+			else {
+				// Without an ID
+				unset($this->output['actions'][$order][$type]);
+			}
+
+			return;
+		}
+
+		# Modal can either be "close" or an array of modal data
+		if(is_string($this->output['actions'][$order][$type])){
+			// If it's set to "close"
+			unset($this->output['actions'][$order][$type]);
+			//Remove it
+		}
+
+		# Data is *appended* to the array, NOT replaced
+		if($id){
+			if(is_string($data)){
+				$this->output['actions'][$order][$type][$id] .= $data;
+			}
+
+			else {
+				$this->output['actions'][$order][$type][$id][] = $data;
+			}
+		}
+
+		else {
+			if(is_string($data)){
+				$this->output['actions'][$order][$type] .= $data;
+			}
+
+			else {
+				$this->output['actions'][$order][$type][] = $data;
+			}
+		}
+
+		# If the element is to be moved up to the top so that it's actioned first
+		if($first){
+			str::repositionArrayElement($this->output['actions'], $order, 0);
+		}
 	}
 }
