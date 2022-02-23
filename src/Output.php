@@ -285,7 +285,7 @@ class Output {
 	 * @param string     $html
 	 * @param array|null $recipients
 	 */
-	public function modal(string $html, ?array $recipients = NULL, ?bool $first = NULL): void
+	public function modal(string $html, ?array $recipients = NULL, ?bool $first = true): void
 	{
 		$data = [
 			"id" => "#ui-modal",
