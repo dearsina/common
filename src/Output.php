@@ -281,6 +281,7 @@ class Output {
 
 	/**
 	 * Appends a modal HTML string to the #ui-modal.
+	 * Unless directed otherwise, modals are always created *first*
 	 *
 	 * @param string     $html
 	 * @param array|null $recipients
