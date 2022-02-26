@@ -3,9 +3,9 @@
 
 namespace App\Common;
 
+use App\Common\ConnectionMessage\ConnectionMessage;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
-use Swoole\Coroutine\Http\Client;
 
 /**
  * Class PA
@@ -71,12 +71,9 @@ class PA {
 
 	/**
 	 * Sends data to the requested list of recipients.
-	 *
-	 * Currently set so that if (for some reason) a message should
-	 * go to _all_ connections, the recipients list must explicitly
-	 * be set to an (empty) array, making it a little harder to
-	 * accidentally send a message to all.
-	 * ABOVE DISABLED TO AVOID MASS MESSAGING
+	 * If the recipient doesn't have a WebSockets recipient
+	 * address (an FD number), the data is stored awaiting
+	 * a pull request from the recipient's browser.
 	 *
 	 * @param array $recipients
 	 * @param array $data
@@ -85,12 +82,31 @@ class PA {
 	 */
 	public function speak(array $recipients, array $data): bool
 	{
-		# Get connection FDs from the recipient criteria
-		if(!$fds = $this->getConnectionFDs($recipients)){
+		if($connections = $this->getConnections($recipients)){
+			# For each connection found, determine whether it's a push or a pull connection
+			foreach($connections as $connection){
+				# Push (WebSockets)
+				if($connection['fd']){
+					//If a connection has an FD (WebSocket recipient address)
+
+					# Add them to the list of recipients for the push message
+					$fds[] = $connection['fd'];
+				}
+
+				# Pull (Data is stored, awaiting pull from browser)
+				else {
+					//If the connection exists, but has no websocket recipient
+
+					# Store the data for pull request downloads
+					ConnectionMessage::store($connection['connection_id'], $data);
+				}
+			}
+		}
+
+		if(!$fds) {
 			//if no currently open connections fit the criteria
 			return false;
 			//Don't push any messages on the network
-			//TODO Log messages that weren't sent
 		}
 
 		try {
@@ -167,8 +183,10 @@ class PA {
 	 *
 	 * @return array|bool
 	 */
-	private function getConnectionFDs(array $a)
+	private function getConnections(array $a): ?array
 	{
+		extract($a);
+
 		# If a list of recipient FDs was explicitly sent
 		if($a['fd']){echo $i++;
 			return is_array($a['fd']) ? $a['fd'] : [$a['fd']];
@@ -180,9 +198,7 @@ class PA {
 
 		$this->where = [
 			# We're only interested in currently open connections
-			"closed" => NULL,
-			# And where there is an FD number
-			["fd", "IS NOT", NULL]
+			"closed" => NULL
 		];
 
 		# User permissions based recipients
@@ -206,27 +222,39 @@ class PA {
 			],
 			"limit" => 1
 		]);
-		$this->where['server_id'] = $server['server_id'];
+		$this->or["server_id"] = $server['server_id'];
 
 		/**
-		 * While the recipient criteria can be combined,
-		 * they will only further limit each other.
+		 * In cases where the registered user or client
+		 * doesn't have WebSockets enabled, their connection
+		 * row will not have a server ID or an FD number.
+		 *
+		 * If we're getting those connections, we must also
+		 * include those rows where the server ID is null.
+		 *
+		 * However, this only applies to when we are looking
+		 * for an explicit user or session.
 		 */
-		if(!$connections = $this->sql->select([
-			"distinct" => true,
-			"columns" => [
-				"fd",
-			],
-			"table" => "connection",
-			"join" => $this->join,
-			"where" => $this->where
-		])){
-			//if no connections are found
-			return false;
+		if($user_id || $session_id){
+			$this->or[] = ["server_id", "IS", NULL];
 		}
 
-		# Return a simple array of fd's
-		return array_column($connections, "fd");
+		else {
+			/**
+			 * If we're not looking for a particular user
+			 * or session (non-registered user, like a client),
+			 * we are only interested in WebSocket connections,
+			 * those with FD numbers.
+			 */
+			$this->where[] = ["fd", "IS NOT", NULL];
+		}
+
+		return $this->sql->select([
+			"table" => "connection",
+			"join" => $this->join,
+			"where" => $this->where,
+			"or" => $this->or
+		]);
 	}
 
 	/**
@@ -293,7 +321,9 @@ class PA {
 
 		if($user_id){
 			$this->where['user_id'] = $user_id;
-		} else if($session_id){
+		}
+
+		if($session_id){
 			$this->where['session_id'] = $session_id;
 		}
 	}

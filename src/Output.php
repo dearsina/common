@@ -54,38 +54,6 @@ class Output {
 	}
 
 	/**
-	 * Shortcut to setting multiple outputs at once.
-	 *
-	 * @param array $a [$type][$id] = $data, or [$type] = $data, depending on the type.
-	 *
-	 * @return bool
-	 */
-	public function set(array $a)
-	{
-		foreach($a as $type => $ids_or_data){
-			if(in_array($type, ["div", "prepend", "append", "replace"])){
-				if(!is_array($ids_or_data)){
-					//div, prepend, append, and replace require an ID.
-					$this->log->error("The {$type} output type requires an ID and data.");
-					return false;
-				}
-				foreach($ids_or_data as $id => $data){
-					$this->$type($id, $data);
-				}
-			}
-			else if(in_array($type, ["html", "navigation", "footer", "modal", "silent", "page_title", "page_title"])){
-				//these types do not require an ID
-				$this->$type($ids_or_data);
-			}
-			else {
-				$this->log->error("The {$type} output type is not recognised.");
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
 	 * @return bool
 	 */
 	public function uri()
@@ -100,6 +68,17 @@ class Output {
 	public function get()
 	{
 		return $this->output;
+	}
+
+	/**
+	 * Set the entire output array at once.
+	 * Only really used by the ConnectionMessage class.
+	 *
+	 * @param array $data
+	 */
+	public function set(array $data): void
+	{
+		$this->output = $data;
 	}
 
 	/**

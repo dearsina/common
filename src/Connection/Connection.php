@@ -76,15 +76,29 @@ class Connection extends Prototype {
 		# If the user is logged in, get their user ID
 		global $user_id;
 
-		# Create a new connection
+		# Get the set (that makes a unique connection)
+		$set = array_merge([
+			"session_id" => session_id(),
+			"ip" => $_SERVER['REMOTE_ADDR'],
+			"user_agent_id" => $user_agent_id,
+			"user_id" => $user_id
+		],$set ?: []);
+
+		# If the connection has already been made (and is not closed), return it
+		if($connection = $this->sql->select([
+			"table" => "connection",
+			"where" => array_merge($set, [
+				"closed" => NULL
+			]),
+			"limit" => 1
+		])){
+			return $connection['connection_id'];
+		}
+
+		# Otherwise, create a new connection
 		if(!$connection_id = $this->sql->insert([
 			"table" => "connection",
-			"set" => array_merge([
-				"session_id" => session_id(),
-				"ip" => $_SERVER['REMOTE_ADDR'],
-				"user_agent_id" => $user_agent_id,
-				"user_id" => $user_id
-			],$set ?: []),
+			"set" => $set
 		])){
 			//The new connection was not saved
 			throw new Exception("Unable to store connection details");
@@ -100,13 +114,13 @@ class Connection extends Prototype {
 	 * @return bool|int|mixed
 	 * @throws Exception
 	 */
-	private function getUserAgentId()
+	public function getUserAgentId(): string
 	{
 		# If the agent already exists, get the existing one
 		if($user_agent = $this->sql->select([
 			"table" => "user_agent",
 			"where" => [
-				"desc" => $_SERVER['HTTP_USER_AGENT']
+				"desc" => $_SERVER['HTTP_USER_AGENT'],
 			],
 			"limit" => 1
 		])) {

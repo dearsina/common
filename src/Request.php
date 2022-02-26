@@ -480,7 +480,7 @@ class Request {
 		else if($success === false){
 			$output['success'] = false;
 		}
-		
+
 		else {
 			//otherwise, everything is fantastic
 			$output['success'] = true;
