@@ -26,7 +26,11 @@ class Run extends Common {
 			$SESSION['database_calls']++;
 		}
 
-		if(strpos($query, ";") && count(array_filter(explode(";", trim($query)))) > 1){
+		$filtered_query = preg_replace("/([\"'])(?:\\\\?+.)*?\\1/", '', $query);
+		// We're only interested in semicolons if they appear outside quoted strings
+		// @link https://stackoverflow.com/a/1060703/429071
+
+		if(strpos($filtered_query, ";") && count(array_filter(explode(";", trim($filtered_query)))) > 1){
 			//If there are more than one query to run
 
 			# Run the multi-query
