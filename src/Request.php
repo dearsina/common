@@ -450,12 +450,15 @@ class Request {
 			$output['hash'] = $this->hash->get();
 		}
 
-		$output['silent'] = $this->hash->getSilent();
-		# TEMP I think we can send a hash always
-		# No, otherwise the silent flag means nothing
+		# If the silent flag is to be raised
+		if($silent = $this->hash->getSilent()){
+			$output['silent'] = $silent;
+		}
 
 		# Alerts
-		$output['alerts'] = $this->log->getAlerts();
+		if($alerts = $this->log->getAlerts()){
+			$output['alerts'] = array_merge($output['alert'] ?:[], $alerts);
+		}
 		/**
 		 * Alerts are fed into the $output array,
 		 * but have otherwise no relation to the
@@ -466,15 +469,18 @@ class Request {
 			//not sure if this will have unintended consequences
 			$output['success'] = true;
 		}
+
 		else if($this->log->hasFailures()){
 			//if there are any errors
 			$this->log->logFailures();
 			//alert them for posterity
 			$output['success'] = false;
 		}
+
 		else if($success === false){
 			$output['success'] = false;
 		}
+		
 		else {
 			//otherwise, everything is fantastic
 			$output['success'] = true;
