@@ -116,8 +116,9 @@ class DateFinder extends \App\Common\Prototype {
 
 	/**
 	 * Date strings are never more than 8 numbers.
+	 * But date-time strings could be up to 14.
 	 * Will return TRUE if the string has more than
-	 * 8 numbers.
+	 * 14 numbers.
 	 *
 	 * @param string $string
 	 *
@@ -125,7 +126,7 @@ class DateFinder extends \App\Common\Prototype {
 	 */
 	private function hasTooManyNumbers(string $string): bool
 	{
-		return strlen(preg_replace("/[^0-9]/", "", $string)) > 8;
+		return strlen(preg_replace("/[^0-9]/", "", $string)) > 14;
 	}
 
 	/**
@@ -199,7 +200,7 @@ class DateFinder extends \App\Common\Prototype {
 	private function handleStringWithAlpha(string $string): ?\DateTime
 	{
 		# Trim away non-date alphanumeric, non date-y characters to make it easier to discern if the string is a date
-		$string = preg_replace("/[^\s\-\.\/0-9A-Z]/i", "", $string);
+		$string = preg_replace("/[^\s\-\.\/0-9A-Z:]/i", "", $string);
 
 		# Make sure the remaining string corresponds to minimum requirements
 		if(strlen($string) < 6){
@@ -233,11 +234,17 @@ class DateFinder extends \App\Common\Prototype {
 			return NULL;
 		}
 
+		# A date must have at least one number
+		if(!preg_match("/\d/", $string)){
+			return NULL;
+		}
+
 		# Translate the date to English (if it's in a non-English language)
 		$this->translateDate($string);
 
+		# Filter out the "Narrative:Date" strings
 		$sections = preg_split("/\s*:\s*/", $string);
-		if(count($sections) > 1){
+		if(count($sections) == 2){
 			foreach($sections as $section){
 				if($dt = $this->isADate($section)){
 					return $dt;
@@ -246,6 +253,7 @@ class DateFinder extends \App\Common\Prototype {
 			return NULL;
 		}
 
+		# Even a date time string has only 14 numbers; more and it's not a date
 		if($this->hasTooManyNumbers($string)){
 			return NULL;
 		}
