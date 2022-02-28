@@ -284,14 +284,14 @@ class Output {
 	 *
 	 * @return mixed
 	 */
-	public function closeModal(?string $modal_id = NULL, ?array $recipients = NULL): void
+	public function closeModal(?string $modal_id = NULL, ?array $recipients = NULL, ?bool $first = false): void
 	{
 		$data = [
 			"id" => $modal_id,
 			"close" => true,
 		];
 		
-		$this->setData("modal", NULL,  $data, $recipients);
+		$this->setData("modal", NULL,  $data, $recipients, $first);
 	}
 
 	/**
