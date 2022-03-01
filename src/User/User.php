@@ -1690,8 +1690,6 @@ class User extends Prototype {
 		return true;
 	}
 
-
-
 	/**
 	 * @param $a
 	 *

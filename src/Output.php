@@ -582,8 +582,13 @@ class Output {
 				$this->output['actions'][$order][$type][$id] .= $data;
 			}
 
-			else {
+			else if($data){
 				$this->output['actions'][$order][$type][$id][] = $data;
+			}
+
+			# Some types ("remove") don't have any data attached to the ID
+			else {
+				$this->output['actions'][$order][$type][$id] = $data;
 			}
 		}
 

@@ -31,7 +31,7 @@ class Run extends Common {
 		// @link https://stackoverflow.com/a/1060703/429071
 
 		if(strpos($filtered_query, ";") && count(array_filter(explode(";", trim($filtered_query)))) > 1){
-			//If there are more than one query to run
+			//If there is more than one query to run
 
 			# Run the multi-query
 			$result = $this->mysqli->multi_query($query);
