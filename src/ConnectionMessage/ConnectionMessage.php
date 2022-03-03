@@ -105,6 +105,8 @@ class ConnectionMessage extends \App\Common\Prototype {
 		$data = json_decode($message['message'], true);
 		$this->output->set($data);
 
+		global $user_id;
+
 		# Mark the one message as read
 		$this->sql->update([
 			"table" => $rel_table,
@@ -112,7 +114,7 @@ class ConnectionMessage extends \App\Common\Prototype {
 			"set" => [
 				"read" => "NOW()"
 			],
-			"user_id" => false
+			"user_id" => $user_id ?: false
 		]);
 
 		# Return the number of messages remaining
