@@ -41,6 +41,8 @@ class ConnectionMessage extends \App\Common\Prototype {
 	{
 		extract($a);
 
+		global $user_id;
+
 		# Ensure the connection isn't being spoofed
 		if(!$this->sql->select([
 			"table" => "connection",
@@ -59,7 +61,8 @@ class ConnectionMessage extends \App\Common\Prototype {
 			"id" => $rel_id,
 			"set" => [
 				"fd" => NULL,
-			]
+			],
+			"user_id" => $user_id ?: false
 		]);
 
 		return true;
