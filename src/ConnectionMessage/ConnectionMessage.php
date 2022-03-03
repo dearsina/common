@@ -102,9 +102,7 @@ class ConnectionMessage extends \App\Common\Prototype {
 		# Get the oldest message
 		$message = array_shift($messages);
 
-		if(!$data = json_decode($message['message'], true)){
-			var_dump($message['message']);exit;
-		}
+		$data = json_decode($message['message'], true);
 		$this->output->set($data);
 
 		# Mark the one message as read
@@ -113,7 +111,8 @@ class ConnectionMessage extends \App\Common\Prototype {
 			"id" => $message['connection_message_id'],
 			"set" => [
 				"read" => "NOW()"
-			]
+			],
+			"user_id" => false
 		]);
 
 		# Return the number of messages remaining
