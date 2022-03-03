@@ -410,7 +410,11 @@ class Field {
 			"validation" => [
 				"minLength" => [
 					"rule" => 4,
-					"msg" => "Your code doesn't seem to be complete"
+					"msg" => "Your code doesn't seem to be complete."
+				],
+				"maxLength" => [
+					"rule" => 4,
+					"msg" => "Ensure you enter the code only."
 				]
 			],
 			"desc" => Countdown::generate([
