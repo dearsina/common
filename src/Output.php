@@ -202,7 +202,7 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function function(string $function_name, $data = NULL, ?array $recipients = NULL): bool
+	public function function(string $function_name, $data = NULL, ?array $recipients = NULL, ?bool $first = false): bool
 	{
 		if(is_array($data)){
 			$data = json_encode($data);
@@ -217,7 +217,7 @@ class Output {
 			]);
 		}
 
-		$this->setData("function", NULL, [$function_name => $data]);
+		$this->setData("function", NULL, [$function_name => $data], $recipients, $first);
 
 		return true;
 	}
