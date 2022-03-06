@@ -2809,14 +2809,15 @@ EOF;
 	/**
 	 * Does the leg work deciding "[1 ]thing was ", or "[2 ]things were ".
 	 *
-	 * @param array|int $array         An array of things that will be counted, or an int of the count.
-	 * @param string    $rel_table     The name of the thing that is to be counted.
-	 * @param bool      $include_count If set to true, will include the count also.
+	 * @param array|int   $array         An array of things that will be counted, or an int of the count.
+	 * @param string|null $rel_table     The name of the thing that is to be counted.
+	 * @param bool        $include_count If set to true, will include the count also.
 	 *
 	 * @return bool|mixed Returns a string if the vars have been entered correctly, otherwise FALSE.
 	 */
-	public static function were($array, $rel_table, $include_count = false)
+	public static function were($array, ?string $rel_table = NULL, ?bool $include_count = NULL): string
 	{
+		# Get the count
 		if(is_array($array)){
 			$count = count($array);
 		}
@@ -2826,35 +2827,28 @@ EOF;
 		else {
 			$count = 0;
 		}
-		if(!is_string($rel_table)){
-			return false;
+
+		# Set the subject
+		$subject = $count == 1 ? $rel_table : str::pluralise($rel_table);
+
+		# Set the verb
+		$verb = $count == 1 ? "was" : "were";
+
+		# Set the number
+		$number = $count ?: "no";
+
+		# Decide between "no and "No"
+		if($rel_table == ucwords($rel_table)){
+			$number = ucwords($rel_table);
 		}
 
+		# If the count is also be included
 		if($include_count){
-			switch($count) {
-			case 0:
-				if($rel_table == ucwords($rel_table)){
-					return str::title("No " . strtolower(str::pluralise($rel_table)) . " were");
-				}
-				return str::title("no " . str::pluralise($rel_table) . " were");
-			case 1:
-				return str::title("1 {$rel_table} was");
-			default:
-				return str::title("{$count} " . str::pluralise($rel_table) . " were");
-			}
+			return "{$number} {$subject} {$verb}";
 		}
 
-		switch($count) {
-		case 0:
-			return str::pluralise($rel_table) . " were";
-			break;
-		case 1:
-			return "{$rel_table} was";
-			break;
-		default:
-			return str::pluralise($rel_table) . " were";
-			break;
-		}
+		# Otherwise, just return subject verb
+		return "{$subject} {$verb}";
 	}
 
 	static $plural = [
@@ -3051,20 +3045,26 @@ EOF;
 	}
 
 	/**
-	 * Returns an IS or ARE depending whether there is 1 or
-	 * any other number (including zero) of something.
+	 * Returns the right verb only.
 	 *
-	 * @param mixed     $count        Count can be either a number, or an array (in which case it gets counted)
-	 * @param bool|null $passed_tense If set, replaces is/are with was/were
+	 * Returns "is" or "are", or if the past tense flag is set, "was" or "were" verb only,
+	 * depending on whether there is 1 or any other number (including zero) of something.
+	 *
+	 * @param mixed     $count      Count can be either a number, or an array (in which case it gets counted)
+	 * @param bool|null $past_tense If set, replaces is/are with was/were
 	 *
 	 * @return string
 	 */
-	public static function isAre($count, ?bool $passed_tense = NULL): string
+	public static function isAre($count, ?bool $past_tense = NULL): string
 	{
+		# Get the count
 		$count = is_array($count) ? count($count) : $count;
-		if($passed_tense){
+
+		# Decide the tense
+		if($past_tense){
 			return abs($count) == 1 ? "was" : "were";
 		}
+
 		return abs($count) == 1 ? "is" : "are";
 	}
 
