@@ -292,6 +292,11 @@ class Request {
 		# Ensure token exists
 		if(!$connection = $this->sql->select([
 			"table" => "connection",
+			"join" => [
+				"table" => "geolocation",
+				"on" => "ip",
+			],
+			"flat" => true, // To ensure a speedy response, as the join is only needed in edge cases
 			"id" => $_SERVER['HTTP_CSRF_TOKEN'],
 		])){
 			throw new Unauthorized("Invalid CSRF token supplied.");
@@ -299,28 +304,41 @@ class Request {
 
 		# Ensure token is still valid
 		if($connection['closed']){
+			# Refresh the connection
 			$this->hash->set("reload");
 			$this->log->warning([
 				"title" => "Closed connection",
 				"message" => "Your connection was closed. It will now be reopened.",
 			]);
 			return false;
-			//			throw new Unauthorized("Expired CSRF token supplied.");
 		}
 
 		# Ensure token belongs to this IP address
 		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
-			$this->hash->set("reload");
-			$this->log->warning([
-				"title" => "Expired connection",
-				"message" => "Your connection has expired. It will now be refreshed.",
-			]);
-			return false;
-			//			throw new \Exception("IP address does not match CSRF token supplied.");
+			// If the token IP and the connecting IP are not the same
+			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)){
+				//If the IP address doesn't belong to any of the whitelisted ASN domains
+
+				# Refresh the connection
+				$this->hash->set("reload");
+				$this->log->warning([
+					"title" => "Expired connection",
+					"message" => "Your connection has expired. It will now be refreshed.",
+				]);
+				return false;
+			}
 		}
 
 		return true;
 	}
+
+	/**
+	 * Domains belonging to ASNs that cycle IP addresses.
+	 * @link https://mybroadband.co.za/forum/threads/telkom-lte-constantly-changing-public-ip-addresses.952265/
+	 */
+	const WHITELISTED_ASN_DOMAINS = [
+		"telkom.co.za"
+	];
 
 	/**
 	 * Handles an incoming AJAX request.
