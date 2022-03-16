@@ -38,7 +38,7 @@ class Insert extends Common {
 
 		if($include_meta !== false){
 			# Add ID, created by and time
-			$this->addRowMetadata();
+			$this->addRowMetadata($user_id);
 		}
 
 		# Generate the query
@@ -105,10 +105,14 @@ class Insert extends Common {
 
 	/**
 	 * For each row to insert, add the metadata (ID, created by/when)
+	 *
+	 * @param string|null $user_id
 	 */
-	protected function addRowMetadata(): void
+	protected function addRowMetadata(?string $user_id = NULL): void
 	{
-		global $user_id;
+		if(!$user_id){
+			global $user_id;
+		}
 
 		if(empty($this->set)){
 			$this->set = [[]];

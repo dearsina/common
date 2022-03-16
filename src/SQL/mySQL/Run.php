@@ -13,6 +13,7 @@ class Run extends Common {
 		$_SESSION['query'] = $query;
 		$_SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
 		$_SESSION['database_calls']++;
+		$_SESSION['query_timer'] = str::startTimer();
 
 		if(str::runFromCLI()){
 			/**

@@ -57,10 +57,14 @@ class Remove extends Common {
 	/**
 	 * Add row metadata + the given (or global) user_id of the author
 	 *
-	 * @param $user_id
+	 * @param string|null $user_id
 	 */
-	private function addRowMetadata($user_id): void
+	private function addRowMetadata(?string $user_id = NULL): void
 	{
+		if(!$user_id){
+			global $user_id;
+		}
+
 		/**
 		 * With REMOVE queries, we will never have more than one row in the SET
 		 * array, but we're sharing methods with the INSERT query, where

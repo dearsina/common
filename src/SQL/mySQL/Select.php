@@ -111,6 +111,11 @@ class Select extends Common {
 			$rows = $results['rows'];
 		}
 
+		# Add the time it took to run the query also
+		$time = str::stopTimer($_SESSION['query_timer']);
+		$last_query = array_pop($_SESSION['queries']);
+		$_SESSION['queries'][] = [$last_query, $time];
+
 		if(!$rows){
 			return NULL;
 		}
