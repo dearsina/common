@@ -665,6 +665,33 @@ abstract class Prototype {
 		}
 	}
 
+	/**
+	 * Given an $a array, and an array of keys,
+	 * remove all the key values from the $a vars, and only
+	 * set one key value back, the first one with a value.
+	 *
+	 * Example: If  keys a, b, c are sent, and b and c have
+	 * a value, only the b key and value will be kept.
+	 *
+	 * @param array $a
+	 * @param array $keys
+	 */
+	public function onlyFirstKeyWithValue(array &$a, array $keys): void
+	{
+		extract($a);
+
+		foreach($keys as $key){
+			$a['vars'][$key] = NULL;
+		}
+
+		foreach($keys as $key){
+			if($vars[$key]){
+				$a['vars'][$key] = $vars[$key];
+				return;
+			}
+		}
+	}
+
 
 	//	/**
 	//	 * Generic insert function that inserts a new row with data
