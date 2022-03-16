@@ -746,9 +746,9 @@ class str {
 
 		if(!$html_accepted){
 			//if HTML is *NOT* accepted
-			$i = @strip_tags($i);
+			$i = @htmlspecialchars($i);
 			/**
-			 * Strip HTML and PHP tags from the string.
+			 * Replaces & " ' < and > with their HTML counterparts, that's it.
 			 */
 		}
 
