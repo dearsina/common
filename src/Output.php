@@ -208,16 +208,7 @@ class Output {
 			$data = json_encode($data);
 		}
 
-		if($recipients){
-			return PA::getInstance()->speak($recipients, [
-				"success" => true,
-				$type => [[
-					$id => $data,
-				]],
-			]);
-		}
-
-		$this->setData("function", NULL, [$function_name => $data], $recipients, $first);
+		$this->setData("function", 0, [$function_name => $data], $recipients, $first);
 
 		return true;
 	}
@@ -273,6 +264,22 @@ class Output {
 		];
 
 		$this->setData("modal", NULL,  $data, $recipients, $first);
+	}
+
+	/**
+	 * Opens (prepends) a window onto the #ui-modal.
+	 * Now 100% sure how it works if the ui-modal is also
+	 * updated in the same call.
+	 *
+	 * @param string     $html
+	 * @param array|null $recipients
+	 * @param bool|null  $first
+	 *
+	 * @return bool
+	 */
+	public function window(string $html, ?array $recipients = NULL, ?bool $first = true): bool
+	{
+		return $this->setData("prepend", "#ui-modal", $html, $recipients, $first);
 	}
 
 	/**

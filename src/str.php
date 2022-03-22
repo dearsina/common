@@ -2471,7 +2471,7 @@ EOF;
 	/**
 	 * Truncates a given string if it's longer than the max length.
 	 * If the last characters are spaces, will trim the spaces.
-	 * Will also add a suffix of your chosing. The default is an elipsis.
+	 * Will also add a suffix of your choosing. The default is an ellipsis.
 	 *
 	 * @param string      $string
 	 * @param int         $max_length
