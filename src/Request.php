@@ -84,9 +84,9 @@ class Request {
 	}
 
 	/**
-	 * When a request comes thru via Process (async),
+	 * When a request comes through via Process (async),
 	 * and is about to be executed (via CLI),
-	 * it will inherit the ownership of it's requester.
+	 * it will inherit the ownership of its requester.
 	 *
 	 * This is because otherwise the CLI processed request,
 	 * will be owner-less. Which is a problem when you're

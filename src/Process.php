@@ -176,8 +176,9 @@ class Process {
 			$global_vars['role'] = $role;
 		}
 
-		# Session ID (will always exist)
-		$global_vars['session_id'] = session_id();
+		# Session ID (will always exist in some form or another)
+		global $session_id;
+		$global_vars['session_id'] = $session_id ?: session_id();
 
 		# IP
 		$global_vars['ip'] = $_SERVER['REMOTE_ADDR'];
