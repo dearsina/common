@@ -905,19 +905,19 @@ abstract class Common {
 	{
 		foreach($conditions as $col => $val){
 			# "col" => ["tbl_alias", "tbl_col"]
-			if(is_string($col) && is_array($val) && (count($val) == 2)){
+			if(is_string($col) && is_array($val) && (count($val) == 2) && array_filter($val, "is_string") === $val){
 				[$tbl_alias, $tbl_col] = $val;
 				return $tbl_alias;
 			}
 
 			# ["col", "eq", "tbl_alias", "tbl_col"]
-			if(is_numeric($col) && is_array($val) && (count($val) == 4)){
+			if(is_numeric($col) && is_array($val) && (count($val) == 4) && array_filter($val, "is_string") === $val){
 				[$col, $eq, $tbl_alias, $tbl_col] = $val;
 				return $tbl_alias;
 			}
 
 			# "col" => ["db", "name", "col"]
-			if(is_string($col) && is_array($val) && (count($val) == 3)){
+			if(is_string($col) && is_array($val) && (count($val) == 3 && array_filter($val, "is_string") === $val)){
 				[$tbl_db, $tbl_name, $tbl_col] = $val;
 				return $this->getDbAndTableString($tbl_db, $tbl_name);
 			}
@@ -1275,7 +1275,7 @@ abstract class Common {
 			return "`{$table['alias']}`.`{$col}` BETWEEN {$from_val} AND {$to_val}";
 
 		} # ["col", "=", "table_alias", "col"],
-		else if(is_numeric($col) && is_array($val) && (count($val) == 4)){
+		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && !array_filter($val, "is_array")){
 			[$col, $eq, $tbl_alias, $tbl_col] = $val;
 
 			# Ensure the join table column exists
@@ -1572,7 +1572,7 @@ abstract class Common {
 			$conditions = array_unique(array_filter($conditions));
 
 			/**
-			 * This is a little bit hacky, but basically, as join (and where)
+			 * This is a little hacky, but basically, as join (and where)
 			 * conditions are written out in string format in full before we know
 			 * what tables go in the sub-query (if there is a limit + join) and
 			 * which do not, the joins (and where) are written for a non-sub-query
@@ -1594,12 +1594,15 @@ abstract class Common {
 				}
 			}
 
+			$prefix = $strings ? "AND " : NULL;
+
 			if($type == "OR"){
-				$strings[] = "AND (\r\n\t" . implode("\r\n\t{$type} ", $conditions) . "\r\n)";
+				$strings[] = $prefix . "(\r\n\t" . implode("\r\n\t{$type} ", $conditions) . "\r\n)";
 			}
 			else {
-				$strings[] = implode("\r\n{$type} ", $conditions);
+				$strings[] = $prefix . implode("\r\n{$type} ", $conditions);
 			}
+
 		}
 
 		if(!array_filter($strings)){

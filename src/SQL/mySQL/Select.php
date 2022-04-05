@@ -101,7 +101,11 @@ class Select extends Common {
 
 		# JSON decode (where applicable)
 		$this->jsonDecode($results['rows']);
-		// Has to be done before dot-notation normalisation because it uses column aliases using dot-notation
+		/**
+		 * Has to be done before dot-notation normalisation
+		 * because to identify JSON columns, it uses column
+		 * aliases using dot-notation.
+		 */
 
 		# Normalise, unless requested not to
 		if(!$flat){
@@ -110,6 +114,7 @@ class Select extends Common {
 		else {
 			$rows = $results['rows'];
 		}
+		# TODO Somehow fix bug where normalisation messes with JSON column data
 
 		# Add the time it took to run the query also
 		$time = str::stopTimer($_SESSION['query_timer']);

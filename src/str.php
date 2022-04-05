@@ -3078,13 +3078,13 @@ EOF;
 	 * //Returns "apples, oranges, bananas and pears"
 	 *
 	 * @param             $array
-	 * @param string|null $glue
-	 * @param string|null $and_or
 	 * @param string|null $tag
+	 * @param string|null $and_or
+	 * @param string|null $glue
 	 *
 	 * @return bool|mixed|string
 	 */
-	public static function oxfordImplode(?array $array, ?string $glue = ", ", ?string $and_or = "and", ?string $tag = NULL)
+	public static function oxfordImplode(?array $array, ?string $tag = NULL, ?string $and_or = "and", ?string $glue = ", ")
 	{
 		if(empty($array)){
 			return false;

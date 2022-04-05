@@ -147,4 +147,18 @@ class FieldType extends ModalPrototype {
 
 		return $display_only ?:[];
 	}
+
+	public static function getFieldTypesExDisplayOnlyOptions(): ?array
+	{
+		foreach((Info::getInstance())->getInfo([
+			"rel_table" => "field_type",
+			"where" => [
+				"display_only" => NULL,
+			]
+		]) ?:[] as $field_type){
+			$field_types[$field_type['field_type_id']] = $field_type['title'];
+		}
+
+		return $field_types;
+	}
 }
