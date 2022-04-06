@@ -337,7 +337,8 @@ class Request {
 	 * @link https://mybroadband.co.za/forum/threads/telkom-lte-constantly-changing-public-ip-addresses.952265/
 	 */
 	const WHITELISTED_ASN_DOMAINS = [
-		"telkom.co.za"
+		"telkom.co.za",
+		"three.co.uk",
 	];
 
 	/**
