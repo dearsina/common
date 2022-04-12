@@ -238,6 +238,17 @@ class str {
 	];
 
 	/**
+	 * Words that need to be exempt from the
+	 * upper/lowercase logic.
+	 */
+	const ALL_CAPITALISED = [
+		"Rd",
+		"Blvd",
+		"Pty",
+		"Ltd"
+	];
+
+	/**
 	 * Honorifics that only contain vowels.
 	 *
 	 */
@@ -309,6 +320,11 @@ class str {
 			# If the word needs to be all uppercase
 			if(in_array(mb_strtoupper($word), self::ALL_UPPERCASE)){
 				return strtoupper($word);
+			}
+
+			# If the word needs to be CapitalCase
+			if(in_array(ucwords($word), self::ALL_CAPITALISED)){
+				return ucwords($word);
 			}
 
 			# Create a version without diacritics
