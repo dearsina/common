@@ -74,6 +74,20 @@ class str {
 	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
 	/**
+	 * PHP7 version of PHP8's str_ends_with() method.
+	 *
+	 * @param string $haystack
+	 * @param string $needle
+	 *
+	 * @return bool
+	 */
+	public static function endsWith(string $haystack, string $needle): bool
+    {
+        $needle_len = strlen($needle);
+        return ($needle_len === 0 || 0 === substr_compare($haystack, $needle, - $needle_len));
+    }
+
+	/**
 	 * DEPRECIATED, USE capitalise() INSTEAD
 	 *
 	 * Standardizes the capitalization on people's names and the titles of reports and essays.

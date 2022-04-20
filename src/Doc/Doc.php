@@ -194,14 +194,16 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		if(is_array($_FILES[$key]['error'])){
-			foreach($_FILES[$key]['error'] as $e){
+			foreach($_FILES[$key]['error'] as $i => $e){
 				if($e){
 					$error = $e;
 					break;
 				}
 			}
 		}
+
 		else if($_FILES[$key]['error']){
+			$i = NULL;
 			$error = $_FILES[$key]['error'];
 		}
 
@@ -238,7 +240,8 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		if($message){
-			throw new \Exception("{$_FILES[$key]['name']} upload failed. {$message}");
+			$name = $i !== NULL ? $_FILES[$key]['name'][$i] : $_FILES[$key]['name'];
+			throw new \Exception("{$name} upload failed. {$message}");
 		}
 	}
 
@@ -283,7 +286,7 @@ class Doc extends \App\Common\Prototype {
 	 * @return array
 	 * @throws \Exception
 	 */
-	public static function handleUpload(?string $key = "file", ?bool $no_gifs_allowed = NULL): array
+	public static function handleUpload(?string $key = "file", ?bool $no_gifs_allowed = NULL, ?bool $multiple = NULL): array
 	{
 		# Ensure upload was successful
 		self::checkUpload($key);
@@ -297,34 +300,51 @@ class Doc extends \App\Common\Prototype {
 			}
 		}
 
-		# Generate an arbitrary filename
-		$tmp_file_name = str::uuid();
-
 		# Copy the superglobal to a local variable
 		$file = $_FILES[$key];
 
-		$tmp_dir = sys_get_temp_dir();
-		$tmp_name = "{$tmp_dir}/{$tmp_file_name}";
-
-		# Move the temp file to a semi-permanent location (so that we can hand over the file to a different php thread)
-		if(!move_uploaded_file($file['tmp_name'], $tmp_name)){
-			throw new \Exception("Unable to move uploaded file. Please try uploading again.");
+		if(!is_array($file['tmp_name'])){
+			$file['name'] = [$file['name']];
+			$file['type'] = [$file['type']];
+			$file['tmp_name'] = [$file['tmp_name']];
+			$file['size'] = [$file['size']];
 		}
 
-		# Record the MD5 hash of the file
-		$file['md5'] = md5_file($tmp_name);
+		foreach($file['tmp_name'] as $i => $f){
+			# Generate an arbitrary filename
+			$tmp_file_name = str::uuid();
 
-		# Get the file extension
-		$file['ext'] = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-		//the extension is stored in all lowercase only
+			$tmp_dir = sys_get_temp_dir();
+			$tmp_name = "{$tmp_dir}/{$tmp_file_name}";
 
-		# Get the mime type
-		$file['mime_type'] = mime_content_type($tmp_name);
+			# Move the temp file to a semi-permanent location (so that we can hand over the file to a different php thread)
+			if(!move_uploaded_file($file['tmp_name'][$i], $tmp_name)){
+				throw new \Exception("Unable to move uploaded file. Please try uploading again.");
+			}
 
-		# Update the tmp_name to the new tmp_name
-		$file['tmp_name'] = $tmp_name;
+			$files[$i]['name'] = $file['name'][$i];
+			$files[$i]['type'] = $file['type'][$i];
+			$files[$i]['size'] = $file['size'][$i];
 
-		return $file;
+			# Record the MD5 hash of the file
+			$files[$i]['md5'] = md5_file($tmp_name);
+
+			# Get the file extension
+			$files[$i]['ext'] = strtolower(pathinfo($file['name'][$i], PATHINFO_EXTENSION));
+			//the extension is stored in all lowercase only
+
+			# Get the mime type
+			$files[$i]['mime_type'] = mime_content_type($tmp_name);
+
+			# Update the tmp_name to the new tmp_name
+			$files[$i]['tmp_name'] = $tmp_name;
+		}
+
+		if($multiple){
+			return $files;
+		}
+
+		return reset($files);
 	}
 
 	/**

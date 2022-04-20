@@ -45,6 +45,19 @@ class Img {
 		return false;
 	}
 
+	/**
+	 * Given an image path, will return the src="" base64 encoded
+	 * string.
+	 *
+	 * @param string $imagePath
+	 *
+	 * @return string
+	 */
+	public static function getDataURI(string $imagePath) {
+		$finfo = new \finfo(FILEINFO_MIME_TYPE);
+		$type = $finfo->file($imagePath);
+		return 'data:' . $type . ';base64,' . base64_encode(file_get_contents($imagePath));
+	}
 
 	/**
 	 * Given a contents key with binary image data,
