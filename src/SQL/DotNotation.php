@@ -4,6 +4,7 @@
 namespace App\Common\SQL;
 
 
+use App\Common\SQL\mySQL\Common;
 use App\Common\str;
 
 /**
@@ -46,8 +47,8 @@ class DotNotation {
 	 */
 	private static function removeOptionalDbPrefix(&$key)
 	{
-		# Explode they key by any :'s
-		$key_fragments = explode(":", $key);
+		# Explode they key by any ::'s
+		$key_fragments = explode(Common::DB_TABLE_SEPARATOR, $key);
 
 		# Remove any DB fragments
 		if(count($key_fragments) > 1){

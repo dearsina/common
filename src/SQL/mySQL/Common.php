@@ -19,7 +19,7 @@ abstract class Common {
 	/**
 	 * The character(s) that separate the database name from the table name in an alias.
 	 */
-	const DB_TABLE_SEPARATOR = ":";
+	const DB_TABLE_SEPARATOR = "::";
 
 	/**
 	 * The character(s) that separate the table name from the column name in an alias
