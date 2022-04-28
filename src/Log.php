@@ -392,7 +392,6 @@ EOF;
 	 */
 	public function log($a, string $type, $immediately = NULL)
 	{
-
 		# Multiple errors can be sent at once
 		if(str::isNumericArray($a)){
 			foreach($a as $m){
@@ -416,7 +415,9 @@ EOF;
 		}
 
 		$alert['seconds'] = $this->secondsSinceStart();
-		$alert['backtrace'] = $a['trace'] ?: str::backtrace(true);
+		if(is_array($a)){
+			$alert['backtrace'] = key_exists("trace", $a) ? $a['trace'] : str::backtrace(true);
+		}		
 
 		# If the alert is to be shared with the user immediately
 		if($immediately){
