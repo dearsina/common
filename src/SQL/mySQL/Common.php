@@ -1977,7 +1977,7 @@ abstract class Common {
 		if(is_array($table)){
 			# Table _name_ must be present
 			if(!$table['name']){
-				throw new \Exception("Table name missing.");
+				throw new \Exception("Table name missing from the table array: ".str::var_export($table, true));
 			}
 
 			if(!$table['is_tmp']){

@@ -416,7 +416,7 @@ EOF;
 		}
 
 		$alert['seconds'] = $this->secondsSinceStart();
-		$alert['backtrace'] = str::backtrace(true);
+		$alert['backtrace'] = $a['trace'] ?: str::backtrace(true);
 
 		# If the alert is to be shared with the user immediately
 		if($immediately){

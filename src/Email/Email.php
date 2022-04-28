@@ -490,7 +490,7 @@ class Email extends Prototype {
 				"title" => "Email not sent",
 				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
 			]);
-//			return true;
+			return true;
 		}
 
 		# Create the Transport

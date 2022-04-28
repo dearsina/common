@@ -185,6 +185,7 @@ class Request {
 				"icon" => "database",
 				"title" => "mySQL error",
 				"message" => $e->getMessage(),
+				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 			$this->log->info([
 				"icon" => "code",
@@ -197,6 +198,7 @@ class Request {
 				"icon" => "code",
 				"title" => "Type error",
 				"message" => $e->getMessage(),
+				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 		}
 		catch(BadRequest $e) {
@@ -205,6 +207,7 @@ class Request {
 				"icon" => "times-octagon",
 				"title" => "Invalid or incomplete request",
 				"message" => $e->getMessage(),
+				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 		}
 		catch(Unauthorized $e) {
@@ -213,6 +216,7 @@ class Request {
 				"icon" => "lock-alt",
 				"title" => "Authorisation issue",
 				"message" => $e->getMessage(),
+				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 		}
 		catch(\Exception $e) {
@@ -220,9 +224,54 @@ class Request {
 				"icon" => "ethernet",
 				"title" => "System error",
 				"message" => $e->getMessage(),
+				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 		}
 		return $this->output($success);
+	}
+
+	/**
+	 * Format the exception trace as a string.
+	 *
+	 * @param \Exception $exception
+	 * @link https://gist.github.com/abtris/1437966
+	 * @return string
+	 */
+	private function getExceptionTraceAsString($exception) {
+		$rtn = "";
+		$count = 0;
+		foreach ($exception->getTrace() as $frame) {
+			$args = "";
+			if (isset($frame['args'])) {
+				$args = array();
+				foreach ($frame['args'] as $arg) {
+					if (is_string($arg)) {
+						$args[] = "'" . $arg . "'";
+					} elseif (is_array($arg)) {
+						$args[] = "Array";
+					} elseif (is_null($arg)) {
+						$args[] = 'NULL';
+					} elseif (is_bool($arg)) {
+						$args[] = ($arg) ? "true" : "false";
+					} elseif (is_object($arg)) {
+						$args[] = get_class($arg);
+					} elseif (is_resource($arg)) {
+						$args[] = get_resource_type($arg);
+					} else {
+						$args[] = $arg;
+					}
+				}
+				$args = join(", ", $args);
+			}
+			$rtn .= sprintf( "#%s %s(%s): %s(%s)\n",
+				$count,
+				isset($frame['file']) ? $frame['file'] : 'unknown file',
+				isset($frame['line']) ? $frame['line'] : 'unknown line',
+				(isset($frame['class']))  ? $frame['class'].$frame['type'].$frame['function'] : $frame['function'],
+				$args );
+			$count++;
+		}
+		return $rtn;
 	}
 
 	/**

@@ -6,7 +6,6 @@ namespace App\Common\SQL\mySQL;
 
 use App\Common\SQL\DotNotation;
 use App\Common\str;
-use mysqli_sql_exception;
 
 /**
  * Generates a SQL SELECT query, executes it and returns the results.
