@@ -667,10 +667,18 @@ class str {
 	/**
 	 * Returns TRUE if script is run from the command line (CLI),
 	 * or false if it's run from a browser (http).
+	 *
+	 *
+	 * @param bool|null $or_die If set to TRUE, will kill the script execution if it's NOT run from CLI.
+	 *
 	 * @return bool
 	 */
-	static function runFromCLI(): bool
+	static function runFromCLI(?bool $or_die = NULL): bool
 	{
+		if($or_die){
+			str::runFromCLI() or die("This method can only be accessed from the command line.");
+			return true;
+		}
 		return (PHP_SAPI == "cli");
 	}
 
@@ -3097,6 +3105,26 @@ EOF;
 		}
 
 		return abs($count) == 1 ? "is" : "are";
+	}
+
+	/**
+	 * Returns the right verb only.
+	 *
+	 * Returns "has" or "have" depending
+	 * on whether there is 1 or any
+	 * other number (including zero) of
+	 * something.
+	 *
+	 * @param mixed     $count      Count can be either a number, or an array (in which case it gets counted)
+	 *
+	 * @return string
+	 */
+	public static function hasHave($count): string
+	{
+		# Get the count
+		$count = is_array($count) ? count($count) : $count;
+
+		return abs($count) == 1 ? "has" : "have";
 	}
 
 	/**
