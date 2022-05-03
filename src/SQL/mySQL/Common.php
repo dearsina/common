@@ -1246,7 +1246,7 @@ abstract class Common {
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
 
 		} # ["col", "BETWEEN", "1", "5"],
-		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && (strtoupper($val[1]) == "BETWEEN")){
+		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && (!is_array($val[1]) && strtoupper($val[1]) == "BETWEEN")){
 			[$col, $eq, $from_val, $to_val] = $val;
 
 			# Ensure the join table column exists
