@@ -57,6 +57,17 @@ abstract class Common {
 	];
 
 	/**
+	 * A single array of database, table, column name definitions,
+	 * so that multiple calls to the same table definition doesn't result
+	 * in multiple database calls. Is structured like so:
+	 *
+	 * `database` -> `table` -> `column` -> `Column metadata`
+	 *
+	 * @var array
+	 */
+	protected array $meta = [];
+
+	/**
 	 * Used exclusively by GROUP_CONCAT().
 	 * @var string|null
 	 */
@@ -118,20 +129,6 @@ abstract class Common {
 	 * @var string|null
 	 */
 	protected ?string $limit = NULL;
-
-	/**
-	 * An array of table column name definitions, so that multiple calls to the same table definition doesn't result
-	 * in multiple database calls. Is structured like so:
-	 * `database` -> `table` -> `column` -> `Column metadata`
-	 * @var array
-	 */
-	protected array $table_column_names_all = [];
-
-	/**
-	 * Same as the $tableColumnNamesAll array, except only with columns the user can edit.
-	 * @var array
-	 */
-	protected array $table_column_names = [];
 
 	/**
 	 * An array containing table, db, etc, with keys as names,
@@ -224,7 +221,7 @@ abstract class Common {
 		else {
 			//if table was not supplied or is in an unrecognisable format
 			Log::getInstance()->error([
-				"message" => str::pre(str::backtrace(true))
+				"message" => str::pre(str::backtrace(true)),
 			]);
 			throw new mysqli_sql_exception("No table name was given.");
 		}
@@ -679,7 +676,7 @@ abstract class Common {
 	 */
 	protected function isMySqlFunction(string $function): bool
 	{
-		return in_array(strtoupper($function), ["ASCII","BIN","BIT_LENGTH","CHAR","CHAR_LENGTH","CHARACTER_LENGTH","CONCAT","CONCAT_WS","ELT","EXPORT_SET","FORMAT","FROM_BASE64","HEX","INSTR","LCASE","LEFT","LENGTH","LOCATE","LOWER","LPAD","LTRIM","MAKE_SET","MID","OCT","OCTET_LENGTH","ORD","POSITION","REGEXP_INSTR","REGEXP_LIKE","REGEXP_REPLACE","REGEXP_SUBSTR","REPEAT","REPLACE","REVERSE","RIGHT","RPAD","RTRIM","SOUNDEX","SPACE","SUBSTR","SUBSTRING","SUBSTRING_INDEX","TO_BASE64","TRIM","UCASE","UNHEX","UPPER","WEIGHT_STRING"]);
+		return in_array(strtoupper($function), ["ASCII", "BIN", "BIT_LENGTH", "CHAR", "CHAR_LENGTH", "CHARACTER_LENGTH", "CONCAT", "CONCAT_WS", "ELT", "EXPORT_SET", "FORMAT", "FROM_BASE64", "HEX", "INSTR", "LCASE", "LEFT", "LENGTH", "LOCATE", "LOWER", "LPAD", "LTRIM", "MAKE_SET", "MID", "OCT", "OCTET_LENGTH", "ORD", "POSITION", "REGEXP_INSTR", "REGEXP_LIKE", "REGEXP_REPLACE", "REGEXP_SUBSTR", "REPEAT", "REPLACE", "REVERSE", "RIGHT", "RPAD", "RTRIM", "SOUNDEX", "SPACE", "SUBSTR", "SUBSTRING", "SUBSTRING_INDEX", "TO_BASE64", "TRIM", "UCASE", "UNHEX", "UPPER", "WEIGHT_STRING"]);
 	}
 
 	/**
@@ -1966,10 +1963,12 @@ abstract class Common {
 	 * </code>
 	 *
 	 * @param string|array $table   A table array (containing at least `db` and `name` keys)
-	 * @param bool|null    $refresh Whether or not to force a refresh of the metadata
-	 * @param bool|null    $all     Whether or not to return all columns (not just the ones the user can update)
+	 * @param bool|null    $refresh If set to TRUE will force a refresh of the metadata
+	 * @param bool|null    $all     If set to TRUE to return all columns (not just the ones the user can update)
 	 *
 	 * @return array
+	 * @throws BadRequest
+	 * @throws \Swoole\ExitException
 	 */
 	public function getTableMetadata($table, ?bool $refresh = NULL, ?bool $all = NULL): array
 	{
@@ -1977,12 +1976,17 @@ abstract class Common {
 		if(is_array($table)){
 			# Table _name_ must be present
 			if(!$table['name']){
-				throw new \Exception("Table name missing from the table array: ".str::var_export($table, true));
+				throw new \Exception("Table name missing from the table array: " . str::var_export($table, true));
 			}
 
-			if(!$table['is_tmp']){
+			if($table['is_tmp']){
 				//tmp tables don't have DBs
 
+				# So we give them the faux db name "tmp" for reference
+				$table['db'] = "tmp";
+			}
+
+			else {
 				# If no table DB has been provided, use the default one
 				$table['db'] = $table['db'] ?: $_ENV['db_database'];
 			}
@@ -1995,54 +1999,158 @@ abstract class Common {
 				"db" => $_ENV['db_database'],
 			];
 		}
+		// If it's a string, we're assuming it's NOT a tmp table
 
-		if($refresh){
-			//If the table data is to be refreshed
-			$this->loadTableMetadata($table);
-		}
-		else if(!$this->table_column_names_all[$table["db"]][$table["name"]]){
-			//if the table data doesn't exist yet
-			$this->loadTableMetadata($table);
+		# If we're dealing with a temp table, load the table only
+		if($table['is_tmp']){
+			$this->loadTmpTableMetadata($table['name'], $refresh);
 		}
 
+		# Otherwise, load the whole database
+		else {
+			$this->loadDatabaseMetadata($table['db'], $refresh);
 
-		if($all){
-			//if the user has requested *all* columns (including those the user cannot update)
-			if(!$this->table_column_names_all[$table["db"]][$table["name"]]){
-				//If the table cannot be found
-
-				# Verify all the details are correct
-				$this->verifyTableArray($table);
+			# Ensure newly created tables are captured
+			if(!$this->meta[$table['db']][$table['name']]){
+				//If the table isn't found, because maybe it was just created
+				# Rerun the loading, just in case
+				$this->loadDatabaseMetadata($table['db'], true);
 			}
-			return $this->table_column_names_all[$table["db"]][$table["name"]];
 		}
 
-		# Return only the columns they can update (that can be no columns)
-		return $this->table_column_names[$table["db"]][$table["name"]] ?: [];
+		# If all columns are to be extracted
+		if($all){
+			return $this->meta[$table['db']][$table['name']] ?: [];
+		}
+
+		# If only those that the user can update, filter the table columns
+		$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
+		return array_filter($this->meta[$table['db']][$table['name']], function($col) use ($columns_user_cannot_update){
+			# We only want those that are NOT on the list of columns the user cannot update
+			return !in_array($col, $columns_user_cannot_update);
+		}, ARRAY_FILTER_USE_KEY);
+		// We're using the ARRAY_FILTER_USE_KEY flag because the column name is in the key
 	}
 
 	/**
-	 * Given a database-table, will load the table column metadata to the `tableColumnNamesAll` and
-	 * `tableColumnNames` arrays.
+	 * Load database metadata.
 	 *
-	 * This query is often the first query run, so there is a check in place that will re-run this
-	 * query if it doesn't work at the first go. This is because the query will always be valid,
-	 * and any error will probably be due to the connection dying, thus we re-connect and try again.
+	 * To dramatically reduce calls to the DB to check if a database,
+	 * table or column exists, we load all the metadata for an entire
+	 * database with a single call.
 	 *
-	 * @param array     $table
+	 * This method will not only save the data in a class variable,
+	 * it will also store it in a session variable. This allows for
+	 * mySQL scripts from other all copies of the SQL class to
+	 * share the same metadata information, reducing the number of
+	 * times the DB call from this method is required to one per
+	 * PHP script.
+	 *
+	 * @param string    $db
+	 * @param bool|null $refresh
 	 * @param bool|null $retrying
 	 *
-	 * @throws Exception
+	 * @throws \Swoole\ExitException|BadRequest
 	 */
-	protected function loadTableMetadata(array $table, ?bool $retrying = NULL): void
+	private function loadDatabaseMetadata(string $db, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
-		if($table['is_tmp']){
-			$this->loadTmpTableMetadata($table, $retrying);
+		# If there is no "local" cache, but there a session schema cache, use it
+		if(!$this->meta && $_SESSION['schema_cache'][$this->mysqli->thread_id]){
+			$this->meta = $_SESSION['schema_cache'][$this->mysqli->thread_id];
+		}
+
+		# Clear any cache if the loaded data is to be refreshed
+		if($refresh){
+			unset($this->meta[$db]);
+		}
+
+		# We're only doing this once per DB call
+		if($this->meta[$db]){
+			return;
+		}
+
+		# Write the query for database metadata
+		$query = "
+		SELECT
+		       `TABLE_SCHEMA`,
+		       `TABLE_NAME`,
+		       `COLUMN_NAME`,
+		       `ORDINAL_POSITION`,
+		       `DATA_TYPE`,
+		       `NUMERIC_PRECISION`,
+		       `NUMERIC_SCALE`,
+		       `CHARACTER_MAXIMUM_LENGTH`
+		FROM `INFORMATION_SCHEMA`.`COLUMNS`
+		WHERE `TABLE_SCHEMA` = '{$db}'
+		ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`";
+		// The columns are used by a variety of scripts, primarily the Grow() class.
+
+		# Run the query to get table metadata (assuming the database-table combo exists)
+		try {
+			$result = $this->mysqli->query($query);
+		}
+
+			# Retry the query, just in case the connection died
+		catch(\mysqli_sql_exception $e) {
+			if($retrying){
+				throw new \Exception("SQL reconnection error when trying to get the metadata of a db [{$e->getCode()}]: {$e->getMessage()}");
+			}
+			$this->mysqli = mySQL::getNewConnection();
+			$this->loadDatabaseMetadata($db, $refresh, true);
+		}
+
+		# Go through the result (assuming the database exists)
+		if(is_object($result)){
+			# Save each result row
+			while($row = $result->fetch_assoc()) {
+				# The meta array contains DB > Table > Column data
+				$this->meta[$row['TABLE_SCHEMA']][$row['TABLE_NAME']][$row['COLUMN_NAME']] = $row;
+			}
+			$result->close();
+			//Frees the memory associated with the result.
+		}
+
+		else {
+			throw new BadRequest("Cannot find the <code>{$db}</code> database.");
+		}
+
+		# Log the added-to schema as a session schema cache
+		unset($_SESSION['schema_cache']);
+		$_SESSION['schema_cache'][$this->mysqli->thread_id] = $this->meta;
+	}
+
+	/**
+	 * The tmp table equivalent of the loadDatabaseMetadata
+	 * method.
+	 *
+	 * Because tmp tables don't have a database as such,
+	 * we have to load their metadata one by one.
+	 *
+	 * @param string    $table    The tmp table name
+	 * @param bool|null $refresh  If set to TRUE will force a refresh of the metadata
+	 * @param bool|null $retrying Whether we're retrying or not
+	 *
+	 * @throws \Swoole\ExitException
+	 */
+	protected function loadTmpTableMetadata(string $table, ?bool $refresh = NULL, ?bool $retrying = NULL): void
+	{
+		# If there is no "local" cache, but there a session schema cache, use it
+		if(!$this->meta && $_SESSION['schema_cache'][$this->mysqli->thread_id]){
+			$this->meta = $_SESSION['schema_cache'][$this->mysqli->thread_id];
+		}
+
+		# Clear any cache if the loaded data is to be refreshed
+		if($refresh){
+			unset($this->meta['tmp']);
+		}
+
+		# We're only doing this once per DB call
+		if($this->meta["tmp"][$table]){
 			return;
 		}
 
 		# Write the query for table metadata
-		$query = "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$table['db']}' AND `TABLE_NAME` = '{$table['name']}' ORDER BY `ORDINAL_POSITION` ASC";
+		$query = "SHOW COLUMNS FROM `{$table}`";
 
 		# Run the query to get table metadata (assuming the database-table combo exists)
 		try {
@@ -2052,71 +2160,27 @@ abstract class Common {
 			# Retry the query, just in case the connection died
 		catch(\mysqli_sql_exception $e) {
 			if($retrying){
-				throw new \Exception("SQL reconnection error [{$e->getCode()}]: {$e->getMessage()}");
+				throw new \Exception("SQL reconnection error when trying to get the metadata of a temp table [{$e->getCode()}]: {$e->getMessage()}");
 			}
 			$this->mysqli = mySQL::getNewConnection();
-			$this->loadTableMetadata($table, true);
+			$this->loadTmpTableMetadata($table, $refresh, true);
 		}
 
 		# Go through the result (assuming the database-table exists)
 		if(is_object($result)){
-			# Get the columns the user cannot update
-			$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
-
-			# Save each result row
-			while($c = $result->fetch_assoc()) {
-				$this->table_column_names_all[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
-				if(!in_array($c['COLUMN_NAME'], $columns_user_cannot_update)){
-					$this->table_column_names[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
-				}
-			}
-			$result->close();
-		}
-	}
-
-	/**
-	 * Same as the loadTableMetadata method, but for temp tables.
-	 *
-	 * @param array     $table
-	 * @param bool|null $retrying
-	 *
-	 * @throws \Swoole\ExitException
-	 */
-	protected function loadTmpTableMetadata(array $table, ?bool $retrying = NULL): void
-	{
-		# Write the query for table metadata
-		$query = "SHOW COLUMNS FROM `{$table['name']}`";
-
-		# Run the query to get table metadata (assuming the database-table combo exists)
-		try {
-			$result = $this->mysqli->query($query);
-		}
-
-			# Retry the query, just in case the connection died
-		catch(\mysqli_sql_exception $e) {
-			if($retrying){
-				throw new \Exception("SQL reconnection error [{$e->getCode()}]: {$e->getMessage()}");
-			}
-			$this->mysqli = mySQL::getNewConnection();
-			$this->loadTmpTableMetadata($table, true);
-		}
-
-		# Go through the result (assuming the database-table exists)
-		if(is_object($result)){
-			# Get the columns the user cannot update
-			$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
-
 			# Convert and save each result row
 			while($c = $result->fetch_assoc()) {
 				$ordinal_position += 1;
-				$c = $this->convertShowColumnsRowToInformationSchemaFormat($table['name'], $c, $ordinal_position);
-				$this->table_column_names_all[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
-				if(!in_array($c['COLUMN_NAME'], $columns_user_cannot_update)){
-					$this->table_column_names[$table['db']][$table['name']][$c['COLUMN_NAME']] = $c;
-				}
+				$c = $this->convertShowColumnsRowToInformationSchemaFormat($table, $c, $ordinal_position);
+				$this->meta["tmp"][$c['TABLE_NAME']][$c['COLUMN_NAME']] = $c;
 			}
 			$result->close();
+			//Frees the memory associated with the result.
 		}
+
+		# Log the added-to schema as a session schema cache
+		unset($_SESSION['schema_cache']);
+		$_SESSION['schema_cache'][$this->mysqli->thread_id] = $this->meta;
 	}
 
 	/**
@@ -2441,7 +2505,7 @@ abstract class Common {
 
 			# Show them how they got there
 			Log::getInstance()->error([
-				"message" => str::pre(str::backtrace(true))
+				"message" => str::pre(str::backtrace(true)),
 			]);
 
 			# As the table _is_ found (but in a different database), give the user a different exception
@@ -2469,14 +2533,8 @@ abstract class Common {
 
 		$db = str::i($db);
 
-		if(key_exists($db, $this->exists['db'] ?: [])){
-			return $this->exists['db'][$db];
-		}
-
-		$query = "SHOW DATABASES LIKE '{$db}'";
-
-		$this->exists['db'][$db] = (bool)$this->mysqli->query($query)->fetch_assoc();
-		return $this->exists['db'][$db];
+		$this->loadDatabaseMetadata($db);
+		return (bool)$this->meta[$db];
 	}
 
 	/**
@@ -2491,43 +2549,20 @@ abstract class Common {
 	 */
 	public function tableExists(?string $db, string $table, ?bool $is_tmp = false): bool
 	{
-		# Clean the database name
-		$db = $is_tmp ? "tmp" : str::i($db);
-
 		# Clean the table name
 		$table = str::i($table);
 
-		# if the database-table combo has already been checked before, reuse results
-		if(key_exists($db, $this->exists['table'] ?: [])){
-			if(key_exists($table, $this->exists['table'][$db])){
-				return $this->exists['table'][$db][$table];
-			}
-		}
-
+		# Temporary tables have a different path
 		if($is_tmp){
-			$query = "SHOW COLUMNS FROM `{$table}`";
+			$this->loadTmpTableMetadata($table);
+			return (bool)$this->meta["tmp"][$table];
 		}
 
-		else {
-			# Write the query for table metadata
-			$query = "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$table}'";
-		}
+		# Clean the database name
+		$db = str::i($db);
 
-		# Does this database-table combo exist?
-		if(!$results = $this->mysqli->query($query)->fetch_all()){
-			//if this table doesn't exist, don't store it, because it may be used outside of query running
-			return false;
-		}
-
-		# Store that it exists so we don't have to check it again
-		$this->exists['table'][$db][$table] = true;
-
-		//While we're at it, let's store all the columns also so we don't have to run a query for each column also
-		foreach($results as $row){
-			$this->exists['col'][$db][$table][$row[0]] = true;
-		}
-
-		return $this->exists['table'][$db][$table];
+		$this->loadDatabaseMetadata($db);
+		return (bool)$this->meta[$db][$table];
 	}
 
 	/**
@@ -2550,8 +2585,20 @@ abstract class Common {
 
 		extract($table);
 
+		# Clean the column name
+		if(!$col = str::i($col)){
+			return false;
+		}
+
+		# Clean the table name
+		if(!$name = str::i($name)){
+			return false;
+		}
+
+		# Temporary tables have a different path
 		if($is_tmp){
-			$db = "tmp";
+			$this->loadTmpTableMetadata($name);
+			return (bool)$this->meta["tmp"][$name][$col];
 		}
 
 		# Clean the database name
@@ -2560,48 +2607,8 @@ abstract class Common {
 			$db = $_ENV['db_database'];
 		}
 
-		# Clean the table name
-		if(!$name = str::i($name)){
-			return false;
-		}
-
-		# Clean the column name
-		if(!$col = str::i($col)){
-			return false;
-		}
-
-		# if the database-table-col combo has already been checked before, reuse results
-		if(key_exists($db, $this->exists['col'] ?: [])){
-			if(key_exists($name, $this->exists['col'][$db] ?: [])){
-				if(key_exists($col, $this->exists['col'][$db][$name] ?: [])){
-					return $this->exists['col'][$db][$name][$col];
-				}
-			}
-		}
-
-		if($is_tmp){
-			# Write the query for temp tables
-			$query = "SHOW COLUMNS FROM `{$name}`";
-
-			# Run the query
-			$results = $this->mysqli->query($query)->fetch_all();
-
-			# Set to true if the given column was found in the table
-			$this->exists['col'][$db][$name][$col] = (bool)array_filter($results ?: [], function($row) use ($col){
-				return $row[0] == $col;
-			});
-		}
-
-		else {
-			# Write the query for table metadata
-			$query = "SELECT COUNT(*) FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '{$db}' AND `TABLE_NAME` = '{$name}' AND `COLUMN_NAME` = '{$col}'";
-
-			# Does this database-table-col combo exist?
-			$this->exists['col'][$db][$name][$col] = (bool)$this->mysqli->query($query)->fetch_assoc()["COUNT(*)"];
-		}
-
-
-		return $this->exists['col'][$db][$name][$col];
+		$this->loadDatabaseMetadata($db);
+		return (bool)$this->meta[$db][$name][$col];
 	}
 
 	/**
