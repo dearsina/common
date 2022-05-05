@@ -426,7 +426,7 @@ class str {
 	}
 
 	/**
-	 * Given a title string, will suffix with (n), where in is an incremental
+	 * Given a title string, will suffix with (n), where "n" is an incremental
 	 * number. Will not suffix (n) if an (n) already exists, instead it will
 	 * increase n by 1.
 	 *
