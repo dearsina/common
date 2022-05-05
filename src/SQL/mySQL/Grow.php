@@ -196,22 +196,44 @@ class Grow extends Common {
 	}
 
 	/**
-	 * Get the query for adding/change the query
-	 * @param string $table
-	 * @param string $col
-	 * @param        $val
-	 * @param string $type
-	 * @param array  $tableMetadata
+	 * Returns the column key (should just be the properly formatted column name)
+	 * if the column is found in the table.
 	 *
-	 * @return bool|string
+	 * @param string     $col
+	 * @param array|null $tableMetadata
+	 *
+	 * @return false|int|string
 	 */
-	private function getQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []){
-		# Get the key for the existing column, if it exists
-		if(is_array($tableMetadata)){
-			$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
-		} else {
-			$key = false;
+	private function getColumnKey(string $col, ?array $tableMetadata)
+	{
+		if(!is_array($tableMetadata)){
+			return false;
 		}
+
+		foreach($tableMetadata as $key => $column){
+			if(strtolower($column['COLUMN_NAME']) == strtolower($col)){
+				return $key;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get the query for adding/change the query
+	 *
+	 * @param array      $table
+	 * @param string     $col
+	 * @param            $val
+	 * @param string     $type
+	 * @param array|null $tableMetadata
+	 *
+	 * @return string|null
+	 */
+	private function getQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []): ?string
+	{
+		# Get the key for the existing column, if it exists
+		$key = $this->getColumnKey($col, $tableMetadata);
 		
 		# If the column doesn't exist
 		if($key === false){
@@ -239,7 +261,8 @@ class Grow extends Common {
 	 *
 	 * @return string
 	 */
-	private function getNewColumnQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []){
+	private function getNewColumnQuery(array $table, string $col, $val, string $type, ?array $tableMetadata = []): string
+	{
 		# Get the key for the last column, if it cannot be found, assume table contains no (editable) columns
 		if(($key = array_key_last($tableMetadata)) === NULL){
 			$last_column = $table["id_col"];
@@ -257,29 +280,30 @@ class Grow extends Common {
 	/**
 	 * Query for when the column has to (potentially) change data type.
 	 *
-	 * @param array $table
+	 * @param array  $table
 	 * @param string $col
 	 * @param        $val
 	 * @param string $type
 	 * @param array  $tableMetadata
 	 *
-	 * @return bool|string
+	 * @return string|null
 	 */
-	private function getChangeColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata){
+	private function getChangeColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata): ?string
+	{
 		# Get the key for the (existing) column
-		$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
+		$key = $this->getColumnKey($col, $tableMetadata);
 
 		# If the current type is BIGINT
 		if($tableMetadata[$key]['DATA_TYPE'] == "bigint"){
 			if($type == "int"){
 				//bigint takes int
-				return false;
+				return NULL;
 			}
 		}
 		# If the current type is JSON
 		if($tableMetadata[$key]['DATA_TYPE'] == "json"){
 			//Leave JSON alone
-			return false;
+			return NULL;
 		}
 
 		# If the current type is INT
@@ -291,7 +315,7 @@ class Grow extends Common {
 			if(in_array($type, ["int","bigint"])){
 				if(strlen($val) <= $tableMetadata[$key]['NUMERIC_PRECISION']){
 					//if the (big)int fits in the decimal column
-					return false;
+					return NULL;
 				} else {
 					$type = "{$tableMetadata[$key]['DATA_TYPE']}(".strlen($val).",{$tableMetadata[$key]['NUMERIC_SCALE']})";
 				}
@@ -301,14 +325,14 @@ class Grow extends Common {
 		# If the current type is TEXT
 		if($tableMetadata[$key]['DATA_TYPE'] == "text"){
 			//once text, doesn't matter what new rows are, they will always remain text
-			return false;
+			return NULL;
 		}
 
 		# If the current type is VARCHAR
 		if($tableMetadata[$key]['DATA_TYPE'] == "varchar"){
 			if(strlen($val) <= $tableMetadata[$key]['CHARACTER_MAXIMUM_LENGTH']){
 				//if the value fits in the varchar column
-				return false;
+				return NULL;
 			} else {
 				$type = "{$tableMetadata[$key]['DATA_TYPE']}(".strlen($val).")";
 			}
@@ -333,14 +357,15 @@ class Grow extends Common {
 	 *
 	 * @return bool|string
 	 */
-	private function getGrowColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata){
+	private function getGrowColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata): ?string
+	{
 		if(in_array($type, ["int", "bigint", "text", "datetime", "json"])){
 			//If the column data type is any of these, no need to change their lengths
-			return false;
+			return NULL;
 		}
 
 		# Get the key for the existing column
-		$key = array_search($col, array_filter(array_combine(array_keys($tableMetadata), array_column($tableMetadata, 'COLUMN_NAME'))));
+		$key = $this->getColumnKey($col, $tableMetadata);
 
 		# DECIMAL
 		if($type == "decimal") {
@@ -350,7 +375,7 @@ class Grow extends Common {
 			if($precision <= $tableMetadata[$key]['NUMERIC_PRECISION']
 			&& $scale <= $tableMetadata[$key]['NUMERIC_SCALE']){
 				//If the new row is not bigger than the existing column specs
-				return false;
+				return NULL;
 			}
 		}
 
@@ -358,7 +383,7 @@ class Grow extends Common {
 		if($type == "varchar"){
 			if(strlen($val) <= $tableMetadata[$key]['CHARACTER_MAXIMUM_LENGTH']){
 				//If the new row is not bigger than the existing column specs
-				return false;
+				return NULL;
 			}
 		}
 
@@ -378,7 +403,8 @@ class Grow extends Common {
 	 *
 	 * @return string
 	 */
-	private function prepareType(string $type, $val, array $existing_column = NULL){
+	private function prepareType(string $type, $val, array $existing_column = NULL): string
+	{
 		# DECIMAL
 		if($type == "decimal"){
 			$precision = strlen(explode(".", $val)[0]);
