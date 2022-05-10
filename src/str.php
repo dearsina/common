@@ -3925,7 +3925,7 @@ EOF;
 
 			}
 			else {
-				//Value is a string, store as double quoted string
+				//Value is a string, store as double-quoted string
 
 				# Escape double quotes
 				$val = str_replace("\"", "&quot;", $val);
