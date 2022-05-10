@@ -529,15 +529,27 @@ abstract class Prototype {
 		# The column name is always table + _id
 		$column_name = "{$rel_table}_id";
 
-		# Look thru all tables across all DBs for this column name
+		# Look through all tables across all DBs for this column name
 		$results = $this->sql->run("
-			SELECT DISTINCT TABLE_SCHEMA, TABLE_NAME 
-			FROM INFORMATION_SCHEMA.COLUMNS
+			SELECT
+			    -- Distinct because we're only interested in one row per table name (and we're hitting the column table)
+				DISTINCT
+				`INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA`,
+				`INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_NAME` 
+			FROM `INFORMATION_SCHEMA`.`COLUMNS`
+			
+			-- Left join the views table to exclude any views
+			LEFT JOIN `INFORMATION_SCHEMA`.`VIEWS`
+            ON `INFORMATION_SCHEMA`.`VIEWS`.`TABLE_SCHEMA` = `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA`
+            AND `INFORMATION_SCHEMA`.`VIEWS`.`TABLE_NAME` = `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_NAME`
+			
 			WHERE 0=0
+		    -- We're not interested in views
+            AND `INFORMATION_SCHEMA`.`VIEWS`.`VIEW_DEFINITION` IS NULL
 			-- We're interested in all tables except the cache tables
-			AND TABLE_SCHEMA <> 'cache'
+			AND `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA` <> 'cache'
 			-- Where the column name appears
-			AND COLUMN_NAME = '{$column_name}';");
+			AND `INFORMATION_SCHEMA`.`COLUMNS`.`COLUMN_NAME` = '{$column_name}';");
 
 		if(!$results['num_rows']){
 			throw new \Exception("Could not find any tables with the <code>{$column_name}</code> column. Are you sure you got the right name?");
