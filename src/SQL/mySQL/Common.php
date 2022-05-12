@@ -743,7 +743,6 @@ abstract class Common {
 	 */
 	private function recursiveWhere(array $table, string $glue, array $array, ?bool $where = NULL): array
 	{
-
 		foreach($array as $key => $val){
 
 			# Goes deeper if required
@@ -778,6 +777,7 @@ abstract class Common {
 	{
 		if(is_array($or)){
 			$conditions['or'] = array_filter($this->recursiveWhere($table, "OR", $or));
+
 		}
 
 		if(is_array($and)){
@@ -950,11 +950,21 @@ abstract class Common {
 		if(!$this->tableAliasWithWhere){
 			return NULL;
 		}
+
 		$tables = [];
+
 		foreach($this->tableAliasWithWhere as $alias){
+			# Get the alias
 			$tables[$alias] = $alias;
-			foreach(explode(".", $alias) as $section){
-				$tables[$section] = $section;
+
+			# Get any sections (link tables) that this alias may contain
+			$sections = explode(".", $alias);
+
+			# While there are sections, pop a link table, and add to the list
+			while($sections){
+				$alias = implode(".", $sections);
+				$tables[$alias] = $alias;
+				array_pop($sections);
 			}
 		}
 		return $tables;
@@ -1043,7 +1053,9 @@ abstract class Common {
 
 			return $val;
 
-		} # "col" => ["JSON_FUNCTION", ["val"]]
+		}
+
+		# "col" => ["JSON_FUNCTION", ["val"]]
 		else if(is_string($col) && is_array($val) && (count($val) == 2) && $this->isJsonFunction($val[0])){
 			[$json_function, $v] = $val;
 
@@ -1095,7 +1107,9 @@ abstract class Common {
 
 			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
 
-		} # "col" => ["tbl_alias", "tbl_col"]
+		}
+
+		# "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
 			[$tbl_alias, $tbl_col] = $val;
 
@@ -1400,7 +1414,6 @@ abstract class Common {
 
 		$tables = [];
 
-		//		$table_alias_with_where = $this->getTableAliasWithWhere();
 		$table_alias_with_where = $this->getTableAliasWithWhereAndOrder();
 
 		foreach($this->join as $type => $joins){
@@ -1437,47 +1450,6 @@ abstract class Common {
 		return implode("\r\n", array_filter($tables));
 	}
 
-	//	/**
-	//	 * Returns an array of table aliases that have where conditions,
-	//	 * or who's children have where conditions.
-	//	 * Both the keys and the values are the name of the tables.
-	//	 *
-	//	 * @param bool|null $include_main
-	//	 *
-	//	 * @return array
-	//	 */
-	//	public function getTablesWithWhere(): array
-	//	{
-	//		$tables_with_where[$this->table['alias']] = $this->table['alias'];
-	//
-	//		foreach($this->join as $type => $joins){
-	//			foreach($joins as $join){
-	//				if(!$join['where']){
-	//					continue;
-	//				}
-	//				if($join['where']['or']){
-	//					foreach($join['where']['or'] as $and){
-	//						$tables_with_where[$join['table']] = $join['table'];
-	//					}
-	//				}
-	//				if($join['where']['or']){
-	//					$tables_with_where[$join['alias']] = $join['alias'];
-	//					$tables_with_where[$join['parent_alias']] = $join['parent_alias'];
-	//				}
-	//				if($join['where']['and']){
-	//					$str = "`removed` IS NULL";
-	//					foreach($join['where']['and'] as $and){
-	//						if(substr($and, strlen($str) * -1) != $str){
-	//							$tables_with_where[$join['table']] = $join['table'];
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//
-	//		return $tables_with_where;
-	//	}
-
 	protected function getLimitSQL(): ?string
 	{
 		return $this->limit;
@@ -1490,7 +1462,7 @@ abstract class Common {
 
 	/**
 	 * Returns all where conditions from all tables
-	 * as strings in a simple array with AND and OR root keys.
+	 * as strings in a simple array with "AND" and "OR" root keys.
 	 *
 	 * @param string|null $alias_only
 	 * @param string|null $except_alias
