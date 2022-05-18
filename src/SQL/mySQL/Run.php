@@ -7,25 +7,17 @@ namespace App\Common\SQL\mySQL;
 use App\Common\str;
 
 class Run extends Common {
+	/**
+	 * Runs a SQL query.
+	 *
+	 * @param string $query
+	 *
+	 * @return array
+	 */
 	public function run(string $query): array
 	{
 		# Store the query in a session variable
-		$_SESSION['query'] = $query;
-		$_SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
-		$_SESSION['database_calls']++;
-		$_SESSION['query_timer'] = str::startTimer();
-
-		if(str::runFromCLI()){
-			/**
-			 * When run from the command line, the session super global doesn't work,
-			 * so instead we use the not so super global $SESSION instead.
-			 * It works.
-			 */
-			global $SESSION;
-			$SESSION['query'] = $query;
-			$SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
-			$SESSION['database_calls']++;
-		}
+		$this->logRun($query);
 
 		$filtered_query = preg_replace("/([\"'])(?:\\\\?+.)*?\\1/", '', $query);
 		// We're only interested in semicolons if they appear outside quoted strings
@@ -49,8 +41,6 @@ class Run extends Common {
 			# Run the query
 			$result = $this->mysqli->query($query);
 		}
-
-
 
 		/**
 		 * For successful SELECT, SHOW, DESCRIBE or EXPLAIN queries
@@ -79,5 +69,40 @@ class Run extends Common {
 			"num_rows" => $num_rows,
 			"affected_rows" => $affected_rows
 		];
+	}
+
+	/**
+	 * Logs executions of SQL queries,
+	 * but only on the dev environment.
+	 *
+	 * @param string $query
+	 */
+	private function logRun(string $query): void
+	{
+		# We only want to log runs on the dev environment
+		if(!str::isDev()){
+			return;
+		}
+
+		$_SESSION['query'] = $query;
+		$_SESSION['queries'][] = [
+			"query_md5" => md5($query),
+			"query" => str_replace(["\r\n"]," ",$query),
+			"backtrace" => str::backtrace(true)
+		];
+		$_SESSION['database_calls']++;
+		$_SESSION['query_timer'] = str::startTimer();
+
+		if(str::runFromCLI()){
+			/**
+			 * When run from the command line, the session super global doesn't work,
+			 * so instead we use the not so super global $SESSION instead.
+			 * It works.
+			 */
+			global $SESSION;
+			$SESSION['query'] = $query;
+			$SESSION['queries'][] = str_replace(["\r\n"]," ",$query);
+			$SESSION['database_calls']++;
+		}
 	}
 }

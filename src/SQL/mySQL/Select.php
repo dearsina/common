@@ -89,6 +89,14 @@ class Select extends Common {
 		# No results found
 		if(!$results['num_rows']){
 			//if no rows are found, return NULL
+
+			if(str::isDev()){
+				# Add the time it took to run the query also
+				$last_query = array_pop($_SESSION['queries']);
+				$last_query['time'] = str::stopTimer($_SESSION['query_timer']);
+				$_SESSION['queries'][] = $last_query;
+			}
+
 			return NULL;
 		}
 
@@ -115,10 +123,12 @@ class Select extends Common {
 		}
 		# TODO Somehow fix bug where normalisation messes with JSON column data
 
-		# Add the time it took to run the query also
-		$time = str::stopTimer($_SESSION['query_timer']);
-		$last_query = array_pop($_SESSION['queries']);
-		$_SESSION['queries'][] = [$last_query, $time];
+		if(str::isDev()){
+			# Add the time it took to run the query also
+			$last_query = array_pop($_SESSION['queries']);
+			$last_query['time'] = str::stopTimer($_SESSION['query_timer']);
+			$_SESSION['queries'][] = $last_query;
+		}
 
 		if(!$rows){
 			return NULL;

@@ -82,13 +82,22 @@ class Info {
 		# Clean up the request variables
 		$a = $this->cleanVars($a);
 
+		# Get the fingerprint for this query
+		$fingerprint = $this->generateFingerprint([$a, $joins]);
+
 		if(!$refresh){
 			//If force refresh is not set
 
 			# Get cached results if they exist
-			if(($cached_results = $this->getCachedResults($a, $joins)) !== FALSE){
+			$cached_results = $this->getCachedResults($fingerprint);
+			// Will return false if no results are found
+
+			if($cached_results !== false){
+				// If cached results were found (NOT false)
 				return $cached_results;
 			}
+
+			$_SESSION['no_cache_found'][$fingerprint]++;
 		}
 
 		# Run either a custom or generic process to get the rows
@@ -99,7 +108,7 @@ class Info {
 		}
 
 		# Store the cached results
-		$this->setCachedResults($a, $joins, $rows);
+		$this->setCachedResults($a, $fingerprint, $rows);
 
 		# If there aren't any actual results
 		if(!$rows){
@@ -181,27 +190,6 @@ class Info {
 	 */
 	private function customProcess(string $class_path, array $a, ?array $joins = NULL)
 	{
-		/*
-		# The default variables
-		$default_a = [];
-
-		# Prepare the variables
-		$class_path::prepare($default_a, $joins);
-
-		# The default table value (if set) cannot be overwritten
-		$a['table'] = $default_a['table'] ?: $a['table'];
-
-		# Add/override the default variables
-		$query = str::array_merge_recursive_distinct($default_a, $a);
-		*/
-
-		/**
-		 * That was the old way of doing this,
-		 * it gave priority to the prepare-variables,
-		 * the new way gives priority to the variables
-		 * sent. That seems to make more sense.
-		 */
-
 		# Fatten the variable array
 		$class_path::prepare($a, $joins);
 
@@ -258,42 +246,54 @@ class Info {
 	 *
 	 * Will return FALSE if no cache exists.
 	 *
-	 * @param $a
+	 * @param string $fingerprint
 	 *
 	 * @return mixed
 	 */
-	private function getCachedResults(array $a, ?array $joins = NULL){
-		$id = $this->fingerprint([$a, $joins]);
-		if(!key_exists($id, $this->info)){
+	private function getCachedResults(string $fingerprint){
+		if(!$_SESSION['cached_queries'][getmypid()]){
+			// If no cached queries for this process have been logged yet
+
+			# Remove all cached queries from the previous process (to save space)
+			unset($_SESSION['cached_queries']);
+
+			# There is no cache, so return false
 			return false;
 		}
-		return $this->info[$id];
+
+		# If the cached result exists, return it
+		if(key_exists($fingerprint, $_SESSION['cached_queries'][getmypid()])){
+			return $_SESSION['cached_queries'][getmypid()][$fingerprint];
+		}
+
+		# Otherwise, return false
+		return false;
 	}
 
 	/**
 	 * Store the information requested results, so that if future requests
 	 * are for the same data, the cached results are returned instead.
 	 *
-	 * @param array      $request
-	 * @param array|null $joins
+	 * @param array      $a
+	 * @param string     $fingerprint
 	 * @param            $results
 	 *
 	 * @return mixed
 	 */
-	public function setCachedResults(array $request, ?array $joins = NULL, $results): void
+	public function setCachedResults(array $a, string $fingerprint, $results): void
 	{
-		if(($request['limit'] == 1 || $request['rel_id']) && str::isNumericArray($results)){
-			//if a rel_id is requested or limit =1 , only store the first (and only) value
-			//it also checks more than one result was in fact returned
-			$this->info[$this->fingerprint([$request, $joins])] = reset($results);
-		} else {
-			$this->info[$this->fingerprint([$request, $joins])] = $results;
+		if(($a['limit'] == 1 || $a['rel_id']) && str::isNumericArray($results)){
+			$_SESSION['cached_queries'][getmypid()][$fingerprint] = reset($results) ?: NULL;
+		}
+
+		else {
+			$_SESSION['cached_queries'][getmypid()][$fingerprint] = $results ?: NULL;
 		}
 	}
 
 	/**
-	 * Creates a fingerprint from the array of meta data about the information required.
-	 * The finger print is used to identify if the exact same request has been
+	 * Creates a fingerprint from the array of metadata about the information required.
+	 * The fingerprint is used to identify if the exact same request has been
 	 * processed already as part of the same AJAX call. In which case, the cached
 	 * value will be used instead.
 	 *
@@ -301,7 +301,7 @@ class Info {
 	 *
 	 * @return string
 	 */
-	public function fingerprint($a){
+	public function generateFingerprint($a){
 		return md5(json_encode($a));
 	}
 }
