@@ -187,11 +187,15 @@ class Request {
 				"message" => $e->getMessage(),
 				"trace" => $this->getExceptionTraceAsString($e),
 			]);
-			$this->log->info([
-				"icon" => "code",
-				"title" => "Query",
-				"message" => $_SESSION['query'],
-			]);
+
+			# Only show the query itself in the dev environment
+			if(str::isDev()){
+				$this->log->info([
+					"icon" => "code",
+					"title" => "Query",
+					"message" => $_SESSION['query'],
+				]);
+			}
 		}
 		catch(\TypeError $e) {
 			$this->log->error([
