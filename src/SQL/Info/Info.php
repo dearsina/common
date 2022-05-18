@@ -8,6 +8,19 @@ use App\Common\SQL\mySQL\mySQL;
 use App\Common\str;
 
 /**
+ * The cached_queries session
+ * array is used to store
+ * the results of any query run
+ * using the Info() class.
+ *
+ * It is reset each time the
+ * Info.php file is read, which
+ * only happens on load, once
+ * per call.
+ */
+$_SESSION['cached_queries'] = [];
+
+/**
  * Class Info
  * @package App\Common\SQL\Info
  */
@@ -251,19 +264,9 @@ class Info {
 	 * @return mixed
 	 */
 	private function getCachedResults(string $fingerprint){
-		if(!$_SESSION['cached_queries'][getmypid()]){
-			// If no cached queries for this process have been logged yet
-
-			# Remove all cached queries from the previous process (to save space)
-			unset($_SESSION['cached_queries']);
-
-			# There is no cache, so return false
-			return false;
-		}
-
-		# If the cached result exists, return it
-		if(key_exists($fingerprint, $_SESSION['cached_queries'][getmypid()])){
-			return $_SESSION['cached_queries'][getmypid()][$fingerprint];
+		if(key_exists($fingerprint, $_SESSION['cached_queries'])){
+			//If the cached result exists, return it
+			return $_SESSION['cached_queries'][$fingerprint];
 		}
 
 		# Otherwise, return false
@@ -283,11 +286,11 @@ class Info {
 	public function setCachedResults(array $a, string $fingerprint, $results): void
 	{
 		if(($a['limit'] == 1 || $a['rel_id']) && str::isNumericArray($results)){
-			$_SESSION['cached_queries'][getmypid()][$fingerprint] = reset($results) ?: NULL;
+			$_SESSION['cached_queries'][$fingerprint] = reset($results) ?: NULL;
 		}
 
 		else {
-			$_SESSION['cached_queries'][getmypid()][$fingerprint] = $results ?: NULL;
+			$_SESSION['cached_queries'][$fingerprint] = $results ?: NULL;
 		}
 	}
 
