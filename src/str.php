@@ -2307,6 +2307,7 @@ EOF;
 		$all_rows = [];
 
 		$header = NULL;//null; // has header
+
 		if(($handle = fopen($file, "r")) !== false){
 			while(($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
 				if($skip_rows && $skip_rows > $rows_skipped){
@@ -2323,6 +2324,84 @@ EOF;
 			fclose($handle);
 		}
 		return $all_rows;
+	}
+
+	/**
+	 * Converts an external CSV file, internal CSV file, or CSV data to an array.
+	 *
+	 * @param string      $data
+	 * @param bool|null   $has_header_row
+	 * @param string|null $separator
+	 * @param string|null $enclosure
+	 * @param string|null $escape
+	 *
+	 * @return array|null
+	 */
+	public static function convertCsvToArray(string $data, ?bool $has_header_row = NULL, ?string $separator = NULL, ?string $enclosure = NULL, ?string $escape = NULL): ?array
+	{
+		# External file
+		if (filter_var($data, FILTER_VALIDATE_URL) !== FALSE){
+			$f = new \SplFileObject($data);
+		}
+
+		# Internal file
+		else if(file_exists($data)){
+			$f = new \SplFileObject($data);
+		}
+
+		# Data string (that needs to be stored as a local file)
+		else {
+			# Generate a random tmp name
+			$tmp_name = $_ENV['tmp_dir'].str::id("csv");
+
+			# Store the data as a file
+			file_put_contents($tmp_name, $data);
+
+			# Load the file as an object
+			$f = new \SplFileObject($tmp_name);
+		}
+
+		# Convert text to actual
+		foreach(["separator", "enclosure", "escape"] as $key){
+			${$key} = str_replace(["\\t", "\\r\\n", "\\r", "\\n"], ["\t", "\r\n", "\r", "\n"], ${$key});
+		}
+
+		$f->setFlags(\SplFileObject::READ_CSV
+			| \SplFileObject::SKIP_EMPTY
+			| \SplFileObject::READ_AHEAD
+		);
+		$f->setCsvControl($separator, $enclosure, $escape);
+
+		foreach($f as $row_number => $row){
+			if(!$row_number && $has_header_row){
+				$header = $row;
+
+				# Suffix non-unique headers with their corresponding Excel column key
+				if(count($header) != count(array_unique($header))){
+					$counts = array_count_values($header);
+					foreach($header as $id => $title){
+						if($counts[$title] > 1){
+							$header[$id] = "{$title} [".str::excelKey($id)."]";
+						}
+					}
+				}
+				continue;
+			}
+
+			if(!$header){
+				$rows[] = $row;
+				continue;
+			}
+
+			$rows[] = array_combine($header, $row);
+		}
+
+		# Clear the temporary file if one was used
+		if($tmp_name){
+			unlink($tmp_name);
+		}
+
+		return $rows;
 	}
 
 	/**
