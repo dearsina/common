@@ -2157,8 +2157,8 @@ class User extends Prototype {
 		# Password expiry date
 		$dt = new \DateTime($user['password_expiry']);
 
-		# If the date is after now, it has expired
-		return $dt > $now;
+		# If the date is before now, it has expired
+		return $dt < $now;
 	}
 
 	/**

@@ -448,8 +448,6 @@ class Card extends Prototype {
 	private function getPasswordExpiryDateValue(array $user): array
 	{
 		if($user['password_expiry']){
-
-
 			if(!User::passwordHasExpired($user)){
 				// If the password has yet to expire
 				return [
