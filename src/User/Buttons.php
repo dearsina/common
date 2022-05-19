@@ -76,7 +76,7 @@ class Buttons {
 				"message" => "Your account is more secure when you need a password and a verification code to sign in. If you remove this extra layer of security, you will only be asked for a password when you sign in. It might be easier for someone to break into your account.",
 			];
 		} else {
-			$title = "Enable two-factor authentication...";
+			$title = "Enable two-factor authentication";
 			$approve = false;
 		}
 
