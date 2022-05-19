@@ -97,7 +97,7 @@ class Buttons {
 		if($user['password_expiry']){
 			$title = "Disable password expiry...";
 			$approve = [
-				"icon" => Icon::get("2fa"),
+				"icon" => "key",
 				"colour" => "warning",
 				"title" => "Disable password expiry?",
 				"message" => "Your account is more secure when you refresh your passwords every so often. Disabling password expiry allows you to keep your current password forever.",
