@@ -5,13 +5,14 @@ namespace App\Common\User;
 
 
 use App\Common\href;
+use App\Common\Prototype\FieldPrototype;
 use App\UI\Countdown;
 
 /**
  * Class Field
  * @package App\Common\User
  */
-class Field {
+class Field extends FieldPrototype {
 	/**
 	 * Minimum password length
 	 */
@@ -22,7 +23,8 @@ class Field {
 	 *
 	 * @return array[]
 	 */
-	public static function login($a = NULL){
+	public static function login($a = NULL)
+	{
 		if(is_array($a))
 			extract($a);
 
@@ -32,21 +34,77 @@ class Field {
 			"label" => false,
 			"value" => $email,
 			"required" => "Please enter your email address.",
-			"icon" => "user"
-		],[
+			"icon" => "user",
+		], [
 			"icon" => "key",
 			"type" => "password",
 			"name" => "password",
 			"label" => false,
 			"required" => "If you have forgotten your password, click on the forgot password button.",
 			"value" => $password,
-		],[
+		], [
 			"type" => "checkbox",
 			"name" => "remember",
 			"label" => "Remember me",
 			"value" => 1,
-			"checked" => $remember
+			"checked" => $remember,
 		]];
+	}
+
+	private static function fieldCurrentPassword(): array
+	{
+		return [
+			"icon" => "key",
+			"placeholder" => "Current password",
+			"type" => "password",
+			"name" => "password",
+			"label" => [
+				"title" => "Current password",
+			],
+			"autocomplete" => "current-password",
+			"required" => true
+		];
+	}
+
+	private static function fieldNewPassword(): array
+	{
+		return [
+			"placeholder" => "New password",
+			"type" => "password",
+			"icon" => "key",
+			"name" => "new_password",
+			"autocomplete" => "new-password",
+			"validation" => [
+				"password" => [
+					"rule" => [
+						"min_length" => self::minimumPasswordLength,
+						"uppercase" => 1,
+						"lowercase" => 1,
+						"special" => 1,
+						"number" => 1,
+					],
+				],
+			],
+			"required" => true,
+		];
+	}
+
+	private static function fieldRepeatNewPassword(): array
+	{
+		return [
+			"placeholder" => "Repeat new password",
+			"type" => "password",
+			"icon" => "key",
+			"name" => "repeat_new_password",
+			"autocomplete" => "new-password",
+			"validation" => [
+				"equalTo" => [
+					"rule" => "input[name=new_password]",
+					"msg" => "Repeated password does not match.",
+				],
+			],
+			"required" => true,
+		];
 	}
 
 	/**
@@ -56,8 +114,9 @@ class Field {
 	 *
 	 * @return array
 	 */
-	public static function register($a = NULL) {
-		if (is_array($a))
+	public static function register($a = NULL)
+	{
+		if(is_array($a))
 			extract($a);
 
 		return [[[
@@ -68,13 +127,13 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure you have written your first name in full."
+					"msg" => "Please ensure you have written your first name in full.",
 				],
-				"minLength" => 2
+				"minLength" => 2,
 			],
 			"value" => urldecode($first_name),
-			"sm" => 5
-		],[
+			"sm" => 5,
+		], [
 			"name" => "last_name",
 			"autocomplete" => "name family-name",
 			"label" => false,
@@ -82,19 +141,13 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure you have written your last name in full."
+					"msg" => "Please ensure you have written your last name in full.",
 				],
-				"minLength" => 2
+				"minLength" => 2,
 			],
 			"value" => urldecode($last_name),
-			"sm" => 7
-		]],[
-//			"name" => "company_name",
-//			"autocomplete" => "company",
-//			"label" => false,
-//			"placeholder" => "Company Name",
-//			"value" => $company_name,
-//		],[
+			"sm" => 7,
+		]], [
 			"type" => "email",
 			"autocomplete" => "email",
 			"name" => "email",
@@ -104,11 +157,11 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure you've entered a valid email address."
+					"msg" => "Please ensure you've entered a valid email address.",
 				],
 			],
-			"value" => $email
-		],[
+			"value" => $email,
+		], [
 			"type" => "tel",
 			"autocomplete" => "tel",
 			"name" => "phone",
@@ -116,35 +169,35 @@ class Field {
 			"validation" => [
 				"tel" => [
 					"rule" => true,
-					"msg" => "Please ensure you enter your full mobile number."
+					"msg" => "Please ensure you enter your full mobile number.",
 				],
 			],
 			"label" => false,
 			"value" => $phone,
 			"required" => true,
-		],[
+		], [
 			"type" => "recaptcha",
-			"action" => "insert_user"
-		],[
+			"action" => "insert_user",
+		], [
 			"type" => "checkbox",
 			"name" => "tnc",
 			"checked" => $tnc,
 			"label" => href::a([
-					"pre" => "I accept the ",
-					"html" => "Terms and Conditions",
-					"post" => ".",
-					"hash" => [
-						"rel_table" => "narrative",
-						"rel_id" => "termsconditions"
-					]
-				]),
+				"pre" => "I accept the ",
+				"html" => "Terms and Conditions",
+				"post" => ".",
+				"hash" => [
+					"rel_table" => "narrative",
+					"rel_id" => "termsconditions",
+				],
+			]),
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please make sure you read and accept our terms and conditions."
+					"msg" => "Please make sure you read and accept our terms and conditions.",
 				],
 			],
-			"value" => $tnc
+			"value" => $tnc,
 		]];
 	}
 
@@ -155,8 +208,9 @@ class Field {
 	 *
 	 * @return array
 	 */
-	public static function new($a = NULL) {
-		if (is_array($a))
+	public static function new($a = NULL)
+	{
+		if(is_array($a))
 			extract($a);
 
 		return [[[
@@ -166,22 +220,22 @@ class Field {
 			"placeholder" => "First name",
 			"required" => true,
 			"value" => $first_name,
-			"sm" => 5
-		],[
+			"sm" => 5,
+		], [
 			"name" => "last_name",
 			"autocomplete" => "name family-name",
 			"label" => false,
 			"placeholder" => "Last name",
 			"required" => true,
 			"value" => $last_name,
-			"sm" => 7
-		]],[
-//			"name" => "company_name",
-//			"autocomplete" => "company",
-//			"label" => false,
-//			"placeholder" => "Company Name",
-//			"value" => $company_name,
-//		],[
+			"sm" => 7,
+		]], [
+			//			"name" => "company_name",
+			//			"autocomplete" => "company",
+			//			"label" => false,
+			//			"placeholder" => "Company Name",
+			//			"value" => $company_name,
+			//		],[
 			"type" => "email",
 			"autocomplete" => "email",
 			"name" => "email",
@@ -189,8 +243,8 @@ class Field {
 			"label" => false,
 			"placeholder" => "Email address",
 			"required" => true,
-			"value" => $email
-		],[
+			"value" => $email,
+		], [
 			"type" => "tel",
 			"autocomplete" => "tel",
 			"name" => "phone",
@@ -198,18 +252,18 @@ class Field {
 			"validation" => [
 				"tel" => [
 					"rule" => true,
-					"msg" => "Please ensure you enter a full mobile number."
+					"msg" => "Please ensure you enter a full mobile number.",
 				],
 			],
 			"label" => false,
-			"value" => $phone
-		],[
+			"value" => $phone,
+		], [
 			"type" => "checkbox",
 			"name" => "welcome_email",
 			"checked" => false,
 			"label" => [
 				"title" => "Send welcome email",
-				"desc" => "Sends a welcome email to the new user with a link to verify their account and set up a password."
+				"desc" => "Sends a welcome email to the new user with a link to verify their account and set up a password.",
 			],
 		]];
 	}
@@ -219,13 +273,15 @@ class Field {
 	 *
 	 * @return array[]
 	 */
-	public static function edit($a = NULL, ?bool $elevated = NULL) {
-		if (is_array($a))
+	public static function edit($a = NULL, ?bool $elevated = NULL)
+	{
+		if(is_array($a))
 			extract($a);
 
 		if($elevated){
 			$desc = "Email address changes to verified accounts will result in emails going to the user's old and new addresses for verification.";
-		} else {
+		}
+		else {
 			$disabled = true;
 			$desc = "There is a separate process for changing your email address.";
 		}
@@ -238,12 +294,12 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure you have written your first name in full."
+					"msg" => "Please ensure you have written your first name in full.",
 				],
-				"minLength" => 2
+				"minLength" => 2,
 			],
-			"value" => $first_name
-		],[
+			"value" => $first_name,
+		], [
 			"name" => "last_name",
 			"autocomplete" => "name family-name",
 			"label" => false,
@@ -251,12 +307,12 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure you have written your last name in full."
+					"msg" => "Please ensure you have written your last name in full.",
 				],
-				"minLength" => 2
+				"minLength" => 2,
 			],
-			"value" => $last_name
-		],[
+			"value" => $last_name,
+		], [
 			"type" => "email",
 			"icon" => "envelope",
 			"label" => false,
@@ -266,20 +322,20 @@ class Field {
 			"value" => $email,
 			"name" => "email",
 			"required" => true,
-		],[
+		], [
 			"type" => "tel",
 			"autocomplete" => "tel",
 			"name" => "phone",
 			"placeholder" => false,
-//			"icon" => "phone",
+			//			"icon" => "phone",
 			"validation" => [
 				"tel" => [
 					"rule" => true,
-					"msg" => "Please ensure you enter your full mobile number."
+					"msg" => "Please ensure you enter your full mobile number.",
 				],
 			],
 			"label" => false,
-			"value" => $phone
+			"value" => $phone,
 		]];
 	}
 
@@ -290,7 +346,7 @@ class Field {
 	 */
 	public static function editEmail($a = NULL): array
 	{
-		if (is_array($a))
+		if(is_array($a))
 			extract($a);
 
 		return [[
@@ -300,7 +356,7 @@ class Field {
 			link to complete the update process.</p>
 			<p>Until you complete the process, please continue to use
 			your current address to log in.</p>",
-		],[
+		], [
 			"type" => "email",
 			"autocomplete" => "off",
 			"name" => "new_email",
@@ -310,84 +366,84 @@ class Field {
 			"validation" => [
 				"required" => [
 					"rule" => true,
-					"msg" => "Please ensure you've entered a valid email address."
+					"msg" => "Please ensure you've entered a valid email address.",
 				],
 			],
-		],[
+		], [
 			"icon" => "key",
 			"type" => "password",
 			"name" => "password",
 			"placeholder" => "Current password",
 			"label" => false,
 			"required" => "For added security, please enter your current password.",
-			"autocomplete" => "new-password"
+			"autocomplete" => "new-password",
 		]];
 	}
 
 	/**
+	 * Used to set a new password,
+	 * either for new user or user who
+	 * has forgotten their password.
+	 *
 	 * @param null $a
 	 *
 	 * @return array
 	 */
-	public static function newPassword($a = NULL) {
-		if (is_array($a))
+	public static function newPassword($a = NULL)
+	{
+		if(is_array($a))
 			extract($a);
 
-		return [[
-			"type" => "password",
-			"icon" => "key",
-			"name" => "new_password",
-			"label" => "New password",
-			"validation" => [
-				"password" => [
-					"rule" => [
-						"min_length" => self::minimumPasswordLength,
-						"uppercase" => true,
-						"lowercase" => true,
-						"special" => true,
-						"number" => true
-					]
-				]
-			],
-			"required" => true
-		],[
-			"type" => "password",
-			"icon" => "key",
-			"name" => "repeat_new_password",
-			"label" => "Repeat new password",
-			"validation" => [
-				"equalTo" => [
-					"rule" => "input[name=new_password]",
-					"msg" => "Repeated password does not match."
-				]
-			],
-		],[
-			"type" => "hidden",
-			"name" => "key",
-			"value" => $key
-		]];
+		$fields = self::hiddenFields($a, ["key"]);
+		$fields[] = self::fieldNewPassword();
+		$fields[] = self::fieldRepeatNewPassword();
+
+		return $fields;
 	}
 
 	/**
+	 * Used to update an existing password.
+	 * Assumes the user knows their existing password
+	 *
+	 * @param array|null $a
+	 *
+	 * @return array
+	 */
+	public static function editPassword(?array $a = NULL): array
+	{
+		if(is_array($a))
+			extract($a);
+
+		$fields[] = self::fieldCurrentPassword();
+		$fields[] = self::fieldNewPassword();
+		$fields[] = self::fieldRepeatNewPassword();
+
+		return $fields;
+	}
+
+	/**
+	 * Used to create link to reset password.
+	 *
 	 * @param null $a
 	 *
 	 * @return array
 	 */
-	public static function resetPassword($a = NULL) {
-		if (is_array($a))
+	public static function resetPassword($a = NULL)
+	{
+		if(is_array($a))
 			extract($a);
 
 		return [[
 			"html" => "<p>Enter the email address you used to register with. If the address is valid, an email will be sent to you with a link to reset your password.</p>",
-		],[
+		], [
 			"type" => "email",
 			"name" => "email",
 			"label" => false,
 			"required" => true,
-			"value" => $email
-		],[
+			"value" => $email,
+		], [
 			"type" => "recaptcha",
-			"action" => "reset_password"
+			"action" => "reset_password",
 		]];
 	}
 
@@ -399,7 +455,7 @@ class Field {
 	 */
 	public static function codeFor2FA($a = NULL)
 	{
-		if (is_array($a))
+		if(is_array($a))
 			extract($a);
 
 		return [[
@@ -410,25 +466,25 @@ class Field {
 			"validation" => [
 				"minLength" => [
 					"rule" => 4,
-					"msg" => "Your code doesn't seem to be complete."
+					"msg" => "Your code doesn't seem to be complete.",
 				],
 				"maxLength" => [
 					"rule" => 4,
-					"msg" => "Ensure you enter the code only."
-				]
+					"msg" => "Ensure you enter the code only.",
+				],
 			],
 			"desc" => Countdown::generate([
 				"modify" => "+15 minutes",
 				"stop" => "Your code has expired, please cancel and log in again.",
 				"pre" => "The code is not case sensitive and will expire in ",
 				"post" => ".",
-				"callback" => false
+				"callback" => false,
 			]),
-			"autocomplete" => "off"
-		],[
+			"autocomplete" => "off",
+		], [
 			"type" => "hidden",
 			"name" => "remember",
-			"value" => $remember
+			"value" => $remember,
 		]];
 	}
 }

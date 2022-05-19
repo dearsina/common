@@ -92,7 +92,7 @@ class Card extends Prototype {
 			"body" => $form->getHTML(),
 			"footer" => [
 				"class" => "smaller",
-				"html" => "After you have registered you will receive an email with a link to verify your email address."
+				"html" => "After you have registered you will receive an email with a link to verify your email address.",
 			],
 			"post" => [
 				"class" => "text-muted",
@@ -177,7 +177,7 @@ class Card extends Prototype {
 		]]);
 
 		$card = new \App\UI\Card\Card([
-//			"draggable" => true,
+			//			"draggable" => true,
 			"header" => "Verify your email address",
 			"body" => $body,
 			"footer" => $form->getHTML(),
@@ -218,7 +218,7 @@ class Card extends Prototype {
 				"message" => "If you don't set a password, you will not be able to log in to {$_ENV['title']}.",
 				"colour" => "danger",
 			],
-			"class" => "float-right"
+			"class" => "float-right",
 		]];
 
 		$form = new Form([
@@ -271,14 +271,18 @@ class Card extends Prototype {
 			],
 			"basic" => true,
 			"title" => "Forgot password",
-			"class" => "float-right"
+			"class" => "float-right",
 		]];
+
+		// To prevent a loop, remove the callback if it's user//login
+		if($this->hash->getCallback() == "user//login"){
+			$this->hash->setCallback(false);
+		}
 
 		$form = new Form([
 			"action" => "verify_credentials",
 			"rel_table" => "user",
-			"callback" => $this->hash->getCallback() == "user//login" ? false : $this->hash->getCallback(),
-			// This is to prevent a loop
+			"callback" => $this->hash->getCallback(),
 			"fields" => Field::login($vars),
 			"buttons" => $buttons,
 			"encrypt" => ["password"],
@@ -441,6 +445,54 @@ class Card extends Prototype {
 		return $card->getHTML();
 	}
 
+	private function getPasswordExpiryDateValue(array $user): array
+	{
+		if($user['password_expiry']){
+
+
+			if(!User::passwordHasExpired($user)){
+				// If the password has yet to expire
+				return [
+					"html" => str::ago($user['password_expiry'], true),
+				];
+			}
+
+			// If the password has expired (but the user is still logged in)
+			return [
+				"html" => Icon::generate([
+						"colour" => "warning",
+						"name" => "exclamation-triangle",
+						"style" => [
+							"margin-right" => "0.5rem",
+						],
+					]) . "Password expired " . str::ago($user['password_expiry']),
+				"alt" => "The current password has expired and will need to be changed at the next log in.",
+			];
+		}
+
+		return [
+			"html" => str::check($user['password_expiry'], true, [
+				"alt" => "Password expiry has been disabled for this account.\r\nThe current password will never expire.",
+				"style" => ["margin" => ".3rem 0 -.3rem 0"],
+			]),
+		];
+	}
+
+	private function getTwoFactorAuthenticationValue(array $user): string
+	{
+		if($user['2fa_enabled']){
+			return str::check($user['2fa_enabled'], true, [
+				"alt" => "Two factor authentication is enabled",
+				"style" => ["margin" => ".3rem 0 -.3rem 0"],
+			]);
+		}
+
+		return str::check($user['2fa_enabled'], true, [
+			"alt" => "Two-factor authentication has been disabled for this account.",
+			"style" => ["margin" => ".3rem 0 -.3rem 0"],
+		]);
+	}
+
 	/**
 	 * @param $user
 	 *
@@ -460,10 +512,8 @@ class Card extends Prototype {
 				"alt" => "The email address is " . ($user['verified'] ? "verified" : "not verified yet"),
 				"style" => ["margin" => ".3rem 0 -.3rem 0"],
 			]),
-			"Two-factor authentication" => str::check($user['2fa_enabled'], true, [
-				"alt" => "Two factor authentication is " . ($user['2fa_enabled'] ? "enabled" : "disabled"),
-				"style" => ["margin" => ".3rem 0 -.3rem 0"],
-			]),
+			"Two-factor authentication" => $this->getTwoFactorAuthenticationValue($user),
+			"Password expiry date" => $this->getPasswordExpiryDateValue($user),
 		];
 
 		$card = new \App\UI\Card\Card([
@@ -482,86 +532,17 @@ class Card extends Prototype {
 
 	private function getAccountButtons(array $user): array
 	{
-		$header_buttons[] = [
-			"hash" => [
-				"rel_table" => "user",
-				"rel_id" => $user['user_id'],
-				"action" => "edit",
-				"vars" => [
-					"callback" => str::generate_uri([
-						"rel_table" => "user",
-						"rel_id" => $user['user_id'],
-					], true),
-				],
-			],
-			"title" => "Edit...",
-			"icon" => Icon::get("edit"),
-		];
-
-		$header_buttons[] = [
-			"hash" => [
-				"rel_table" => "user",
-				"rel_id" => $user['user_id'],
-				"action" => "edit_email",
-			],
-			"title" => "Edit email address...",
-			"icon" => "envelope",
-		];
+		$header_buttons[] = Buttons::edit($user);
+		$header_buttons[] = Buttons::editEmail($user);
+		$header_buttons[] = Buttons::updatePassword($user);
 
 		if(!$user['verified'] || !$user['password']){
-			$header_buttons[] = [
-				"hash" => [
-					"rel_table" => "user",
-					"rel_id" => $user['user_id'],
-					"action" => "send_verify_email",
-				],
-				"title" => "Resend verify email",
-				"alt" => "Resend the user a verify email to {$user['email']} with a verification code",
-				"icon" => Icon::get("send"),
-			];
+			$header_buttons[] = Buttons::sendVerificationEmail($user);
 		}
 
-		if($user['2fa_enabled']){
-			$title = "Disable two-factor authentication...";
-			$approve = [
-				"icon" => Icon::get("2fa"),
-				"colour" => "warning",
-				"title" => "Disable two-factor authentication?",
-				"message" => "Your account is more secure when you need a password and a verification code to sign in. If you remove this extra layer of security, you will only be asked for a password when you sign in. It might be easier for someone to break into your account.",
-			];
-		} else {
-			$title = "Enable two-factor authentication...";
-			$approve = false;
-		}
-
-		$header_buttons[] = [
-			"hash" => [
-				"rel_table" => "user",
-				"rel_id" => $user['user_id'],
-				"action" => "toggle_2FA",
-			],
-			"title" => $title,
-			"approve" => $approve,
-			"icon" => Icon::get("2fa"),
-		];
-
-		$header_buttons[] = [
-			"hash" => [
-				"rel_table" => "user",
-				"rel_id" => $user['user_id'],
-				"action" => "remove",
-				"variables" => [
-					"callback" => "logout",
-				],
-			],
-			"title" => "Close account...",
-			"icon" => "times",
-			"approve" => [
-				"colour" => "red",
-				"title" => "Close your account",
-				"message" => "Are you sure you want to close your account? All your data will be removed immediately. This cannot be undone.",
-			],
-		];
+		$header_buttons[] = Buttons::toggleTwoFactorAuthentication($user);
+		$header_buttons[] = Buttons::togglePasswordExpiry($user);
+		$header_buttons[] = Buttons::close($user);
 
 		return $header_buttons;
 	}

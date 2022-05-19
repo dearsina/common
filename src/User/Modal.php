@@ -141,6 +141,54 @@ class Modal extends Prototype {
 		return $modal->getHTML();
 	}
 
+	public function editPassword(array $a, ?string $size = "m"): string
+	{
+		extract($a);
+
+		$user = $this->info($rel_table, $rel_id);
+
+		# If no key is set, create one
+		if(!$user['key']){
+			$this->sql->update([
+				"table" => $rel_table,
+				"id" => $rel_id,
+				"set" => [
+					"key" => str::uuid()
+				],
+				"user_id" => $rel_id
+			]);
+		}
+
+		$buttons = [[
+			"type" => "submit",
+			"title" => "Update",
+			"icon" => Icon::get("save"),
+			"colour" => "primary",
+		],"cancel_md"];
+
+		$form = new Form([
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"action" => "update_existing_password",
+			"fields" => Field::editPassword(),
+			"buttons" => $buttons,
+			"modal" => true,
+			"encrypt" => ["password", "new_password", "repeat_new_password"]
+		]);
+
+	    $modal = new \App\UI\Modal\Modal([
+			"id" => "edit-password",
+			"size" => $size,
+			"icon" => "key",
+			"header" => str::title("Update password"),
+			"body" => $form->getHTML(),
+			"draggable" => true,
+			"resizable" => true,
+		]);
+
+	    return $modal->getHTML();
+	}
+
 	public function new(array $a): string
 	{
 		extract($a);

@@ -37,11 +37,18 @@ class Hash {
 	 * Cloning and wakeup are also set to private to prevent
 	 * cloning and unserialising of the Hash() object.
 	 */
-	private function __construct() {
+	private function __construct()
+	{
 
 	}
-	private function __clone() {}
-	private function __wakeup() {}
+
+	private function __clone()
+	{
+	}
+
+	private function __wakeup()
+	{
+	}
 
 	/**
 	 * Checks to see if an instance of Hash()
@@ -145,16 +152,16 @@ class Hash {
 	 *
 	 * The callbacks will be produced in this order.
 	 *
-	 * @param mixed $a
+	 * @param array|string|bool|null $a
 	 *
-	 * @param bool  $urlencode If set to TRUE, will urlencode the callback
+	 * @param bool                   $urlencode If set to TRUE, will urlencode the callback
 	 *
 	 * @return void
 	 */
 	function setCallback($a, $urlencode = true): void
 	{
 		# No value sent
-		if(!$a){
+		if(!$a === NULL){
 			return;
 		}
 
@@ -178,10 +185,8 @@ class Hash {
 			return;
 		}
 
-		# If a string or an int is sent
-		if(is_string($a) || is_numeric($a)){
-			$this->callback = $urlencode ? str::urlencode($a) : $a;
-		}
+		# For everything else
+		$this->callback = $urlencode ? str::urlencode($a) : $a;
 
 		return;
 	}
@@ -192,7 +197,7 @@ class Hash {
 	 * This is useful for when the callback is going into the $this->hash->set(); method.
 	 *
 	 * @param bool|null $urlencode If set to TRUE, the callback will be urlENcoded
-	 *                        so that it can be stored as a variable.
+	 *                             so that it can be stored as a variable.
 	 *
 	 * @return string
 	 */

@@ -33,16 +33,25 @@ class User extends Prototype {
 	const recaptchaThreshold = 0.5;
 
 	/**
+	 * The number of days a password is valid
+	 * before it expires, if the password expiry
+	 * flag is set.
+	 */
+	const DATE_EXPIRY_LENGTH = 90;
+
+	/**
 	 * @return Card
 	 */
-	public function card(){
+	public function card()
+	{
 		return new Card();
 	}
 
 	/**
 	 * @return Modal
 	 */
-	public function modal(){
+	public function modal()
+	{
 		return new Modal();
 	}
 
@@ -195,7 +204,7 @@ class User extends Prototype {
 			"col_name" => "email",
 			"html" => $cols['email'],
 			"copy" => true,
-			"sm" => "3"
+			"sm" => "3",
 		];
 
 		$row["Mobile"] = [
@@ -203,7 +212,7 @@ class User extends Prototype {
 			"html" => $cols['phone'],
 			"url" => "tel:{$cols['phone']}",
 			"copy" => true,
-			"sm" => 2
+			"sm" => 2,
 		];
 
 		$row['Registered'] = [
@@ -281,7 +290,8 @@ class User extends Prototype {
 					],
 				],
 			];
-		} else {
+		}
+		else {
 			$buttons[] = [
 				"icon" => Icon::get("remove"),
 				"title" => "Remove...",
@@ -296,11 +306,12 @@ class User extends Prototype {
 	/**
 	 * @return UserRole
 	 */
-	public function userRole(){
+	public function userRole()
+	{
 		return new UserRole();
 	}
 
-	public function view(array $a) : bool
+	public function view(array $a): bool
 	{
 		extract($a);
 
@@ -323,12 +334,12 @@ class User extends Prototype {
 			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
 			"alt" => "You are currently logged in as a {$user['last_role']}",
 			"title" => str::title($user['name'], true),
-			"subtitle" => "You first registered on {$_ENV['title']} ".str::ago($user['created']),
+			"subtitle" => "You first registered on {$_ENV['title']} " . str::ago($user['created']),
 		]);
 
 		$page->setGrid([[
-			"html"=> $this->card()->user($user),
-			"sm" => 4
+			"html" => $this->card()->user($user),
+			"sm" => 6,
 		]]);
 
 		$a['vars']['owner_id'] = $user['user_id'];
@@ -351,7 +362,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function edit(array $a) : bool
+	public function edit(array $a): bool
 	{
 		extract($a);
 
@@ -368,14 +379,14 @@ class User extends Prototype {
 	}
 
 	/**
-	 * Edit one cron job. Will open a modal.
+	 * Edit user email. Will open a modal.
 	 *
 	 * @param array $a
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function editEmail(array $a) : bool
+	public function editEmail(array $a): bool
 	{
 		extract($a);
 
@@ -392,6 +403,30 @@ class User extends Prototype {
 	}
 
 	/**
+	 * Edit user password. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function editPassword(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->output->modal($this->modal()->editPassword($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	/**
 	 * Update a user's details (except email, password).
 	 *
 	 * @param array $a
@@ -399,7 +434,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function update(array $a) : bool
+	public function update(array $a): bool
 	{
 		extract($a);
 
@@ -438,7 +473,8 @@ class User extends Prototype {
 					if(!$this->sendEmailUpdateEmail($a, true)){
 						return false;
 					}
-				} else {
+				}
+				else {
 					//if this is an unverified user
 					$set['email'] = $vars['email'];
 					//Unverified user's email addresses can be updated immediately
@@ -450,7 +486,7 @@ class User extends Prototype {
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => $set,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		# Closes the (top-most) modal
@@ -459,7 +495,8 @@ class User extends Prototype {
 		# If there is a callback, use it
 		if($this->hash->getCallback()){
 			$this->hash->set($this->hash->getCallback());
-		} else {
+		}
+		else {
 			//Otherwise just refresh the current page
 			$this->hash->set("refresh");
 		}
@@ -495,18 +532,20 @@ class User extends Prototype {
 		# Inform user that removal is complete
 		$this->log->info([
 			"title" => "User removed",
-			"message" => "The user account belonging to <b>{$user['name']}</b> was removed."
+			"message" => "The user account belonging to <b>{$user['name']}</b> was removed.",
 		]);
 
 		# Callback to wherever
 		if($vars['callback']){
 			$this->hash->set($vars['callback']);
-		} else if($this->permission()->get($rel_table)){
+		}
+		else if($this->permission()->get($rel_table)){
 			$this->hash->set([
 				"rel_table" => $rel_table,
 				"action" => "all",
 			]);
-		} else {
+		}
+		else {
 			$this->hash->set([
 				"rel_table" => "home",
 			]);
@@ -569,15 +608,15 @@ class User extends Prototype {
 			"table" => "subscription",
 			"where" => [
 				"owner_id" => $user['user_id'],
-				["status", "NOT IN", ["closed", "draft"]]
-			]
+				["status", "NOT IN", ["closed", "draft"]],
+			],
 		])){
 			//if the user has active (non close or draft) subscriptions
 			$this->log->error([
-				"title" => "Active ".str::pluralise_if($subscriptions_count, "subscription", false),
-				"message" => "You have ".
-					str::pluralise_if($subscriptions_count, "subscription", true).
-					" that ".str::isAre($subscriptions_count)." still active. You cannot close your account until you've closed all subscriptions."
+				"title" => "Active " . str::pluralise_if($subscriptions_count, "subscription", false),
+				"message" => "You have " .
+					str::pluralise_if($subscriptions_count, "subscription", true) .
+					" that " . str::isAre($subscriptions_count) . " still active. You cannot close your account until you've closed all subscriptions.",
 			]);
 			return false;
 		}
@@ -587,15 +626,15 @@ class User extends Prototype {
 			"count" => true,
 			"table" => "subscription_seat",
 			"where" => [
-				"user_id" => $user['user_id']
-			]
+				"user_id" => $user['user_id'],
+			],
 		])){
 			//if the user has active seats
 			$this->log->error([
-				"title" => "Active ".str::pluralise_if($subscriptions_count, "seat", false),
-				"message" => "You have ".
-					str::pluralise_if($subscriptions_count, "seat", true).
-					" that ".str::isAre($subscriptions_count)." still active. You cannot close your account until you've resigned from all your seats."
+				"title" => "Active " . str::pluralise_if($subscriptions_count, "seat", false),
+				"message" => "You have " .
+					str::pluralise_if($subscriptions_count, "seat", true) .
+					" that " . str::isAre($subscriptions_count) . " still active. You cannot close your account until you've resigned from all your seats.",
 			]);
 			return false;
 		}
@@ -614,7 +653,7 @@ class User extends Prototype {
 
 		# Set the hash to the front page
 		$this->hash->set("https://{$_ENV['domain']}");
-		
+
 		return true;
 	}
 
@@ -626,11 +665,11 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function toggle2FA(array $a) : bool
+	public function toggle2FA(array $a): bool
 	{
 		extract($a);
 
-		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+		if(!$this->permission()->get($rel_table, $rel_id, "U")){
 			return $this->accessDenied();
 		}
 
@@ -638,14 +677,45 @@ class User extends Prototype {
 
 		if($user['2fa_enabled']){
 			$set = ["2fa_enabled" => NULL];
-		} else {
+		}
+		else {
 			$set = ["2fa_enabled" => true];
 		}
 
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => $set,
-			"id" => $rel_id
+			"id" => $rel_id,
+		]);
+
+		$this->hash->set(-1);
+
+		return true;
+	}
+
+	public function togglePasswordExpiry(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "U")){
+			return $this->accessDenied();
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		if($user['password_expiry']){
+			$set = ["password_expiry" => NULL];
+		}
+		else {
+			$set = [
+				["`{$rel_table}`.`password_expiry` = DATE_ADD( NOW(), INTERVAL ".User::DATE_EXPIRY_LENGTH." DAY)"]
+			];
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"id" => $rel_id,
+			"set" => $set,
 		]);
 
 		$this->hash->set(-1);
@@ -661,7 +731,8 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function login($a = NULL){
+	public function login($a = NULL)
+	{
 		extract($a);
 
 		$page = new Page();
@@ -669,13 +740,13 @@ class User extends Prototype {
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
-				"height" => "85% !important"
+				"height" => "85% !important",
 			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column my-auto",
-				"html" => $this->card()->login($a)
-			]
+				"html" => $this->card()->login($a),
+			],
 		]);
 
 		$this->output->html($page->getHTML());
@@ -693,7 +764,8 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function logout($a, $silent = NULL){
+	public function logout($a, $silent = NULL)
+	{
 		extract($a);
 
 		# User is actively logged in
@@ -707,10 +779,10 @@ class User extends Prototype {
 				"where" => [
 					"session_id" => $_COOKIE['session_id'],
 					"user_id" => $_COOKIE['user_id'],
-					["session_id", "IS NOT", NULL]
+					["session_id", "IS NOT", NULL],
 				],
-				"limit" => 1
-			])) {
+				"limit" => 1,
+			])){
 			/**
 			 * If the user has been logged out of sessions,
 			 * but still has an active cookie, this is an
@@ -721,10 +793,10 @@ class User extends Prototype {
 
 		$this->hash->set([
 			"rel_table" => "user",
-			"action" => "login"
+			"action" => "login",
 		]);
 
-//		$this->hash->set("https://kycdd.co.za");
+		//		$this->hash->set("https://kycdd.co.za");
 
 		if(!$user_id){
 			//if there is still no user id
@@ -739,19 +811,19 @@ class User extends Prototype {
 		}
 
 		# Ensure cookie related variables are cleared
-		if (!$this->sql->update([
+		if(!$this->sql->update([
 			"table" => "user",
 			"set" => [
 				"session_id" => NULL,
-				"key" => NULL
+				"key" => NULL,
 			],
-			"id" => $user_id
-		])) {
+			"id" => $user_id,
+		])){
 			return false;
 		}
 
 		$remove = ['user_id', 'role', 'session_id', 'subscription_id'];
-		foreach ($remove as $var) {
+		foreach($remove as $var){
 			global $$var;
 			$GLOBALS[$var] = NULL;
 			unset($GLOBALS[$var]); //If a globalized variable is unset() inside of a function, only the local variable is destroyed.
@@ -771,9 +843,9 @@ class User extends Prototype {
 				"closed" => "NOW()",
 			],
 			"where" => [
-				"user_id" => $user_id
+				"user_id" => $user_id,
 			],
-			"user_id" => $user_id
+			"user_id" => $user_id,
 		]);
 
 		if(!$silent){
@@ -820,27 +892,28 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function register($a){
+	public function register($a)
+	{
 		if(is_array($a))
 			extract($a);
 
 		$page = new Page([
-//			"title" => "Register",
-//			"subtitle" => "Fill in the details below to register.",
-//			"icon" => "user-plus"
+			//			"title" => "Register",
+			//			"subtitle" => "Fill in the details below to register.",
+			//			"icon" => "user-plus"
 		]);
 
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
 				"height" => "85% !important",
-				"align-items" => "center"
+				"align-items" => "center",
 			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
-				"html" => $this->card()->register($a)
-			]
+				"html" => $this->card()->register($a),
+			],
 		]);
 
 		$this->output->html($page->getHTML());
@@ -854,12 +927,13 @@ class User extends Prototype {
 	 * unless set to silent.
 	 *
 	 * @param array $fields Numerical array of variable key names
-	 * @param array $vars Variable key-value pairs to look for fields in
+	 * @param array $vars   Variable key-value pairs to look for fields in
 	 * @param null  $silent If set to TRUE, will suppress any errors on error.
 	 *
 	 * @return bool Returns TRUE if all fields are present, FALSE if otherwise
 	 */
-	private function formComplete(array $fields, array $vars, $silent = NULL){
+	private function formComplete(array $fields, array $vars, $silent = NULL)
+	{
 		if(empty($fields)){
 			return true;
 		}
@@ -871,7 +945,7 @@ class User extends Prototype {
 				$field = str::title($field);
 				$this->log->error([
 					"title" => "{$field} missing",
-					"message" => "The {$field} value is missing."
+					"message" => "The {$field} value is missing.",
 				]);
 				$missing_field = true;
 			}
@@ -902,7 +976,8 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function validateRecaptcha(string $response, string $action, $hash = NULL){
+	private function validateRecaptcha(string $response, string $action, $hash = NULL)
+	{
 		# Get the reCAPTCHA score
 		if(!$score = $this->getRecaptchaScore($response, $action)){
 			//If a score was not received
@@ -910,7 +985,7 @@ class User extends Prototype {
 				$this->hash->set($hash);
 			}
 			$this->log->warning([
-				"message" => "Please try again."
+				"message" => "Please try again.",
 			]);
 			return false;
 		}
@@ -948,17 +1023,18 @@ class User extends Prototype {
 					"html" => $user['name'],
 					"hash" => [
 						"rel_table" => "user",
-						"rel_id" => $user['user_id']
-					]
+						"rel_id" => $user['user_id'],
+					],
 				]);
 				$message = "This email address already belongs to registered user {$registered_user}.";
-			} else {
+			}
+			else {
 				$message = "This email address already belongs to a registered user.";
 			}
 			$this->log->warning([
 				"container" => ".modal-body",
 				"title" => "Email already in use",
-				"message" => $message
+				"message" => $message,
 			]);
 			return false;
 			//Email addresses must be unique
@@ -977,7 +1053,7 @@ class User extends Prototype {
 				"phone" => $vars['phone'],
 				"last_role" => "user",
 				"2fa_enabled" => true,
-				"key" => $key
+				"key" => $key,
 			],
 		]);
 
@@ -990,13 +1066,13 @@ class User extends Prototype {
 			"set" => [
 				"user_id" => $user_id,
 				"rel_table" => "user",
-				"rel_id" => $user_id
+				"rel_id" => $user_id,
 			],
 		]);
 
 		if($vars['welcome_email']){
 			//If a welcome email is to be sent
-			$a['rel_id']  = $user_id;
+			$a['rel_id'] = $user_id;
 			if(!$this->sendWelcomeEmail($a)){
 				return false;
 			}
@@ -1006,7 +1082,7 @@ class User extends Prototype {
 
 		$this->hash->set([
 			"rel_table" => "user",
-			"rel_id" => $user_id
+			"rel_id" => $user_id,
 		]);
 
 		return true;
@@ -1024,26 +1100,27 @@ class User extends Prototype {
 	 */
 	private function cleanUpName(string &$name, ?string $container = ".card-body"): bool
 	{
-		$pattern = /** @lang PhpRegExp */"/["
-			."\x{0000}-\x{001F}" // System commands
-			."\x{0022}-\x{0026}" // "#$%&
-			."\x{0028}-\x{002C}" // ()*+,
-			."\x{002F}-\x{0040}" // /0123456789:;<=>?@
-			."\x{005B}-\x{0060}" // [\]^_`
-			."\x{007B}-\x{007F}" // {|}~
-			."\x{0080}-\x{00BF}" // System commands + Misc
-			."\x{02B0}-\x{02FF}" // Spacing Modifier Letters block
-			."\x{2012}-\x{2BFF}" // Misc non-letter symbols
-			."]+/u";
+		$pattern = /** @lang PhpRegExp */
+			"/["
+			. "\x{0000}-\x{001F}" // System commands
+			. "\x{0022}-\x{0026}" // "#$%&
+			. "\x{0028}-\x{002C}" // ()*+,
+			. "\x{002F}-\x{0040}" // /0123456789:;<=>?@
+			. "\x{005B}-\x{0060}" // [\]^_`
+			. "\x{007B}-\x{007F}" // {|}~
+			. "\x{0080}-\x{00BF}" // System commands + Misc
+			. "\x{02B0}-\x{02FF}" // Spacing Modifier Letters block
+			. "\x{2012}-\x{2BFF}" // Misc non-letter symbols
+			. "]+/u";
 		if(preg_match($pattern, $name)){
 			$this->log->error([
 				"container" => $container,
 				"title" => "Unusual characters detected",
-				"message" => "Unusual characters have been detected in your name. Please ensure you have written it correctly."
+				"message" => "Unusual characters have been detected in your name. Please ensure you have written it correctly.",
 			]);
 			return false;
 		}
-//		$name = str::capitalise_name($name, true, true);
+		//		$name = str::capitalise_name($name, true, true);
 		$name = str::capitalise($name);
 		return true;
 	}
@@ -1052,7 +1129,7 @@ class User extends Prototype {
 	 * Create new user.
 	 * Used when external/new user self registers.
 	 *
-	 * @param array     $a
+	 * @param array $a
 	 *
 	 * @return bool|mixed
 	 * @throws Exception
@@ -1062,10 +1139,10 @@ class User extends Prototype {
 		extract($a);
 
 		# The hash to send the user back to in case there is an error with the reCAPTCHA
-		$hash =  [
+		$hash = [
 			"rel_table" => $rel_table,
 			"action" => "register",
-			"vars" => $vars
+			"vars" => $vars,
 		];
 
 		# This field needs to be re-populated
@@ -1077,7 +1154,7 @@ class User extends Prototype {
 		}
 
 		# Ensure form is complete
-		if(!$this->formComplete(["first_name","last_name","email","phone"], $vars)){
+		if(!$this->formComplete(["first_name", "last_name", "email", "phone"], $vars)){
 			return false;
 		}
 
@@ -1093,7 +1170,7 @@ class User extends Prototype {
 		if(!str::isValidEmail($vars['email'])){
 			$this->log->error([
 				"title" => 'Invalid E-mail Address',
-				"message" => "This email address [<code>{$vars['email']}</code>] is invalid. Please ensure you've written the correct address."
+				"message" => "This email address [<code>{$vars['email']}</code>] is invalid. Please ensure you've written the correct address.",
 			]);
 			return false;
 		}
@@ -1106,27 +1183,28 @@ class User extends Prototype {
 
 				$this->log->info([
 					"title" => "You have already registered",
-					"message" => "You already have an account with {$_ENV['title']}. No need to sign up again, just log in."
+					"message" => "You already have an account with {$_ENV['title']}. No need to sign up again, just log in.",
 				]);
 				$this->hash->set([
 					"rel_table" => "user",
 					"action" => "login",
 					"variables" => [
 						"email" => $vars['email'],
-						"callback" => $vars['callback']
-					]
+						"callback" => $vars['callback'],
+					],
 				]);
 				return false;
-			} else {
+			}
+			else {
 				// If the user has an unverified account
 				$this->log->warning([
 					"title" => "Signed up but not verified yet",
-					"message" => "You have already signed up with {$_ENV['title']}, but your email address has yet to be verified."
+					"message" => "You have already signed up with {$_ENV['title']}, but your email address has yet to be verified.",
 				]);
 				$this->hash->set([
 					"rel_table" => "user",
 					"rel_id" => $user['user_id'],
-					"action" => "verification_email_sent"
+					"action" => "verification_email_sent",
 				]);
 				return false;
 			}
@@ -1145,7 +1223,7 @@ class User extends Prototype {
 				"phone" => $vars['phone'],
 				"last_role" => "user",
 				"2fa_enabled" => true,
-				"key" => $key
+				"key" => $key,
 			],
 		]);
 
@@ -1158,19 +1236,19 @@ class User extends Prototype {
 			"set" => [
 				"user_id" => $user_id,
 				"rel_table" => "user",
-				"rel_id" => $user_id
+				"rel_id" => $user_id,
 			],
 		]);
 
 		# Send verification email
-		$a['rel_id']  = $user_id;
+		$a['rel_id'] = $user_id;
 		$this->sendVerifyEmail($a, true);
 
 		# Direct user to verification sent page
 		$this->hash->set([
 			"rel_table" => "user",
 			"rel_id" => $user_id,
-			"action" => "verification_email_sent"
+			"action" => "verification_email_sent",
 		]);
 
 		return $user_id;
@@ -1201,9 +1279,9 @@ class User extends Prototype {
 		if(!$user = $this->sql->select([
 			"table" => "user",
 			"where" => [
-				"email" => $email
+				"email" => $email,
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			//if the user HASN'T already registered
 			return false;
@@ -1212,7 +1290,8 @@ class User extends Prototype {
 		if($user['verified']){
 			// If the user has a verified account
 			return "verified";
-		} else {
+		}
+		else {
 			// If the user has an unverified account
 			return "unverified";
 		}
@@ -1222,19 +1301,19 @@ class User extends Prototype {
 	 * Sends a verification email.
 	 * Method meant to be customer facing.
 	 *
-	 * @param array     $a Needs to include a rel_table/rel_id
+	 * @param array $a Needs to include a rel_table/rel_id
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function sendVerificationEmail(array $a) : bool
+	public function sendVerificationEmail(array $a): bool
 	{
 		extract($a);
 
 		$hash = [
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
-			"action" => "verification_email_sent"
+			"action" => "verification_email_sent",
 		];
 
 		# Ensure reCAPTCHA is validated
@@ -1244,7 +1323,7 @@ class User extends Prototype {
 
 		if(!$user = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		])){
 			//if the user cannot be found
 			$this->log->error("Cannot find user to send verification email to.");
@@ -1277,7 +1356,7 @@ class User extends Prototype {
 			"container" => ".card-body",
 			"icon" => "envelope",
 			"title" => "Verification email sent",
-			"message" => "Verification email sent to <code>{$user['email']}</code>."
+			"message" => "Verification email sent to <code>{$user['email']}</code>.",
 		]);
 
 		return true;
@@ -1331,7 +1410,7 @@ class User extends Prototype {
 			$this->log->success([
 				"icon" => "envelope",
 				"title" => "Verify email sent",
-				"message" => "Verify email sent to <code>{$user['email']}</code>."
+				"message" => "Verify email sent to <code>{$user['email']}</code>.",
 			]);
 
 			$this->hash->set(-1);
@@ -1349,7 +1428,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function sendWelcomeEmail(array $a) : bool
+	public function sendWelcomeEmail(array $a): bool
 	{
 		extract($a);
 
@@ -1387,7 +1466,7 @@ class User extends Prototype {
 		$this->log->success([
 			"icon" => "envelope",
 			"title" => "Welcome email sent",
-			"message" => "Welcome email sent to <code>{$user['email']}</code>."
+			"message" => "Welcome email sent to <code>{$user['email']}</code>.",
 		]);
 
 		$this->hash->set(-1);
@@ -1411,7 +1490,7 @@ class User extends Prototype {
 				"container" => ".modal-body",
 				"reset" => true,
 				"title" => 'Invalid E-mail Address',
-				"message" => "Your new email address [<code>{$vars['new_email']}</code>] is invalid. Please ensure you've written the correct address."
+				"message" => "Your new email address [<code>{$vars['new_email']}</code>] is invalid. Please ensure you've written the correct address.",
 			]);
 			return false;
 		}
@@ -1432,7 +1511,7 @@ class User extends Prototype {
 			"table" => "user",
 			"where" => [
 				"email" => $vars['new_email'],
-			]
+			],
 		])){
 			//if this email address is already in use with a different account
 			$this->log->warning([
@@ -1450,7 +1529,7 @@ class User extends Prototype {
 			\App\UI\Form\Form::decryptVars($vars);
 
 			# Check to see if the password is correct, compared to the password on file
-			if (!$this->validatePassword($vars['password'], $user['password'])) {
+			if(!$this->validatePassword($vars['password'], $user['password'])){
 				$this->log->error([
 					"container" => ".modal-body",
 					"title" => 'Incorrect password',
@@ -1476,7 +1555,8 @@ class User extends Prototype {
 			will it be changed. And once it's changed
 			you can start using this new address to log in to {$_ENV['title']}.",
 			]);
-		} else {
+		}
+		else {
 			// Internal requests will receive different messaging
 			$this->log->success([
 				"title" => 'Email update',
@@ -1574,7 +1654,7 @@ class User extends Prototype {
 			"table" => "user",
 			"id" => $user_id,
 			"set" => [
-				"key" => $key
+				"key" => $key,
 			],
 			"user_id" => false
 			//So that this method can be run from CLI
@@ -1620,13 +1700,13 @@ class User extends Prototype {
 			"id" => $rel_id,
 			"set" => [
 				"email" => $vars['new_email'],
-				"verified" => "NOW()"
-			]
+				"verified" => "NOW()",
+			],
 		]);
 
 		$this->log->success([
 			"title" => "Email updated",
-			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to log in from now on."
+			"message" => "Your email address has successfully been updated to <code>{$vars['new_email']}</code>. Please use this new address to log in from now on.",
 		]);
 
 		$this->hash->set("home");
@@ -1644,7 +1724,8 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function resetPassword($a = NULL){
+	public function resetPassword($a = NULL)
+	{
 		if(is_array($a))
 			extract($a);
 
@@ -1653,13 +1734,13 @@ class User extends Prototype {
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
-				"height" => "85% !important"
+				"height" => "85% !important",
 			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
-				"html" => $this->card()->resetPassword($a)
-			]
+				"html" => $this->card()->resetPassword($a),
+			],
 		]);
 
 		$this->output->html($page->getHTML());
@@ -1695,14 +1776,15 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function sampler($a){
+	public function sampler($a)
+	{
 		extract($a);
 		$cron_jobs_count = $this->sql->select([
 			"count" => true,
-			"table" => "cron_job"
+			"table" => "cron_job",
 		]);
 		$this->output->setVar("key", $cron_jobs_count);
-		$seconds = rand(4,7);
+		$seconds = rand(4, 7);
 		sleep($seconds);
 		$this->output->setVar("seconds", $seconds);
 		$this->log->success("That took {$seconds}.");
@@ -1736,7 +1818,8 @@ class User extends Prototype {
 	 * @return float|bool
 	 * @throws Exception
 	 */
-	private function getRecaptchaScore($response, $action){
+	private function getRecaptchaScore($response, $action)
+	{
 		if(!$_ENV['recaptcha_key'] || !$_ENV['recaptcha_secret']){
 			//if either recaptcha_key or secret has not been assigned
 			throw new Exception("The reCAPTCHA key and secret have not been set.");
@@ -1748,9 +1831,9 @@ class User extends Prototype {
 			->verify($response, $_SERVER['REMOTE_ADDR']);
 
 		$resp_array = $resp->toArray();
-//		$this->log->info(str::pre($resp_array));
+		//		$this->log->info(str::pre($resp_array));
 
-		if ($resp_array['success']) {
+		if($resp_array['success']){
 			//If the recapcha was a success
 			return $resp_array['score'];
 		}
@@ -1774,9 +1857,9 @@ class User extends Prototype {
 		return $this->info([
 			"rel_table" => "user",
 			"where" => [
-				"email" => $email
+				"email" => $email,
 			],
-			"limit" => 1
+			"limit" => 1,
 		]);
 	}
 
@@ -1788,28 +1871,29 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function sendResetPasswordEmail($a = NULL){
+	public function sendResetPasswordEmail($a = NULL)
+	{
 		extract($a);
 
 		$hash = [
 			"rel_table" => $rel_table,
 			"action" => "reset_password",
 			"vars" => [
-				"email" => $vars['email']
-			]
+				"email" => $vars['email'],
+			],
 		];
 
 		# Ensure reCAPTCHA is validated
-//		if(!$this->validateRecaptcha($vars['recaptcha_response'], "reset_password", $hash)) {
-//			return false;
-//		}
+		//		if(!$this->validateRecaptcha($vars['recaptcha_response'], "reset_password", $hash)) {
+		//			return false;
+		//		}
 
 		if(!$vars['email']){
 			$this->log->error([
 				"container" => ".card-body",
 				"icon" => "envelope",
 				"title" => "No email address",
-				"message" => "No email address was provided."
+				"message" => "No email address was provided.",
 			]);
 			return false;
 		}
@@ -1817,16 +1901,16 @@ class User extends Prototype {
 		if(!$user = $this->sql->select([
 			"table" => "user",
 			"where" => [
-				"email" => $vars['email']
+				"email" => $vars['email'],
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			//If the given email address cannot be found.
 			$this->log->error([
 				"container" => ".card-body",
 				"icon" => "envelope",
 				"title" => "Email not found",
-				"message" => "The given email address cannot be found."
+				"message" => "The given email address cannot be found.",
 			]);
 			return false;
 		}
@@ -1835,12 +1919,12 @@ class User extends Prototype {
 			$this->log->warning([
 				"icon" => "envelope",
 				"title" => "Email not verified",
-				"message" => "Verify your account first, you should have received a verification email when you signed up."
+				"message" => "Verify your account first, you should have received a verification email when you signed up.",
 			]);
 			$this->hash->set([
 				"rel_table" => "user",
 				"rel_id" => $user['user_id'],
-				"action" => "verification_email_sent"
+				"action" => "verification_email_sent",
 			]);
 			return true;
 		}
@@ -1853,19 +1937,19 @@ class User extends Prototype {
 			"table" => "user",
 			"id" => $user['user_id'],
 			"set" => [
-				"key" => $key
+				"key" => $key,
 			],
-			"user_id" => false
+			"user_id" => false,
 		])){
 			return false;
 		}
-		
+
 		$variables = [
 			"user_id" => $user['user_id'],
 			"email" => $user['email'],
-			"key" => $key 
+			"key" => $key,
 		];
-		
+
 		$email = new Email();
 		$email->template("reset_password", $variables)
 			->to([$user['email'] => $user['name']])
@@ -1876,7 +1960,7 @@ class User extends Prototype {
 			"type" => "alert",
 			"colour" => "success",
 			"title" => "Reset email sent",
-			"message" => "An email has been sent with a link to reset the password. Please check your inbox. If you cannot find it, please check your spam/junk folder, as it may have ended up there."
+			"message" => "An email has been sent with a link to reset the password. Please check your inbox. If you cannot find it, please check your spam/junk folder, as it may have ended up there.",
 		]);
 
 		return true;
@@ -1891,7 +1975,8 @@ class User extends Prototype {
 	 * @return int|bool Returns the user_id of the user that's currently logged in or FALSE if user is not logged in
 	 * @throws Exception
 	 */
-	public function isLoggedIn($silent = NULL) {
+	public function isLoggedIn($silent = NULL)
+	{
 		global $user_id;
 
 		if($user_id){
@@ -1913,14 +1998,15 @@ class User extends Prototype {
 	 * @return bool|int TRUE if the current user's current role is one of the roles requested
 	 * @throws Exception
 	 */
-	function is($a){
+	function is($a)
+	{
 		if(!$this->isLoggedIn()){
 			return false;
 		}
 		global $user_id;
 		global $role;
 
-		if (!$user_id || !$role) {
+		if(!$user_id || !$role){
 			//a user has to be logged in, a role has to be defined, and the user has to exist
 			return false;
 		}
@@ -1935,7 +2021,7 @@ class User extends Prototype {
 		# If the user is being controlled by an admin, they also have admin privileges
 		if($admin_user_id = $this->isControlledByAdmin()){
 			if(in_array("admin", $roles_requested)){
-				return  true;
+				return true;
 			}
 		}
 
@@ -1961,7 +2047,8 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	function verifyCredentials($a){
+	function verifyCredentials($a)
+	{
 		extract($a);
 
 		# Decrypt any encrypted variables
@@ -1973,7 +2060,7 @@ class User extends Prototype {
 			"where" => [
 				"email" => $vars['email'],
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			$this->log->error([
 				"closeInSeconds" => 10,
@@ -1985,7 +2072,7 @@ class User extends Prototype {
 		}
 
 		# Check to see if the account is verified
-		if(!$user['verified']) {
+		if(!$user['verified']){
 			//If the user has not verified their account
 			$this->log->info([
 				"icon" => "envelope-o",
@@ -1995,7 +2082,7 @@ class User extends Prototype {
 			$this->hash->set([
 				"rel_table" => $rel_table,
 				"rel_id" => $user['user_id'],
-				"action" => "verification_email_sent"
+				"action" => "verification_email_sent",
 			]);
 			return false;
 		}
@@ -2007,7 +2094,7 @@ class User extends Prototype {
 			# Resend verification email
 			$this->sendVerifyEmail([
 				"rel_table" => $rel_table,
-				"rel_id" => $user['user_id']
+				"rel_id" => $user['user_id'],
 			], true);
 
 			# Warn/inform user
@@ -2015,20 +2102,34 @@ class User extends Prototype {
 				"container" => ".card-body",
 				"title" => "No password on file",
 				"message" => "You have verified your email address, but have yet to set up a password.<br>
-				An email has been sent to you with a link to complete verification and set up a password."
+				An email has been sent to you with a link to complete verification and set up a password.",
 			]);
 
 			return false;
 		}
 
 		# Check to see if the password is correct, compared to the password on file
-		if (!$this->validatePassword($vars['password'], $user['password'])) {
+		if(!$this->validatePassword($vars['password'], $user['password'])){
 			$this->log->error([
 				"container" => ".card-body",
 				"title" => 'Incorrect password',
 				"message" => 'Please ensure you have written the correct password.',
 			]);
 			return false;
+		}
+
+		# If password has expired
+		if(User::passwordHasExpired($user)){
+			$this->output->modal($this->modal()->editPassword([
+				"rel_table" => $rel_table,
+				"rel_id" => $user['user_id']
+			]));
+			$this->log->warning([
+				"container" => "#edit-password .modal-body",
+				"title" => "Password expired",
+				"message" => "Your current password has expired, please enter a new password. The new password cannot be one that you have used before."
+			]);
+			return true;
 		}
 
 		# 2FA (if enabled)
@@ -2043,6 +2144,23 @@ class User extends Prototype {
 		return $this->logUserIn($user, $vars['remember']);
 	}
 
+	public static function passwordHasExpired(array $user): bool
+	{
+		# If there is no password expiry date, it cannot expire
+		if(!$user['password_expiry']){
+			return false;
+		}
+
+		# Now
+		$now = new \DateTime();
+
+		# Password expiry date
+		$dt = new \DateTime($user['password_expiry']);
+
+		# If the date is after now, it has expired
+		return $dt > $now;
+	}
+
 	/**
 	 * Prepare the 2FA code and send it in an email to the user.
 	 * Present the user with instructions and a form to enter
@@ -2054,7 +2172,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function prepare2FACode($a, $user) : bool
+	private function prepare2FACode($a, $user): bool
 	{
 		extract($a);
 
@@ -2067,9 +2185,9 @@ class User extends Prototype {
 			"id" => $user['user_id'],
 			"set" => [
 				"key" => $code,
-				"session_id" => session_id()
+				"session_id" => session_id(),
 			],
-			"user_id" => $user['user_id']
+			"user_id" => $user['user_id'],
 		]);
 
 		# Prepare variables for the template
@@ -2089,13 +2207,13 @@ class User extends Prototype {
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
-				"height" => "85% !important"
+				"height" => "85% !important",
 			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column my-auto",
-				"html" => $this->card()->codeFor2FA($a, $user)
-			]
+				"html" => $this->card()->codeFor2FA($a, $user),
+			],
 		]);
 
 		$this->output->html($page->getHTML());
@@ -2111,7 +2229,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function verify2FACode($a) : bool
+	public function verify2FACode($a): bool
 	{
 		extract($a);
 
@@ -2123,7 +2241,7 @@ class User extends Prototype {
 		}
 
 		# Remove all characters (including spaces) except A to F and 0 to 9
-		$vars['code'] = (string) preg_replace("/[^A-F0-9]/i", '', $vars['code']);
+		$vars['code'] = (string)preg_replace("/[^A-F0-9]/i", '', $vars['code']);
 
 		# Make sure something remains
 		if(!$vars['code']){
@@ -2135,9 +2253,9 @@ class User extends Prototype {
 			"id" => $rel_id,
 			"where" => [
 				"key" => $vars['code'],
-				"session_id" => session_id()
+				"session_id" => session_id(),
 			],
-			"include_meta" => true
+			"include_meta" => true,
 		])){
 			$this->log->error([
 				"title" => 'Incorrect key',
@@ -2157,8 +2275,8 @@ class User extends Prototype {
 			$this->hash->set([
 				"action" => "login",
 				"variables" => [
-					"email" => $user['email']
-				]
+					"email" => $user['email'],
+				],
 			]);
 
 			return true;
@@ -2183,7 +2301,8 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function logUserIn($user, $remember){
+	private function logUserIn($user, $remember)
+	{
 		# Store the user_id both globally and locally
 		$_SESSION['user_id'] = $user['user_id'];
 		global $user_id;
@@ -2215,7 +2334,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function assignRole($user) : bool
+	private function assignRole($user): bool
 	{
 		if($user['last_role']){
 			//if the last role variable is set, use it
@@ -2228,8 +2347,8 @@ class User extends Prototype {
 		$roles = $this->sql->select([
 			"table" => "user_role",
 			"where" => [
-				"user_id" => $user['user_id']
-			]
+				"user_id" => $user['user_id'],
+			],
 		]);
 
 		if(count($roles) == 1){
@@ -2257,14 +2376,15 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function logAccess(string $user_id){
+	private function logAccess(string $user_id)
+	{
 		$this->sql->update([
 			"table" => "user",
 			"id" => $user_id,
 			"set" => [
 				"session_id" => session_id(),
 				"last_logged_in" => ["user", "logged_in"],
-				"logged_in" => "NOW()"
+				"logged_in" => "NOW()",
 			],
 		]);
 
@@ -2274,7 +2394,7 @@ class User extends Prototype {
 			"set" => [
 				"user_id" => $user_id,
 			],
-			"id" => $_SERVER['HTTP_CSRF_TOKEN']
+			"id" => $_SERVER['HTTP_CSRF_TOKEN'],
 		]);
 
 		return true;
@@ -2288,7 +2408,8 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	function verifyEmail($a){
+	function verifyEmail($a)
+	{
 		extract($a);
 
 		if(!$rel_id || !$vars['key']){
@@ -2306,7 +2427,7 @@ class User extends Prototype {
 		# Find the user
 		if(!$user = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		])){
 			$this->log->error([
 				"container" => "#ui-view",
@@ -2324,8 +2445,8 @@ class User extends Prototype {
 				"rel_table" => "user",
 				"action" => "login",
 				"vars" => [
-					"email" => $user['email']
-				]
+					"email" => $user['email'],
+				],
 			]);
 			return true;
 		}
@@ -2342,7 +2463,7 @@ class User extends Prototype {
 			 */
 			$this->sendVerifyEmail([
 				"rel_table" => "user",
-				"rel_id" => $user['user_id']
+				"rel_id" => $user['user_id'],
 			], true);
 
 			$this->log->error([
@@ -2357,10 +2478,10 @@ class User extends Prototype {
 		$this->sql->update([
 			"table" => "user",
 			"set" => [
-				"verified" => "NOW()"
+				"verified" => "NOW()",
 			],
 			"id" => $user['user_id'],
-			"user_id" => $user['user_id']
+			"user_id" => $user['user_id'],
 		]);
 
 		# If an existing user (with an existing password) is verifying a new email address
@@ -2370,8 +2491,8 @@ class User extends Prototype {
 				"rel_table" => "user",
 				"action" => "login",
 				"vars" => [
-					"email" => $user['email']
-				]
+					"email" => $user['email'],
+				],
 			]);
 			return true;
 		}
@@ -2400,13 +2521,13 @@ class User extends Prototype {
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
-				"height" => "85% !important"
+				"height" => "85% !important",
 			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column",
-				"html" => $this->card()->newPassword($a, $narrative)
-			]
+				"html" => $this->card()->newPassword($a, $narrative),
+			],
 		]);
 
 		$this->output->html($page->getHTML());
@@ -2432,7 +2553,7 @@ class User extends Prototype {
 		if(!$user = $this->sql->select([
 			"table" => $rel_table,
 			"id" => $rel_id,
-			"include_meta" => true
+			"include_meta" => true,
 		])){
 			$this->log->error([
 				"container" => "#ui-view",
@@ -2444,7 +2565,7 @@ class User extends Prototype {
 
 		# Make sure the key matches the ID, and that the key hasn't expired
 		if(($user['key'] != $vars['key'])
-		|| str::moreThanMinutesSince(15, $user['updated'])){
+			|| str::moreThanMinutesSince(15, $user['updated'])){
 			$this->log->error([
 				"container" => "#ui-view",
 				'title' => "Verification failed",
@@ -2454,6 +2575,76 @@ class User extends Prototype {
 		}
 
 		return $this->newPasswordPage($a, "Thank you for verifying your account. Please enter a new password.");
+	}
+
+	/**
+	 * Method used to update existing password.
+	 * The same as the update password method,
+	 * but checks to make sure the current password
+	 * is passed correctly before updating
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function updateExistingPassword(array $a): bool
+	{
+		extract($a);
+
+		# Passwords will be encrypted
+		Form::decryptVars($vars);
+
+		# Get the user
+		if(!$user = $this->sql->select([
+			"table" => $rel_table,
+			"id" => $rel_id,
+		])){
+			$this->log->error("Cannot find the given user.");
+			return false;
+		}
+
+		# Ensure the current password is correct
+		if(!$this->validatePassword($vars['password'], $user['password'])){
+			$this->log->error([
+				"container" => "#edit-password .modal-body",
+				"title" => "Current password incorrect",
+				"message" => "Your current password is incorrect.",
+			]);
+			return false;
+		}
+
+		# If the new password is the same as the old one, reject it
+		if($this->validatePassword($vars['new_password'], $user['password'])){
+			$this->log->error([
+				"container" => "#edit-password .modal-body",
+				"title" => "Cannot reuse passwords",
+				"message" => "The new password has been used before. You cannot reuse old passwords.",
+			]);
+			return false;
+		}
+
+		# Add the key as it's required in the updatePassword method
+		$a['vars']['key'] = $user['key'];
+
+		# Update the password
+		if(!$this->updatePassword($a)){
+			return false;
+		}
+
+		# If the user has the password expiry flag on, reset it to n days from now
+		if($user['password_expiry']){
+			$this->sql->update([
+				"table" => $rel_table,
+				"id" => $rel_id,
+				"set" => [
+					["`{$rel_table}`.`password_expiry` = DATE_ADD( NOW(), INTERVAL ".User::DATE_EXPIRY_LENGTH." DAY)"]
+				],
+				"user_id" => $rel_id
+			]);
+		}
+
+		return true;
 	}
 
 	/**
@@ -2467,7 +2658,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function updatePassword(array $a) : bool
+	public function updatePassword(array $a): bool
 	{
 		extract($a);
 
@@ -2477,7 +2668,7 @@ class User extends Prototype {
 		# Get the user
 		if(!$user = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		])){
 			$this->log->error("Cannot find the given user.");
 			return false;
@@ -2489,18 +2680,18 @@ class User extends Prototype {
 			return false;
 		}
 
-		if (!$vars['new_password'] || !$vars['repeat_new_password']) {
+		if(!$vars['new_password'] || !$vars['repeat_new_password']){
 			$this->log->error("Ensure both password fields are filled out.");
 			return false;
 		}
 
-		if ($vars['new_password'] != $vars['repeat_new_password']) {
+		if($vars['new_password'] != $vars['repeat_new_password']){
 			$this->log->error("Ensure both passwords match.");
 			return false;
 		}
 
-		if (strlen($vars['new_password']) < Field::minimumPasswordLength) {
-			$this->log->error("Ensure your password is at least ".Field::minimumPasswordLength." characters long.");
+		if(strlen($vars['new_password']) < Field::minimumPasswordLength){
+			$this->log->error("Ensure your password is at least " . Field::minimumPasswordLength . " characters long.");
 			return false;
 		}
 
@@ -2509,7 +2700,7 @@ class User extends Prototype {
 			"table" => $rel_table,
 			"set" => [
 				"password" => $this->generatePasswordHash($vars['new_password']),
-				"key" => str::uuid()
+				"key" => str::uuid(),
 			],
 			"id" => $rel_id,
 			"user_id" => $rel_id,
@@ -2521,8 +2712,8 @@ class User extends Prototype {
 			"action" => "login",
 			"vars" => [
 				"email" => $email,
-				"callback" => $vars['callback']
-			]
+				"callback" => $vars['callback'],
+			],
 		]);
 
 		# But make the switch silent
@@ -2533,15 +2724,21 @@ class User extends Prototype {
 			"container" => ".card-body",
 			"icon" => "lock",
 			"title" => "New password saved",
-			"message" => "Your new password has been saved. Give it a try!"
+			"message" => "Your new password has been saved. Give it a try!",
 		]);
+
+		# Close the edit password modal if it was in use
+		if($vars['password']){
+			//If the (current) password is included, assume the user edited their password
+			$this->output->closeModal("#edit-password");
+		}
 
 		# Ask the user to log in before sending them to an (optional) callback
 		return $this->login([
 			"vars" => [
 				"email" => $email,
-				"callback" => $vars['callback']
-			]
+				"callback" => $vars['callback'],
+			],
 		]);
 	}
 
@@ -2551,33 +2748,35 @@ class User extends Prototype {
 	 *
 	 * @param string $password
 	 * @param int    $cost
-	 * @link https://www.php.net/manual/en/function.crypt.php#114060
+	 *
 	 * @return string|null
+	 * @link https://www.php.net/manual/en/function.crypt.php#114060
 	 */
-	private function generatePasswordHash(string $password, $cost=11){
+	private function generatePasswordHash(string $password, $cost = 11)
+	{
 		/* To generate the salt, first generate enough random bytes. Because
 		 * base64 returns one character for each 6 bits, the we should generate
 		 * at least 22*6/8=16.5 bytes, so we generate 17. Then we get the first
 		 * 22 base64 characters
 		 */
-		$salt=substr(base64_encode(openssl_random_pseudo_bytes(17)),0,22);
+		$salt = substr(base64_encode(openssl_random_pseudo_bytes(17)), 0, 22);
 		/* As blowfish takes a salt with the alphabet ./A-Za-z0-9 we have to
 		 * replace any '+' in the base64 string with '.'. We don't have to do
 		 * anything about the '=', as this only occurs when the b64 string is
 		 * padded, which is always after the first 22 characters.
 		 */
-		$salt=str_replace("+",".",$salt);
+		$salt = str_replace("+", ".", $salt);
 		/* Next, create a string that will be passed to crypt, containing all
 		 * of the settings, separated by dollar signs
 		 */
-		$param='$'.implode('$',array(
+		$param = '$' . implode('$', [
 				"2y", //select the most secure version of blowfish (>=PHP 5.3.7)
-				str_pad($cost,2,"0",STR_PAD_LEFT), //add the cost in two digits
+				str_pad($cost, 2, "0", STR_PAD_LEFT), //add the cost in two digits
 				$salt //add the salt
-			));
+			]);
 
 		//now do the actual hashing
-		return crypt($password,$param);
+		return crypt($password, $param);
 	}
 
 	/**
@@ -2586,14 +2785,16 @@ class User extends Prototype {
 	 *
 	 * @param string $password
 	 * @param string $hash
-	 * @link https://www.php.net/manual/en/function.crypt.php#114060
+	 *
 	 * @return bool
+	 * @link https://www.php.net/manual/en/function.crypt.php#114060
 	 */
-	private function validatePassword(string $password, string $hash){
+	private function validatePassword(string $password, string $hash)
+	{
 		/* Regenerating the with an available hash as the options parameter should
 		 * produce the same hash if the same password is passed.
 		 */
-		return crypt($password, $hash)==$hash;
+		return crypt($password, $hash) == $hash;
 	}
 
 	/**
@@ -2604,7 +2805,8 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	public function verificationEmailSent($a){
+	public function verificationEmailSent($a)
+	{
 		extract($a);
 
 		$page = new Page();
@@ -2612,13 +2814,13 @@ class User extends Prototype {
 		$page->setGrid([
 			"row_class" => "justify-content-md-center",
 			"row_style" => [
-				"height" => "85% !important"
+				"height" => "85% !important",
 			],
 			"html" => [
 				"sm" => 4,
 				"class" => "fixed-width-column my-auto",
-				"html" => $this->card()->verificationEmailSent($a)
-			]
+				"html" => $this->card()->verificationEmailSent($a),
+			],
 		]);
 
 		$this->output->html($page->getHTML());
@@ -2637,7 +2839,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function loadCookies($silent = NULL) : bool
+	public function loadCookies($silent = NULL): bool
 	{
 		# If the cookies are not both present
 		if(!$_COOKIE['session_id'] || !$_COOKIE['user_id']){
@@ -2651,7 +2853,7 @@ class User extends Prototype {
 				"session_id" => $_COOKIE['session_id'],
 			],
 			"id" => $_COOKIE['user_id'],
-		])) {
+		])){
 			//if the cookies are no longer valid
 			return false;
 		}
@@ -2659,7 +2861,7 @@ class User extends Prototype {
 		# Message to the user returning
 		if(!$silent){
 			$this->log->info([
-				"message" => "Welcome back {$user['first_name']}!"
+				"message" => "Welcome back {$user['first_name']}!",
 			]);
 		}
 
@@ -2678,9 +2880,9 @@ class User extends Prototype {
 		$this->sql->update([
 			"table" => "user",
 			"set" => [
-				"session_id" => session_id()
+				"session_id" => session_id(),
 			],
-			"id" => $user['user_id']
+			"id" => $user['user_id'],
 		]);
 
 		# Log access
@@ -2705,7 +2907,7 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	private function storeCookies(string $user_id) : bool
+	private function storeCookies(string $user_id): bool
 	{
 		$this->setCookie("user_id", $user_id);
 		$this->setCookie("session_id", session_id());
@@ -2734,7 +2936,7 @@ class User extends Prototype {
 	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
 	 * @link https://www.php.net/manual/en/function.header.php
 	 */
-	public function setCookie(string $key, string $val, ?bool $remove = NULL) : bool
+	public function setCookie(string $key, string $val, ?bool $remove = NULL): bool
 	{
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
 		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
@@ -2751,7 +2953,8 @@ class User extends Prototype {
 	 *
 	 * @return int|bool Returns the user_id of the admin or FALSE if not controlled by an admin.
 	 */
-	public function isControlledByAdmin(){
+	public function isControlledByAdmin()
+	{
 		# Get the ID of the user (that may or may not be controlled by an admin)
 		global $user_id;
 
@@ -2761,17 +2964,17 @@ class User extends Prototype {
 				"table" => "user_role",
 				"on" => "user_id",
 				"where" => [
-					"rel_table" => "admin"
-				]
+					"rel_table" => "admin",
+				],
 			]],
 			"where" => [
 				"session_id" => session_id(),
-				["user_id", "<>", $user_id]
+				["user_id", "<>", $user_id],
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			if($admin['user_id'] == $_COOKIE['user_id']
-			&& $admin['session_id'] == $_COOKIE['session_id']){
+				&& $admin['session_id'] == $_COOKIE['session_id']){
 				return $admin['user_id'];
 			}
 		}
@@ -2815,15 +3018,15 @@ class User extends Prototype {
 			"rel_table" => "user",
 			"action" => "login",
 			"vars" => [
-				"callback" => str::generate_uri($a, true)
-			]
+				"callback" => str::generate_uri($a, true),
+			],
 		]);
 
 		return false;
 	}
 
 
-	public function getOptions(array $a) : bool
+	public function getOptions(array $a): bool
 	{
 		extract($a);
 
@@ -2867,18 +3070,19 @@ class User extends Prototype {
 			"or" => $or,
 			"order_by" => [
 				"first_name" => "ASC",
-				"last_name" => "ASC"
-			]
+				"last_name" => "ASC",
+			],
 		]);
 
-		if($results) {
+		if($results){
 			foreach($results as $row){
 				$users[] = [
 					"id" => $row['user_id'],
-					"text" => $row['full_name']
+					"text" => $row['full_name'],
 				];
 			}
-		} else {
+		}
+		else {
 			$users = [];
 		}
 
