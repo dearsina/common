@@ -95,7 +95,7 @@ class Buttons {
 	public static function togglePasswordExpiry(array $user): array
 	{
 		if($user['password_expiry']){
-			$title = "Disabled password expiry";
+			$title = "Disable password expiry...";
 			$approve = [
 				"icon" => Icon::get("2fa"),
 				"colour" => "warning",
