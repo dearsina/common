@@ -14,7 +14,7 @@ class Run extends Common {
 	 *
 	 * @return array
 	 */
-	public function run(string $query): array
+	public function run(string $query, ?int $tries = 0): array
 	{
 		# Store the query in a session variable
 		$this->logRun($query);
@@ -38,8 +38,38 @@ class Run extends Common {
 		else {
 			//if there is only one query to run
 
-			# Run the query
-			$result = $this->mysqli->query($query);
+			try {
+				# Run the query
+				$result = $this->mysqli->query($query);
+			}
+
+			catch(\mysqli_sql_exception $e){
+				# Grab the error message
+				$message = $e->getMessage();
+				// Grabbing it so that we can optionally add to it
+
+				switch($message){
+				case 'MySQL server has gone away':
+					# Try again
+					if($tries < 4){
+						# Close the connection
+						$this->mysqli->close();
+						# Sleep
+						sleep($tries);
+						# Create a new connection
+						$this->mysqli = mySQL::getNewConnection();
+						# Count the try
+						$tries++;
+						# Rerun the query
+						return $this->run($query, $tries);
+					}
+					# Note to the log that we tried really hard to make this work
+					$message .= ". Tried to re-run the query {$tries} times.";
+					break;
+				}
+
+				throw new \mysqli_sql_exception($message, $e->getCode(), $e);
+			}
 		}
 
 		/**
