@@ -1027,11 +1027,35 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function getClassesFromPath(string $path): array
+	public static function getClassesFromPath(string $path, ?string $implementation = NULL): array
 	{
 		$finder = new \Symfony\Component\Finder\Finder;
 		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder->in($path));
-		return array_keys($iter->getClassMap());
+
+		if(!$classes = array_keys($iter->getClassMap())){
+			return [];
+		}
+
+		if($implementation){
+			$classes_with_implementation = [];
+			
+			foreach($classes as $class){
+				if(!class_exists($class)){
+					continue;
+				}
+				if(!$implementations = class_implements($class)){
+					continue;
+				}
+				if(!$implementations[$implementation]){
+					continue;
+				}
+				$classes_with_implementation[] = $class;
+			}
+
+			return $classes_with_implementation;
+		}
+
+		return $classes;
 	}
 
 	/**
