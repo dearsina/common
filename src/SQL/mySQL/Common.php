@@ -2026,6 +2026,11 @@ abstract class Common {
 	 */
 	private function loadDatabaseMetadata(string $db, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
+		# Not sure why this would go missing, but it has (at times)
+		if(!$this->mysqli){
+			$this->mysqli = mySQL::getNewConnection();
+		}
+
 		# If there is no "local" cache, but there a session schema cache, use it
 		if(!$this->meta && $_SESSION['schema_cache'][$this->mysqli->thread_id]){
 			$this->meta = $_SESSION['schema_cache'][$this->mysqli->thread_id];
@@ -2069,6 +2074,7 @@ abstract class Common {
 			}
 			$this->mysqli = mySQL::getNewConnection();
 			$this->loadDatabaseMetadata($db, $refresh, true);
+			return;
 		}
 
 		# Go through the result (assuming the database exists)
@@ -2083,7 +2089,7 @@ abstract class Common {
 		}
 
 		else {
-			throw new BadRequest("Cannot find the <code>{$db}</code> database.");
+			throw new BadRequest("Cannot find the <code>{$db}</code> database: ".var_export($result, true));
 		}
 
 		# Log the added-to schema as a session schema cache

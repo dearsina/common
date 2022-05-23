@@ -244,15 +244,15 @@ class mySQL extends Common {
 	 * Reconnects to a mySQL server.
 	 * Can be run even if the connection is still active.
 	 *
-	 * This is only really useful for when long running
+	 * This is only really useful for when long-running
 	 * scripts that can stay dormant for extended periods
 	 * of time want to reconnect to the mySQL server.
 	 *
-	 * Set the reconnect flag to true to initiate.
+	 * @param int|null $tries Used to keep track of re-tries.
 	 *
 	 * @return bool
 	 */
-	protected function reconnect()
+	protected function reconnect(?int $tries = 0): bool
 	{
 		try {
 			if($this->mysqli->ping()){
@@ -261,16 +261,27 @@ class mySQL extends Common {
 			return true;
 		}
 		catch(mysqli_sql_exception $e) {
-			if(self::__construct()){
-				return true;
+			if($tries < 4){
+				# Close the connection
+				$this->mysqli->close();
+				# Sleep
+				sleep($tries);
+				# Create a new connection
+				if(self::__construct()){
+					return true;
+				}
+				# Count the try
+				$tries++;
+				# Rerun the reconnection
+				return $this->reconnect($tries);
 			}
 		}
 		return false;
 	}
 
 	/**
-	 * Frees up memory as the queries session variable is cleared.
-	 * The queries session variable stores every single query run.
+	 * Frees up memory as the "queries" session variable is cleared.
+	 * The "queries" session variable stores every single query run.
 	 *
 	 * @return bool
 	 */
