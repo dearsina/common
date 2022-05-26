@@ -297,7 +297,7 @@ class mySQL extends Common {
 	 */
 	public function disconnect()
 	{
-		if($this->mysqli){
+		if(@$this->mysqli->thread_id){
 			//if a connection has been opened
 			$this->mysqli->close();
 		}

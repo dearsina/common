@@ -2027,8 +2027,23 @@ abstract class Common {
 	private function loadDatabaseMetadata(string $db, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
 		# Not sure why this would go missing, but it has (at times)
-		if(!$this->mysqli){
-			$this->mysqli = mySQL::getNewConnection();
+		if(@!$this->mysqli->thread_id){
+			do{
+				if($sleep){
+					sleep($sleep);
+					if(str::isDev()){
+						Log::getInstance()->info([
+							"message" => "Slept for {$sleep} seconds, while waiting for a new mySQLi connection."
+						], true);
+					}
+				}
+				$this->mysqli = mySQL::getNewConnection();
+				$sleep++;
+				if($sleep == 10){
+					throw new \Exception("Tried 10 times without luck to reconnect to the mySQL server when getting metadata of the {$db} db.");
+				}
+			}
+			while(@!$this->mysqli->thread_id);
 		}
 
 		# If there is no "local" cache, but there a session schema cache, use it

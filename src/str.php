@@ -119,7 +119,7 @@ class str {
 			//if only the first word is to be capitalised
 			$str_array = explode(" ", $str);
 			$first_word = array_shift($str_array);
-			$str = ucfirst(mb_strtolower(trim($str)));
+			$str = str::mb_ucfirst(mb_strtolower(trim($str)));
 			if(is_array(self::ALL_UPPERCASE)){
 				$all_uppercase = '';
 				foreach(self::ALL_UPPERCASE as $uc){
@@ -145,12 +145,12 @@ class str {
 			// addresses, essay titles ... and anything else
 			if(is_array(self::ALL_UPPERCASE)){
 				foreach(self::ALL_UPPERCASE as $uc){
-					$all_uppercase .= ucfirst(mb_strtolower($uc)) . '|';
+					$all_uppercase .= str::mb_ucfirst(mb_strtolower($uc)) . '|';
 				}
 			}
 			if(is_array(self::ALL_LOWERCASE)){
 				foreach(self::ALL_LOWERCASE as $uc){
-					$all_lowercase .= ucfirst($uc) . '|';
+					$all_lowercase .= str::mb_ucfirst($uc) . '|';
 				}
 			}
 			// captialize all first letters
@@ -322,7 +322,7 @@ class str {
 		$string = preg_replace("/,([^\s])/", ", $1", $string);
 
 		# A word is anything separated by spaces or a dash
-		$string = preg_replace_callback("/([^\s\-\.]+)/", function($matches){
+		$string = preg_replace_callback("/([^\s\-\.]+)/u", function($matches){
 			# Make the word lowercase
 			$word = mb_strtolower($matches[1]);
 
@@ -354,7 +354,7 @@ class str {
 			# If the word doesn't contain any vowels, assume it's an abbreviation
 			if(!preg_match("/[aeiouy]/i", $ascii_word)){
 				# Unless the word is an honorific
-				if(!in_array(ucfirst($word), self::CONSONANT_ONLY_HONORIFICS)){
+				if(!in_array(str::mb_ucfirst($word), self::CONSONANT_ONLY_HONORIFICS)){
 					return strtoupper($word);
 				}
 			}
@@ -365,18 +365,18 @@ class str {
 			}
 
 			# Ensure O'Connor, L'Oreal, etc, are double capitalised, with exceptions (d')
-			if(preg_match("/\b([a-z]')(\w+)\b/i", $word, $match)){
+			if(preg_match("/\b([a-z]')(\p{L}+)\b/ui", $word, $match)){
 				# Some prefixes (like d') are not capitalised
 				if(in_array($match[1], ["d'"])){
-					return $match[1] . ucfirst($match[2]);
+					return $match[1] . str::mb_ucfirst($match[2]);
 				}
 
 				# Otherwise, everything is capitalised
-				return strtoupper($match[1]) . ucfirst($match[2]);
+				return strtoupper($match[1]) . str::mb_ucfirst($match[2]);
 			}
 
 			# Otherwise, return the word with the first letter (only) capitalised
-			return ucfirst($word);
+			return str::mb_ucfirst($word);
 			//The most common outcome
 		}, $string);
 
@@ -384,24 +384,24 @@ class str {
 		$pattern = "/(Mc)([b-df-hj-np-tv-z])/";
 		//Mc followed by a consonant
 		$string = preg_replace_callback($pattern, function($matches){
-			return "Mc" . ucfirst($matches[2]);
+			return "Mc" . str::mb_ucfirst($matches[2]);
 		}, $string);
 
 		# Cater for Roman numerals (need to be in all caps)
-		$pattern = "/\b((?<![MDCLXVI])(?=[MDCLXVI])M{0,3}(?:C[MD]|D?C{0,3})(?:X[CL]|L?X{0,3})(?:I[XV]|V?I{0,3}))\b/i";
+		$pattern = "/\b((?<![MDCLXVI])(?=[MDCLXVI])M{0,3}(?:C[MD]|D?C{0,3})(?:X[CL]|L?X{0,3})(?:I[XV]|V?I{0,3}))\b/ui";
 		$string = preg_replace_callback($pattern, function($matches){
 			return strtoupper($matches[1]);
 		}, $string);
 
 		# Cater for surname prefixes (must be after the Roman numerals)
-		$pattern = "/\b (" . implode("|", self::SURNAME_PREFIXES) . ") \b/i";
+		$pattern = "/\b (" . implode("|", self::SURNAME_PREFIXES) . ") \b/ui";
 		//A surname prefix, bookended by words
 		$string = preg_replace_callback($pattern, function($matches){
 			return strtolower(" {$matches[1]} ");
 		}, $string);
 
 		# Cater for ordinal numbers
-		$pattern = "/\b(\d+(?:st|nd|rd|th))\b/i";
+		$pattern = "/\b(\d+(?:st|nd|rd|th))\b/ui";
 		//A number suffixed with an ordinal
 		$string = preg_replace_callback($pattern, function($matches){
 			return strtolower($matches[1]);
@@ -409,6 +409,22 @@ class str {
 
 		# And we're done
 		return $string;
+	}
+
+	/**
+	 * Multi-byte `ucfirst` method.
+	 *
+	 * @param string|null $string
+	 * @link https://stackoverflow.com/a/14161325/429071
+	 * @return string|null
+	 */
+	public static function mb_ucfirst(?string $string): ?string
+	{
+		if(!$string){
+			return $string;
+		}
+
+		return mb_strtoupper(mb_substr($string, 0, 1)).mb_strtolower(mb_substr($string, 1));
 	}
 
 	/**
@@ -660,7 +676,9 @@ class str {
 	 */
 	public static function getLocalServerIPs(?bool $withV6 = true): array
 	{
-		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ ]+)/', `ifconfig`, $ips);
+//		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ ]+)/', `ifconfig`, $ips);
+		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ \/]+)/', `ip a`, $ips);
+		// Trying `ip a` to prevent `sh: 1: ifconfig: not found` error message
 		return $ips[1];
 	}
 
@@ -2890,14 +2908,20 @@ EOF;
 	 * Stops a "timer". Returns the seconds passed since
 	 * the start time given.
 	 *
-	 * @param float $startTime
+	 * @param float $start_time
 	 *
 	 * @return float
 	 */
-	public static function stopTimer(float $startTime): float
+	public static function stopTimer(?float $start_time = NULL): float
 	{
 		$now = microtime(true);
-		return round($now - $startTime, 3);
+
+		if(!$start_time){
+			global $request_start_time;
+			$start_time = $request_start_time;
+		}
+
+		return round($now - $start_time, 3);
 	}
 
 	/**

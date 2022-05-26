@@ -8,7 +8,6 @@ use App\Common\Exception\BadRequest;
 use App\Common\Permission\Permission;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
-
 use App\Common\User\User;
 use App\UI\Button;
 use App\UI\Icon;
@@ -41,6 +40,11 @@ abstract class Prototype {
 	 * @var SQL\mySQL\mySQL
 	 */
 	public $sql;
+
+	/**
+	 * @var SQL\Info\Info
+	 */
+	public $info;
 
 	/**
 	 * The name of the non-standard database.
@@ -167,8 +171,10 @@ abstract class Prototype {
 	 */
 	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL, ?array $joins = NULL): ?array
 	{
-		$info = Info::getInstance();
-		return $info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh, $joins);
+		if(!$this->info){
+			$this->info = Info::getInstance();
+		}
+		return $this->info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh, $joins);
 	}
 
 	/**

@@ -5,6 +5,7 @@ namespace App\Common;
 
 use App\Common\ConnectionMessage\ConnectionMessage;
 use App\Common\SQL\Factory;
+use App\Common\SQL\Info\Info;
 use App\Common\SQL\mySQL\mySQL;
 
 /**
@@ -23,6 +24,11 @@ class PA {
 	private $sql;
 
 	/**
+	 * @var Info
+	 */
+	private $info;
+
+	/**
 	 * Both join and where are used to build
 	 * a query to identify potential recipients
 	 * of immediate alerts.
@@ -32,26 +38,64 @@ class PA {
 	private array $join = [];
 	private array $where = [];
 
-	private static $instance = null;
+	private static $instance = NULL;
+
 	/**
 	 * The constructor is private so that the class can be run in static mode
 	 *
 	 */
-	private function __construct () {
+	private function __construct()
+	{
 		# Set up an internal alert
 		$this->log = Log::getInstance();
 		$this->sql = Factory::getInstance();
 	}
 
 	/**
+	 * Shortcut for complex, repeated SQL queries. Simple syntax:
+	 * <code>
+	 * $rel = $this->info($rel_table, $rel_id, $refresh);
+	 * </code>
+	 * alternatively, add more colour:
+	 * <code>
+	 * $rel = $this->info([
+	 *    "rel_table" => $rel_table,
+	 *    "rel_id" => $rel_id,
+	 *    "where" => [
+	 *        "key" => "val"
+	 *    ]
+	 * ], NULL, $refresh, ["joins"]);
+	 * </code>
+	 *
+	 * @param             $rel_table_or_array
+	 * @param string|null $rel_id
+	 * @param null        $refresh
+	 * @param array|null  $joins
+	 *
+	 * @return array|null
+	 * @throws Exception
+	 */
+	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL, ?array $joins = NULL): ?array
+	{
+		if(!$this->info){
+			$this->info = Info::getInstance();
+		}
+		return $this->info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh, $joins);
+	}
+
+	/**
 	 * Stopps cloning of the object
 	 */
-	private function __clone() {}
+	private function __clone()
+	{
+	}
 
 	/**
 	 * Stops unserializing of the object
 	 */
-	private function __wakeup() {}
+	private function __wakeup()
+	{
+	}
 
 	/**
 	 * Is the instance to call to initiate the
@@ -61,9 +105,10 @@ class PA {
 	 * </code>
 	 * @return PA
 	 */
-	public static function getInstance() {
+	public static function getInstance()
+	{
 		# Check if instance is already exists
-		if(self::$instance == null) {
+		if(self::$instance == NULL){
 			self::$instance = new PA();
 		}
 		return self::$instance;
@@ -103,7 +148,7 @@ class PA {
 			}
 		}
 
-		if(!$fds) {
+		if(!$fds){
 			//if no currently open connections fit the criteria
 			return false;
 			//Don't push any messages on the network
@@ -112,7 +157,7 @@ class PA {
 		try {
 			$this->push($fds, $data);
 		}
-		catch (\Exception $e){
+		catch(\Exception $e) {
 			$this->log->error($e);
 			return false;
 		}
@@ -144,17 +189,17 @@ class PA {
 		# Send the output to the requester if found
 		$recipients = [
 			"user_id" => $user_id,
-			"session_id" => $session_id
+			"session_id" => $session_id,
 		];
 
 		# Force to true
 		$output['success'] = true;
 		/**
 		 * The reason why success is forced to true,
-		 * even if scenarios where its not, is that
+		 * even if scenarios where it's not, is that
 		 * any success=false that reaches JS, will
 		 * automatically prompt the URL to silently
-		 * be reverted back one step. This could have
+		 * be reverted one step. This could have
 		 * unintended consequences.
 		 *
 		 * Asynchronous requests should not
@@ -188,7 +233,8 @@ class PA {
 		extract($a);
 
 		# If a list of recipient FDs was explicitly sent
-		if($a['fd']){echo $i++;
+		if($a['fd']){
+			echo $i++;
 			return is_array($a['fd']) ? $a['fd'] : [$a['fd']];
 		}
 
@@ -198,7 +244,7 @@ class PA {
 
 		$this->where = [
 			# We're only interested in currently open connections
-			"closed" => NULL
+			"closed" => NULL,
 		];
 
 		# User permissions based recipients
@@ -215,12 +261,12 @@ class PA {
 			"columns" => "server_id",
 			"table" => "connection",
 			"where" => [
-				["server_id", "IS NOT", NULL]
+				["server_id", "IS NOT", NULL],
 			],
 			"order_by" => [
-				"created" => "DESC"
+				"created" => "DESC",
 			],
-			"limit" => 1
+			"limit" => 1,
 		]);
 		$this->or["server_id"] = $server['server_id'];
 
@@ -236,6 +282,15 @@ class PA {
 		 * for an explicit user or session.
 		 */
 		if($user_id || $session_id){
+			# We're only interested in one connection
+			$limit = 1;
+
+			# And it should be with a server ID, the newest first
+			$order_by = [
+				"server_id" => "DESC",
+				"created" => "DESC"
+			];
+
 			$this->or[] = ["server_id", "IS", NULL];
 		}
 
@@ -249,12 +304,23 @@ class PA {
 			$this->where[] = ["fd", "IS NOT", NULL];
 		}
 
-		return $this->sql->select([
+		if(!$connections = $this->sql->select([
 			"table" => "connection",
 			"join" => $this->join,
 			"where" => $this->where,
-			"or" => $this->or
-		]);
+			"or" => $this->or,
+			"limit" => $limit,
+			"order_by" => $order_by,
+		])){
+			return NULL;
+		}
+
+		# Always make sure the connections array is numerical
+		if(!str::isNumericArray($connections)){
+			$connections = [$connections];
+		}
+
+		return $connections;
 	}
 
 	/**
@@ -282,7 +348,7 @@ class PA {
 				"rel_id" => $rel_id ?: false,
 				"r" => true
 				// The user needs to at least have read access
-			]
+			],
 		];
 	}
 
@@ -305,8 +371,8 @@ class PA {
 			"table" => "user_role",
 			"on" => "user_id",
 			"where" => [
-				"rel_table" => $role
-			]
+				"rel_table" => $role,
+			],
 		];
 	}
 
@@ -331,13 +397,13 @@ class PA {
 	/**
 	 * Push a message to a given list of recipients.
 	 *
-	 * @param array $fd A numerical array of recipients (`fd` numbers)
+	 * @param array $fd      A numerical array of recipients (`fd` numbers)
 	 * @param array $message An array of messages, direction, instructions.
 	 *
-	 * @return bool TRUE on success, exceptions on error.
 	 * @throws \Exception
 	 */
-	private function push(array $fd, array $message){
+	public function push(array $fd, array $message): void
+	{
 		if(empty($fd)){
 			throw new \Exception("No recipients provided.");
 		}
@@ -345,26 +411,25 @@ class PA {
 			throw new \Exception("No message provided.");
 		}
 
-//		if(str::runFromCLI()){
-//			//If this method is called from the CLI
-//
-//			/**
-//			 * The below needs to be in the go() function because Swoole said so
-//			 * @link https://www.qinziheng.com/swoole/7477.htm
-//			 */
-//			go(function() use($fd, $message){
-//				$client = new Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
-//				$client->upgrade("/");
-//				$client->push(json_encode([
-//					"fd" => $fd,
-//					"data" => $message
-//				]));
-//				$client->close();
-//			});
-//
-//			return true;
-//		}
-//		# If this method is NOT called from CLI
+		//		if(str::runFromCLI()){
+		//			//If this method is called from the CLI
+		//
+		//			/**
+		//			 * The below needs to be in the go() function because Swoole said so
+		//			 * @link https://www.qinziheng.com/swoole/7477.htm
+		//			 */
+		//			go(function() use($fd, $message){
+		//				$client = new Client($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port']);
+		//				$client->upgrade("/");
+		//				$client->push(json_encode([
+		//					"fd" => $fd,
+		//					"data" => $message
+		//				]));
+		//				$client->close();
+		//			});
+		//
+		//			return;
+		//		}
 
 		/**
 		 * For some reason, this doesn't work. So we're doing a hack-y version below,
@@ -378,14 +443,14 @@ class PA {
 		# Prepare the data as a single commandline friendly json string
 		$data = urlencode(json_encode([
 			"fd" => $fd,
-			"data" => $message
+			"data" => $message,
 		]));
 
 		# Place the whole thing in a co-routine
-		$cmd  = "'go(function(){";
+		$cmd = "'go(function(){";
 
 		# Will eventually need to change to the following in Swoole 4.6+
-//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
+		//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
 
 		# Fire up the http client
 		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
@@ -396,7 +461,7 @@ class PA {
 		# If the data being sent is larger than 900 chars, create a tmp file and send the file link instead
 		if(strlen($data) > 900){
 			//if more than 900 chars is being sent
-			$filename = $_ENV['tmp_dir'].rand();
+			$filename = $_ENV['tmp_dir'] . rand();
 			file_put_contents($filename, $data);
 			$cmd .= "\$client->push(urldecode(file_get_contents(\"{$filename}\")));unlink(\"{$filename}\");";
 		}
@@ -419,8 +484,6 @@ class PA {
 		if($output){
 			throw new \Exception($output);
 		}
-
-		return true;
 	}
 }
 
@@ -429,24 +492,24 @@ class PA {
  * to be incorrect and a far shorter limit (of ~900 chars) was established.
  *
  * function generateRandomString($length = 25) {
- * 	$characters = '0123456789';
- * 	$charactersLength = strlen($characters);
- * 	$randomString = '';
- * 	for ($i = 0; $i < $length; $i++) {
- * 		$randomString .= $characters[rand(0, $charactersLength - 1)];
- * 	}
- * 	return $randomString;
+ *    $characters = '0123456789';
+ *    $charactersLength = strlen($characters);
+ *    $randomString = '';
+ *    for ($i = 0; $i < $length; $i++) {
+ *        $randomString .= $characters[rand(0, $charactersLength - 1)];
+ *    }
+ *    return $randomString;
  * }
  *
  * # Our starting point
  * $times = 130000;
  *
  * while(true){
- * 	$output = @shell_exec("echo ".generateRandomString($times));
- * 	if(!preg_match("/[^0-9]+/", $output)){
- * 		print "Can't do ".$times;
- * 		exit;
- * 	}
- * 	$times += 1;
+ *    $output = @shell_exec("echo ".generateRandomString($times));
+ *    if(!preg_match("/[^0-9]+/", $output)){
+ *        print "Can't do ".$times;
+ *        exit;
+ *    }
+ *    $times += 1;
  * }
  */

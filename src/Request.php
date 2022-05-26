@@ -76,6 +76,10 @@ class Request {
 			return;
 		}
 
+		# For logging purposes
+		global $request_start_time;
+		$request_start_time = microtime(true);
+
 		foreach($_SESSION as $key => $val){
 			$key = $key == 'PHPSESSID' ? 'session_id' : $key;
 			global $$key;
