@@ -38,7 +38,7 @@ class DatabaseDown extends Template implements TemplateInterface {
 					"colour" => "primary",
 				],
 				"body" => [
-					"body" => "A user [{$ip}] got the following error message when attempting to connect to the database server: <b>{$error_message}</b>.",
+					"body" => "A user [{$ip}] got the following error message when attempting to connect to the database server: <b>{$error_message}</b>.<br>The mySQL logs can be found here: <code>/var/log/mysql/error.log</code>",
 					"align" => "left"
 				]
 			],
