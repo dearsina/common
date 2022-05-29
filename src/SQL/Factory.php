@@ -20,8 +20,9 @@ class Factory {
 	 * @param string $type
 	 *
 	 * @return mySQL
+	 * @throws \Exception
 	 */
-	public static function getInstance($type = "mySQL", ?bool $api = NULL)
+	public static function getInstance(string $type = "mySQL", ?bool $api = NULL)
 	{
 		# Set the class depending on type type
 		switch(strtolower($type)) {

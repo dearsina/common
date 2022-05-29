@@ -234,27 +234,8 @@ class PA {
 
 		# If a list of recipient FDs was explicitly sent
 		if($a['fd']){
-			echo $i++;
 			return is_array($a['fd']) ? $a['fd'] : [$a['fd']];
 		}
-
-		# If we have to generate recipients
-		$this->join = [];
-		//Reset the class variables
-
-		$this->where = [
-			# We're only interested in currently open connections
-			"closed" => NULL,
-		];
-
-		# User permissions based recipients
-		$this->getRecipientsBasedOnUserPermissions($a);
-
-		# Role based recipients
-		$this->getRecipientsBasedOnRolePermissions($a);
-
-		# Requester based recipient (there is only one requester at any time)
-		$this->getRecipientsBasedOnRequester($a);
 
 		# We're only interested in connections on the current server
 		$server = $this->sql->select([
@@ -269,6 +250,23 @@ class PA {
 			"limit" => 1,
 		]);
 		$this->or["server_id"] = $server['server_id'];
+
+		# We're only interested in currently open connections
+		$this->where = [
+			"closed" => NULL,
+		];
+
+		# Reset the join array
+		$this->join = [];
+
+		# User permissions based recipients
+		$this->getRecipientsBasedOnUserPermissions($a);
+
+		# Role based recipients
+		$this->getRecipientsBasedOnRolePermissions($a);
+
+		# Requester based recipient (there is only one requester at any time)
+		$this->getRecipientsBasedOnRequester($a);
 
 		/**
 		 * In cases where the registered user or client

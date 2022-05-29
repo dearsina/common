@@ -2,7 +2,7 @@
 
 namespace App\Common\ConnectionMessage;
 
-use App\Common\SQL\mySQL\mySQL;
+use App\Common\SQL\Factory;
 
 /**
  * A class to handle messages to connections that
@@ -19,7 +19,7 @@ class ConnectionMessage extends \App\Common\Prototype {
 	 */
 	public static function store(string $connection_id, array $data): void
 	{
-		mySQL::getInstance()->insert([
+		Factory::getInstance()->insert([
 			"table" => "connection_message",
 			"set" => [
 				"connection_id" => $connection_id,
