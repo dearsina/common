@@ -1997,7 +1997,7 @@ abstract class Common {
 
 		# If only those that the user can update, filter the table columns
 		$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
-		return array_filter($this->meta[$table['db']][$table['name']], function($col) use ($columns_user_cannot_update){
+		return array_filter($this->meta[$table['db']][$table['name']] ?:[], function($col) use ($columns_user_cannot_update){
 			# We only want those that are NOT on the list of columns the user cannot update
 			return !in_array($col, $columns_user_cannot_update);
 		}, ARRAY_FILTER_USE_KEY);
