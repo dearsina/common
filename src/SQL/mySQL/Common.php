@@ -1139,13 +1139,15 @@ abstract class Common {
 			# Is col a JSON column?
 			if($this->isColumnJson($table, $col)){
 				//if $col is JSON
-				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+				return "`{$tbl_alias}`.`{$tbl_col}` MEMBER OF (`{$table['alias']}`.`{$col}`)";
 			}
 
 			# Is tbl_col a JSON column?
 			if($this->isColumnJson($tbl, $tbl_col)){
 				//if $tbl_col is JSON
-				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+				return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$tbl_alias}`.`{$tbl_col}`)";
 			}
 
 			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
@@ -1193,7 +1195,8 @@ abstract class Common {
 			# Is col a JSON column?
 			if($this->isColumnJson($table, $col)){
 				//if $col is JSON
-				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+				return "`{$tbl_alias}`.`{$tbl_col}` MEMBER OF (`{$table['alias']}`.`{$col}`)";
 			}
 
 			$tbl = [
@@ -1204,7 +1207,8 @@ abstract class Common {
 			# Is tbl_col a JSON column?
 			if($this->isColumnJson($tbl, $tbl_col)){
 				//if $tbl_col is JSON
-				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+				return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$tbl_alias}`.`{$tbl_col}`)";
 			}
 
 			return "`{$table['alias']}`.`{$col}` = {$pre}`{$tbl_alias}`.`{$tbl_col}`{$post}";
