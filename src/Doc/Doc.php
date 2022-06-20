@@ -4,6 +4,7 @@ namespace App\Common\Doc;
 
 use App\Common\Exception\BadRequest;
 use App\Common\str;
+use Pelago\Emogrifier\CssInliner;
 
 /**
  * Generic document handling methods.
@@ -436,6 +437,134 @@ class Doc extends \App\Common\Prototype {
 			return false;
 		default:
 			return true;
+		}
+	}
+
+	/**
+	 * Converts aa SVG to a PNG of a given size.
+	 * Does not grow the SVG content, more like
+	 * just the frame that holds the SVG. To grow
+	 * the SVG, use the `enlargeSvg` method.
+	 *
+	 * @param array      $file
+	 * @param float|null $width
+	 * @param float|null $height
+	 *
+	 * @throws \ImagickException
+	 */
+	public static function convertSvgToPng(array &$file, ?float $width = NULL, ?float $height = NULL): void
+	{
+		# Set up ImageMagick
+		$im = new \Imagick();
+
+		# Read the SVG
+		$im->readImageBlob(file_get_contents($file['tmp_name']));
+
+		# Set the image format to be PNG
+		$im->setImageFormat("png24");
+
+		# Resize if required
+		if($width != NULL && $height != NULL){
+			$im->resizeImage($width, $height, \imagick::FILTER_LANCZOS, 1);
+		}
+
+		# Grab the SVG tmp_name
+		$svg_tmp_name = $file['tmp_name'];
+
+		# Add a ".png" to the tmp filename
+		$file['tmp_name'] .= ".png";
+
+		# Update the ext to be png
+		$file['ext'] = "png";
+
+		# Update the content type to be image/png
+		$file['type'] = "image/png";
+
+		# Write the PNG to the new filename
+		$im->writeImage($file['tmp_name']);
+
+		# Close ImageMagick
+		$im->clear();
+		$im->destroy();
+
+		# Remove the SVG copy
+		unlink($svg_tmp_name);
+	}
+
+	/**
+	 * Assuming the file is an SVG, will look for any <style>
+	 * tags, and convert all styles to inline styles. This is
+	 * useful if the SVG is to be embedded into a DOCX and
+	 * converted to a PDF, as the converter will disregard any
+	 * styles in tags and only accept inline styles.
+	 *
+	 * @param array $file
+	 */
+	public static function inlineSvgCss(array $file): void
+	{
+		# Read the file, convert all <style> tags to inline CSS
+		$doc = CssInliner::fromHtml(file_get_contents($file['tmp_name']))->inlineCss()->getDomDocument();
+
+		# Get the SVG component from the DOM (which is now been converted to an HTML file)
+		$svg = $doc->saveXML($doc->getElementsByTagName("svg")->item(0));
+
+		# Update the local file with the updated SVG content
+		file_put_contents($file['tmp_name'], $svg);
+	}
+
+	/**
+	 * Enlarge the SVG so that when it is converted to PNG, it's not blurry
+	 * or too small. Only updates the width/height, base don the viewBox,
+	 * but does not touch the viewBox.
+	 *
+	 * @param array     $file
+	 * @param float|int $multiplier
+	 */
+	public static function enlargeSvg(array &$file, float $multiplier = 3): void
+	{
+		# Load the SVG (as an XML)
+		$doc = new \DOMDocument();
+		$doc->loadXML(file_get_contents($file['tmp_name']));
+
+		# Get the SVG
+		$tags = $doc->getElementsByTagName("svg");
+
+		# Go through it (there is only one)
+		foreach($tags as $tag){
+
+			# Go through each attribute
+			foreach($tag->attributes as $attribute){
+				if(strtolower($attribute->name) == "viewbox"){
+					// If the attribute is the viewBox
+
+					# Grab the values from the viewBox and break it up
+					[$x, $y, $width, $height] = explode(" ", $attribute->value);
+
+					# The width/height is based on the viewBox multiplied with the multiplier
+					$width = ($width - $x) * $multiplier;
+					$height = ($height - $y) * $multiplier;
+
+					# Add the width for the DOCX doc fills
+					$file['width'] = $width / (72/2.54);
+					/**
+					 * Here we're dividing the width
+					 * (in pixels) with the DPI, to get
+					 * an approximate CM width number.
+					 *
+					 * 72 DPI seems to be the default.
+					 * 1 px/cm = 2.54 px/inch
+					 */
+
+					# Add width/height attributes, and set the multiplied number
+					$tag->setAttribute("width", $width);
+					$tag->setAttribute("height", $height);
+
+					# Save the updated SVG
+					file_put_contents($file['tmp_name'], $doc->saveXML());
+
+					return;
+				}
+			}
 		}
 	}
 
