@@ -518,7 +518,7 @@ class Doc extends \App\Common\Prototype {
 	 * but does not touch the viewBox.
 	 *
 	 * @param array     $file
-	 * @param float|int $multiplier
+	 * @param float|int $multiplier The default multiplier is 3. It's rather arbitrary but seems to work.
 	 */
 	public static function enlargeSvg(array &$file, float $multiplier = 3): void
 	{
