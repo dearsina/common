@@ -485,10 +485,15 @@ class Email extends Prototype {
 
 		# Ensure no emails are sent from the dev environment
 		if(str::isDev()){
-			Log::getInstance()->info([
+			Log::getInstance()->warning([
 				"icon" => "ban",
 				"title" => "Email not sent",
 				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
+			]);
+			Log::getInstance()->info([
+				"icon" => "email",
+				"title" => $this->envelope->getSubject(),
+				"message" => $this->envelope->getBody(),
 			]);
 			return true;
 		}
