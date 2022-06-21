@@ -724,26 +724,26 @@ class str {
 	}
 
 	/**
-	 * For *external* files only
+	 * For external files, will check the file header,
+	 * for internal files, will only check the file
+	 * extension.
 	 *
-	 * @param string $filePath
+	 * @param string $path
 	 *
 	 * @return bool
 	 * @link https://stackoverflow.com/a/10494842/429071
 	 */
-	public static function isSvg(string $filePath)
+	public static function isSvg(string $path): bool
 	{
-		if(substr($filePath, 0, 1) == "/"){
+		if(strpos($path, "://") === false){
 			//if local file
 
 			# A svg suffix is sufficient if the file is local
-			if(substr($filePath, -3) == "svg"){
-				return true;
-			}
+			return substr($path, -3) == "svg";
 		}
 
-		# Otherwise check the headers
-		return in_array("Content-Type: image/svg+xml", get_headers($filePath));
+		# Otherwise, check the headers
+		return in_array("Content-Type: image/svg+xml", get_headers($path));
 	}
 
 	/**
