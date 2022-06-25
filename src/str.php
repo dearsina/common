@@ -3893,6 +3893,7 @@ EOF;
 
 	/**
 	 * Generates approval settings, based on the boolean:
+	 *
 	 * <code>
 	 * "approve" => true
 	 * </code>
@@ -3905,25 +3906,32 @@ EOF;
 	 *    "icon" => "user"
 	 *  ]
 	 * </code>
-	 * All of the array elements are optional.
 	 *
-	 * @param array|bool|string $approve
+	 * All the array elements are optional.
 	 *
-	 * @return bool|string
+	 * @param             $approve
+	 * @param null        $icon
+	 * @param string|null $colour
+	 *
+	 * @return string|null
 	 */
-	static function getApproveAttr($approve)
+	static function getApproveAttr($approve, $icon = NULL, ?string $colour = NULL): ?string
 	{
 		if(!$approve){
 			//If no approve modal is required
-			return false;
+			return NULL;
 		}
 
 		if(is_array($approve)){
 			extract($approve);
 		}
+
+
 		else if(is_bool($approve)){
 			$message = "Are you sure you want to do this?";
 		}
+
+
 		else if(is_string($approve)){
 			//if just the name of the thing to be removed is given
 			$message = str::title("Are you sure you want to {$approve}?");
