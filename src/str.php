@@ -617,11 +617,21 @@ class str {
 		# Remove the last step, which is just the string "backtrace()"
 		array_pop($correctly_aligned_steps);
 
-		if($return){
-			return implode("\r\n", $correctly_aligned_steps);
+		$steps = implode("\r\n", $correctly_aligned_steps);
+
+		# If we're running in dev, grab any potential backtraces from the parent thread also
+		if(str::isDev()){
+			global $backtrace;
+			if($backtrace){
+				$steps = base64_decode($backtrace).PHP_EOL.$steps;
+			}
 		}
 
-		print implode("\r\n", $correctly_aligned_steps);
+		if($return){
+			return $steps;
+		}
+
+		print $steps;
 		exit;
 	}
 
