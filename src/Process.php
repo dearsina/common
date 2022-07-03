@@ -186,7 +186,8 @@ class Process {
 
 		# Log the backtrace, but only in dev
 		if(str::isDev()){
-			$global_vars['backtrace'] = base64_encode(str::backtrace(true));
+			global $backtrace;
+			$global_vars['backtrace'] = $backtrace.base64_encode(str::backtrace(true));
 		}
 
 

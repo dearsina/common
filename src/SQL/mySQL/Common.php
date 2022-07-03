@@ -961,7 +961,7 @@ abstract class Common {
 			$sections = explode(".", $alias);
 
 			# While there are sections, pop a link table, and add to the list
-			while($sections){
+			while($sections) {
 				$alias = implode(".", $sections);
 				$tables[$alias] = $alias;
 				array_pop($sections);
@@ -1139,14 +1139,14 @@ abstract class Common {
 			# Is col a JSON column?
 			if($this->isColumnJson($table, $col)){
 				//if $col is JSON
-//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+				//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
 				return "`{$tbl_alias}`.`{$tbl_col}` MEMBER OF (`{$table['alias']}`.`{$col}`)";
 			}
 
 			# Is tbl_col a JSON column?
 			if($this->isColumnJson($tbl, $tbl_col)){
 				//if $tbl_col is JSON
-//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+				//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
 				return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$tbl_alias}`.`{$tbl_col}`)";
 			}
 
@@ -1195,7 +1195,7 @@ abstract class Common {
 			# Is col a JSON column?
 			if($this->isColumnJson($table, $col)){
 				//if $col is JSON
-//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
+				//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
 				return "`{$tbl_alias}`.`{$tbl_col}` MEMBER OF (`{$table['alias']}`.`{$col}`)";
 			}
 
@@ -1207,7 +1207,7 @@ abstract class Common {
 			# Is tbl_col a JSON column?
 			if($this->isColumnJson($tbl, $tbl_col)){
 				//if $tbl_col is JSON
-//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
+				//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
 				return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$tbl_alias}`.`{$tbl_col}`)";
 			}
 
@@ -1688,6 +1688,11 @@ abstract class Common {
 		# Table column meta data
 		$table_metadata = $this->getTableMetadata($table);
 
+		# Ensure JSON columns always have array values (unless the string is already JSON)
+		if($table_metadata[$col]['DATA_TYPE'] == "json" && !is_array($val) && strlen($val) && !str::isJson($val)){
+			$val = [$val];
+		}
+
 		# Array values are not allowed, with exceptions
 		if(is_array($val)){
 
@@ -2001,7 +2006,7 @@ abstract class Common {
 
 		# If only those that the user can update, filter the table columns
 		$columns_user_cannot_update = $this->getTableColumnsUsersCannotUpdate($table['name']);
-		return array_filter($this->meta[$table['db']][$table['name']] ?:[], function($col) use ($columns_user_cannot_update){
+		return array_filter($this->meta[$table['db']][$table['name']] ?: [], function($col) use ($columns_user_cannot_update){
 			# We only want those that are NOT on the list of columns the user cannot update
 			return !in_array($col, $columns_user_cannot_update);
 		}, ARRAY_FILTER_USE_KEY);
@@ -2032,12 +2037,12 @@ abstract class Common {
 	{
 		# Not sure why this would go missing, but it has (at times)
 		if(@!$this->mysqli->thread_id){
-			do{
+			do {
 				if($sleep){
 					sleep($sleep);
 					if(str::isDev()){
 						Log::getInstance()->info([
-							"message" => "Slept for {$sleep} seconds, while waiting for a new mySQLi connection."
+							"message" => "Slept for {$sleep} seconds, while waiting for a new mySQLi connection.",
 						], true);
 					}
 				}
@@ -2046,8 +2051,7 @@ abstract class Common {
 				if($sleep == 10){
 					throw new \Exception("Tried 10 times without luck to reconnect to the mySQL server when getting metadata of the {$db} db.");
 				}
-			}
-			while(@!$this->mysqli->thread_id);
+			} while(@!$this->mysqli->thread_id);
 		}
 
 		# If there is no "local" cache, but there a session schema cache, use it
@@ -2108,7 +2112,7 @@ abstract class Common {
 		}
 
 		else {
-			throw new BadRequest("Cannot find the <code>{$db}</code> database: ".var_export($result, true));
+			throw new BadRequest("Cannot find the <code>{$db}</code> database: " . var_export($result, true));
 		}
 
 		# Log the added-to schema as a session schema cache
@@ -2342,6 +2346,17 @@ abstract class Common {
 				 * assume $val is a set command
 				 */
 				$strings[] = $val;
+				continue;
+			}
+
+			# "JSON_col" => "val"
+			// When a single value is passed to a JSON column, that should have been encapsulated as an array
+			if(is_string($col) && $this->isColumnJson($this->table, $col) && !is_array($val) && strlen($val) && !str::isJson($val)){
+				# Convert the value to be an array
+				$val = [$val];
+				# Which in turn will convert the array to JSON
+				$val = $this->formatInsertVal($this->table, $col, $val);
+				$strings[] = "`{$this->table['alias']}`.`$col` = {$val}";
 				continue;
 			}
 
