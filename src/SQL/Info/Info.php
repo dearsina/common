@@ -156,8 +156,8 @@ class Info {
 	 */
 	private function genericProcess(array $a)
 	{
-		# Set a generic order by
-		$a['order_by'] = [
+		# Set a generic order by, unless one has been passed
+		$a['order_by'] = $a['order_by'] ?: [
 			"order" => "ASC",
 			"title" => "ASC"
 		];

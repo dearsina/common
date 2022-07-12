@@ -4056,8 +4056,11 @@ EOF;
 			if(is_array($val)){
 				//Value is an array, store as single quoted string
 
-				# Remove empty (unless requested otherwise)
-				$val = $keep_empty ? $val : str::array_filter_recursive($val);
+				if($key != "dependency"){
+					# Remove empty (unless requested otherwise)
+					$val = $keep_empty ? $val : str::array_filter_recursive($val);
+					// Dependency values will be boolean at times
+				}
 
 				# JSON encode
 				$val = json_encode($val);
@@ -4069,6 +4072,7 @@ EOF;
 				$str .= " data-{$key}='{$val}'";
 
 			}
+
 			else {
 				//Value is a string, store as double-quoted string
 

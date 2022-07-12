@@ -72,15 +72,16 @@ abstract class PrintPrototype extends Prototype {
 				"sm" => 6,
 			], [
 				"html" => "Qty",
-				"sm" => 1,
+				"sm" => 2,
 			], [
 				"html" => "Rate",
 				"sm" => 2,
 			], [
 				"html" => "Amount",
-				"sm" => 3,
+				"sm" => 2,
 				"style" => [
 					"text-align" => "right",
+					"max-width" => "5rem"
 				],
 			]],
 		];
