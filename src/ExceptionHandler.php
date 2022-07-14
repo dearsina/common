@@ -89,7 +89,7 @@ class ExceptionHandler {
 	 */
 	public static function getResponse (object $e): string
 	{
-		if (!$e->hasResponse()) {
+		if (method_exists($e, "hasResponse") && $e->hasResponse()) {
 			return false;
 		}
 
@@ -98,7 +98,7 @@ class ExceptionHandler {
 		}
 
 		$log = Log::getInstance();
-//		var_dump($e->getResponse());
+
 		$log->info($e->getResponse()->getBody()->getContents(), true);
 
 		$response = \GuzzleHttp\Psr7\str($e->getResponse());
@@ -122,7 +122,7 @@ class ExceptionHandler {
 		}
 
 		# Get cURL error code
-		if($handler_context = $e->getHandlerContext()) {
+		if(method_exists($e, "getHandlerContext") && $handler_context = $e->getHandlerContext()) {
 			if($code = $handler_context['errno']){
 				return $code;
 			}
@@ -161,6 +161,7 @@ class ExceptionHandler {
 		$sql = Factory::getInstance();
 		$sql->insert([
 			"table" => "api_error_log",
+			"grow" => true,
 			"set" => [
 				"origin" => $origin,
 				"catch" => self::getType($e),
