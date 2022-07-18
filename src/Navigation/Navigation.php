@@ -238,7 +238,7 @@ class Navigation {
 	}
 
 	/**
-	 * Child levels override parent levels, excpet for items,
+	 * Child levels override parent levels, except for items,
 	 * where child levels are merged with parent levels.
 	 *
 	 * @param array $parent

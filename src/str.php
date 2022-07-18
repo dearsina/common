@@ -2158,7 +2158,7 @@ EOF;
 		$str = $Parsedown->text($str);
 
 		# Parent class
-		$parent_class_array = str::getAttrArray($parent_class, "code-mute", $parent_only_class);
+		$parent_class_array = str::getAttrArray($parent_class, "code-mute", $only_parent_class);
 		$parent_class = str::getAttrTag("class", $parent_class_array);
 
 		# Parent style

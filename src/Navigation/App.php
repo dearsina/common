@@ -211,6 +211,7 @@ class App extends Prototype implements NavigationInterface {
 		return [
 			"title" => "Switch role",
 			"icon" => "random",
+			"direction" => "left",
 			"children" => $children
 		];
 	}

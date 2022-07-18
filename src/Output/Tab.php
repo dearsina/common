@@ -18,10 +18,12 @@ class Tab {
 	 *
 	 * @param string     $id         The ID of the tabs where you want to append a new tab.
 	 * @param array|null $tab        The tab data
-	 * @param bool|null  $active     If set, will set the new tab as the active tab.
 	 * @param array|null $recipients If set, will perform this action asynchronously to the given recipients
+	 * @param bool|null  $first		 Should this append go first in the order of events?
+	 *
+	 * @throws \App\Common\Exception\BadRequest
 	 */
-	public function append(string $id, ?array $tab = NULL, ?array $recipients = NULL): void
+	public function append(string $id, ?array $tab = NULL, ?array $recipients = NULL, ?bool $first = NULL): void
 	{
 		if(!$tab){
 			return;
@@ -36,7 +38,7 @@ class Tab {
 		$tab['header'] = $header;
 		$tab['pane'] = $pane;
 
-		$this->output->function("appendTab", $tab, $recipients);
+		$this->output->function("appendTab", $tab, $recipients, $first);
 	}
 
 	/**
