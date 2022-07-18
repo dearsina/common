@@ -54,7 +54,7 @@ class Geolocation extends \App\Common\Prototype {
 	 *
 	 * @return array|null
 	 */
-	public static function get(string $ip = NULL): ?array
+	public static function get(?string $ip = NULL): ?array
 	{
 		$geolocation = new Geolocation();
 		return $geolocation->getGeolocation($ip);
@@ -71,7 +71,7 @@ class Geolocation extends \App\Common\Prototype {
 	 * @return array|null
 	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
-	public function getGeolocation(string $ip = NULL): ?array
+	public function getGeolocation(?string $ip = NULL): ?array
 	{
 		if(!$ip){
 			//if an IP isn't explicitly given, use the requester IP
