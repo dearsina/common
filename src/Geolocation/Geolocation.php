@@ -6,6 +6,7 @@ namespace App\Common\Geolocation;
 
 
 use App\Common\str;
+use App\Email\Email;
 use Exception;
 
 class Geolocation extends \App\Common\Prototype {
@@ -80,6 +81,20 @@ class Geolocation extends \App\Common\Prototype {
 			}
 		}
 
+		# Without an IP, we can't get geolocation
+		if(!$ip){
+			Email::notifyAdmins([
+				"subject" => "No IP address given",
+				"body" => "Could not run a geolocation check because no IP address was provided.",
+				"backtrace" => json_encode([
+					'$_SERVER' => $_SERVER,
+					'$_REQUEST' => $_REQUEST,
+					'$_SESSION' => $_SESSION
+				])
+			]);
+			return NULL;
+		}
+
 		# Most of the time, the data already exists
 		if($geolocation = $this->sql->select([
 			"table" => "geolocation",
@@ -115,9 +130,9 @@ class Geolocation extends \App\Common\Prototype {
 		}
 		catch (Exception $e) {
 			//Catch errors
-			$this->log->error([
-				"title" => "Geolocation error",
-				"message" => $e->getMessage()
+			Email::notifyAdmins([
+				"subject" => "Geolocation error",
+				"body" => "Could not run a geolocation got the following error: {$e->getMessage()}",
 			]);
 			return NULL;
 		}
