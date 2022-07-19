@@ -82,10 +82,10 @@ class str {
 	 * @return bool
 	 */
 	public static function endsWith(string $haystack, string $needle): bool
-    {
-        $needle_len = strlen($needle);
-        return ($needle_len === 0 || 0 === substr_compare($haystack, $needle, - $needle_len));
-    }
+	{
+		$needle_len = strlen($needle);
+		return ($needle_len === 0 || 0 === substr_compare($haystack, $needle, -$needle_len));
+	}
 
 	/**
 	 * DEPRECIATED, USE capitalise() INSTEAD
@@ -259,7 +259,7 @@ class str {
 		"Rd",
 		"Blvd",
 		"Pty",
-		"Ltd"
+		"Ltd",
 	];
 
 	/**
@@ -415,8 +415,9 @@ class str {
 	 * Multi-byte `ucfirst` method.
 	 *
 	 * @param string|null $string
-	 * @link https://stackoverflow.com/a/14161325/429071
+	 *
 	 * @return string|null
+	 * @link https://stackoverflow.com/a/14161325/429071
 	 */
 	public static function mb_ucfirst(?string $string): ?string
 	{
@@ -424,7 +425,7 @@ class str {
 			return $string;
 		}
 
-		return mb_strtoupper(mb_substr($string, 0, 1)).mb_strtolower(mb_substr($string, 1));
+		return mb_strtoupper(mb_substr($string, 0, 1)) . mb_strtolower(mb_substr($string, 1));
 	}
 
 	/**
@@ -623,7 +624,7 @@ class str {
 		if(str::isDev()){
 			global $backtrace;
 			if($backtrace){
-				$steps = base64_decode($backtrace).PHP_EOL.$steps;
+				$steps = base64_decode($backtrace) . PHP_EOL . $steps;
 			}
 		}
 
@@ -686,7 +687,7 @@ class str {
 	 */
 	public static function getLocalServerIPs(?bool $withV6 = true): array
 	{
-//		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ ]+)/', `ifconfig`, $ips);
+		//		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ ]+)/', `ifconfig`, $ips);
 		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ \/]+)/', `ip a`, $ips);
 		// Trying `ip a` to prevent `sh: 1: ifconfig: not found` error message
 		return $ips[1];
@@ -1066,7 +1067,7 @@ class str {
 
 		if($implementation){
 			$classes_with_implementation = [];
-			
+
 			foreach($classes as $class){
 				if(!class_exists($class)){
 					continue;
@@ -2392,7 +2393,7 @@ EOF;
 	public static function convertCsvToArray(string $data, ?bool $has_header_row = NULL, ?string $separator = NULL, ?string $enclosure = NULL, ?string $escape = NULL): ?array
 	{
 		# External file
-		if (filter_var($data, FILTER_VALIDATE_URL) !== FALSE){
+		if(filter_var($data, FILTER_VALIDATE_URL) !== false){
 			$f = new \SplFileObject($data);
 		}
 
@@ -2404,7 +2405,7 @@ EOF;
 		# Data string (that needs to be stored as a local file)
 		else {
 			# Generate a random tmp name
-			$tmp_name = $_ENV['tmp_dir'].str::id("csv");
+			$tmp_name = $_ENV['tmp_dir'] . str::id("csv");
 
 			# Store the data as a file
 			file_put_contents($tmp_name, $data);
@@ -2433,7 +2434,7 @@ EOF;
 					$counts = array_count_values($header);
 					foreach($header as $id => $title){
 						if($counts[$title] > 1){
-							$header[$id] = "{$title} [".str::excelKey($id)."]";
+							$header[$id] = "{$title} [" . str::excelKey($id) . "]";
 						}
 					}
 				}
@@ -3252,7 +3253,7 @@ EOF;
 	 * other number (including zero) of
 	 * something.
 	 *
-	 * @param mixed     $count      Count can be either a number, or an array (in which case it gets counted)
+	 * @param mixed $count Count can be either a number, or an array (in which case it gets counted)
 	 *
 	 * @return string
 	 */
@@ -3309,7 +3310,8 @@ EOF;
 	/**
 	 * Strict regex pattern for characters that are not allowed in a filename.
 	 */
-	const STRICT_PATTERN = /** @lang RegExp */'~
+	const STRICT_PATTERN = /** @lang RegExp */
+		'~
         [<>:"/|?*]|              # File system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
         [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
         [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
@@ -3320,7 +3322,8 @@ EOF;
 	/**
 	 * Regex pattern for what characters are not allowed in a Windows OS filename.
 	 */
-	const WINDOWS_PATTERN = /** @lang RegExp */'~
+	const WINDOWS_PATTERN = /** @lang RegExp */
+		'~
         [<>:"/|?*]|              # File system reserved https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
         [\x00-\x1F]|             # control characters http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
         [\x7F\xA0\xAD]|          # non-printing characters DEL, NO-BREAK SPACE, SOFT HYPHEN
@@ -3794,24 +3797,6 @@ EOF;
 	}
 
 	/**
-	 * Get the style of button
-	 *
-	 * @param $a
-	 *
-	 * @return mixed
-	 */
-	static function get_style($a)
-	{
-		extract($a);
-
-		if($style){
-			return "style=\"{$style}\"";
-		}
-
-		return false;
-	}
-
-	/**
 	 * Takes a colour and prefixes it with "text-",
 	 * to get a class string to use as a colour.
 	 * The colour does not have to be translated prior.
@@ -3849,55 +3834,40 @@ EOF;
 		switch($colour) {
 		case 'primary'  :
 			return 'blue';
-			break;
 		case 'blue'     :
 			return 'blue';
-			break;
 		case 'info'     :
 			return 'blue';
-			break;
 		case 'green'    :
 			return 'green';
-			break;
 		case 'success'  :
 			return 'green';
-			break;
 		case 'warning'  :
 			return 'orange';
-			break;
 		case 'yellow'   :
 			return 'orange';
-			break;
 		case 'orange'   :
 			return 'orange';
-			break;
 		case 'danger'   :
 			return 'red';
-			break;
+		case 'error'   :
+			return 'red';
 		case 'red'      :
 			return 'red';
-			break;
 		case 'purple'   :
-			return 'purple ';
-			break;
+			return 'purple';
 		case 'dark'     :
 			return 'dark';
-			break;
 		case 'grey'     :
 			return 'dark';
-			break;
 		case 'gray'     :
 			return 'dark';
-			break;
 		case 'silver'   :
 			return 'dark';
-			break;
 		case 'black'    :
 			return 'dark';
-			break;
 		default:
 			return $colour;
-			break;
 		}
 	}
 
