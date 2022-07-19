@@ -83,14 +83,24 @@ class Geolocation extends \App\Common\Prototype {
 
 		# Without an IP, we can't get geolocation
 		if(!$ip){
+			$superglobals['$_REQUEST'] = $_REQUEST;
+			foreach($_SERVER as $key => $val){
+				if($_ENV[$key]){
+					continue;
+				}
+				$superglobals['$_SERVER'][$key] = $val;
+			}
+			foreach($_SESSION as $key => $val){
+				if(in_array($key, ["query", "cached_queries"])){
+					continue;
+				}
+				$superglobals['$_SESSION'][$key] = $val;
+			}
+
 			Email::notifyAdmins([
 				"subject" => "No IP address given",
-				"body" => "Could not run a geolocation check because no IP address was provided.",
-				"backtrace" => json_encode([
-					'$_SERVER' => $_SERVER,
-					'$_REQUEST' => $_REQUEST,
-					'$_SESSION' => $_SESSION
-				])
+				"body" => "Could not run a geolocation check because no IP address was provided.<br><pre>".str::backtrace(true)."</pre>",
+				"backtrace" => json_encode($superglobals)
 			]);
 			return NULL;
 		}
