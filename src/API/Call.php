@@ -164,8 +164,8 @@ class Call {
 			# The error code is the HTTP response code
 			http_response_code($e->getCode());
 
-			# The error message can be made public
-			$output = $e->getMessage();
+			# The error message is already formatted as a JSON
+			$output = json_decode($e->getMessage(), true);
 		}
 
 			# Generic errors
