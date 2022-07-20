@@ -7,6 +7,7 @@ namespace App\Common\API;
 use App\Common\Exception\BadRequest;
 use App\Common\Exception\Unauthorized;
 use App\Common\Connection\Connection;
+use App\Common\Exception\UnprocessableEntity;
 use App\Common\ExceptionHandler;
 use App\Common\Log;
 use App\Common\Output;
@@ -157,6 +158,14 @@ class Call {
 				"status" => "Bad request",
 				"error" => $e->getMessage(),
 			];
+		}
+
+		catch(UnprocessableEntity $e){
+			# The error code is the HTTP response code
+			http_response_code($e->getCode());
+
+			# The error message can be made public
+			$output = $e->getMessage();
 		}
 
 			# Generic errors
