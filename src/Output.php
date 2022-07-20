@@ -128,9 +128,9 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function update(string $id, $data, ?array $recipients = NULL): bool
+	public function update(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
 	{
-		return $this->setData("update", $id, $data, $recipients);
+		return $this->setData("update", $id, $data, $recipients, $first);
 	}
 
 	/**
@@ -142,9 +142,9 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function prepend(string $id, $data, ?array $recipients = NULL): bool
+	public function prepend(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
 	{
-		return $this->setData("prepend", $id, $data, $recipients);
+		return $this->setData("prepend", $id, $data, $recipients, $first);
 	}
 
 	/**
@@ -156,9 +156,9 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function append(string $id, $data, ?array $recipients = NULL): bool
+	public function append(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
 	{
-		return $this->setData("append", $id, $data, $recipients);
+		return $this->setData("append", $id, $data, $recipients, $first);
 	}
 
 	/**
@@ -170,9 +170,9 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function replace(string $id, $data, ?array $recipients = NULL): bool
+	public function replace(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
 	{
-		return $this->setData("replace", $id, $data, $recipients);
+		return $this->setData("replace", $id, $data, $recipients, $first);
 	}
 
 	/**
@@ -183,9 +183,9 @@ class Output {
 	 *
 	 * @return bool
 	 */
-	public function remove(string $id, ?array $recipients = NULL): bool
+	public function remove(string $id, ?array $recipients = NULL, ?bool $first = false): bool
 	{
-		return $this->setData("remove", $id, NULL, $recipients);
+		return $this->setData("remove", $id, NULL, $recipients, $first);
 	}
 
 	/**

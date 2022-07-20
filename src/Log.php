@@ -110,6 +110,11 @@ class Log {
 		$alerts[$md5] = $alert;
 	}
 
+	/**
+	 * Only used by the CronJob class.
+	 *
+	 * @return string
+	 */
 	public function getAlertMessages(): string
 	{
 		if(!empty($this->alerts)){
