@@ -1170,15 +1170,20 @@ class str {
 	/**
 	 * Given a rel_table, and an optional parent and grandparent class, find a class
 	 *
-	 * @param string      $rel_table         The class you're looking for
+	 * @param string|null $rel_table         The class you're looking for
 	 * @param string|null $parent_class      The parent class if it's different from the class itself
 	 * @param string|null $grandparent_class The optional grandparent class, if the info class is a level deeper. Only
 	 *                                       applies to API info classes
 	 *
 	 * @return bool|string Returns the class with path or FALSE if it can't find it
 	 */
-	public static function findClass(string $rel_table, ?string $parent_class = NULL, ?string $grandparent_class = NULL): ?string
+	public static function findClass(?string $rel_table, ?string $parent_class = NULL, ?string $grandparent_class = NULL): ?string
 	{
+		# In case a class name is NOT sent for some reason.
+		if(!$rel_table){
+			return NULL;
+		}
+
 		# An optional grandparent class can be supplied, and the parent class will be the same as the rel_table if not provided
 		$suffix = implode("\\", array_filter([$grandparent_class ?: NULL, $parent_class ?: $rel_table, $rel_table]));
 
