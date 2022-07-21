@@ -74,8 +74,13 @@ class Country extends Prototype {
 				],
 			]],
 			"where" => [
-				["closed", "IS", NULL],
+				"closed" => NULL,
+				["opened", "IS NOT", NULL],
+				["ip", "IS NOT", NULL],
 				"user_id" => $user_id,
+			],
+			"order_by" => [
+				"created" => "DESC"
 			],
 			"limit" => 1,
 		])){
