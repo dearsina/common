@@ -69,6 +69,10 @@ class Log {
 
 		foreach($this->alerts as $type => $alerts){
 			foreach($alerts as $alert){
+				if($alert['display'] === false){
+					//if the alert was just for logging, and not for display
+					continue;
+				}
 				$this->setAlertToDisplayedAlertsArray($displayed_alerts, $type, $alert);
 			}
 		}
@@ -229,7 +233,7 @@ EOF;
 				continue;
 			}
 			foreach($alerts as $alert){
-				if($alert['silent']){
+				if($alert['log'] === false){
 					//if the alert is not to be logged
 					continue;
 				}
@@ -267,11 +271,13 @@ EOF;
 			}
 		}
 
+		$message = implode("\r\n\r\n", array_filter([$alert['message'], $alert['backtrace']]));
+		$message = preg_replace("/[\\x80-\\xff]/i", "", $message);
 
 		$alert_array = array_filter([
 			"type" => $type,
-			"title" => $alert['title'],
-			"message" => implode("\r\n\r\n", array_filter([$alert['message'], $alert['backtrace']])),
+			"title" => substr($alert['title'], 0, 255),
+			"message" => $message,
 			"icon" => "{$icon['type']} fa-{$icon['name']}",
 			"seconds" => $alert['seconds'],
 			"action" => $_REQUEST['action'],
@@ -293,7 +299,7 @@ EOF;
 			/**
 			 * There is a try/catch here because the SQL server itself
 			 * could be the cause of the error, thus this insert
-			 * will further exacerbate the problem. Instead we will
+			 * will further exacerbate the problem. Instead, we will
 			 * print the error.
 			 */
 			echo json_encode([

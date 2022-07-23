@@ -211,7 +211,7 @@ class Request {
 		}
 		catch(BadRequest $e) {
 			$this->log->error([
-				"silent" => true, // this error is logged elsewhere already
+				"log" => false, // this error is logged elsewhere already
 				"icon" => "times-octagon",
 				"title" => "Invalid or incomplete request",
 				"message" => $e->getMessage(),
@@ -220,7 +220,7 @@ class Request {
 		}
 		catch(Unauthorized $e) {
 			$this->log->error([
-				"silent" => true, // this error is logged elsewhere already
+				"log" => false, // this error is logged elsewhere already
 				"icon" => "lock-alt",
 				"title" => "Authorisation issue",
 				"message" => $e->getMessage(),
@@ -242,18 +242,19 @@ class Request {
 	 * Format the exception trace as a string.
 	 *
 	 * @param \Exception $exception
-	 * @link https://gist.github.com/abtris/1437966
+	 *
 	 * @return string
+	 * @link https://gist.github.com/abtris/1437966
 	 */
 	private function getExceptionTraceAsString($exception) {
 		$rtn = "";
 		$count = 0;
 		foreach ($exception->getTrace() as $frame) {
 			$args = "";
-			if (isset($frame['args'])) {
-				$args = array();
-				foreach ($frame['args'] as $arg) {
-					if (is_string($arg)) {
+			if(isset($frame['args'])){
+				$args = [];
+				foreach($frame['args'] as $arg){
+					if(is_string($arg)){
 						$args[] = "'" . $arg . "'";
 					} elseif (is_array($arg)) {
 						$args[] = "Array";
@@ -492,11 +493,11 @@ class Request {
 	/**
 	 * Returns the output as a json-encoded array.
 	 *
-	 * @param $success
+	 * @param bool|null $success
 	 *
 	 * @return string
 	 */
-	private function output($success): ?string
+	private function output(?bool $success): ?string
 	{
 		if($_SESSION['database_calls']){
 //						$this->log->info("{$_SESSION['database_calls']} database calls.");

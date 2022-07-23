@@ -29,6 +29,9 @@ class UnprocessableEntity extends Prototype {
 	 * @param array|null      $private_message      The message you want to log for the admins.
 	 * @param int             $code                 The http response code to issue with this error, default 400
 	 * @param \Exception|null $previous
+	 *
+	 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422
+	 * @link https://stackoverflow.com/questions/16133923/400-vs-422-response-to-post-of-data
 	 */
 	public function __construct(array $public_message_array, ?array $private_message = NULL, $code = 422, \Exception $previous = NULL)
 	{
