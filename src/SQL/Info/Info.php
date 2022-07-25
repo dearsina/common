@@ -51,11 +51,18 @@ class Info {
 	 * Cloning and wakeup are also set to private to prevent
 	 * cloning and unserialising of the Info() object.
 	 */
-	private function __construct() {
+	private function __construct()
+	{
 		$this->sql = Factory::getInstance();
 	}
-	private function __clone() {}
-	private function __wakeup() {}
+
+	private function __clone()
+	{
+	}
+
+	private function __wakeup()
+	{
+	}
 
 	/**
 	 * Checks to see if an instance of Info()
@@ -64,34 +71,35 @@ class Info {
 	 *
 	 * @return Info
 	 */
-	public static function getInstance() {
-		if(!self::$instance) {
+	public static function getInstance()
+	{
+		if(!self::$instance){
 			self::$instance = new Info();
 		}
 		return self::$instance;
 	}
 
-    /**
-     * @param             $a
-     * @param string|null $rel_id
-     * @param bool|null $refresh If set to TRUE, will ignore any cached results.
-     *
-     * @return array|null
-     * @throws \Exception
-     */
+	/**
+	 * @param             $a
+	 * @param string|null $rel_id
+	 * @param bool|null   $refresh If set to TRUE, will ignore any cached results.
+	 *
+	 * @return array|null
+	 * @throws \Exception
+	 */
 	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL, ?array $joins = NULL): ?array
 	{
 		if(is_string($a)){
 			$a = [
 				"rel_table" => $a,
-				"rel_id" => $rel_id
+				"rel_id" => $rel_id,
 			];
 		}
 
 		if(!is_array($a)){
-			throw new \Exception("Only arrays or strings can be fed to the first value of the <code>info</code> method. You tried to pass a ".gettype($a).": ".var_export($a, true));
+			throw new \Exception("Only arrays or strings can be fed to the first value of the <code>info</code> method. You tried to pass a " . gettype($a) . ": " . var_export($a, true));
 		}
-		
+
 		# Clean up the request variables
 		$a = $this->cleanVars($a);
 
@@ -116,7 +124,8 @@ class Info {
 		# Run either a custom or generic process to get the rows
 		if($class_path = str::findClass("Info", $a['rel_table'], $a['grandparent_class'])){
 			$rows = $this->customProcess($class_path, $a, $joins);
-		} else {
+		}
+		else {
 			$rows = $this->genericProcess($a);
 		}
 
@@ -159,11 +168,11 @@ class Info {
 		# Set a generic order by, unless one has been passed
 		$a['order_by'] = $a['order_by'] ?: [
 			"order" => "ASC",
-			"title" => "ASC"
+			"title" => "ASC",
 		];
 
 		# Run the SQL query
-		if (!$rows = $this->sql->select($a)) {
+		if(!$rows = $this->sql->select($a)){
 			return false;
 		}
 
@@ -207,7 +216,7 @@ class Info {
 		$class_path::prepare($a, $joins);
 
 		# Run the SQL query
-		if (!$rows = $this->sql->select($a)) {
+		if(!$rows = $this->sql->select($a)){
 			return false;
 		}
 
@@ -229,10 +238,12 @@ class Info {
 	 *
 	 * @return mixed
 	 */
-	private function cleanVars($a){
+	private function cleanVars($a)
+	{
 		if($a['table']){
 			$a['rel_table'] = $a['table'];
-		} else if ($a['rel_table']){
+		}
+		else if($a['rel_table']){
 			$a['table'] = $a['rel_table'];
 		}
 		# We need to force a numerical array result even if only one row is expected
@@ -245,10 +256,11 @@ class Info {
 	/**
 	 * Clears the cache of stored SQL requests.
 	 * Useful for long cron jobs.
-	 * 
+	 *
 	 * @return bool
 	 */
-	public function clearCache(){
+	public function clearCache()
+	{
 		$this->info = [];
 		return true;
 	}
@@ -263,7 +275,8 @@ class Info {
 	 *
 	 * @return mixed
 	 */
-	private function getCachedResults(string $fingerprint){
+	private function getCachedResults(string $fingerprint)
+	{
 		if(key_exists($fingerprint, $_SESSION['cached_queries'])){
 			//If the cached result exists, return it
 			return $_SESSION['cached_queries'][$fingerprint];
@@ -304,7 +317,8 @@ class Info {
 	 *
 	 * @return string
 	 */
-	public function generateFingerprint($a){
+	public function generateFingerprint($a)
+	{
 		return md5(json_encode($a));
 	}
 }

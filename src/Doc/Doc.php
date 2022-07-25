@@ -545,7 +545,7 @@ class Doc extends \App\Common\Prototype {
 					$height = ($height - $y) * $multiplier;
 
 					# Add the width for the DOCX doc fills
-					$file['width'] = $width / (72/2.54);
+					$file['width'] = $width / (72 / 2.54);
 					/**
 					 * Here we're dividing the width
 					 * (in pixels) with the DPI, to get
@@ -738,5 +738,4 @@ class Doc extends \App\Common\Prototype {
 		# Return the new PDF temporary file name
 		return $pdf_tmp_name;
 	}
-
 }

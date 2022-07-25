@@ -4152,6 +4152,24 @@ EOF;
 	}
 
 	/**
+	 * Will return the first value in the array that is not NULL.
+	 *
+	 * @param array|null $a
+	 *
+	 * @return mixed|null
+	 */
+	static function useFirst(?array $a = [])
+	{
+		foreach($a as $v){
+			if($v !== NULL){
+				return $v;
+			}
+		}
+
+		return NULL;
+	}
+
+	/**
 	 * array_merge_recursive does indeed merge arrays, but it converts values with duplicate
 	 * keys to arrays rather than overwriting the value in the first array with the duplicate
 	 * value in the second array, as array_merge does. I.e., with array_merge_recursive,
