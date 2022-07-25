@@ -349,7 +349,7 @@ class ErrorLog extends Prototype {
 		str::addNames($error['user']);
 		$button_id = str::id("buttons");
 		$row['User'] = [
-			"sm" => 2,
+			"sm" => 1,
 //			"header_style" => [
 //				"min-width" => "100px",
 //			],
@@ -364,21 +364,20 @@ class ErrorLog extends Prototype {
 				"rel_id" => $error['user'][0]['user_id'],
 				"action" => "log_in_as"
 			] : NULL,
+		];
+
+		$row['Actions'] = [
+			"sortable" => false,
+			"sm" => "auto",
+			"header_style" => [
+				"min-width" => "180px",
+			],
+			"style" => [
+				"min-width" => "180px",
+			],
 			"id" => $button_id,
 			"button" => ErrorLog::getErrorButtons($error, $button_id)
 		];
-
-
-//		$row['Actions'] = [
-//			"sortable" => false,
-//			"sm" => 2,
-//			"header_style" => [
-//				"min-width" => "180px",
-//			],
-//			"style" => [
-//				"min-width" => "180px",
-//			],
-//		];
 
 		return $row;
 	}
