@@ -328,11 +328,13 @@ class ErrorLog extends Prototype {
 			"action" => $error['action']
 		]);
 
+		$error['vars'] = json_decode($error['vars'], true);
+
 		if($error['vars']){
 			$row['Action'] = [
 				"accordion" => [
 					"header" => $hash ?: "<span class=\"text-silent\">(None)</span>",
-					"body" => str::pre(json_encode(json_decode($error['vars'], true), JSON_PRETTY_PRINT))
+					"body" => str::pre(json_encode($error['vars'], JSON_PRETTY_PRINT))
 				],
 			];
 		} else {
@@ -345,8 +347,9 @@ class ErrorLog extends Prototype {
 //		$row['Action']['sm'] = 3;
 
 		str::addNames($error['user']);
+		$button_id = str::id("buttons");
 		$row['User'] = [
-			"sm" => 1,
+			"sm" => 2,
 //			"header_style" => [
 //				"min-width" => "100px",
 //			],
@@ -360,22 +363,22 @@ class ErrorLog extends Prototype {
 				"rel_table" => "user",
 				"rel_id" => $error['user'][0]['user_id'],
 				"action" => "log_in_as"
-			] : false
-		];
-
-		$button_id = str::id("buttons");
-		$row['Actions'] = [
-			"sortable" => false,
-			"sm" => 1,
-			"header_style" => [
-				"min-width" => "180px",
-			],
-			"style" => [
-				"min-width" => "180px",
-			],
+			] : NULL,
 			"id" => $button_id,
 			"button" => ErrorLog::getErrorButtons($error, $button_id)
 		];
+
+
+//		$row['Actions'] = [
+//			"sortable" => false,
+//			"sm" => 2,
+//			"header_style" => [
+//				"min-width" => "180px",
+//			],
+//			"style" => [
+//				"min-width" => "180px",
+//			],
+//		];
 
 		return $row;
 	}
@@ -521,6 +524,14 @@ class ErrorLog extends Prototype {
 			];
 		} else {
 			//If the error is unresolved
+			$buttons[] = [
+				"colour" => "primary",
+				"size" => "s",
+				"alt" => "Execute the request that caused the error",
+				"hash" => $error,
+				"icon" => "play"
+			];
+
 			$buttons[] = [
 				"basic" => true,
 				"size" => "s",
