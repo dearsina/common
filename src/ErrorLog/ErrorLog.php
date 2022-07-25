@@ -504,6 +504,14 @@ class ErrorLog extends Prototype {
 		if($error['resolved']){
 			//if this error has been resolved
 			$buttons[] = [
+				"colour" => "primary",
+				"basic" => true,
+				"disabled" => true,
+				"size" => "s",
+				"icon" => "play"
+			];
+
+			$buttons[] = [
 				"size" => "s",
 				"alt" => "Mark error as unresolved again",
 				"icon" => "flag-alt",
