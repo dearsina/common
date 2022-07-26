@@ -21,12 +21,14 @@ class Grow extends Common {
 	 *
 	 * @return bool
 	 */
-	public function growTable(array $table, array $set){
+	public function growTable(array $table, array $set)
+	{
 		# Get the table metadata
 		if($this->tableExists($table['db'], $table['name'], $table['is_tmp'])){
 			//if table exists
 			$tableMetadata = $this->getTableMetadata($table, true, false);
-		} else {
+		}
+		else {
 			//if table doesn't exist
 			$tableMetadata = $this->createTable($table);
 		}
@@ -45,7 +47,7 @@ class Grow extends Common {
 			}
 
 			# For each column of data that is to be inserted
-			foreach($row as $col => $val) {
+			foreach($row as $col => $val){
 				if(in_array($col, $columns_to_ignore)){
 					//If the column to check cannot be updated by the user, ignore it
 					continue;
@@ -59,7 +61,7 @@ class Grow extends Common {
 					//If array values have been included, convert them to JSON
 					if(!$val = json_encode($val)){
 						// If the array contains data that cannot be converted
-						throw new TypeError("The <code>{$col}</code> column in the <code>{$table['name']}</code> table has array data as its value that cannot be converted to a JSON string.".print_r($data,true));
+						throw new TypeError("The <code>{$col}</code> column in the <code>{$table['name']}</code> table has array data as its value that cannot be converted to a JSON string." . print_r($data, true));
 					}
 				}
 
@@ -93,9 +95,10 @@ class Grow extends Common {
 	 *
 	 * @return array|null
 	 */
-	private function createTable (array $table): ?array
+	private function createTable(array $table): ?array
 	{
-		$query = /** @lang MySQL */"
+		$query = /** @lang MySQL */
+			"
 		CREATE TABLE `{$table['db']}`.`{$table['name']}` (
 			`{$table['name']}_id` CHAR(36) NOT NULL COLLATE 'utf8mb4_unicode_ci',
 			`created` DATETIME NULL DEFAULT NULL,
@@ -124,17 +127,18 @@ class Grow extends Common {
 	/**
 	 * Given a value, tries to identify what data type it is.
 	 * It will try to recognise the following types:
-	 * 	- int
-	 * 	- bigint
-	 * 	- decimal
-	 * 	- text
-	 * 	- varchar (default)
+	 *    - int
+	 *    - bigint
+	 *    - decimal
+	 *    - text
+	 *    - varchar (default)
 	 *
 	 * @param string $val
 	 *
 	 * @return string
 	 */
-	private function identifyValDatatype(string $val){
+	private function identifyValDatatype(string $val)
+	{
 		if($val == "NOW()"){
 			return "datetime";
 		}
@@ -160,16 +164,18 @@ class Grow extends Common {
 
 		# INT, BIGINT
 		if(preg_match("/^-?[0-9]$/", $val)
-			&& substr($val, 0,1) != "0"){
+			&& substr($val, 0, 1) != "0"){
 			//Only (positive or negative) integers
 			//and cannot start with a zero
 
 			# Get the type of int
 			if(strlen($val) < 10){
 				return "int";
-			} else if(strlen($val) < 19){
+			}
+			else if(strlen($val) < 19){
 				return "bigint";
-			} else {
+			}
+			else {
 				//if the number is bigger than 18 characters, treat it as a varchar string
 				return "varchar";
 			}
@@ -177,21 +183,40 @@ class Grow extends Common {
 
 		# DECIMAL
 		else if(preg_match("/^-?[0-9](\.[0-9]+)?$/", $val)
-			&& substr($val, 0,1) != "0"){
+			&& substr($val, 0, 1) != "0"){
 			//Only numbers
 			//and cannot start with a zero
 			return "decimal";
 		}
 
-		# TEXT
-		else if(strlen($val) > 500) {
-			//If the column is particularly long
-			return "text";
-		}
+		/**
+		 * From the mySQL documentation:
+		 *
+		 *       Type | Maximum length
+		 * -----------+-------------------------------------
+		 *   TINYTEXT |           255 (2 8−1) bytes
+		 *       TEXT |        65,535 (216−1) bytes = 64 KiB
+		 * MEDIUMTEXT |    16,777,215 (224−1) bytes = 16 MiB
+		 *   LONGTEXT | 4,294,967,295 (232−1) bytes =  4 GiB
+		 *
+		 * @link https://dev.mysql.com/doc/refman/8.0/en/storage-requirements.html#data-types-storage-reqs-strings
+		 */
 
-		# VARCHAR
-		else {
+		# Get the string legnth
+		$len = strlen($val);
+
+		# Return the appropriate format
+		switch(true) {
+		case $len <= 255:
 			return "varchar";
+		case $len <= 65535:
+			return "text";
+		case $len <= 16777215:
+			return "mediumtext";
+		case $len <= 4294967295:
+			return "longtext";
+		default:
+			return "blob";
 		}
 	}
 
@@ -234,7 +259,7 @@ class Grow extends Common {
 	{
 		# Get the key for the existing column, if it exists
 		$key = $this->getColumnKey($col, $tableMetadata);
-		
+
 		# If the column doesn't exist
 		if($key === false){
 			//if the column doesn't exist at all, easy, add it
@@ -242,7 +267,7 @@ class Grow extends Common {
 		}
 
 		# If the column exists, but for a different data type
-		if($tableMetadata[$key]['DATA_TYPE'] != $type) {
+		if($tableMetadata[$key]['DATA_TYPE'] != $type){
 			return $this->getChangeColumnQuery($table, $col, $val, $type, $tableMetadata);
 		}
 
@@ -253,7 +278,7 @@ class Grow extends Common {
 	/**
 	 * Generates the new column query.
 	 *
-	 * @param array $table
+	 * @param array  $table
 	 * @param string $col
 	 * @param        $val
 	 * @param string $type
@@ -266,7 +291,8 @@ class Grow extends Common {
 		# Get the key for the last column, if it cannot be found, assume table contains no (editable) columns
 		if(($key = array_key_last($tableMetadata)) === NULL){
 			$last_column = $table["id_col"];
-		} else {
+		}
+		else {
 			$last_column = $tableMetadata[$key]['COLUMN_NAME'];
 		}
 
@@ -312,12 +338,13 @@ class Grow extends Common {
 		# If the current type is DECIMAL
 		if($tableMetadata[$key]['DATA_TYPE'] == "decimal"){
 			# INT and BIGINT could potentially fit in the decimal, if they're small enough
-			if(in_array($type, ["int","bigint"])){
+			if(in_array($type, ["int", "bigint"])){
 				if(strlen($val) <= $tableMetadata[$key]['NUMERIC_PRECISION']){
 					//if the (big)int fits in the decimal column
 					return NULL;
-				} else {
-					$type = "{$tableMetadata[$key]['DATA_TYPE']}(".strlen($val).",{$tableMetadata[$key]['NUMERIC_SCALE']})";
+				}
+				else {
+					$type = "{$tableMetadata[$key]['DATA_TYPE']}(" . strlen($val) . ",{$tableMetadata[$key]['NUMERIC_SCALE']})";
 				}
 			}
 		}
@@ -333,8 +360,9 @@ class Grow extends Common {
 			if(strlen($val) <= $tableMetadata[$key]['CHARACTER_MAXIMUM_LENGTH']){
 				//if the value fits in the varchar column
 				return NULL;
-			} else {
-				$type = "{$tableMetadata[$key]['DATA_TYPE']}(".strlen($val).")";
+			}
+			else {
+				$type = "{$tableMetadata[$key]['DATA_TYPE']}(" . strlen($val) . ")";
 			}
 		}
 
@@ -349,7 +377,7 @@ class Grow extends Common {
 	/**
 	 * Query for when the column (potentially) has to grow.
 	 *
-	 * @param array $table
+	 * @param array  $table
 	 * @param string $col
 	 * @param        $val
 	 * @param string $type
@@ -368,12 +396,12 @@ class Grow extends Common {
 		$key = $this->getColumnKey($col, $tableMetadata);
 
 		# DECIMAL
-		if($type == "decimal") {
+		if($type == "decimal"){
 			$precision = strlen(explode(".", $val)[0]);
 			$scale = strlen(explode(".", $val)[1]);
 
 			if($precision <= $tableMetadata[$key]['NUMERIC_PRECISION']
-			&& $scale <= $tableMetadata[$key]['NUMERIC_SCALE']){
+				&& $scale <= $tableMetadata[$key]['NUMERIC_SCALE']){
 				//If the new row is not bigger than the existing column specs
 				return NULL;
 			}
@@ -397,9 +425,9 @@ class Grow extends Common {
 	/**
 	 * Prepares the data type string.
 	 *
-	 * @param string $type
-	 * @param        $val
-	 * @param array|bool  $existing_column
+	 * @param string     $type
+	 * @param            $val
+	 * @param array|bool $existing_column
 	 *
 	 * @return string
 	 */
@@ -409,7 +437,7 @@ class Grow extends Common {
 		if($type == "decimal"){
 			$precision = strlen(explode(".", $val)[0]);
 			$scale = strlen(explode(".", $val)[1]);
-			if($existing_column && $precision < $existing_column['NUMERIC_PRECISION']) {
+			if($existing_column && $precision < $existing_column['NUMERIC_PRECISION']){
 				$precision = $existing_column['NUMERIC_PRECISION'];
 			}
 			$precision += $scale;
@@ -424,16 +452,18 @@ class Grow extends Common {
 				if($existing_column['CHARACTER_MAXIMUM_LENGTH']){
 					//If that column already is string column
 					$existing_length = $existing_column['CHARACTER_MAXIMUM_LENGTH'];
-				} else if($existing_column['NUMERIC_PRECISION']){
+				}
+				else if($existing_column['NUMERIC_PRECISION']){
 					//If that column is a numerical column
 					$existing_length = $existing_column['NUMERIC_PRECISION'];
 				}
 			}
 			if(strlen($val) < $existing_length){
 				//make sure we don't accidentally _shrink_ the column
-				$type .= "(".$existing_length.")";
-			} else {
-				$type .= "(".strlen($val).")";
+				$type .= "(" . $existing_length . ")";
+			}
+			else {
+				$type .= "(" . strlen($val) . ")";
 			}
 		}
 
