@@ -202,8 +202,9 @@ class Grow extends Common {
 		 * @link https://dev.mysql.com/doc/refman/8.0/en/storage-requirements.html#data-types-storage-reqs-strings
 		 */
 
-		# Get the string legnth
+		# Get the string length
 		$len = strlen($val);
+		// We're using strlen (and not mb_strlen) by design because we're interested in bytes, not multi-bytes
 
 		# Return the appropriate format
 		switch(true) {
