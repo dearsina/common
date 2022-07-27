@@ -738,4 +738,95 @@ class Doc extends \App\Common\Prototype {
 		# Return the new PDF temporary file name
 		return $pdf_tmp_name;
 	}
+
+	/**
+	 * Takes a few seconds but will be able to extract more data
+	 * from single page monochrome PDFs.
+	 *
+	 * @param array $file
+	 *
+	 * @throws \ImagickException
+	 */
+	public static function convertSinglePageMonochromePdfToPng(array &$file): void
+	{
+		# Ensure file is PDF
+		if(!$file['pdf_info']){
+			//if the file isn't a PDF
+			return;
+		}
+
+		# Ensure file only has one page
+		if($file['pdf_info']['pages'] != 1){
+			// If the PDF has more than one pages, we're not interested (or are we?)
+			return;
+		}
+
+		# Open ImageMagik
+		$imagick = new \Imagick();
+
+		# Set the resolution
+		$imagick->setResolution(200, 200);
+		/**
+		 * We're setting the resolution high-ish, otherwise the
+		 * image won't be very clear. With this resolution, we
+		 * don't need to multiply the image size to ensure that
+		 * it is legible.
+		 */
+
+		# Read the first (and only) page
+		$imagick->readImage("{$file['tmp_name']}[0]");
+		//ImageMagick pages run from zero
+
+		# We're only looking for monochrome (or close to monochrome) images
+		if($imagick->getImageColors() > 300){
+			//Image has more than 300 unique colours
+			return;
+		}
+
+		# The output of this process is a lossless image
+		$imagick->setImageFormat("png");
+
+		# Set the background to white
+		$imagick->setImageBackgroundColor('#FFFFFF');
+		// Doesn't seem to make a difference, but is added just in case, doesn't cost anything in terms of time
+
+		# Flatten image (this will prevent pages with transparencies to go black)
+		$imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+		// Needs to be in place for the trimming to work
+
+		# Aggressively trim away white space
+		$imagick->trimImage(40000);
+		/**
+		 * The fuzz value is based on the quantum range,
+		 * which is usually 65,535 in these kinds of
+		 * images.
+		 *
+		 * @link https://www.php.net/manual/en/imagick.getquantumrange.php
+		 * @link https://stackoverflow.com/questions/27356055/trimming-extra-white-background-from-image-using-imagemagick-in-php
+		 */
+
+		# Create the PNG tmp filename
+		$file['tmp_name'] = "{$file['tmp_name']}";
+
+		# Store the page as a PNG
+		$imagick->writeImage("png:" . $file['tmp_name']);
+
+		# And we're done with ImageMagic
+		$imagick->clear();
+
+		# The file is no longer a PDF, remove the PDF metadata
+		unset($file['pdf_info']);
+		/**
+		 * The pdf_info key is used to identify PDFs,
+		 * hence why it's being removed, even though
+		 * arguably the PDF info could be useful.
+		 */
+
+		# Update the metadata
+		$file['type'] = "image/png";
+		$file['mime_type'] = "image/png";
+		$file['ext'] = "png";
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+	}
 }
