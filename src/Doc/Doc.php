@@ -783,6 +783,22 @@ class Doc extends \App\Common\Prototype {
 			return;
 		}
 
+		# We need colours to be able to set curves/levels
+		if($imagick->getImageColors() < 6){
+			// If the image is true monochrome (and not just b/w)
+
+			# Get the image dimensions
+			$width = $imagick->getImageWidth();
+			$height = $imagick->getImageHeight();
+
+			# Slightly grow the image
+			$imagick->resizeImage($width * 1.25, $height * 1.25, \Imagick::FILTER_POINT, 1);
+
+			# Slightly blur the photo
+			$imagick->blurImage(2, 1);
+			// We're doing this to re-introduce more colours in the photo
+		}
+
 		# The output of this process is a lossless image
 		$imagick->setImageFormat("png");
 
@@ -805,8 +821,11 @@ class Doc extends \App\Common\Prototype {
 		 * @link https://stackoverflow.com/questions/27356055/trimming-extra-white-background-from-image-using-imagemagick-in-php
 		 */
 
-		# Create the PNG tmp filename
-		$file['tmp_name'] = "{$file['tmp_name']}";
+		# Set the image levels
+		if(!self::setCurve($imagick, 100, 200)){
+			// If we can't set a curve, we'll set levels instead
+			self::setLevels($imagick, .2, 6, 1);
+		}
 
 		# Store the page as a PNG
 		$imagick->writeImage("png:" . $file['tmp_name']);
@@ -828,5 +847,71 @@ class Doc extends \App\Common\Prototype {
 		$file['ext'] = "png";
 		$file['md5'] = md5_file($file['tmp_name']);
 		$file['size'] = filesize($file['tmp_name']);
+	}
+
+	/**
+	 * Set image level.
+	 *
+	 * @param \Imagick   $imagick
+	 * @param float|null $black Percent black, float from 0 to 1
+	 * @param int        $gamma Gamma level, int from 0 to 10
+	 * @param float|null $white Percent white, float from 0 to 1
+	 *
+	 * @throws \ImagickException
+	 */
+	public static function setLevels(\Imagick &$imagick, ?float $black = 0.2, int $gamma = 6, ?float $white = 1): void
+	{
+		# Get the quantum number
+		$quantum = $imagick->getQuantumRange();
+		$quantum = $quantum['quantumRangeLong'];
+
+		# Set the level
+		$imagick->levelImage($black * $quantum, $gamma, $white * $quantum);
+	}
+
+	/**
+	 * x1/y1 is the curve's single inflexion point, the values
+	 * correspond to the Photoshop Curve input and output values
+	 * respectively.
+	 *
+	 * Not all inflexion coordinates will translate to coefficients,
+	 * if we're unable to generate coefficients, the method
+	 * return false.
+	 *
+	 * @param \Imagick $imagick
+	 * @param int      $x1
+	 * @param int      $y1
+	 * @param int      $max We're using the Photoshop scale of 255, but ImageMagick uses a 0-1 float.
+	 *
+	 * @return bool
+	 * @throws \ImagickException
+	 */
+	public static function setCurve(\Imagick &$imagick, int $x1 = 100, int $y1 = 200, int $max = 255): bool
+	{
+		$i = 0;
+		$start_y = 0;
+		$end_x = 1;
+
+		do{
+			$start_y += $i;
+			$end_x -= $i;
+
+			# Get the calculated coefficients based on our gradient curve
+			$cmd = "cd /var/www/tmp/ && ./im_fx_curves -c 0,{$start_y} ".($x1/$max).",".($y1/$max)." 1,{$end_x}";
+			$coefficients = trim(shell_exec($cmd));
+
+			$i += 0.01;
+
+			if($i == 0.1){
+				return false;
+			}
+		}
+
+		while (!$coefficients);
+
+		# Apply the curve to the image
+		$imagick->functionImage(\Imagick::FUNCTION_POLYNOMIAL, explode(",",$coefficients));
+
+		return true;
 	}
 }
