@@ -888,13 +888,26 @@ class Doc extends \App\Common\Prototype {
 	 */
 	public static function setCurve(\Imagick &$imagick, int $x1 = 100, int $y1 = 200, int $max = 255): bool
 	{
-		$cmd = "cd /var/www/tmp/ && ./im_fx_curves -c 0,0 ".($x1/$max).",".($y1/$max)." 1,1";
-		if(!$coefficients = trim(shell_exec($cmd))){
-			return false;
-		}
+		$i = 0;
+		$start_y = 0;
+		$end_x = 1;
+
+		do {
+			# Get the calculated coefficients based on our gradient curve
+			$cmd = "cd /var/www/tmp/ && ./im_fx_curves -c 0,{$start_y} " . ($x1 / $max) . "," . ($y1 / $max) . " 1,{$end_x}";
+			$coefficients = trim(shell_exec($cmd));
+
+			$start_y += 0.01;
+			$end_x -= 0.01;
+
+			$i++;
+			if($i == 10){
+				return false;
+			}
+		} while(!$coefficients);
 
 		# Apply the curve to the image
-		$imagick->functionImage(\Imagick::FUNCTION_POLYNOMIAL, explode(",",$coefficients));
+		$imagick->functionImage(\Imagick::FUNCTION_POLYNOMIAL, explode(",", $coefficients));
 
 		return true;
 	}
