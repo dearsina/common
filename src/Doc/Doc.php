@@ -791,7 +791,7 @@ class Doc extends \App\Common\Prototype {
 			$width = $imagick->getImageWidth();
 			$height = $imagick->getImageHeight();
 
-			# Slightly grow the image
+			# Slightly enlarge the image
 			$imagick->resizeImage($width * 1.25, $height * 1.25, \Imagick::FILTER_POINT, 1);
 
 			# Slightly blur the photo
@@ -830,7 +830,7 @@ class Doc extends \App\Common\Prototype {
 		# Store the page as a PNG
 		$imagick->writeImage("png:" . $file['tmp_name']);
 
-		# And we're done with ImageMagic
+		# And we're done with ImageMagick
 		$imagick->clear();
 
 		# The file is no longer a PDF, remove the PDF metadata
@@ -888,26 +888,10 @@ class Doc extends \App\Common\Prototype {
 	 */
 	public static function setCurve(\Imagick &$imagick, int $x1 = 100, int $y1 = 200, int $max = 255): bool
 	{
-		$i = 0;
-		$start_y = 0;
-		$end_x = 1;
-
-		do{
-			$start_y += $i;
-			$end_x -= $i;
-
-			# Get the calculated coefficients based on our gradient curve
-			$cmd = "cd /var/www/tmp/ && ./im_fx_curves -c 0,{$start_y} ".($x1/$max).",".($y1/$max)." 1,{$end_x}";
-			$coefficients = trim(shell_exec($cmd));
-
-			$i += 0.01;
-
-			if($i == 0.1){
-				return false;
-			}
+		$cmd = "cd /var/www/tmp/ && ./im_fx_curves -c 0,0 ".($x1/$max).",".($y1/$max)." 1,1";
+		if(!$coefficients = trim(shell_exec($cmd))){
+			return false;
 		}
-
-		while (!$coefficients);
 
 		# Apply the curve to the image
 		$imagick->functionImage(\Imagick::FUNCTION_POLYNOMIAL, explode(",",$coefficients));
