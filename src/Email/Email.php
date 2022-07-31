@@ -498,24 +498,29 @@ class Email extends Prototype {
 			return true;
 		}
 
-		# Create the Transport
-		$transport = new \Swift_SmtpTransport();
-		$transport->setHost($_ENV['email_smtp_host']);
-		$transport->setPort($_ENV['email_smtp_port']);
-		$transport->setEncryption("TLS");
-		$transport->setUsername($_ENV['email_username']);
-		$transport->setPassword($_ENV['email_password']);
+		# Reuse the mailer if it has already been initiated
+		global $mailer;
 
-		// Create the Mailer using your created Transport
-		$mailer = new \Swift_Mailer($transport);
+		if(!$mailer){
+			# Create the Transport
+			$transport = new \Swift_SmtpTransport();
+			$transport->setHost($_ENV['email_smtp_host']);
+			$transport->setPort($_ENV['email_smtp_port']);
+			$transport->setEncryption("TLS");
+			$transport->setUsername($_ENV['email_username']);
+			$transport->setPassword($_ENV['email_password']);
 
-		# Add the DKIM key (if it exists)
-		if(file_exists($_ENV['dkim_private_key'])){
-			$privateKey = file_get_contents($_ENV['dkim_private_key']);
-			$domainName = $_ENV['domain'];
-			$selector = 'default';
-			$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
-			$this->envelope->attachSigner($signer);
+			// Create the Mailer using your created Transport
+			$mailer = new \Swift_Mailer($transport);
+
+			# Add the DKIM key (if it exists)
+			if(file_exists($_ENV['dkim_private_key'])){
+				$privateKey = file_get_contents($_ENV['dkim_private_key']);
+				$domainName = $_ENV['domain'];
+				$selector = 'default';
+				$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
+				$this->envelope->attachSigner($signer);
+			}
 		}
 
 		# Send the email
