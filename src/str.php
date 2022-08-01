@@ -2922,9 +2922,11 @@ EOF;
 
 	/**
 	 * Stops a "timer". Returns the seconds passed since
-	 * the start time given.
+	 * the start time given. If no start time is given,
+	 * will start from when the request handling was first
+	 * started.
 	 *
-	 * @param float $start_time
+	 * @param float|null $start_time
 	 *
 	 * @return float
 	 */

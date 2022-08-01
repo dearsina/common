@@ -5,6 +5,7 @@ namespace App\Common\Doc;
 use App\Common\Exception\BadRequest;
 use App\Common\str;
 use Pelago\Emogrifier\CssInliner;
+use Smalot\PdfParser\RawData\RawDataParser;
 
 /**
  * Generic document handling methods.
@@ -135,7 +136,6 @@ class Doc extends \App\Common\Prototype {
 
 		# Run the pdfinfo command
 		exec("pdfinfo {$file['tmp_name']}", $output, $return_var);
-		//		exec("identify -verbose {$file['tmp_name']} | egrep -i '^ {2}[a-z][a-z ]+:'", $output, $return_var);
 
 		# Ensure the PDF was readable (and error out if not)
 		switch($return_var) {
@@ -157,17 +157,10 @@ class Doc extends \App\Common\Prototype {
 			if($matches[1]){
 				$key = str::camelToSnakeCase($matches[1]);
 				switch($key) {
-					//				case 'Print size':
-					//					# Get the width x height
-					//					$dimensions = explode("x", $matches[2]);
-					//					$file['pdf_info']['page_width_in'] = $dimensions[0];
-					//					$file['pdf_info']['page_height_in'] = $dimensions[1];
-					//					$file['pdf_info']['page_width'] = round($dimensions[0] * 72, 2);
-					//					$file['pdf_info']['page_height'] = round($dimensions[1] * 72, 2);
 				case 'page_size':
 					# Get the exact dimensions in pts and in inches
 					$dimensions = array_values(array_filter(preg_split("/[a-z\s]/", $matches[2])));
-					if(count($dimensions) == 2){
+					if(count($dimensions) >= 2){
 						$file['pdf_info']['page_width'] = $dimensions[0];
 						$file['pdf_info']['page_height'] = $dimensions[1];
 						$file['pdf_info']['page_width_in'] = round($dimensions[0] / 72, 2);
@@ -177,9 +170,51 @@ class Doc extends \App\Common\Prototype {
 					$file['pdf_info'][$key] = $matches[2];
 					break;
 				}
-
 			}
 		}
+
+		# Adds any PDF text into the pdf_info key
+		self::setPdfText($file);
+	}
+
+	/**
+	 * Checks to see if a PDF has text (or if it's just images).
+	 * Adds the text to the pdf-info array.
+	 *
+	 * @return bool Returns true if there is text.
+	 * @throws \Exception
+	 */
+	public static function setPdfText(array &$file): bool
+	{
+		# File needs to be PDF
+		if(!$file['pdf_info']){
+			return false;
+		}
+
+		# Get the file contents
+		$contents = file_get_contents($file['tmp_name']);
+
+		# Open the raw data parser
+		$rawDataParser = new RawDataParser();
+
+		# Create structure from raw data.
+		[$xref, $data] = $rawDataParser->parseData($contents);
+
+		if(isset($xref['trailer']['encrypt'])){
+			// if the file is secured, assume it has text
+			return true;
+		}
+
+		if(empty($data)){
+			// if the file has no data, assume it's secured?
+			return true;
+		}
+
+		$parser = new \Smalot\PdfParser\Parser();
+		$pdf = $parser->parseFile($file['tmp_name']);
+		$file['pdf_info']['text'] = $pdf->getText();
+
+		return (bool)strlen($file['pdf_info']['text']);
 	}
 
 	/**
@@ -414,6 +449,19 @@ class Doc extends \App\Common\Prototype {
 				}
 			}
 		}
+
+		# Delete any originals also
+		foreach($file['original'] as $original){
+			foreach($original as $method => $f){
+				if(!$f){
+					continue;
+				}
+				if(file_exists($f['tmp_name'])){
+					//if the file exists of course
+					unlink($f['tmp_name']);
+				}
+			}
+		}
 	}
 
 	/**
@@ -643,7 +691,7 @@ class Doc extends \App\Common\Prototype {
 	 * @throws \ImagickException
 	 * @link https://urmaul.com/blog/imagick-filters-comparison/
 	 */
-	public static function shrinkPdf(array $file, ?float $max_in = 17, ?int $resolution = 144, ?int $quality = 50): ?string
+	public static function shrinkPdf(array &$file, ?float $max_in = 17, ?int $resolution = 144, ?int $quality = 50): ?string
 	{
 		# Ensure file is PDF
 		if(!$file['pdf_info']){
@@ -721,7 +769,7 @@ class Doc extends \App\Common\Prototype {
 		$images = array_column($file_pages, "tmp_name");
 
 		# Create the PDF tmp filename
-		$pdf_tmp_name = "{$file['tmp_name']}.pdf";
+		$file['tmp_name_png'] = "{$file['tmp_name']}.pdf";
 
 		# Load the page images
 		$pdf = new \Imagick($images);
@@ -730,60 +778,79 @@ class Doc extends \App\Common\Prototype {
 		$pdf->setImageFormat('pdf');
 
 		# Write all the images as individual pages in the PDF
-		$pdf->writeImages($pdf_tmp_name, true);
+		$pdf->writeImages($file['tmp_name_png'], true);
 
 		# Remove all the temporary page JPGs
 		array_map("unlink", $images);
 
 		# Return the new PDF temporary file name
-		return $pdf_tmp_name;
+		return $file['tmp_name_png'];
 	}
 
 	/**
-	 * Takes a few seconds but will be able to extract more data
-	 * from single page monochrome PDFs.
+	 * If an image or PDF is monochrome, or
+	 * uses less than 300 unique colours, this
+	 * method will make a copy of the document
+	 * as a PNG and increase the contrast
+	 * and reduce the grays to increase legibility.
+	 *
+	 * The copied file name and any metadata
+	 * will be saved in the png key.
 	 *
 	 * @param array $file
 	 *
+	 * @return string|null The method will return NULL if no copy is made, or the png filename if so
 	 * @throws \ImagickException
 	 */
-	public static function convertSinglePageMonochromePdfToPng(array &$file): void
+	public static function formatSinglePageMonochromeImages(array &$file): ?string
 	{
-		# Ensure file is PDF
-		if(!$file['pdf_info']){
-			//if the file isn't a PDF
-			return;
-		}
-
-		# Ensure file only has one page
-		if($file['pdf_info']['pages'] != 1){
-			// If the PDF has more than one pages, we're not interested (or are we?)
-			return;
-		}
-
 		# Open ImageMagik
 		$imagick = new \Imagick();
 
-		# Set the resolution
-		$imagick->setResolution(200, 200);
-		/**
-		 * We're setting the resolution high-ish, otherwise the
-		 * image won't be very clear. With this resolution, we
-		 * don't need to multiply the image size to ensure that
-		 * it is legible.
-		 */
+		# Load PDF slightly differently
+		if($file['pdf_info']){
+			//if the file is a PDF
+
+			# Ensure file only has one page
+			if($file['pdf_info']['pages'] != 1){
+				// If the PDF has more than one pages, we're not doing anything with the doc at the moment
+
+				# Pencils down
+				return NULL;
+			}
+
+			$filename = "{$file['tmp_name']}[0]";
+			//ImageMagick pages run from zero
+
+			# Set the resolution
+			$imagick->setResolution(200, 200);
+			/**
+			 * We're setting the resolution high-ish, otherwise the
+			 * image won't be very clear. With this resolution, we
+			 * don't need to multiply the image size to ensure that
+			 * it is legible.
+			 */
+		}
+
+		else {
+			$filename = $file['tmp_name'];
+		}
 
 		# Read the first (and only) page
-		$imagick->readImage("{$file['tmp_name']}[0]");
-		//ImageMagick pages run from zero
+		$imagick->readImage($filename);
 
 		# We're only looking for monochrome (or close to monochrome) images
 		if($imagick->getImageColors() > 300){
-			//Image has more than 300 unique colours
-			return;
+			//Image has more than 300 unique colours, we're not interested
+
+			# Clear any cache
+			$imagick->clear();
+
+			# Pencils down
+			return NULL;
 		}
 
-		# We need colours to be able to set curves/levels
+		# If the doc has only black/white (true monochrome), we need to do some extra work
 		if($imagick->getImageColors() < 6){
 			// If the image is true monochrome (and not just b/w)
 
@@ -827,26 +894,23 @@ class Doc extends \App\Common\Prototype {
 			self::setLevels($imagick, .2, 6, 1);
 		}
 
+		$file['png']['tmp_name'] .= "{$file['tmp_name']}.png";
+
 		# Store the page as a PNG
-		$imagick->writeImage("png:" . $file['tmp_name']);
+		$imagick->writeImage("png:" . $file['png']['tmp_name']);
 
 		# And we're done with ImageMagick
 		$imagick->clear();
 
-		# The file is no longer a PDF, remove the PDF metadata
-		unset($file['pdf_info']);
-		/**
-		 * The pdf_info key is used to identify PDFs,
-		 * hence why it's being removed, even though
-		 * arguably the PDF info could be useful.
-		 */
+		# Set the metadata
+		$file['png']['type'] = "image/png";
+		$file['png']['mime_type'] = "image/png";
+		$file['png']['ext'] = "png";
+		$file['png']['md5'] = md5_file($file['png']['tmp_name']);
+		$file['png']['size'] = filesize($file['png']['tmp_name']);
 
-		# Update the metadata
-		$file['type'] = "image/png";
-		$file['mime_type'] = "image/png";
-		$file['ext'] = "png";
-		$file['md5'] = md5_file($file['tmp_name']);
-		$file['size'] = filesize($file['tmp_name']);
+		# Return the png filename
+		return $file['png']['tmp_name'];
 	}
 
 	/**

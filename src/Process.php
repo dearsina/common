@@ -209,11 +209,16 @@ class Process {
 	{
 		$params = "[";
 		foreach($a as $key => $val){
+			# Format the key
 			$key = str_replace('"', '\\"', $key);
+
+			# Val arrays
 			if(is_array($val)){
 				$val = self::stringifyArray($val);
 				$params .= "\"{$key}\" => {$val},";
 			}
+
+			# Val everything else
 			else {
 				# Escape any double quotes
 				$val = str_replace('"', '\\"', $val);
@@ -221,6 +226,7 @@ class Process {
 				# Need to also escape any single quotes with their equivalent hex value
 				$val = str_replace("'", "\\x27", $val);
 
+				# Even empty values will be passed (by design)
 				$params .= "\"{$key}\" => \"{$val}\",";
 			}
 		}
