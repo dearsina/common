@@ -2,6 +2,8 @@
 
 namespace App\Common\Doc;
 
+use App\Common\str;
+
 /**
  * The convert class contains methods that will
  * convert a file to be better suited for OCR
@@ -37,12 +39,21 @@ class Convert {
 		Convert::big($file);
 	}
 
-	public function getOriginals(array $file): ?array
+	public static function getOriginals(array $file): ?array
 	{
+		if($file['originals']){
+			$file['original'] = $file['originals'];
+		}
+
 		if(!$file['original']){
 			return NULL;
 		}
+
 		foreach($file['original'] as $method => $method_file){
+			if(!is_array($method_file)){
+				//if it's only an explanation as to why this method was NOT used, jog on
+				continue;
+			}
 			if($method_file){
 				$originals[$method] = $method_file;
 			}
@@ -145,13 +156,14 @@ class Convert {
 			# We're not interested in PDFs that have text
 			if($file['pdf_info']['text']){
 				// They may be monochrome but not because of poor scanning
+				$file['original'][__FUNCTION__] = "Has text.";
 				return;
 			}
 
 			# Ensure file only has one page
 			if($file['pdf_info']['pages'] != 1){
 				// If the PDF has more than one pages, we're not doing anything with the doc (at the moment)
-
+				$file['original'][__FUNCTION__] = "Has {$file['pdf_info']['pages']} pages.";
 				# Pencils down
 				return;
 			}
@@ -176,15 +188,30 @@ class Convert {
 		# Read the first (and only) page
 		$imagick->readImage($filename);
 
+		$number_of_colours = $imagick->getImageColors();
+
 		# We're only looking for monochrome (or close to monochrome) images
-		if($imagick->getImageColors() > 300){
-			//Image has more than 300 unique colours, we're not interested
+		if($number_of_colours > 300){
+			//Image has more than 300 unique colours
 
-			# Clear any cache
-			$imagick->clear();
+			# Get Saturation levels (returns a number between 0 and 1), the higher the number the more saturation
+			$saturation = shell_exec("magick {$filename} -colorspace HCL -format %[fx:mean.g] info:");
+			// Faffy, but the best way I've seen so far
+			// @link https://legacy.imagemagick.org/discourse-server/viewtopic.php?t=34020
 
-			# Pencils down
-			return;
+			# We'll accept saturation levels of up to 2% as black/white images
+			if($saturation > 0.02){
+				// If the level of saturation is higher than 2%
+
+				# Clear any cache
+				$imagick->clear();
+
+				# Explain why we're stopping
+				$file['original'][__FUNCTION__] = "Has {$number_of_colours} colours and saturation of ".str::percent($saturation, 3).".";
+
+				# Pencils down
+				return;
+			}
 		}
 
 		# Keep a copy of the original, rename the file to avoid it being overwritten

@@ -451,13 +451,12 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Delete any originals also
-		foreach($file['original'] as $method => $f){
-			if(!$f){
-				continue;
-			}
-			if(file_exists($f['tmp_name'])){
-				//if the file exists of course
-				unlink($f['tmp_name']);
+		if($originals = Convert::getOriginals($file)){
+			foreach($originals as $method => $method_file){
+				if(file_exists($method_file['tmp_name'])){
+					//if the file exists of course
+					unlink($method_file['tmp_name']);
+				}
 			}
 		}
 	}
