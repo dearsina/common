@@ -2359,7 +2359,7 @@ class User extends Prototype {
 		# If the user needs to decide on a role first
 		$this->hash->set("home");
 
-		# Set up the modal to allow the user to chose roles
+		# Set up the modal to allow the user to choose roles
 		$this->output->modal($this->modal()->selectRole($user['user_id'], $roles));
 
 		# Remove the hash (as it's been moved to a callback

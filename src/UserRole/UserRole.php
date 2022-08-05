@@ -309,7 +309,7 @@ class UserRole extends \App\Common\Prototype {
 			return true;
 		}
 
-		# Set up the modal to allow the user to chose roles
+		# Set up the modal to allow the user to choose roles
 		$this->output->modal($this->user->modal()->selectRole($user_id, $roles));
 
 		# Remove the hash (as it's been moved to a callback

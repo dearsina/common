@@ -73,7 +73,7 @@ class EmailWrapper extends \App\Common\Prototype {
 	];
 
 	/**
-	 * Web-safe fonts to chose from when formatting an email.
+	 * Web-safe fonts to choose from when formatting an email.
 	 *
 	 * @var array
 	 */
