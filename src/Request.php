@@ -300,6 +300,11 @@ class Request {
 			return true;
 		}
 
+		# OAuth2 redirects are exempt from CSRF checks
+		if($_SERVER['REDIRECT_URL'] == "/oauth2.php"){
+			return true;
+		}
+
 		# If we have been given the HTTP origin, grab the domain from there
 		if($_SERVER['HTTP_ORIGIN']){
 			// HTTP_ORIGIN: "https://subdomain.example.com"
@@ -563,13 +568,13 @@ class Request {
 			$output['success'] = true;
 		}
 
-		if(str::runFromCLI()){
-			//If this is a CLI request
+		if(str::runFromCLI() || $_SERVER['REDIRECT_URL'] == "/oauth2.php"){
+			//If this is a CLI request or part of the OAuth2 runaround
 
 			$pa = PA::getInstance();
 			$pa->asyncSpeak($output);
 			/**
-			 * This way, CLI requests are treated as normal
+			 * This way, CLI/OAuth2 requests are treated as normal
 			 * requests and the user gets the output just
 			 * as they would if this was a synchronous request.
 			 */

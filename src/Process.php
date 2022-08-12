@@ -114,7 +114,7 @@ class Process {
 	public static function request(array $a): int
 	{
 		# Get the requester params
-		$requester = self::getGlobalVariablesAsString();
+		$requester = self::getGlobalVariables();
 
 		# Format the params to feed to the method
 		$params = self::stringifyArray($a);
@@ -160,9 +160,10 @@ class Process {
 	 * Returns the user ID and role (if the user is logged in),
 	 * and the session ID (for all users) as a string that
 	 * can be fed into a CLI executed php -r command.
-	 * @return string
+	 *
+	 * @return string|array
 	 */
-	private static function getGlobalVariablesAsString(): string
+	public static function getGlobalVariables(?bool $as_string = true)
 	{
 		# User ID (if exists)
 		global $user_id;
@@ -190,6 +191,9 @@ class Process {
 			$global_vars['backtrace'] = $backtrace.base64_encode(str::backtrace(true));
 		}
 
+		if(!$as_string){
+			return $global_vars;
+		}
 
 		# Return stringified
 		return self::stringifyArray($global_vars);

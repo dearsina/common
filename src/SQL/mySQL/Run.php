@@ -23,6 +23,10 @@ class Run extends Common {
 		// We're only interested in semicolons if they appear outside quoted strings
 		// @link https://stackoverflow.com/a/1060703/429071
 
+		if(!$this->mysqli){
+			$this->mysqli = mySQL::getNewConnection();
+		}
+
 		if(strpos($filtered_query, ";") && count(array_filter(explode(";", trim($filtered_query)))) > 1){
 			//If there is more than one query to run
 
