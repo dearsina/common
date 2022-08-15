@@ -210,9 +210,14 @@ class Doc extends \App\Common\Prototype {
 			return true;
 		}
 
-		$parser = new \Smalot\PdfParser\Parser();
-		$pdf = $parser->parseFile($file['tmp_name']);
-		$file['pdf_info']['text'] = $pdf->getText();
+		try {
+			$parser = new \Smalot\PdfParser\Parser();
+			$pdf = $parser->parseFile($file['tmp_name']);
+			$file['pdf_info']['text'] = $pdf->getText();
+		}
+		catch(\Exception $e){
+			return false;
+		}
 
 		return (bool)strlen($file['pdf_info']['text']);
 	}
