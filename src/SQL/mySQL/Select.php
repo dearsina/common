@@ -123,10 +123,11 @@ class Select extends Common {
 		}
 		# TODO Somehow fix bug where normalisation messes with JSON column data
 
+		# Add a bunch of metadata (if in dev)
 		if(str::isDev()){
-			# Add the time it took to run the query also
 			$last_query = array_pop($_SESSION['queries']);
 			$last_query['time'] = str::stopTimer($_SESSION['query_timer']);
+			$last_query['time_since_start'] = str::stopTimer();
 			$_SESSION['queries'][] = $last_query;
 		}
 
