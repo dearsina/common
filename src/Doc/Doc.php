@@ -210,6 +210,7 @@ class Doc extends \App\Common\Prototype {
 			return true;
 		}
 
+		# Try extracting text, but if there is an issue, abort mission
 		try {
 			$parser = new \Smalot\PdfParser\Parser();
 			$pdf = $parser->parseFile($file['tmp_name']);
