@@ -267,38 +267,43 @@ class User extends Prototype {
 					],
 				],
 			];
-			$buttons[] = [
-				"icon" => Icon::get("remove"),
-				"title" => "Remove user...",
-				"hash" => [
-					"rel_table" => "user",
-					"rel_id" => $cols['user_id'],
-					"action" => "remove",
-					"vars" => [
-						"callback" => str::generate_uri([
-							"rel_table" => "user",
-							"action" => "all",
-						], true),
-					],
-				],
-				"approve" => [
-					"icon" => Icon::get("bin"),
-					"colour" => "red",
-					"title" => "Remove unverified user?",
-					"message" => [
-						"The user will not be notified. Removing this unverified user cannot be undone.",
-					],
+			$approve = [
+				"icon" => Icon::get("bin"),
+				"colour" => "red",
+				"title" => "Remove unverified user?",
+				"message" => [
+					"The user will not be notified. Removing this unverified user cannot be undone.",
 				],
 			];
+
 		}
 		else {
-			$buttons[] = [
-				"icon" => Icon::get("remove"),
-				"title" => "Remove...",
-				"alt" => "Cannot remove verified user",
-				"disabled" => true,
+			$approve = [
+				"icon" => Icon::get("bin"),
+				"colour" => "red",
+				"title" => "Remove verified user?",
+				"message" => [
+					"The user will not be notified. Removing this verified user cannot be undone.",
+				],
 			];
 		}
+
+		$buttons[] = [
+			"icon" => Icon::get("remove"),
+			"title" => "Remove user...",
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $cols['user_id'],
+				"action" => "remove",
+				"vars" => [
+					"callback" => str::generate_uri([
+						"rel_table" => "user",
+						"action" => "all",
+					], true),
+				],
+			],
+			"approve" => $approve,
+		];
 
 		return $buttons;
 	}
@@ -708,7 +713,7 @@ class User extends Prototype {
 		}
 		else {
 			$set = [
-				["`{$rel_table}`.`password_expiry` = DATE_ADD( NOW(), INTERVAL ".User::DATE_EXPIRY_LENGTH." DAY)"]
+				["`{$rel_table}`.`password_expiry` = DATE_ADD( NOW(), INTERVAL " . User::DATE_EXPIRY_LENGTH . " DAY)"],
 			];
 		}
 
@@ -2122,12 +2127,12 @@ class User extends Prototype {
 		if(User::passwordHasExpired($user)){
 			$this->output->modal($this->modal()->editPassword([
 				"rel_table" => $rel_table,
-				"rel_id" => $user['user_id']
+				"rel_id" => $user['user_id'],
 			]));
 			$this->log->warning([
 				"container" => "#edit-password .modal-body",
 				"title" => "Password expired",
-				"message" => "Your current password has expired, please enter a new password. The new password cannot be one that you have used before."
+				"message" => "Your current password has expired, please enter a new password. The new password cannot be one that you have used before.",
 			]);
 			return true;
 		}
@@ -2638,9 +2643,9 @@ class User extends Prototype {
 				"table" => $rel_table,
 				"id" => $rel_id,
 				"set" => [
-					["`{$rel_table}`.`password_expiry` = DATE_ADD( NOW(), INTERVAL ".User::DATE_EXPIRY_LENGTH." DAY)"]
+					["`{$rel_table}`.`password_expiry` = DATE_ADD( NOW(), INTERVAL " . User::DATE_EXPIRY_LENGTH . " DAY)"],
 				],
-				"user_id" => $rel_id
+				"user_id" => $rel_id,
 			]);
 		}
 
