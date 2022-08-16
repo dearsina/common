@@ -523,7 +523,7 @@ class User extends Prototype {
 
 		$user = $this->info($rel_table, $rel_id);
 
-		if(!$this->user->is("admin") && $user['verified']){
+		if(!$this->is("admin") && $user['verified']){
 			throw new \Exception("Only unverified users can be removed.");
 		}
 
