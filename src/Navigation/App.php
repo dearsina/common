@@ -26,33 +26,33 @@ class App extends Prototype implements NavigationInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public function footer() : array
+	public function footer(): array
 	{
 		$this->allUsersFooter();
 		if($this->user->isLoggedIn()){
-//			$this->loggedInUsersFooter();
+			//			$this->loggedInUsersFooter();
 		}
 		return $this->footers;
 	}
 
-	private function allUsersFooter() : void
+	private function allUsersFooter(): void
 	{
 		$year = date("Y");
 
 		$this->footers[1] = [[
 			"sm" => "8",
 			"class" => "copyright",
-			"html" => "© {$year} {$_ENV['title']}, all rights reserved."
-		],[
+			"html" => "© {$year} {$_ENV['title']}, all rights reserved.",
+		], [
 			"sm" => "4",
 			"style" => [
-				"text-align" => "right"
+				"text-align" => "right",
 			],
-			"html" => "Privacy Policy"
+			"html" => "Privacy Policy",
 		]];
 	}
 
-	private function loggedInUsersFooter() : void
+	private function loggedInUsersFooter(): void
 	{
 		$this->footers[2][] = [
 			"title" => "Get started",
@@ -60,14 +60,14 @@ class App extends Prototype implements NavigationInterface {
 			"items" => [[
 				"title" => "Home",
 				"hash" => [
-					"rel_table" => "home"
-				]
-			],[
+					"rel_table" => "home",
+				],
+			], [
 				"title" => "Downloads",
 				"hash" => [
-					"rel_table" => "download"
-				]
-			]]
+					"rel_table" => "download",
+				],
+			]],
 		];
 
 		$this->footers[2][] = [
@@ -76,20 +76,20 @@ class App extends Prototype implements NavigationInterface {
 			"items" => [[
 				"title" => "Contact Us",
 				"hash" => [
-					"rel_table" => "contact_us"
-				]
-			],[
+					"rel_table" => "contact_us",
+				],
+			], [
 				"title" => "About",
 				"hash" => [
-					"rel_table" => "about"
-				]
-			]]
+					"rel_table" => "about",
+				],
+			]],
 		];
 
 		$this->footers[2][] = [
 			"title" => "Information",
 			"sm" => 6,
-			"html" => "<p>Lorem ipsum dolor amet, consectetur adipiscing elit. Etiam consectetur aliquet aliquet. Interdum et malesuada fames ac ante ipsum primis in faucibus.</p>"
+			"html" => "<p>Lorem ipsum dolor amet, consectetur adipiscing elit. Etiam consectetur aliquet aliquet. Interdum et malesuada fames ac ante ipsum primis in faucibus.</p>",
 		];
 	}
 
@@ -97,14 +97,14 @@ class App extends Prototype implements NavigationInterface {
 	{
 		$this->levels[1]['title'] = [
 			"title" => $_ENV['title'],
-			"uri" => "/"
+			"uri" => "/",
 		];
 
-//		$this->levels[1]['items'][] = [
-//			"icon" => "user-headset",
-//			"alt" => "Help",
-//			"children" => $children
-//		];
+		//		$this->levels[1]['items'][] = [
+		//			"icon" => "user-headset",
+		//			"alt" => "Help",
+		//			"children" => $children
+		//		];
 	}
 
 	/**
@@ -132,7 +132,7 @@ class App extends Prototype implements NavigationInterface {
 			"icon" => "user",
 			"hash" => [
 				"rel_table" => "user",
-				"rel_id" => $user_id
+				"rel_id" => $user_id,
 			],
 		];
 
@@ -145,8 +145,8 @@ class App extends Prototype implements NavigationInterface {
 			"icon" => "power-off",
 			"hash" => [
 				"rel_table" => "user",
-				"action" => "logout"
-			]
+				"action" => "logout",
+			],
 		];
 
 		global $role;
@@ -154,7 +154,7 @@ class App extends Prototype implements NavigationInterface {
 		$this->levels[1]['items'][] = [
 			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
 			"alt" => "You are currently in the {$role} role",
-			"children" => $children
+			"children" => $children,
 		];
 	}
 
@@ -167,7 +167,8 @@ class App extends Prototype implements NavigationInterface {
 	 *
 	 * @return array|bool
 	 */
-	private function switchRoles($user){
+	private function switchRoles($user)
+	{
 		if(!is_array($user['user_role']) || count($user['user_role']) == 1){
 			//if the user doesn't have multiple roles
 			return false;
@@ -183,7 +184,8 @@ class App extends Prototype implements NavigationInterface {
 					"icon" => "check",
 					"pill" => true,
 				];
-			} else {
+			}
+			else {
 				$disabled = false;
 				$badge = false;
 			}
@@ -195,8 +197,8 @@ class App extends Prototype implements NavigationInterface {
 				"vars" => [
 					"user_id" => $user['user_id'],
 					"new_role" => $user_role['rel_table'],
-					"callback" => $this->hash->getCallback(true)
-				]
+					"callback" => $this->hash->getCallback(true),
+				],
 			]);
 
 			$children[] = [
@@ -204,7 +206,7 @@ class App extends Prototype implements NavigationInterface {
 				"badge" => $badge,
 				"icon" => $user_role['icon'],
 				"url" => $url,
-				"disabled" => $disabled
+				"disabled" => $disabled,
 			];
 		}
 
@@ -212,7 +214,7 @@ class App extends Prototype implements NavigationInterface {
 			"title" => "Switch role",
 			"icon" => "random",
 			"direction" => "left",
-			"children" => $children
+			"children" => $children,
 		];
 	}
 }
