@@ -197,25 +197,30 @@ class Doc extends \App\Common\Prototype {
 		# Open the raw data parser
 		$rawDataParser = new RawDataParser();
 
-		# Create structure from raw data.
-		[$xref, $data] = $rawDataParser->parseData($contents);
-
-		if(isset($xref['trailer']['encrypt'])){
-			// if the file is secured, assume it has text
-			return true;
-		}
-
-		if(empty($data)){
-			// if the file has no data, assume it's secured?
-			return true;
-		}
-
-		# Try extracting text, but if there is an issue, abort mission
+		# If there is an issue, abort mission
 		try {
+			# Create structure from raw data.
+			[$xref, $data] = $rawDataParser->parseData($contents);
+
+			if(isset($xref['trailer']['encrypt'])){
+				// if the file is secured, assume it has text
+				return true;
+			}
+
+			if(empty($data)){
+				// if the file has no data, assume it's secured?
+				return true;
+			}
+
+			# Try extracting text
 			$parser = new \Smalot\PdfParser\Parser();
+
 			$pdf = $parser->parseFile($file['tmp_name']);
+
 			$file['pdf_info']['text'] = $pdf->getText();
 		}
+
+		# Any errors and assume no text can be extracted
 		catch(\Exception $e){
 			return false;
 		}
