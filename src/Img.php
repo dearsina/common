@@ -197,16 +197,28 @@ class Img {
 		# SVGs
 		if(str::isSvg($filename)){
 			//Treat SVGs a little different
-			$imagine = new \Contao\ImagineSvg\Imagine();
-			$size = $imagine->open($filename)->getSize();
+
+			# Try using the Contao\ImagineSvg class
+			try{
+				$imagine = new \Contao\ImagineSvg\Imagine();
+				$size = $imagine->open($filename)->getSize();
+				$width = $size->getWidth();
+				$height = $size->getHeight();
+			}
+
+			catch(\Exception $e){
+				# If the Contao\ImagineSvg class didn't work, fallback on IMagick
+				$image = new \Imagick($filename);
+				$width = $image->getImageWidth();
+				$height = $image->getImageHeight();
+			}
 
 			# There is no guarantee we'll get these details, because not all SVGs have them
 			return [
-				"width" => $size->getWidth(),
-				"height" => $size->getHeight(),
+				"width" => $width,
+				"height" => $height,
 				"image_type" => "SVG",
 			];
-
 		}
 
 		# Dimensions only (faster), will only return width/height
