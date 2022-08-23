@@ -217,7 +217,16 @@ class Doc extends \App\Common\Prototype {
 
 			$pdf = $parser->parseFile($file['tmp_name']);
 
-			$file['pdf_info']['text'] = $pdf->getText();
+
+			# Get the text
+			if($text = $pdf->getText()){
+				# Filter the text for unfriendly characters
+				$text = preg_replace('/[^[:print:][:space:]]/', "", $text);
+				// We're removing all non-printable and non space characters to avoid issues loading the array (as a JSON)
+
+				# Load it to the pdf-info array
+				$file['pdf_info']['text'] = $text;
+			}
 		}
 
 		# Any errors and assume no text can be extracted
