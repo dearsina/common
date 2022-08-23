@@ -401,6 +401,7 @@ class Request {
 	 */
 	const WHITELISTED_ASN_DOMAINS = [
 		"telkom.co.za",
+		"afrihost.com",
 		"three.co.uk",
 	];
 
