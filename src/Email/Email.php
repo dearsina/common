@@ -263,7 +263,7 @@ class Email extends Prototype {
 
 				# Get the image content
 				if(!$data = @file_get_contents($image_path)){
-					$this->log->error([
+					Log::getInstance()->error([
 						"title" => "Email image inaccessible",
 						"message" => "An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email was still sent, but without the image."
 					]);
