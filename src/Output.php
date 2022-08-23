@@ -388,8 +388,14 @@ class Output {
 		return $this->output[$type] = $data;
 	}
 
-	public function setOptions(array $rows, ?string $placeholder = ""): void
+	public function setOptions(?array $rows, ?string $placeholder = ""): void
 	{
+		if(!$rows){
+			$this->output["options"] = NULL;
+			$this->output["placeholder"] = $placeholder;
+			return;
+		}
+
 		# If a numeric options array is passed
 		if(str::isNumericArray($rows)){
 			foreach($rows as $id => $row){
