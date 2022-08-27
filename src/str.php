@@ -4042,8 +4042,8 @@ EOF;
 				# JSON encode
 				$val = json_encode($val);
 
-				# Escape single quotes
-				$val = str_replace("'", "&#39;", $val);
+					# Escape single quotes
+					$val = str_replace("'", "&#39;", $val);
 
 				# Store as a single quoted string
 				$str .= " data-{$key}='{$val}'";
@@ -4053,8 +4053,8 @@ EOF;
 			else {
 				//Value is a string, store as double-quoted string
 
-				# Escape double quotes
-				$val = str_replace("\"", "&quot;", $val);
+					# Escape double quotes
+					$val = str_replace("\"", "&quot;", $val);
 
 				# Store as a double quoted string
 				$str .= " data-{$key}=\"{$val}\"";

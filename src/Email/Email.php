@@ -267,6 +267,7 @@ class Email extends Prototype {
 						"title" => "Email image inaccessible",
 						"message" => "An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email was still sent, but without the image."
 					]);
+					// As we're inside a massive preg replace callback, we can't use $this
 					return "";
 				}
 
