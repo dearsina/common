@@ -150,10 +150,12 @@ class DateFinder extends \App\Common\Prototype {
 		# Changing DD/MM/YYYY to DD-MM-YYYY (ignoring US dates)
 		$string = preg_replace("/(\d{2})\/(\d{2})\/(\d{4})/", "\$1-\$2-\$3", $string);
 
-		# Changing DD.MM.YY and DD-MM-YY and DD/MM/YY to DD-MM-YYYY (ignoring US dates)
-		if(preg_match("/^(\d{2})(?:\.|\-|\/)(\d{2})(?:\.|\-|\/)(\d{2})$/", $string)){
-			$pieces = explode(".", $string);
-			$string = "{$pieces[0]}.{$pieces[1]}.".($pieces[2] > date("y") ? "19" : "20").$pieces[2];
+		# Changing DD.MM.YY and DD-MM-YY and DD/MM/YY to YYYY-MM-DD (ignoring US dates)
+		if(preg_match("/^(\d{2})(?:\.|\-|\/)(\d{2})(?:\.|\-|\/)(\d{2})$/", $string, $matches)){
+			$year = ($matches[3] > date("y") ? "19" : "20").$matches[3];
+			$month = $matches[2];
+			$date = $matches[1];
+			$string = "{$year}-{$month}-{$date}";
 		}
 
 		# Catch strings that contain long form narrative dates
