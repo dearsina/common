@@ -122,7 +122,7 @@ class Run extends Common {
 		$_SESSION['queries'][] = [
 			"query_md5" => md5($query),
 			"query" => str_replace(["\r\n"]," ",$query),
-			"backtrace" => str::backtrace(true)
+			"backtrace" => str::backtrace(true, false)
 		];
 		$_SESSION['database_calls']++;
 		$_SESSION['query_timer'] = str::startTimer();

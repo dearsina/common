@@ -94,6 +94,8 @@ class Select extends Common {
 				# Add the time it took to run the query also
 				$last_query = array_pop($_SESSION['queries']);
 				$last_query['time'] = str::stopTimer($_SESSION['query_timer']);
+				$last_query['time_since_start'] = str::stopTimer();
+				$last_query['rows'] = 0;
 				$_SESSION['queries'][] = $last_query;
 			}
 
@@ -128,6 +130,7 @@ class Select extends Common {
 			$last_query = array_pop($_SESSION['queries']);
 			$last_query['time'] = str::stopTimer($_SESSION['query_timer']);
 			$last_query['time_since_start'] = str::stopTimer();
+			$last_query['rows'] = count($results['rows']);
 			$_SESSION['queries'][] = $last_query;
 		}
 
