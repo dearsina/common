@@ -602,11 +602,14 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function backtrace($return = NULL)
+	static function backtrace($return = NULL, bool $keep_arguments = true)
 	{
 		$steps = [];
-		array_walk(debug_backtrace(), function($a) use (&$steps){
-			$steps[] = "{$a['function']}(" . json_encode($a['args']) . ");\r\n[" . str_pad($a['line'], 4, " ", STR_PAD_LEFT) . "] " . basename($a['file']) . "->";
+		array_walk(debug_backtrace(), function($a) use (&$steps, $keep_arguments){
+			$args = $keep_arguments ? json_encode($a['args']) : NULL;
+			$line_number = str_pad($a['line'], 4, " ", STR_PAD_LEFT);
+			$file_name = basename($a['file']);
+			$steps[] = "{$a['function']}({$args});\r\n[{$line_number}] {$file_name}->";
 		});
 
 		# Fix is so that the functions and filenames are aligned correctly
@@ -629,7 +632,7 @@ class str {
 		}
 
 		if($return){
-			return $steps;
+			return $steps . PHP_EOL;
 		}
 
 		print $steps;
@@ -2076,7 +2079,8 @@ EOF;
 	 * Given a date string, returns a datetime object,
 	 * where the time is set to 00:00:00.
 	 *
-	 * Will return today's datetime if no value is passed
+	 * Will return today's datetime if no value is passed,
+	 * or if the value is invalid.
 	 *
 	 * @param string|\DateTime $date
 	 *
@@ -2090,7 +2094,12 @@ EOF;
 		}
 
 		else {
-			$dt = new \DateTime($date);
+			try {
+				$dt = new \DateTime($date);
+			}
+			catch(\Exception $e){
+				$dt = new \DateTime();
+			}
 		}
 
 		$dt->setTime(0, 0, 0);
@@ -2982,6 +2991,10 @@ EOF;
 
 		if(is_array($json)){
 			return $json;
+		}
+
+		if(!str::isJson($json)){
+			return [$json];
 		}
 
 		$decoded = json_decode($json, true);
@@ -4042,8 +4055,8 @@ EOF;
 				# JSON encode
 				$val = json_encode($val);
 
-					# Escape single quotes
-					$val = str_replace("'", "&#39;", $val);
+				# Escape single quotes
+				$val = str_replace("'", "&#39;", $val);
 
 				# Store as a single quoted string
 				$str .= " data-{$key}='{$val}'";
@@ -4053,8 +4066,8 @@ EOF;
 			else {
 				//Value is a string, store as double-quoted string
 
-					# Escape double quotes
-					$val = str_replace("\"", "&quot;", $val);
+				# Escape double quotes
+				$val = str_replace("\"", "&quot;", $val);
 
 				# Store as a double quoted string
 				$str .= " data-{$key}=\"{$val}\"";
