@@ -495,7 +495,9 @@ EOF;
 	 * $this->alert->error("Error message");
 	 * $this->alert->error([
 	 *    "title" => "Error title",
-	 *    "message" => "Error message"
+	 *    "message" => "Error message",
+	 *    "log" => false, // Error is not to be logged
+	 *    "display" => false // Error is not to be displayed to the user
 	 * ]);
 	 * </code>
 	 *
