@@ -499,34 +499,104 @@ class Email extends Prototype {
 			return true;
 		}
 
+		# Attempt to sent the message
+		$this->sender(1);
+
+		return true;
+	}
+
+	private function sender(int $tries): void
+	{
 		# Reuse the mailer if it has already been initiated
 		global $mailer;
 
-		if(!$mailer){
-			# Create the Transport
-			$transport = new \Swift_SmtpTransport();
-			$transport->setHost($_ENV['email_smtp_host']);
-			$transport->setPort($_ENV['email_smtp_port']);
-			$transport->setEncryption("TLS");
-			$transport->setUsername($_ENV['email_username']);
-			$transport->setPassword($_ENV['email_password']);
+		if(!$mailer || $tries > 1){
+			// If the mailer doesn't exist yet, or if we're on our second or third tries
 
-			// Create the Mailer using your created Transport
-			$mailer = new \Swift_Mailer($transport);
-
-			# Add the DKIM key (if it exists)
-			if(file_exists($_ENV['dkim_private_key'])){
-				$privateKey = file_get_contents($_ENV['dkim_private_key']);
-				$domainName = $_ENV['domain'];
-				$selector = 'default';
-				$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
-				$this->envelope->attachSigner($signer);
-			}
+			# Get a (new) mailer
+			$mailer = $this->getMailer();
 		}
 
-		# Send the email
-		$mailer->send($this->envelope);
+		try {
+			# Send the email
+			$mailer->send($this->envelope);
+		}
 
-		return true;
+		catch(\Exception $e){
+			# Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
+			if(strpos($e->getMessage(), "250") !== false){
+				\App\Email\Email::notifyAdmins([
+					"subject" => "250 2.1.0 Sender OK email error",
+					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}. The email will be attempted re-sent now.",
+					"backtrace" => str::backtrace(true)
+				]);
+			}
+
+			# Expected response code 250 but got code "432", with message "432 4.3.2 Concurrent connections limit exceeded. Visit https://aka.ms/concurrent_sending for more information.
+			else if(strpos($e->getMessage(), "432") !== false){
+				\App\Email\Email::notifyAdmins([
+					"subject" => "432 4.3.2 Concurrent connections limit exceeded email error",
+					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}. The email will be attempted re-sent now.",
+					"backtrace" => str::backtrace(true)
+				]);
+			}
+
+			else {
+				# Notify the admins of any unknown errors
+				\App\Email\Email::notifyAdmins([
+					"subject" => "Unknown email error",
+					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}",
+					"backtrace" => str::backtrace(true)
+				]);
+			}
+
+			if($tries == 3){
+				// Don't try more than 3 times
+				$this->log->error([
+					"title" => "Unable to send email",
+					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response."
+				]);
+				return;
+			}
+
+			# Try again
+			sleep(2);
+			$tries++;
+			$this->sender($tries);
+			return;
+		}
+
+		if($tries > 1){
+			// If the email was sent successfully on a second/third try, notify admins again
+			\App\Email\Email::notifyAdmins([
+				"subject" => "Email sent successfully on try {$tries}",
+				"body" => "The email was successfully sent after {$tries} tries.",
+			]);
+		}
+	}
+
+	private function getMailer(): \Swift_Mailer
+	{
+		# Create the Transport
+		$transport = new \Swift_SmtpTransport();
+		$transport->setHost($_ENV['email_smtp_host']);
+		$transport->setPort($_ENV['email_smtp_port']);
+		$transport->setEncryption("TLS");
+		$transport->setUsername($_ENV['email_username']);
+		$transport->setPassword($_ENV['email_password']);
+
+		// Create the Mailer using your created Transport
+		$mailer = new \Swift_Mailer($transport);
+
+		# Add the DKIM key (if it exists)
+		if(file_exists($_ENV['dkim_private_key'])){
+			$privateKey = file_get_contents($_ENV['dkim_private_key']);
+			$domainName = $_ENV['domain'];
+			$selector = 'default';
+			$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
+			$this->envelope->attachSigner($signer);
+		}
+
+		return $mailer;
 	}
 }
