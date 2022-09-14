@@ -41,24 +41,30 @@ class DotNotation {
 	}
 
 	/**
-	 * Removes the optional DB prefix from the DB:TABLE.CHILD_TABLE pattern.
+	 * Removes the optional DB prefix from the DB::TABLE.CHILD_TABLE pattern.
 	 *
 	 * @param $key
 	 */
-	private static function removeOptionalDbPrefix(&$key)
+	private static function removeOptionalDbPrefix(&$str)
 	{
-		# Explode they key by any ::'s
-		$key_fragments = explode(Common::DB_TABLE_SEPARATOR, $key);
+		$keys = explode(".", $str);
 
-		# Remove any DB fragments
-		if(count($key_fragments) > 1){
-			//If there _are_ any :
-			array_shift($key_fragments);
-			//Remove the first (database) fragment
+		foreach($keys as &$key){
+			# Explode they key by any ::'s
+			$key_fragments = explode(Common::DB_TABLE_SEPARATOR, $key);
+
+			# Remove any DB fragments
+			if(count($key_fragments) > 1){
+				//If there _are_ any DB prefixes
+				array_shift($key_fragments);
+				//Remove the first (database) fragment
+			}
+
+			# Fuse the bits together
+			$key = implode("", $key_fragments);
 		}
 
-		# Fuse the bits together
-		$key = implode("", $key_fragments);
+		$str = implode(".", $keys);
 	}
 
 	private static function isAssocArray($array)
@@ -347,7 +353,6 @@ class DotNotation {
 				if($keys[1]){
 					# Into those values that belong to a child array
 					$non_scalar[$row_number][$keys[0]][0][$keys[1]] = $val;
-//					var_dump($keys[1]);
 				}
 				else {
 					# And those that are scalar values belonging to this row
