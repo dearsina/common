@@ -550,7 +550,7 @@ class Convert {
 		$file['tmp_name'] = $new_tmp_name;
 
 		# Remove this key to avoid inception
-		unset($file['original']);
+		unset($original['original']);
 
 		# Return the original array
 		return $original;
