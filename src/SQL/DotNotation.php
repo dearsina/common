@@ -41,7 +41,8 @@ class DotNotation {
 	}
 
 	/**
-	 * Removes the optional DB prefix from the DB::TABLE.CHILD_TABLE pattern.
+	 * Removes the optional DB prefix from the DB::TABLE.CHILD_TABLE pattern,
+	 * or even the DB::TABLE.DB::CHILD_TABLE pattern.
 	 *
 	 * @param $key
 	 */

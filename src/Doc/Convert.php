@@ -195,13 +195,18 @@ class Convert {
 			//Image has more than 300 unique colours
 
 			# Get Saturation levels (returns a number between 0 and 1), the higher the number the more saturation
-			$saturation = shell_exec("magick {$filename} -colorspace HCL -format %[fx:mean.g] info:");
+			$saturation = shell_exec("magick {$filename} -colorspace HCL -format %[fx:maxima.g] info:");
 			// Faffy, but the best way I've seen so far
 			// @link https://legacy.imagemagick.org/discourse-server/viewtopic.php?t=34020
+			/**
+			 * Note: If an image that is mostly white except for a few high-saturation
+			 * pixels will be, on average, nearly white, so we prefer to find the maximum
+			 * saturation (fx:maxima) instead of the mean (fx:mean).
+			 */
 
-			# We'll accept saturation levels of up to 2% as black/white images
-			if($saturation > 0.02){
-				// If the level of saturation is higher than 2%
+			# We'll accept saturation levels of up to 25% as black/white images
+			if($saturation > 0.25){
+				// If the max level of saturation is higher than 25%
 
 				# Clear any cache
 				$imagick->clear();
@@ -233,6 +238,10 @@ class Convert {
 			// We're doing this to re-introduce more colours in the photo
 		}
 
+		# Trim away white space
+		self::trim($imagick, .5);
+		// Setting this higher, can result in the whole image disappearing
+
 		# The output of this process is a lossless PNG image
 		$imagick->setImageFormat("png");
 
@@ -243,9 +252,6 @@ class Convert {
 		# Flatten image (this will prevent pages with transparencies to go black)
 		$imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
 		// Needs to be in place for the trimming to work
-
-		# Aggressively trim away white space
-		self::trim($imagick, .6);
 
 		# Set the image curves
 		if(!self::setCurve($imagick, 100, 200)){
@@ -518,8 +524,22 @@ class Convert {
 		return true;
 	}
 
-	private static function makeCopy(array $file, string $method): array
+	/**
+	 * Takes the file array, makes a copy of the tmp file with
+	 * a method suffix, changes the value of the tmp_file key,
+	 * and return the original file array, that doesn't have any
+	 * of the changes.
+	 *
+	 * @param array  $file
+	 * @param string $method
+	 *
+	 * @return array
+	 */
+	private static function makeCopy(array &$file, string $method): array
 	{
+		# Take a copy of the original array
+		$original = $file;
+
 		# Generate the copy name
 		$new_tmp_name = $file['tmp_name'] . Convert::GLUE . $method;
 
@@ -532,8 +552,8 @@ class Convert {
 		# Remove this key to avoid inception
 		unset($file['original']);
 
-		# Return the copied array
-		return $file;
+		# Return the original array
+		return $original;
 	}
 
 	private static function hasAlreadyBeenProcessed(array &$file, string $method): bool
