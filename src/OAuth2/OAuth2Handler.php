@@ -117,7 +117,10 @@ class OAuth2Handler extends \App\Common\Prototype {
 		# 2. Redirect URI brought us here ($_GET didn't have a vars-provider key)
 
 		# Store the session key acting as our faux $a as a local variable
-		$a = $_SESSION['OAuth2'];
+		if(!$a = $_SESSION['OAuth2']){
+			//if there is no session variable stored
+			return;
+		}
 
 		# Clear it for future use
 		unset($_SESSION['OAuth2']);
