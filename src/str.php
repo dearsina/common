@@ -2657,7 +2657,7 @@ EOF;
 	 * If the last characters are spaces, will trim the spaces.
 	 * Will also add a suffix of your choosing. The default is an ellipsis.
 	 *
-	 * @param string      $string
+	 * @param string|null $string $string
 	 * @param int         $max_length
 	 * @param string|null $suffix
 	 *
@@ -2669,11 +2669,11 @@ EOF;
 			return $string;
 		}
 
-		if(strlen($string) <= $max_length){
+		if(mb_strlen($string) <= $max_length){
 			return $string;
 		}
 
-		return trim(substr($string, 0, $max_length)) . $suffix;
+		return trim(mb_substr($string, 0, $max_length)) . $suffix;
 	}
 
 	/**
