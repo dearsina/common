@@ -1290,6 +1290,10 @@ class str {
 		# If an array is given (most common)
 		if(is_array($array)){
 			extract($array);
+			# Ensure there always is some sort of rel_id
+			$rel_id = $rel_id ?: "_";
+			// Avoids the issue of Microsoft replacing // with / in emails
+
 			$hash = "{$rel_table}/{$rel_id}/{$action}";
 			if(!$vars){
 				//if there are no variables attached
