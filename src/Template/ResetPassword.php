@@ -43,7 +43,7 @@ class ResetPassword extends Template implements TemplateInterface {
 			"vars" => [
 				"key" => $key
 			]
-		]);
+		], NULL, true);
 
 		$link = href::a([
 			"html" => $url,

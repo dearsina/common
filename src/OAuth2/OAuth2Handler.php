@@ -204,7 +204,6 @@ class OAuth2Handler extends \App\Common\Prototype {
 	 */
 	private function setAccessToken(string $provider): string
 	{
-
 		# Get the relevant provider (class)
 		$provider_class = OAuth2Handler::getProviderClass($provider);
 		/**
@@ -258,13 +257,13 @@ class OAuth2Handler extends \App\Common\Prototype {
 	 */
 	public static function ensureTokenIsFresh(array &$oauth_token): void
 	{
-		# Ensure we have a refresh token in case the token has expired
-		if(!$oauth_token['refresh_token']){
+		# If the token has yet to expire, we're good
+		if($oauth_token['expires'] > strtotime("now")){
 			return;
 		}
 
-		# If the token has yet to expire, we're good
-		if($oauth_token['expires'] > strtotime("now")){
+		# Ensure we have a refresh token in case the token has expired
+		if(!$oauth_token['refresh_token']){
 			return;
 		}
 

@@ -150,7 +150,7 @@ abstract class Common {
 	 */
 	protected ?array $tableAliasWithOrder = [];
 
-	public function __construct(\mysqli $mysqli)
+	public function __construct(?\mysqli $mysqli = NULL)
 	{
 		$this->mysqli = $mysqli;
 	}
@@ -1032,7 +1032,7 @@ abstract class Common {
 	 * @param array     $table
 	 * @param mixed     $col
 	 * @param mixed     $val
-	 * @param bool|null $where If set, signals that this method was called for a WHERE clause, not
+	 * @param bool|null $where If set, signals that this method was called for a WHERE clause, not an ON
 	 *
 	 * @return string|null
 	 */

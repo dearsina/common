@@ -19,9 +19,10 @@ class href {
 	 *
 	 * @return string
 	 */
-	static function a(?array $a){
+	static function a(?array $a): ?string
+	{
 		if(!$a){
-			return false;
+			return NULL;
 		}
 		extract($a);
 

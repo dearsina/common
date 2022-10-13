@@ -38,7 +38,7 @@ class UpdateEmail extends Template implements TemplateInterface {
 				"new_email" => $new_email,
 				"checksum" => $checksum,
 			],
-		]);
+		], NULL, true);
 
 		$link = href::a([
 			"html" => $url,

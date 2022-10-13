@@ -1279,33 +1279,38 @@ class str {
 	 * creates a hash string and returns it.
 	 * Crucially, the string is not prefixed with a slash.
 	 *
-	 * @param array $array
-	 * @param bool  $urlencoded If set to yes, will urlencode the hash string
+	 * @param array|string|null $array_or_string
+	 * @param bool|null         $urlencoded If set to yes, will urlencode the hash string
 	 *
 	 * @return string
 	 */
-	static function generate_uri($array, $urlencoded = NULL)
+	static function generate_uri($array_or_string, ?bool $urlencoded = NULL, ?bool $for_email = NULL): ?string
 	{
 
 		# If an array is given (most common)
-		if(is_array($array)){
-			extract($array);
+		if(is_array($array_or_string)){
+			extract($array_or_string);
 			# Ensure there always is some sort of rel_id
-			$rel_id = $rel_id ?: "_";
-			// Avoids the issue of Microsoft replacing // with / in emails
+
+			if($for_email){
+				$rel_id = $rel_id ?: "-";
+				$action = $action ?: "-";
+				// Avoids the issue of Microsoft replacing // with / in emails
+			}
 
 			$hash = "{$rel_table}/{$rel_id}/{$action}";
-			if(!$vars){
+
+			if(!$vars) {
 				//if there are no variables attached
 
-				# Remove any surplus slashes at the end
-				$hash = rtrim($hash, "/");
+				# Remove any surplus slashes and dashes at the end
+				$hash = rtrim($hash, "/-");
 			}
 		}
 
 		# If a string is given (less common)
-		if(is_string($array)){
-			$hash = $array;
+		if(is_string($array_or_string)){
+			$hash = $array_or_string;
 		}
 
 		# If there are vars (in the array)
@@ -2080,6 +2085,22 @@ EOF;
 	}
 
 	/**
+	 * Experimental
+	 *
+	 * @param string|null $datetime_string
+	 * @param bool|null   $time
+	 * @param bool|null   $date
+	 *
+	 * @return string
+	 */
+	public static function jsDateTime(?string $datetime_string, ?bool $time = true, ?bool $date = true): string
+	{
+		$date = $date ? "date" : NULL;
+		$time = $time ? "time" : NULL;
+		return "<span class=\"js-datetime {$date} {$time}\">{$datetime_string}</span>";
+	}
+
+	/**
 	 * Given a date string, returns a datetime object,
 	 * where the time is set to 00:00:00.
 	 *
@@ -2101,7 +2122,7 @@ EOF;
 			try {
 				$dt = new \DateTime($date);
 			}
-			catch(\Exception $e){
+			catch(\Exception $e) {
 				$dt = new \DateTime();
 			}
 		}

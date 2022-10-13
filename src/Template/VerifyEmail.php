@@ -39,7 +39,7 @@ class VerifyEmail extends Template implements TemplateInterface {
 				"email" => $email,
 				"key" => $key,
 			],
-		]);
+		], NULL, true);
 
 		$link = href::a([
 			"html" => $url,
