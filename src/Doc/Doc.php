@@ -3,6 +3,7 @@
 namespace App\Common\Doc;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Log;
 use App\Common\str;
 use Pelago\Emogrifier\CssInliner;
 use Smalot\PdfParser\RawData\RawDataParser;
@@ -669,6 +670,354 @@ class Doc extends \App\Common\Prototype {
 
 		# Return the new tmp name
 		return $file_page['tmp_name'];
+	}
+
+	public static function getResizedImage(array $file, ?int $max_width = 0, ?int $max_height = 0, ?int $quality = 50, ?bool $base64_encode = NULL, ?bool $return_array = NULL)
+	{
+		# Open ImageMagik
+		$im = new \Imagick();
+
+		# If the image file is actually a PDF
+		if($file['pdf_info']){
+			# Set the resolution to 50DPI (it's low, but that's OK, we're making an even smaller thumbnail)
+			$im->setResolution(50, 50);
+
+			# Read the first page (only)
+			$im->readImage("{$file['tmp_name']}[0]");
+
+			# Set the background to white
+			$im->setImageBackgroundColor('#FFFFFF');
+
+			# Flatten image (this will prevent pages with transparencies to go black)
+			$im = $im->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+		}
+
+		# All other actual image files
+		else {
+			# Load the image data
+			try {
+				$im->readImage($file['tmp_name']);
+			}
+
+				# If there is an error
+			catch (\ImagickException $e){
+
+				# Log the error, but the show must go on
+				Log::getInstance()->error([
+					"display" => str::isDev(),
+					//No need to show this to the end user at this point
+					"title" => "Unable to shrink image: ".json_encode($file),
+					"message" => $e->getMessage(),
+					"trace" => str::backtrace(true),
+				]);
+
+				return NULL;
+			}
+		}
+
+		# Set image format
+		$im->setImageFormat("png");
+
+		# Set image quality
+		//		if($quality){
+		//			//if the quality variable is set
+		//			$im->setImageCompressionQuality($quality);
+		//		}
+
+		# Grab the thumbnail data
+		$data = $im->getImageBlob();
+
+		if($base64_encode){
+			$type = "image/jpg";
+			$data = 'data:' . $type . ';base64,' . base64_encode($data);
+		}
+
+		if($return_array){
+			$data = [
+				"data" => $data,
+				"width" => $new_width,
+				"height" => $new_height
+			];
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Relies on the ImageTracer Java file.
+	 *
+	 * @param array $file
+	 * @link https://github.com/jankovicsandras/imagetracerjava
+	 * @throws \Exception
+	 */
+	public static function convertToVector(array &$file, bool $bw = true): void
+	{
+		if($bw){
+			$cmd = "/home/sina/.cargo/bin/vtracer --colormode bw --filter_speckle 10 --mode polygon --segment_length 10 --input {$file['tmp_name']} --output {$file['tmp_name']}.svg";
+		}
+
+		else {
+			$cmd = "/home/sina/.cargo/bin/vtracer --filter_speckle 10 --mode polygon --segment_length 10 --input {$file['tmp_name']} --output {$file['tmp_name']}.svg";
+		}
+
+		exec($cmd, $output, $return_var);
+		if($return_var){
+			throw new \Exception("{$return_var}: Unable to convert file {$file['tmp_name']} to vector: ".implode("<br>", $output)."<br> Please try again.");
+		}
+
+		# Get rid of the raster version
+//		unlink($file['tmp_name']);
+
+		# Update the tmp name
+		$file['tmp_name'] .= ".svg";
+
+		# Ensure the name nas a .svg extension
+		$file['name'] = $file['name'].".svg";
+
+		# Set the size
+		$file['size'] = filesize($file['tmp_name']);
+
+		# Record the MD5 hash of the file
+		$file['md5'] = md5_file($file['tmp_name']);
+
+		# Get the file extension
+		$file['ext'] = $ext;
+		//the extension is stored in all lowercase only
+
+		# Get the mime type
+		$file['mime_type'] = mime_content_type($file['tmp_name']);
+	}
+
+	public static function getHSLMeanLightness(\Imagick $imagick): float
+	{
+		// convert to HSL - Hue, Saturation and LIGHTNESS
+		$imagick->transformImageColorspace(\Imagick::COLORSPACE_HSL);
+		// Get statistics for the LIGHTNESS
+		$Lchannel = $imagick->getImageChannelMean(\Imagick::CHANNEL_ALL);
+		// Calcualte the mean
+		return $Lchannel['mean']/$imagick->getQuantum();
+	}
+
+	/**
+	 * Returns a float where 0 is black and 1 is white.
+	 *
+	 * @param array $file
+	 *
+	 * @return float
+	 */
+	public static function getMeanLightness(array $file, \Imagick $imagick): float
+	{
+		$cmd = "identify -format '%[mean]' {$file['tmp_name']}";
+		$lightness = shell_exec($cmd);
+		return $lightness / $imagick->getQuantum();
+	}
+
+	/**
+	 * Returns true if the image has an alpha channel (transparency).
+	 *
+	 * @param array $file
+	 *
+	 * @return bool
+	 */
+	public static function hasTransparency(array $file): bool
+	{
+		$cmd = "identify -format '%A' {$file['tmp_name']}";
+		return shell_exec($cmd) == "Blend";
+	}
+
+	public static function convertToMonochrome(array &$file): void
+	{
+		# Open ImageMagik
+		$im = new \Imagick();
+
+		# Load the image data
+		try {
+			$im->readImage($file['tmp_name']);
+		}
+
+			# If there is an error
+		catch (\ImagickException $e){
+
+			# Log the error, but the show must go on
+			Log::getInstance()->error([
+				"display" => str::isDev(),
+				//No need to show this to the end user at this point
+				"title" => "Unable to read image to then crop: ".json_encode($file),
+				"message" => $e->getMessage(),
+				"trace" => str::backtrace(true),
+			]);
+
+			return;
+		}
+
+		$lightness = Doc::getMeanLightness($file, $im);
+
+		# Make grayscale
+		$im->setImageType(\Imagick::IMGTYPE_GRAYSCALE);
+
+		$size_px = 3000;
+
+		# Enlarge the image
+		[$new_width, $new_height] = self::getProportionateWidthAndHeight($im, $size_px, $size_px, true);
+		$im->resizeImage($new_width, $new_height, \Imagick::FILTER_SINC, 4);
+
+		if($lightness < .75){
+			//If the image is only up to 75% white, increase contrast and make it lighter
+			$im->levelImage(50 * $im->getQuantum() / 255, 3, 150 * $im->getQuantum() / 255);
+		}
+
+		# Set the monochrome threshold
+		$int = 200;
+		$thresholdColor = "RGB({$int}, {$int}, {$int})";
+		$im->blackThresholdImage($thresholdColor);
+		$im->whiteThresholdImage($thresholdColor);
+
+		# Force just black and white colours
+//		self::forceBlackAndWhite($im);
+		// We don't need to do it here, it will be done by the vector converter
+
+		# Shrink to half the size after growing and converting to monochrome
+		[$new_width, $new_height] = self::getProportionateWidthAndHeight($im, round($size_px / 3), round($size_px / 3));
+		$im->resizeImage($new_width, $new_height, \Imagick::FILTER_SINC, .5);
+
+		self::setFile($file, $im, "png");
+
+		$im->destroy();
+
+		# Make transparent
+		$cmd = "convert {$file['tmp_name']} -fuzz 2% -transparent white {$file['tmp_name']}.transparent && mv {$file['tmp_name']}.transparent {$file['tmp_name']}";
+		exec($cmd, $output, $return_var);
+		if($return_var){
+			throw new \Exception("Unable to add transparency to file {$file['tmp_name']}: ".implode("<br>", $output)."<br> Please try again.");
+		}
+	}
+
+	private static function setFile(array &$file, \IMagick $im, string $ext): void
+	{
+		if($ext != "pdf"){
+			unset($file['pdf_info']);
+		}
+
+		# Add the file extension to the tmp name value
+		$file['tmp_name'] = substr($file['tmp_name'], (strlen($ext) + 1) * -1) == ".{$ext}" ? $file['tmp_name'] : $file['tmp_name'].".{$ext}";
+
+		# Make a copy
+		file_put_contents($file['tmp_name'], $im->getImageBlob());
+
+		# Ensure the name also nas a .png extension
+		$file['name'] = substr($file['name'], (strlen($ext) + 1) * -1) == ".{$ext}" ? $file['name'] : $file['name'].".{$ext}";
+
+		# Set the size
+		$file['size'] = filesize($file['tmp_name']);
+
+		# Record the MD5 hash of the file
+		$file['md5'] = md5_file($file['tmp_name']);
+
+		# Get the file extension
+		$file['ext'] = $ext;
+		//the extension is stored in all lowercase only
+
+		# Get the mime type
+		$file['mime_type'] = mime_content_type($file['tmp_name']);
+	}
+
+	public static function cropFile(array &$file, ?float $x, ?float $y, ?float $width, ?float $height): void
+	{
+		# Open ImageMagik
+		$im = new \Imagick();
+
+		# If the image file is actually a PDF
+		if($file['pdf_info']){
+			# Set the resolution to 50DPI (it's low, but that's OK, we're making an even smaller thumbnail)
+			$im->setResolution(50, 50);
+
+			# Read the first page (only)
+			$im->readImage("{$file['tmp_name']}[0]");
+
+			# Set the background to white
+			$im->setImageBackgroundColor('#FFFFFF');
+
+			# Flatten image (this will prevent pages with transparencies to go black)
+			$im = $im->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+		}
+
+		# All other actual image files
+		else {
+			# Load the image data
+			try {
+				$im->readImage($file['tmp_name']);
+			}
+
+				# If there is an error
+			catch (\ImagickException $e){
+
+				# Log the error, but the show must go on
+				Log::getInstance()->error([
+					"display" => str::isDev(),
+					//No need to show this to the end user at this point
+					"title" => "Unable to read image to then crop: ".json_encode($file),
+					"message" => $e->getMessage(),
+					"trace" => str::backtrace(true),
+				]);
+
+				return;
+			}
+		}
+
+		# Set image format to PNG
+		$im->setImageFormat("png");
+
+		# Crop the image
+		$im->cropImage(round($width), round($height), round($x), round($y));
+
+		self::setFile($file, $im, "png");
+
+		$im->destroy();
+	}
+
+	private static function getProportionateWidthAndHeight(\Imagick $im, ?int $max_width = NULL, ?int $max_height = NULL, ?bool $grow = NULL): array
+	{
+		$width = $im->getImageWidth();
+		$height = $im->getImageHeight();
+
+		# Ensure the resizing maintains the aspect ratio
+		if($width > $height){
+			if(!$grow && $width < $max_width){
+				$new_width = $width;
+			}
+			else {
+				$new_width = $max_width;
+			}
+
+			$divisor = $width / $new_width;
+			$new_height = floor( $height / $divisor);
+		}
+
+		else {
+			if(!$grow && $height < $max_height){
+				$new_height = $height;
+			}
+			else {
+				$new_height = $max_height;
+			}
+
+			$divisor = $newheight ? $height / $newheight : $height;
+			$new_width = floor( $width / $divisor );
+		}
+
+		return [$new_width, $new_height];
+	}
+
+	public static function forceBlackAndWhite(\Imagick &$imagick, $ditherMethod = \Imagick::DITHERMETHOD_NO)
+	{
+		$palette = new \Imagick();
+		$palette->newPseudoImage(1, 2, 'gradient:black-white');
+		$palette->setImageFormat('png');
+		//$palette->writeImage('palette.png');
+
+		// Make the image use these palette colors
+		$imagick->remapImage($palette, $ditherMethod);
+		$imagick->setImageDepth(1);
 	}
 
 	/**
