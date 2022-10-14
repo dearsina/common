@@ -89,8 +89,10 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 	private function getCertificateId(object $client): string
 	{
 		$certificateInfos = $client->listCertificates();
-		return $certificateInfos[1]['id'];
-		// Not quite sure why it's taking the _second_ certificate ID
+		//		return $certificateInfos[1]['id'];
+		//		// Not quite sure why it's taking the _second_ certificate ID
+		$certificate = end($certificateInfos);
+		return $certificate['id'];
 	}
 
 	/*
@@ -136,13 +138,13 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			$module->setSigningAlgorithm(self::ALGO);
 
 			# Create a writer instance
-			$writer = new SetaPDF_Core_Writer_String();
+			$writer = new \SetaPDF_Core_Writer_String();
 
 			# Create the document instance
-			$document = SetaPDF_Core_Document::loadByFilename($fileToSign, $writer);
+			$document = \SetaPDF_Core_Document::loadByFilename($file['tmp_name'], $writer);
 
 			// Create the signer instance
-			$signer = new SetaPDF_Signer($document);
+			$signer = new \SetaPDF_Signer($document);
 
 			$this->setMetaData($signer, $metadata);
 
@@ -163,7 +165,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 	 * @param SetaPDF_Signer $signer
 	 * @param array          $metadata
 	 */
-	public function setMetaData(SetaPDF_Signer &$signer, array $metadata = []): void
+	public function setMetaData(\SetaPDF_Signer &$signer, array $metadata = []): void
 	{
 		if(!$metadata){
 			return;
@@ -197,24 +199,26 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 		$client = $this->getClient();
 
 		try {
+			$certificate_id = $this->getCertificateId($client);
+
 			# Create the signature module
 			$module = new \setasign\SetaPDF\Signer\Module\Cumulo\Module($client);
-			$module->setCertificateId($this->getCertificateId($client));
+			$module->setCertificateId($certificate_id);
 			$module->setOtp($this->getOtp());
 			$module->setSigningAlgorithm(self::ALGO);
 
 			// create a writer instance
-			$writer = new SetaPDF_Core_Writer_String();
-			$tmpWriter = new SetaPDF_Core_Writer_TempFile();
+			$writer = new \SetaPDF_Core_Writer_String();
+			$tmpWriter = new \SetaPDF_Core_Writer_TempFile();
 			// create the document instance
-			$document = SetaPDF_Core_Document::loadByFilename($fileToSign, $tmpWriter);
+			$document = \SetaPDF_Core_Document::loadByFilename($file['tmp_name'], $tmpWriter);
 
 			// create the signer instance
-			$signer = new SetaPDF_Signer($document);
+			$signer = new \SetaPDF_Signer($document);
 			$signer->setAllowSignatureContentLengthChange(false);
 			$signer->setSignatureContentLength(26000);
 
-			$chainCertificates = SetaPDF_Signer_Pem::extract($client->getCertificateSigningChain($_POST['certificateId']));
+			$chainCertificates = \SetaPDF_Signer_Pem::extract($client->getCertificateSigningChain($certificate_id));
 			//    var_dump('<pre>');
 			//    var_dump($chainCertificates);
 			//    /**
@@ -238,10 +242,10 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			$document = \SetaPDF_Core_Document::loadByFilename($tmpWriter->getPath(), $writer);
 
 			// Create a collection of trusted certificats:
-			$trustedCertificates = new SetaPDF_Signer_X509_Collection($chainCertificates);
+			$trustedCertificates = new \SetaPDF_Signer_X509_Collection($chainCertificates);
 
 			// Create a collector instance
-			$collector = new SetaPDF_Signer_ValidationRelatedInfo_Collector($trustedCertificates);
+			$collector = new \SetaPDF_Signer_ValidationRelatedInfo_Collector($trustedCertificates);
 
 			try {
 				// Collect revocation information for this field
@@ -255,7 +259,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 				die();
 			}
 
-			$dss = new SetaPDF_Signer_DocumentSecurityStore($document);
+			$dss = new \SetaPDF_Signer_DocumentSecurityStore($document);
 			$dss->addValidationRelatedInfoByFieldName(
 				$fieldName,
 				$vriData->getCrls(),
