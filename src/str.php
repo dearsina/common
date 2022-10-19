@@ -747,7 +747,7 @@ class str {
 	 * @return bool
 	 * @link https://stackoverflow.com/a/10494842/429071
 	 */
-	public static function isSvg(string $path): bool
+	public static function isSvg(string $path): ?bool
 	{
 		if(strpos($path, "://") === false){
 			//if local file
