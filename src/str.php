@@ -747,7 +747,7 @@ class str {
 	 * @return bool
 	 * @link https://stackoverflow.com/a/10494842/429071
 	 */
-	public static function isSvg(string $path): ?bool
+	public static function isSvg(string $path): bool
 	{
 		if(strpos($path, "://") === false){
 			//if local file
@@ -757,7 +757,16 @@ class str {
 		}
 
 		# Otherwise, check the headers
-		return in_array("Content-Type: image/svg+xml", get_headers($path));
+		if(!$headers = @get_headers($path)){
+			return false;
+		}
+
+		# Ensure headers extracted successfully
+		if(!is_array($headers)){
+			return false;
+		}
+
+		return in_array("Content-Type: image/svg+xml", $headers);
 	}
 
 	/**
