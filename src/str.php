@@ -3452,6 +3452,27 @@ EOF;
 	}
 
 	/**
+	 * @param string|null $url
+	 *
+	 * @return bool
+	 */
+	public static function remote_file_exists(?string $url): bool
+	{
+		if(strpos($url, "://") === false){
+			//if local file
+			return file_exists($url);
+		}
+
+		$ch = curl_init($url);
+		curl_setopt($ch, CURLOPT_NOBODY, 1);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1); # handles 301/2 redirects
+		curl_exec($ch);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		return $httpCode == 200;
+	}
+
+	/**
 	 * Given the local path of an SVG file, will convert it to PNG
 	 * and return the PNG path.
 	 *

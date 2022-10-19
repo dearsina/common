@@ -194,6 +194,10 @@ class Img {
 			return NULL;
 		}
 
+		if(!str::remote_file_exists($filename)){
+			return NULL;
+		}
+
 		# SVGs
 		if(str::isSvg($filename)){
 			//Treat SVGs a little different
