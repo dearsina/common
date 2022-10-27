@@ -190,10 +190,12 @@ class Img {
 	 */
 	public static function getimagesize(?string $filename, ?bool $dimensions_only = NULL): ?array
 	{
+		# Ensure there is a filename
 		if(!$filename){
 			return NULL;
 		}
 
+		# Ensure the file exists (even if it's remote)
 		if(!str::remote_file_exists($filename)){
 			return NULL;
 		}

@@ -3452,14 +3452,17 @@ EOF;
 	}
 
 	/**
-	 * @param string|null $url
+	 * Checks to see if the remote file exists.
+	 * Can also handle local files.
 	 *
+	 * @param string|null $url
+	 * @link https://stackoverflow.com/a/37329149/429071
 	 * @return bool
 	 */
 	public static function remote_file_exists(?string $url): bool
 	{
+		# Handle local files
 		if(strpos($url, "://") === false){
-			//if local file
 			return file_exists($url);
 		}
 

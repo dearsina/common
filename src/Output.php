@@ -4,6 +4,7 @@ namespace App\Common;
 
 use App\Common\Exception\BadRequest;
 use App\Common\Output\Tab;
+use App\UI\Button;
 
 /**
  * Tracks the output of a ajax call
@@ -131,6 +132,36 @@ class Output {
 	public function update(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
 	{
 		return $this->setData("update", $id, $data, $recipients, $first);
+	}
+
+	/**
+	 * If you want to update the footer buttons.
+	 *
+	 * @param string     $id
+	 * @param array      $buttons
+	 * @param array|null $recipients
+	 * @param bool|null  $first
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function updateFooterButtons(string $id, array $buttons, ?array $recipients = NULL, ?bool $first = false): bool
+	{
+		$html = Button::generate($buttons);
+		$html = <<<EOF
+<div class="container">
+	<div class="row">
+		<div class="col-auto"></div>
+		<div class="col">
+			<div class="btn-float-right">
+				{$html}
+			</div>    		
+		</div>
+	</div>
+</div>
+EOF;
+
+		return $this->setData("update", $id, $html, $recipients, $first);
 	}
 
 	/**

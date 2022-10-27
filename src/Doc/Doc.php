@@ -716,13 +716,13 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Set image format
-		$im->setImageFormat("png");
+		$im->setImageFormat("jpg");
 
 		# Set image quality
-		//		if($quality){
-		//			//if the quality variable is set
-		//			$im->setImageCompressionQuality($quality);
-		//		}
+		if($quality){
+			//if the quality variable is set
+			$im->setImageCompressionQuality($quality);
+		}
 
 		# Grab the thumbnail data
 		$data = $im->getImageBlob();
@@ -816,7 +816,7 @@ class Doc extends \App\Common\Prototype {
 	 * Returns true if the image has an alpha channel (transparency).
 	 *
 	 * @param array $file
-	 *
+	 * @link https://stackoverflow.com/questions/2581469/detect-alpha-channel-with-imagemagick
 	 * @return bool
 	 */
 	public static function hasTransparency(array $file): bool
@@ -825,6 +825,11 @@ class Doc extends \App\Common\Prototype {
 		return shell_exec($cmd) == "Blend";
 	}
 
+	/**
+	 * @param array $file
+	 * @link https://stackoverflow.com/a/24511102/429071
+	 * @throws \ImagickException
+	 */
 	public static function convertToMonochrome(array &$file): void
 	{
 		# Open ImageMagik
@@ -921,7 +926,7 @@ class Doc extends \App\Common\Prototype {
 		$file['mime_type'] = mime_content_type($file['tmp_name']);
 	}
 
-	public static function cropFile(array &$file, ?float $x, ?float $y, ?float $width, ?float $height): void
+	public static function cropFile(array &$file, ?float $x, ?float $y, ?float $width, ?float $height, ?float $angle): void
 	{
 		# Open ImageMagik
 		$im = new \Imagick();
@@ -966,6 +971,11 @@ class Doc extends \App\Common\Prototype {
 
 		# Set image format to PNG
 		$im->setImageFormat("png");
+
+		# Rotate the image
+		if($angle){
+			$im->rotateimage("white", $angle);
+		}
 
 		# Crop the image
 		$im->cropImage(round($width), round($height), round($x), round($y));
