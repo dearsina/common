@@ -5,10 +5,70 @@ namespace App\Common\OAuth2\Provider;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\SQL\Factory;
 use App\Common\str;
+use League\OAuth2\Client\Grant\RefreshToken;
 use League\OAuth2\Client\OptionProvider\HttpBasicAuthOptionProvider;
 use League\OAuth2\Client\Provider\GenericProvider;
 
 class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\ProviderInterface {
+	/**
+	 * Hacky way to ensure the token is always fresh.
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function keepTokenAlive(): bool
+	{
+		# Get the OAuth2 token
+		if(!$oauth_token = self::getOauthToken()){
+			$this->log->error([
+				"title" => "No token found",
+				"message" => "No token found to refresh."
+			]);
+
+			return false;
+		}
+
+		# Get the provider (object)
+		$provider = self::getOAuth2ProviderObject();
+
+		# Get a new token based on the refresh token
+		$grant = new RefreshToken();
+
+		try{
+			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
+		}
+
+		catch(\Exception $e){
+			$this->log->error([
+				"title" => "Token not refreshed",
+				"message" => "Failed to refresh the access token: {$e->getMessage()}"
+			]);
+
+			return false;
+		}
+
+		# Store the new token for current use
+		$oauth_token['token'] = $token->getToken();
+		$oauth_token['expires'] = $token->getExpires();
+
+		# Store the new token for future use
+		Factory::getInstance()->update([
+			"table" => "oauth_token",
+			"id" => $oauth_token['oauth_token_id'],
+			"set" => [
+				"token" => $oauth_token['token'],
+				"expires" => $oauth_token['expires'],
+			],
+			"user_id" => false
+		]);
+
+		$this->log->success([
+			"title" => "Refreshed token",
+			"message" => "Successfully refreshed the access token."
+		]);
+
+		return true;
+	}
 
 	/**
 	 * @inheritDoc

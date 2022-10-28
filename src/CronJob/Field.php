@@ -114,6 +114,8 @@ class Field {
 					'0 2 * * *' => 'Daily, at 2am GMT',
 					'0 4 * * *' => 'Daily, at 4am GMT',
 					'@hourly' => 'Hourly',
+					'0,30 * * * *' => "Every 30 minutes",
+					'0/15 * * * *' => "Every 15 minutes",
 					'* * * * *' => "Every minute",
 				],
 				"name" => "interval",
