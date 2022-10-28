@@ -49,6 +49,9 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 
 		# Store the new token for current use
 		$oauth_token['token'] = $token->getToken();
+		if($refresh_token = $token->getRefreshToken()){
+			$oauth_token['refresh_token'] = $refresh_token != $oauth_token['refresh_token'] ? $refresh_token : $oauth_token['refresh_token'];
+		}
 		$oauth_token['expires'] = $token->getExpires();
 
 		# Store the new token for future use
@@ -57,6 +60,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			"id" => $oauth_token['oauth_token_id'],
 			"set" => [
 				"token" => $oauth_token['token'],
+				"refresh_token" => $oauth_token['refresh_token'],
 				"expires" => $oauth_token['expires'],
 			],
 			"user_id" => false
@@ -73,7 +77,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 	/**
 	 * @inheritDoc
 	 */
-	public static function getOAuth2ProviderObject(): object
+	public static function getOAuth2ProviderObject(?bool $force_refresh_token = NULL): object
 	{
 		$env = str::isDev() ? "dev" : "prod";
 
@@ -82,7 +86,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			'clientSecret' => $_ENV["cumulo_{$env}_client_secret"],
 			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
 			"accessType" => "offline",
-			"prompt" => "consent", // Forces consent (and a refresh token) every time
+			"prompt" => $force_refresh_token ? "consent" : NULL, // Forces consent (and a refresh token) every time
 			"scopes" => "offline ck.key.get ck.key.sign",
 			'urlAuthorize' => $_ENV["cumulo_{$env}_auth_url"],
 			'urlAccessToken' => $_ENV["cumulo_{$env}_token_url"],

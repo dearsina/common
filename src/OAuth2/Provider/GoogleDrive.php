@@ -36,14 +36,14 @@ class GoogleDrive extends Prototype implements ProviderInterface {
 	 *
 	 * @return \League\OAuth2\Client\Provider\Google
 	 */
-	public static function getOAuth2ProviderObject(): \League\OAuth2\Client\Provider\Google
+	public static function getOAuth2ProviderObject(?bool $force_refresh_token = NULL): \League\OAuth2\Client\Provider\Google
 	{
 		return new \League\OAuth2\Client\Provider\Google([
 			'clientId' => $_ENV['google_oauth_client_id'],
 			'clientSecret' => $_ENV['google_oauth_client_secret'],
 			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
 			"accessType" => "offline",
-			"prompt" => "consent", # Forces consent (and a refresh token) every time
+			"prompt" => $force_refresh_token ? "consent" : NULL, # Forces consent (and a refresh token) every time
 			"scopes" => [
 				"https://www.googleapis.com/auth/drive.metadata.readonly",
 				"https://www.googleapis.com/auth/drive.file",

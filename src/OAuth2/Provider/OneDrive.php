@@ -28,13 +28,13 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	/**
 	 * @inheritDoc
 	 */
-	public static function getOAuth2ProviderObject(): object
+	public static function getOAuth2ProviderObject(?bool $force_refresh_token = NULL): object
 	{
 		$provider = new \TheNetworg\OAuth2\Client\Provider\Azure([
 			'clientId' => $_ENV['microsoft_graph_client_id'],
 			'clientSecret' => $_ENV['microsoft_graph_client_secret'],
 			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
-			"prompt" => "consent",
+			"prompt" => $force_refresh_token ? "consent" : NULL,
 			'scopes' => [
 				"https://graph.microsoft.com/Files.ReadWrite.All",
 				'offline_access',

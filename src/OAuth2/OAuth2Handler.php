@@ -211,7 +211,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		 * but we did store the provider
 		 * name as a session variable.
 		 */
-		$provider_obj = $provider_class::getOAuth2ProviderObject();
+		$provider_obj = $provider_class::getOAuth2ProviderObject(true);
 
 		// Try to get an access token (using the authorization code grant)
 		$token = $provider_obj->getAccessToken('authorization_code', [
@@ -279,6 +279,9 @@ class OAuth2Handler extends \App\Common\Prototype {
 
 		# Store the new token for current use
 		$oauth_token['token'] = $token->getToken();
+		if($refresh_token = $token->getRefreshToken()){
+			$oauth_token['refresh_token'] = $refresh_token != $oauth_token['refresh_token'] ? $refresh_token : $oauth_token['refresh_token'];
+		}
 		$oauth_token['expires'] = $token->getExpires();
 
 		# Store the new token for future use
@@ -287,6 +290,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 			"id" => $oauth_token['oauth_token_id'],
 			"set" => [
 				"token" => $oauth_token['token'],
+				"refresh_token" => $oauth_token['refresh_token'],
 				"expires" => $oauth_token['expires'],
 			],
 			"user_id" => false

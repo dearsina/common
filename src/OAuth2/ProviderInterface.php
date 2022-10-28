@@ -12,7 +12,7 @@ interface ProviderInterface {
 	 *
 	 * @return object
 	 */
-	public static function getOAuth2ProviderObject(): object;
+	public static function getOAuth2ProviderObject(?bool $force_refresh_token = NULL): object;
 
 	/**
 	 * Given a folder name, will create a folder with that name in
