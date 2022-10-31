@@ -561,7 +561,7 @@ class Email extends Prototype {
 
 			if($tries == 3){
 				// Don't try more than 3 times
-				$this->log->error([
+				Log::getInstance()->error([
 					"title" => "Unable to send email",
 					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response."
 				]);
