@@ -16,13 +16,19 @@ class Grow extends Common {
 	 * exist in the table, and that the table columns are wide enough.
 	 * If not, create the column, make sure it's wide enough.
 	 *
-	 * @param array $table
-	 * @param array $set
+	 * @param array      $table
+	 * @param array|null $set
 	 *
 	 * @return bool
+	 * @throws \App\Common\Exception\BadRequest
+	 * @throws \Swoole\ExitException
 	 */
-	public function growTable(array $table, array $set)
+	public function growTable(array $table, ?array $set)
 	{
+		if(!$set){
+			return true;
+		}
+
 		# Get the table metadata
 		if($this->tableExists($table['db'], $table['name'], $table['is_tmp'])){
 			//if table exists
