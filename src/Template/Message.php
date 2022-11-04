@@ -30,6 +30,11 @@ class Message extends Template implements TemplateInterface {
 	{
 		extract($this->getVariables());
 
+		# Make sure the backtrace variable is not an array
+		if(is_array($backtrace)){
+			$backtrace = implode("\r\n", $backtrace);
+		}
+
 		return [[
 			"bg_colour" => "silent",
 			"copy" => [
