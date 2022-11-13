@@ -161,9 +161,13 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 
 	/*
 	 * Generate the OTP string from an OTP secret.
+	 * This must be a TOTP not a HTOP. And the period cannot be altered.
 	 */
 	private function getOtp(): string
 	{
+		//		$hotp = \OTPHP\HOTP::create($_ENV["cumulo_{$this->getEnv()}_otp_secret"]);
+		//		return $hotp->at(time());
+
 		$totp = \OTPHP\TOTP::create($_ENV["cumulo_{$this->getEnv()}_otp_secret"]);
 		return $totp->now();
 	}
@@ -257,7 +261,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 		}
 	}
 
-	public function signLtv(array $file, array $metadata = []): void
+	public function signLtv(array $file, array $metadata = [], ?int $rerun = 0): void
 	{
 		# Get the SetaSign client object
 		$client = $this->getClient();
@@ -337,61 +341,34 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 		}
 
 		catch(\Exception $e) {
-			throw new \Exception("An error occurred when trying to sign the {$file['name']} PDF: {$e->getMessage()}");
+			$error_message = $e->getMessage();
+
+			# If the issue is that we're signing too many documents in a single window, wait a second and try again
+			if(strpos($error_message, "2fa-totp-reuse")){
+				$rerun++;
+				sleep($rerun);
+				$this->signLtv($file, $metadata, $rerun);
+			}
+
+			# Admin message
+			$this->log->error([
+				"title" => "Error signing document",
+				"message" => "An error occurred when trying to sign the {$file['name']} PDF: $error_message
+				The document has still been produced, but the signatures have not been sealed. The signing was
+				attempted re-run {$rerun} times.",
+				"display" => false,
+			]);
+
+			# Public message
+			$this->log->error([
+				"log" => false,
+				"title" => "Error signing document",
+				"message" => "An error occurred when trying to sign the {$file['name']} PDF.
+				The document has still been produced, but the signatures have not been sealed. Please re-produce the
+				document for the seals to be attached properly. Apologies for the inconvenience."
+			]);
+
+			return;
 		}
-	}
-
-
-
-	/**
-	 * The below methods don't apply
-	 */
-
-	/**
-	 * @inheritDoc
-	 */
-	public function createFolder(string $folder_name, ?string $parent_folder_id): ?string
-	{
-		// TODO: Implement createFolder() method.
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function uploadFile(array $file, ?string $parent_folder_id): ?string
-	{
-		// TODO: Implement uploadFile() method.
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function folderExists(string $folder_name, ?string $parent_folder_id): ?string
-	{
-		// TODO: Implement folderExists() method.
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function fileExists(string $file_name, ?string $parent_folder_id): ?array
-	{
-		// TODO: Implement fileExists() method.
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function getFolderName(?string $folder_id): ?string
-	{
-		// TODO: Implement getFolderName() method.
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function getFolders(string $parent_id, ?string $folder_id = NULL): ?array
-	{
-		// TODO: Implement getFolders() method.
 	}
 }
