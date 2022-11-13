@@ -301,9 +301,6 @@ class PrintRun extends \App\Common\Prototype {
 			"icon" => "print",
 			"header" => [
 				"id" => "print-run-header",
-				"style" => [
-					"padding" => "10px 15px"
-				],
 				"title" => "Producing documents"
 			],
 			"items" => [
