@@ -275,7 +275,7 @@ class PrintRun extends \App\Common\Prototype {
 			Output::getInstance()->append("#print-run-items > ul", ListGroup::generate([
 				"flush" => true,
 				"items" => [$items[$print_run_id]]
-			]));
+			]), ["session_id" => $session_id]);
 
 			# And we're done
 			return;
