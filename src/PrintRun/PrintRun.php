@@ -72,7 +72,7 @@ class PrintRun extends \App\Common\Prototype {
 	 * @return string|null
 	 * @throws \Exception
 	 */
-	public static function start(string $md5, ?string $filename, ?int $rerun): ?string
+	public static function start(string $md5, ?string $filename, ?int $rerun, ?bool $silent = NULL): ?string
 	{
 		# Use the global session ID (not the local one)
 		global $session_id;
@@ -101,7 +101,7 @@ class PrintRun extends \App\Common\Prototype {
 		]);
 
 		# Update the print runs window, but only if a filename has been passed
-		if($filename){
+		if($filename && !$silent){
 			self::updateWindow($print_run_id);
 		}
 
