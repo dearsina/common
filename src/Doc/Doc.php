@@ -192,6 +192,11 @@ class Doc extends \App\Common\Prototype {
 			return false;
 		}
 
+		# If the file is bigger than 2mb, don't try to extract text
+		if($file['size'] > 2000000){
+			return false;
+		}
+
 		# Get the file contents
 		$contents = file_get_contents($file['tmp_name']);
 
