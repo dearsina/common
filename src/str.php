@@ -2985,6 +2985,15 @@ EOF;
 		return round($now - $start_time, 3);
 	}
 
+	public static function marker(?string $marker = "Marker", ?bool $prod_enable = NULL): void
+	{
+		if(!$prod_enable && !str::isDev()){
+			return;
+		}
+
+		echo str::title($marker)." ".str::stopTimer().PHP_EOL;
+	}
+
 	/**
 	 * Given a string, will break it apart by the delimiter and return an array.
 	 *

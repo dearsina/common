@@ -9,6 +9,10 @@ use App\Common\SQL\Factory;
 use App\Common\str;
 use League\OAuth2\Client\Grant\RefreshToken;
 
+/**
+ * This class is sort of a junction for all things OAuth2.
+ *
+ */
 class OAuth2Handler extends \App\Common\Prototype {
 	/**
 	 * The method that is called to start the process
@@ -40,8 +44,12 @@ class OAuth2Handler extends \App\Common\Prototype {
 
 	/**
 	 * Closes the OAuth2 popup window.
+	 * Is called once OAuth2 permission are granted,
+	 * and the OAuth2 permissions window can be
+	 * safely closed.
 	 *
-	 * @param array $a
+	 * @param string|null $session_id
+	 * @param array|null  $recipients
 	 */
 	public function closeWindow(?string $session_id = NULL, ?array $recipients = NULL): void
 	{

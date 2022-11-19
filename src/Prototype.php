@@ -79,12 +79,12 @@ abstract class Prototype {
 		 * So far, that's only the App\Common\User\User class
 		 */
 		if(in_array(get_called_class(), ['App\Common\User\User'])){
-			return true;
+			return;
 		}
 
 		$this->user = new User();
 
-		return true;
+		return;
 	}
 
 	/**

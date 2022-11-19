@@ -348,6 +348,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 				$rerun++;
 				sleep($rerun);
 				$this->signLtv($file, $metadata, $rerun);
+				return;
 			}
 
 			# Admin message
@@ -369,6 +370,14 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			]);
 
 			return;
+		}
+
+		if($rerun){
+			$this->log->error([
+				"title" => "Reran signing",
+				"message" => "Had to re-run singing {$rerun} times to sign the {$file['name']} PDF.",
+				"display" => false,
+			]);
 		}
 	}
 }

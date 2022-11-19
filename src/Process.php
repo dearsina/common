@@ -86,6 +86,8 @@ class Process {
 		return $process->getPid();
 	}
 
+	const MAX_EXEC_CMD_LENGTH = 1024;
+
 	/**
 	 * Request a process asynchronously.
 	 *
@@ -98,10 +100,12 @@ class Process {
 	 * is passed on to the request, it's as if
 	 * the user themselves was performing the task.
 	 *
-	 * This should be used for any method that can be reached via `rel_table/rel_id/action`.
+	 * This should be used for any method that can
+	 * be reached via `rel_table/rel_id/action`.
 	 *
-	 * If the params being sent is larger than 900 chars,
-	 * a tmp file will be created with the data and the link
+	 * If the params being sent is larger than the
+	 * max number of chars allowed, a tmp file will
+	 * be created with the data and the link
 	 * will be included in the command instead.
 	 *
 	 * This is to avoid hitting shell_exec max string
@@ -124,9 +128,9 @@ class Process {
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$request = new App\\Common\\Request({$requester});";
 
-		# 900+ char params
-		if(strlen($params) > 900){
-			//if more than 900 chars is being sent
+		# Long exec scripts
+		if(strlen($cmd) + strlen($params) > self::MAX_EXEC_CMD_LENGTH){
+			//if more than the max number allowed is being sent
 
 			# Create temporary filename name
 			$filename = $_ENV['tmp_dir'] . rand();

@@ -125,7 +125,7 @@ class UserRole extends \App\Common\Prototype {
 			"role" => $vars['role']
 		];
 
-		# Send an email to the user about the new role
+		# Email the user about the new role
 		$email = new Email();
 		$email->template("new_role", $variables)
 			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])

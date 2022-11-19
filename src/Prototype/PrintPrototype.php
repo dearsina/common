@@ -51,7 +51,7 @@ abstract class PrintPrototype extends Prototype {
 		]];
 
 		$grid[] = [[
-			"html" => "KYC DD (Pty) Limited, 377 Rivonia Blvd, Rivonia, Johannesburg, 2128, South Africa<br>Incorporated in South Africa, 2020/181847/07. VAT: 4910305954",
+			"html" => "KYC DD (Pty) Ltd, 377 Rivonia Blvd, Rivonia, Johannesburg, 2128, South Africa<br>Incorporated in South Africa, 2020/181847/07. VAT: 4910305954",
 			"style" => [
 				"margin-top" => "1rem",
 				"margin-bottom" => "3rem",

@@ -63,6 +63,38 @@ class Convert {
 	}
 
 	/**
+	 * Given a client doc array, will return a blob_id, filename,
+	 * and type of the *original* client doc, if the client doc was
+	 * altered.
+	 *
+	 * <code>
+	 * [$blob_id, $name, $type] = Convert::getOriginal($client_doc);
+	 * </code>
+	 *
+	 * @param array $client_doc
+	 *
+	 * @return array
+	 */
+	public static function getOriginal(array $client_doc): array
+	{
+		if($originals = Convert::getOriginals($client_doc)){
+			foreach($originals as $method => $original_client_doc){
+				$blob_id = $client_doc['client_doc_id'] . Convert::GLUE . $method;
+				$name = $original_client_doc['name'];
+				$type = $original_client_doc['type'];
+			}
+		}
+
+		else {
+			$blob_id = $client_doc['client_doc_id'];
+			$name = $client_doc['name'];
+			$type = $client_doc['type'];
+		}
+
+		return [$blob_id, $name, $type];
+	}
+
+	/**
 	 * Converts a HEIC image file to JPG because
 	 * HEIC is not accepted by Azure and most
 	 * browsers yet.
