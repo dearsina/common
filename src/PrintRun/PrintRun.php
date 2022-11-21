@@ -173,6 +173,7 @@ class PrintRun extends \App\Common\Prototype {
 
 		# Use the global session ID (not the local one)
 		global $session_id;
+		global $user_id;
 
 		# Stop the run
 		Factory::getInstance()->update([
@@ -181,7 +182,8 @@ class PrintRun extends \App\Common\Prototype {
 			"set" => [
 				"cancelled" => true,
 				"stopped" => "NOW()"
-			]
+			],
+			"user_id" => $user_id ?: false
 		]);
 
 		# Remove the print run from the process window
