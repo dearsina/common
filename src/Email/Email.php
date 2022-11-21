@@ -5,6 +5,7 @@ namespace App\Common\Email;
 
 use App\Common\EmailWrapper\EmailWrapper;
 use App\Common\Log;
+use App\Common\OAuth2\OAuth2Handler;
 use App\Common\Prototype;
 use App\Common\str;
 
@@ -28,37 +29,77 @@ class Email extends Prototype {
 	/**
 	 * @var bool
 	 */
-	private $silent;
+	private ?bool $silent = NULL;
 
 	/**
 	 * Contains the format.
 	 *
 	 * @var array
 	 */
-	private array $format;
+	private ?array $format = NULL;
+	private ?array $oauth_token = NULL;
+
+	/**
+	 * Any custom headers.
+	 *
+	 * @var array|null
+	 */
+	private ?array $headers = NULL;
+	/**
+	 * The subject string
+	 * @var string
+	 */
+	private ?string $subject = NULL;
+	private ?string $htmlBody = NULL;
+	private ?string $textBody = NULL;
+	private ?array $attachments = NULL;
+	/**
+	 * Will contain an array of
+	 * email => name pairs of
+	 * email addresses.
+	 *
+	 * @var array
+	 */
+	private array $to = [];
+	private ?array $cc = [];
+	private ?array $bcc = [];
 
 	/**
 	 * Email constructor.
 	 *
 	 * @param null $a
 	 */
-	public function __construct(?array $format = NULL)
+	public function __construct(?string $oauth_token_id = NULL)
 	{
+		# If an OAuth2 token has been passed and can be loaded, load it
+		if($oauth_token_id){
+			$this->oauth_token = $this->info("oauth_token", $oauth_token_id);
+			// We're still going to load the SwiftMessage as a fallback
+		}
+
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
 
 		# Set a unique message ID
 		$headers = $this->envelope->getHeaders();
-		$headers->addIdHeader('Message-ID', str::uuid()."@".$_ENV['domain']);
+		$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
 		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 
 		# Set the From address with an associative array
 		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
 
+		# Set the default email format (include the OAuth token if one is set)
+		$this->format = array_merge(
+			EmailWrapper::$defaults,
+			["oauth_token" => $this->oauth_token]);
+	}
+
+	public function format(?array $format = NULL): object
+	{
 		# Set the email format
 		$this->format = $format ?: EmailWrapper::$defaults;
 
-		return true;
+		return $this;
 	}
 
 	/**
@@ -104,6 +145,7 @@ class Email extends Prototype {
 	 * @param array|null $variables The entire email_template table row
 	 *
 	 * @return $this|object
+	 * @throws \Exception
 	 */
 	public function template(string $template_name, ?array $variables = NULL): object
 	{
@@ -120,6 +162,9 @@ class Email extends Prototype {
 		if(!$this->subject($template_factory->generateSubject())){
 			throw new \Exception("No subject generated using the {$template_name} template.");
 		}
+
+		# Add the (potential) oauth_token to the format variables
+		$this->format['oauth_token'] = $this->oauth_token;
 
 		# Get (and set) the message
 		if(!$this->message($template_factory->generateMessage($this->format))){
@@ -143,10 +188,38 @@ class Email extends Prototype {
 			throw new \Exception("An email was attempted sent without a subject line.");
 		}
 
-		# Set the subject line
+		# Set the subject line for the Swift Message
 		$this->envelope->setSubject($subject);
 
+		# Set the subject class variable
+		$this->subject = $subject;
+
 		return $this;
+	}
+
+	public function getSubject(): ?string
+	{
+		return $this->subject;
+	}
+
+	public function getHtmlBody(): ?string
+	{
+		return $this->htmlBody;
+	}
+
+	public function getTo(): array
+	{
+		return $this->to;
+	}
+
+	public function getCc(): ?array
+	{
+		return $this->cc;
+	}
+
+	public function getBcc(): ?array
+	{
+		return $this->bcc;
 	}
 
 	/**
@@ -177,6 +250,9 @@ class Email extends Prototype {
 
 		# Create and set the text version
 		$this->envelope->addPart($this->generateTextVersion($message), 'text/plain');
+
+		$this->htmlBody = $message;
+		$this->textBody = $this->generateTextVersion($message);
 
 		return $this;
 	}
@@ -252,7 +328,7 @@ class Email extends Prototype {
 				[$type, $ext] = explode("/", $content_type);
 
 				$base64 = $image_data[2];
-				$filename = str::id("image").".{$ext}";
+				$filename = str::id("image") . ".{$ext}";
 
 				$image_file = new \Swift_Image(base64_decode($base64), $filename, $content_type);
 			}
@@ -265,7 +341,7 @@ class Email extends Prototype {
 				if(!$data = @file_get_contents($image_path)){
 					Log::getInstance()->error([
 						"title" => "Email image inaccessible",
-						"message" => "An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email was still sent, but without the image."
+						"message" => "An image in the email template with the source link <code>{$image_path}</code> could not be accessed. The email was still sent, but without the image.",
 					]);
 					// As we're inside a massive preg replace callback, we can't use $this
 					return "";
@@ -324,6 +400,23 @@ class Email extends Prototype {
 		return $message;
 	}
 
+	public function headers(?array $a = NULL): object
+	{
+		$this->headers = $a;
+
+		return $this;
+	}
+
+	public function getHeaders(): ?array
+	{
+		return $this->headers;
+	}
+
+	public function getAttachments(): ?array
+	{
+		return $this->attachments;
+	}
+
 	/**
 	 * Can be a string to a path, or an array of paths,
 	 * or an array of `path` and `filename` key/value pairs.
@@ -358,44 +451,72 @@ class Email extends Prototype {
 			$this->envelope->attach(\Swift_Attachment::fromPath($attachment['path'])->setFilename($attachment['filename']));
 		}
 
+		$this->attachments = $attachments;
+
 		return $this;
 	}
 
 	/**
-	 * Set the TO recipients
+	 * @param        $recipient
+	 * @param string $type
+	 *
+	 * @return object
+	 * @throws \Exception
+	 */
+	private function recipient($recipient, string $type = "to"): object
+	{
+		# If it's just an email address string
+		if(is_string($recipient) && !empty($recipient)){
+			// Convert it to a numeric array
+			$recipient = [[$recipient => $recipient]];
+		}
+
+		# If it's a single email => name key-value
+		if(str::isAssociativeArray($recipient)){
+			// Convert it to a numeric array
+			$recipient = [$recipient];
+		}
+
+		if($type == "to" && !$recipient){
+			// Emails *must* have at least a single to-recipient
+			throw new \Exception("An email was attempted sent without a recipient.");
+		}
+
+		# Go through all the email addresses
+		foreach($recipient as $t){
+			# If the entire row is just a string
+			if(is_string($t)){
+				$recipients[$t] = $t;
+				continue;
+			}
+
+			# If the row is both email and name
+			foreach($t as $email => $name){
+				$recipients[$email] = $name;
+			}
+		}
+
+		$method = "set" . ucwords($type);
+		$this->envelope->{$method}($recipients);
+		$this->{$type} = $recipients;
+
+		return $this;
+	}
+
+	/**
+	 * Set the TO recipients, in one of the following formats:
+	 * - Just a single email address
+	 * - An array of email addresses
+	 * - An array where the *key* is the email address, and the value is the name
 	 *
 	 * @param array|string $to
 	 *
 	 * @return $this
 	 * @throws \Exception
-	 * @throws \Exception
 	 */
-	public function to($to)
+	public function to($to): object
 	{
-		if(is_string($to) && !empty($to)){
-			$this->envelope->setTo([$to => $to]);
-		}
-		else if(str::isAssociativeArray($to)){
-			$this->envelope->setTo($to);
-		}
-		else if(str::isNumericArray($to)){
-			foreach($to as $t){
-				if(is_string($t)){
-					$tos[] = $t;
-				}
-				else {
-					foreach($t as $email => $name){
-						$tos[$email] = $name;
-					}
-				}
-			}
-			$this->envelope->setTo($tos);
-		}
-		else {
-			throw new \Exception("An email was attempted sent without a recipient.");
-		}
-
-		return $this;
+		return $this->recipient($to, "to");
 	}
 
 	/**
@@ -405,29 +526,9 @@ class Email extends Prototype {
 	 *
 	 * @return $this
 	 */
-	public function cc($cc)
+	public function cc($cc): object
 	{
-		if(is_string($cc) && !empty($cc)){
-			$this->envelope->setCc([$cc => $cc]);
-		}
-		else if(str::isAssociativeArray($cc)){
-			$this->envelope->setCc($cc);
-		}
-		else if(str::isNumericArray($cc)){
-			foreach($cc as $t){
-				if(is_string($t)){
-					$tos[] = $t;
-				}
-				else {
-					foreach($t as $email => $name){
-						$tos[$email] = $name;
-					}
-				}
-			}
-			$this->envelope->setCc($tos);
-		}
-
-		return $this;
+		return $this->recipient($cc, "cc");
 	}
 
 	/**
@@ -437,29 +538,9 @@ class Email extends Prototype {
 	 *
 	 * @return $this
 	 */
-	public function bcc($bcc)
+	public function bcc($bcc): object
 	{
-		if(is_string($bcc) && !empty($bcc)){
-			$this->envelope->setBcc([$bcc => $bcc]);
-		}
-		else if(str::isAssociativeArray($bcc)){
-			$this->envelope->setBcc($bcc);
-		}
-		else if(str::isNumericArray($bcc)){
-			foreach($bcc as $t){
-				if(is_string($t)){
-					$tos[] = $t;
-				}
-				else {
-					foreach($t as $email => $name){
-						$tos[$email] = $name;
-					}
-				}
-			}
-			$this->envelope->setBcc($tos);
-		}
-
-		return $this;
+		return $this->recipient($bcc, "bcc");
 	}
 
 	public function silent()
@@ -485,21 +566,34 @@ class Email extends Prototype {
 		}
 
 		# Ensure no emails are sent from the dev environment
-		if(str::isDev()){
-			Log::getInstance()->warning([
-				"icon" => "ban",
-				"title" => "Email not sent",
-				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
-			]);
-			Log::getInstance()->info([
-				"icon" => "email",
-				"title" => $this->envelope->getSubject(),
-				"message" => $this->envelope->getBody(),
-			]);
-			return true;
+		//		if(str::isDev()){
+		//			Log::getInstance()->warning([
+		//				"icon" => "ban",
+		//				"title" => "Email not sent",
+		//				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
+		//			]);
+		//			Log::getInstance()->info([
+		//				"icon" => "email",
+		//				"title" => $this->envelope->getSubject(),
+		//				"message" => $this->envelope->getBody(),
+		//			]);
+		//			return true;
+		//		}
+
+		# If we're attempting to send from an external Exchange server
+		if($this->oauth_token){
+			# Load the email sending provider
+			$class = OAuth2Handler::getProviderClass($this->oauth_token['provider']);
+			$provider = new $class($this->oauth_token);
+
+			# Attempt to send the email
+			if($provider->sendEmail($this)){
+				// If the email is sent, our job is done
+				return true;
+			}
 		}
 
-		# Attempt to sent the message
+		# Attempt to send the message
 		$this->sender(1);
 
 		return true;
@@ -522,13 +616,13 @@ class Email extends Prototype {
 			$mailer->send($this->envelope);
 		}
 
-		catch(\Exception $e){
+		catch(\Exception $e) {
 			# Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
 			if(strpos($e->getMessage(), "250") !== false){
 				\App\Email\Email::notifyAdmins([
 					"subject" => "250 2.1.0 Sender OK email error",
-					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true)
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
+					"backtrace" => str::backtrace(true),
 				]);
 			}
 
@@ -536,8 +630,8 @@ class Email extends Prototype {
 			else if(strpos($e->getMessage(), "432") !== false){
 				\App\Email\Email::notifyAdmins([
 					"subject" => "432 4.3.2 Concurrent connections limit exceeded email error",
-					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true)
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
+					"backtrace" => str::backtrace(true),
 				]);
 			}
 
@@ -545,8 +639,8 @@ class Email extends Prototype {
 			else if(strpos($e->getMessage(), "Failed to authenticate") !== false){
 				\App\Email\Email::notifyAdmins([
 					"subject" => "Failed to authenticate email error",
-					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true)
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
+					"backtrace" => str::backtrace(true),
 				]);
 			}
 
@@ -554,8 +648,8 @@ class Email extends Prototype {
 				# Notify the admins of any unknown errors
 				\App\Email\Email::notifyAdmins([
 					"subject" => "Unknown email error",
-					"body" => "Got the following {$e->getCode()} error, after trying ".str::pluralise_if($tries, "time", true).": {$e->getMessage()}",
-					"backtrace" => str::backtrace(true)
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}",
+					"backtrace" => str::backtrace(true),
 				]);
 			}
 
@@ -563,7 +657,7 @@ class Email extends Prototype {
 				// Don't try more than 3 times
 				Log::getInstance()->error([
 					"title" => "Unable to send email",
-					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response."
+					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response.",
 				]);
 				return;
 			}

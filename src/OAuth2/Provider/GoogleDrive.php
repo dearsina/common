@@ -5,7 +5,7 @@ namespace App\Common\OAuth2\Provider;
 use App\Common\Log;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\OAuth2\Prototype;
-use App\Common\OAuth2\ProviderInterface;
+use App\Common\OAuth2\FileProviderInterface;
 use App\Common\str;
 
 /**
@@ -14,7 +14,7 @@ use App\Common\str;
  * @link https://github.com/thephpleague/oauth2-google
  * @link https://github.com/googleapis/google-api-php-client
  */
-class GoogleDrive extends Prototype implements ProviderInterface {
+class GoogleDrive extends Prototype implements FileProviderInterface {
 	private \Google_Client $client;
 	private \Google\Service\Drive $drive;
 

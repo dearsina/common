@@ -16,7 +16,7 @@ use App\Common\str;
  *
  *       https://developer.microsoft.com/en-us/graph/graph-explorer
  */
-class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\ProviderInterface
+class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\FileProviderInterface
 {
 	public function __construct(array $oauth_token)
 	{
@@ -354,16 +354,37 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	 */
 	private function throwError(\Exception $e, ?string $context = NULL): void
 	{
-		$error = $e->getMessage();
-		if($pos = strpos($error, "{")){
-			$message = substr($error, 0, $pos);
-			$error_array = json_decode(substr($error, $pos), true);
-			$error_code = $error_array['error']['code'];
+		# The best way of getting error responses
+		if(method_exists($e, "getResponse") && method_exists($e->getResponse(), "getBody")){
+			$error_code = $e->getCode();
+
+			if(method_exists($e->getResponse()->getBody(), "getContents")){
+				$error_json = $e->getResponse()->getBody()->getContents();
+			}
+			else {
+				$error_json = $e->getResponse()->getBody();
+			}
+
+			$error_array = json_decode($error_json, true);
 			$error_message = $error_array['error']['message'];
 		}
 
+		# A decent fallback
+		else if($error = $e->getMessage() && $pos = strpos($error, "{")){
+			$message = substr($error, 0, $pos);
+			$error_array = json_decode(substr($error, $pos), true);
+			$error_code = $error_array['error']['code'];
+			$error_message = "{$message}: {$error_array['error']['message']}";
+		}
+
+		# If everything else fails
+		else {
+			$error_code = $e->getCode() ?: "Got an";
+			$error_message = $e->getMessage();
+		}
+
 		if($context){
-			$narrative = sprintf($context, $error_code, "{$message}: {$error_message}");
+			$narrative = sprintf($context, $error_code, $error_message);
 		}
 
 		else {

@@ -9,11 +9,13 @@ use App\UI\EmailMessage;
 /**
  * Class Template.
  *
- * Acts both as the Template factory, and the root class for templates.
+ * Acts both as the Template factory, and the root class for
+ * generic templates. App specific templates should use the
+ * App\Template class.
  *
  * @package App\Common\Template
  */
-class Template{
+class Template {
 	/**
 	 * The template class
 	 *
@@ -143,9 +145,13 @@ class Template{
 	{
 		if($subdomain){
 			return "https://{$subdomain}.{$_ENV['domain']}/";
-		} else if($_SERVER['HTTP_HOST']){
+		}
+
+		else if($_SERVER['HTTP_HOST']){
 			return "https://{$_SERVER['HTTP_HOST']}/";
-		} else {
+		}
+
+		else {
 			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
 		}
 	}
@@ -164,7 +170,7 @@ class Template{
 			return NULL;
 		}
 		return [
-			"logo" => $logo
+			"logo" => $logo,
 		];
 	}
 
@@ -187,7 +193,7 @@ class Template{
 
 		return [
 			"colour" => "grey",
-			"footer" => $footer
+			"footer" => $footer,
 		];
 	}
 }
