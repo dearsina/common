@@ -167,6 +167,10 @@ class Doc extends \App\Common\Prototype {
 						$file['pdf_info']['page_width_in'] = round($dimensions[0] / 72, 2);
 						$file['pdf_info']['page_height_in'] = round($dimensions[1] / 72, 2);
 					}
+					# Capture the document page format
+					if($format = preg_replace("/[^(]+\(([^)]+)\)$/", "$1", $matches[2])){
+						$file['format'] = $format;
+					}
 				default:
 					$file['pdf_info'][$key] = $matches[2];
 					break;
@@ -221,14 +225,14 @@ class Doc extends \App\Common\Prototype {
 			# Try extracting text
 			$parser = new \Smalot\PdfParser\Parser();
 
-			$pdf = $parser->parseFile($file['tmp_name']);
+			$pdf = @$parser->parseFile($file['tmp_name']);
 
 
 			# Get the text
-			if($text = $pdf->getText()){
+			if($text = @$pdf->getText()){
 				# Filter the text for unfriendly characters
 				$text = preg_replace('/[^[:print:][:space:]]/', "", $text);
-				// We're removing all non-printable and non space characters to avoid issues loading the array (as a JSON)
+				// We're removing all non-printable and non-space characters to avoid issues loading the array (as a JSON)
 
 				# Load it to the pdf-info array
 				$file['pdf_info']['text'] = $text;
