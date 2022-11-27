@@ -477,9 +477,16 @@ class Email extends Prototype {
 			$recipient = [$recipient];
 		}
 
-		if($type == "to" && !$recipient){
-			// Emails *must* have at least a single to-recipient
-			throw new \Exception("An email was attempted sent without a recipient.");
+		# Ensure there are recipients
+		if(!$recipient){
+			// If there are no recipients
+			if($type == "to"){
+				// Emails *must* have at least a single to-recipient
+				throw new \Exception("An email was attempted sent without a recipient.");
+			}
+
+			# If there is no CC/BCC, no worries
+			return $this;
 		}
 
 		# Go through all the email addresses
@@ -566,19 +573,19 @@ class Email extends Prototype {
 		}
 
 		# Ensure no emails are sent from the dev environment
-		//		if(str::isDev()){
-		//			Log::getInstance()->warning([
-		//				"icon" => "ban",
-		//				"title" => "Email not sent",
-		//				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
-		//			]);
-		//			Log::getInstance()->info([
-		//				"icon" => "email",
-		//				"title" => $this->envelope->getSubject(),
-		//				"message" => $this->envelope->getBody(),
-		//			]);
-		//			return true;
-		//		}
+				if(str::isDev()){
+					Log::getInstance()->warning([
+						"icon" => "ban",
+						"title" => "Email not sent",
+						"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
+					]);
+					Log::getInstance()->info([
+						"icon" => "email",
+						"title" => $this->envelope->getSubject(),
+						"message" => $this->envelope->getBody(),
+					]);
+					return true;
+				}
 
 		# If we're attempting to send from an external Exchange server
 		if($this->oauth_token){
@@ -644,6 +651,15 @@ class Email extends Prototype {
 				]);
 			}
 
+			# Connection to tcp://smtp.office365.com:587 Timed Out
+			else if(strpos($e->getMessage(), "Timed Out") !== false){
+				\App\Email\Email::notifyAdmins([
+					"subject" => "Timed out email error",
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
+					"backtrace" => str::backtrace(true),
+				]);
+			}
+
 			else {
 				# Notify the admins of any unknown errors
 				\App\Email\Email::notifyAdmins([
@@ -653,8 +669,8 @@ class Email extends Prototype {
 				]);
 			}
 
-			if($tries == 3){
-				// Don't try more than 3 times
+			if($tries == 10){
+				// Don't try more than 10 times
 				Log::getInstance()->error([
 					"title" => "Unable to send email",
 					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response.",
@@ -663,7 +679,7 @@ class Email extends Prototype {
 			}
 
 			# Try again
-			sleep(2);
+			sleep($tries);
 			$tries++;
 			$this->sender($tries);
 			return;
