@@ -170,4 +170,88 @@ class Geolocation extends \App\Common\Prototype {
 		# Try again, this time the data will have been loaded
 		return $this->getGeolocation($ip);
 	}
+
+	/**
+	 * An array of lists of VPN and CoLo ASNs.
+	 * Each list must have a URL and a separator.
+	 */
+	const ASN_LISTS = [[
+		"url" => "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/input/ASN.txt",
+		"separator" => " # "
+	]];
+
+	/**
+	 * Loads a VPN/CoLo ASN list into the ASN table.
+	 * Is used to identify IP addresses that are probably
+	 * from VPNs.
+	 *
+	 * @return bool
+	 */
+	public function loadAsnList(): bool
+	{
+		foreach(self::ASN_LISTS as $asn_list){
+			# Download the list
+			if(($asn_list_string = file_get_contents($asn_list['url'])) === false){
+				continue;
+			}
+
+			# Break the list into rows
+			$asn_list_rows = str::explode(["\r\n", "\r", "\n"], $asn_list_string);
+
+			# For each row, break it into columns, and load the array
+			foreach($asn_list_rows as $row){
+				# Break up the row by the separator
+				$row = explode($asn_list['separator'], $row);
+
+				# If the row doesn't have an ASN, (empty row), forget it
+				if(!$asn = $row[0]){
+					continue;
+				}
+
+				# Ensure the ASNs are prefixed with "AS"
+				if($asn == preg_replace("/[^\d]/", "", $asn)){
+					//if the ASN is just the numbers
+
+					# Prefix the ASN with "AS"
+					$asn = "AS{$asn}";
+				}
+
+				# Load them by ASN, ensure
+				$asns[$asn] = [
+					"asn" => $asn,
+					"name" => $row[1],
+				];
+			}
+		}
+
+		if(!$asns){
+			$this->log->error([
+				"title" => "Unable to download ASN lists",
+				"message" => "Unable to load ASNs from the ".str::pluralise_if(self::ASN_LISTS, "ASN list", true)."."
+			]);
+			return false;
+		}
+
+		# Sort the ASNs by their ASN
+		ksort($asns);
+
+		# Truncate the ASN table (but only if it exists)
+		if($this->sql->tableExists("app", "asn")){
+			$this->sql->run("TRUNCATE TABLE `app`.`asn`;");
+		}
+
+		# Load *all* the rows
+		$this->sql->insert([
+			"table" => "asn",
+			"set" => array_values($asns),
+			"grow" => true,
+		]);
+
+		$this->log->success([
+			"title" => "Loaded ASN lists successfully",
+			"message" => "Loaded ".count($asns)." unique ASNs successfully."
+		]);
+
+		return true;
+	}
 }
