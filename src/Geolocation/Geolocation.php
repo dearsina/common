@@ -61,6 +61,24 @@ class Geolocation extends \App\Common\Prototype {
 	}
 
 	/**
+	 * Returns either the remote address IP,
+	 * the global IP, or nothing.
+	 *
+	 * @return string|null
+	 */
+	public static function getIp(): ?string
+	{
+		# If a requester IP is set, use it
+		if($_SERVER['REMOTE_ADDR']){
+			return $_SERVER['REMOTE_ADDR'];
+		}
+
+		# Otherwise, use the global ID
+		global $ip;
+		return $ip;
+	}
+
+	/**
 	 * Static method is probably faster/better. Use:
 	 * <code>
 	 * Geolocation::get($ip);
@@ -75,10 +93,7 @@ class Geolocation extends \App\Common\Prototype {
 	{
 		if(!$ip){
 			//if an IP isn't explicitly given, use the requester IP
-			if(!$ip = $_SERVER['REMOTE_ADDR']){
-				//if a requester IP isn't given, use the global IP
-				global $ip;
-			}
+			$ip = Geolocation::getIp();
 		}
 
 		# Without an IP, we can't get geolocation
