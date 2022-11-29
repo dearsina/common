@@ -181,6 +181,8 @@ class Img {
 	 * Expands on the PHP function getimagesize, making it useful for SVGs,
 	 * and faster for larger image files.
 	 *
+	 * This is an expensive method. Use it sparingly.
+	 *
 	 * @param string|null $filename
 	 * @param bool|null   $dimensions_only If set, will only return width and height.
 	 *
