@@ -684,6 +684,58 @@ abstract class Prototype {
 	}
 
 	/**
+	 * Given a rel_table/id will check if the item was removed,
+	 * and if so, return the record with metadata.
+	 *
+	 * <code>
+	 * if($removed = $this->getRemoved($rel_table, $rel_id)){
+	 *    throw new BadRequest("This item was removed by {$removed['user']['name']} " . str::ago($removed['removed']) . ".");
+	 * }
+	 * </code>
+	 *
+	 * @param string $rel_table
+	 * @param string $rel_id
+	 *
+	 * @return array|null
+	 */
+	public function getRemoved(string $rel_table, string $rel_id): ?array
+	{
+		if(!$removed = $this->sql->select([
+			"table" => $rel_table,
+			"left_join" => [[
+				"table" => "user",
+				"on" => [
+					"user_id" => [$rel_table, "removed_by"]
+				],
+				"include_removed" => true,
+			]],
+			"id" => $rel_id,
+			"where" => [
+				["removed", "IS NOT", NULL],
+			],
+			"include_removed" => true,
+			"include_meta" => true,
+		])){
+			// If a removed record cannot be found
+			return NULL;
+		}
+
+		str::flattenSingleChildren($removed, ["user"]);
+
+		if($removed['user']){
+			# Format user name
+			str::addNames($removed['user']);
+		}
+
+		else {
+			# Ensure there is always a user->name key value
+			$removed['user']['name'] = "the system";
+		}
+
+		return $removed;
+	}
+
+	/**
 	 * Given an $a array, and an array of keys,
 	 * remove all the key values from the $a vars, and only
 	 * set one key value back, the first one with a value.
