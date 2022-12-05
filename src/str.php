@@ -4145,6 +4145,30 @@ EOF;
 	}
 
 	/**
+	 * Insert a given element into an array at every nth
+	 * array key. Will not insert the element at the end
+	 * of an array.
+	 *
+	 * If the element itself is an array, will wrap the
+	 * element into a single array key->value to ensure
+	 * that the count doesn't get shifted.
+	 *
+	 * @param array $array
+	 * @param int   $every
+	 * @param       $element
+	 */
+	public static function insertElementEveryNthArrayKey(array &$array, int $every, $element): void
+	{
+		# Ensure that there is always only "one" element inserted
+		if(is_array($element)){
+			$element = [$element];
+		}
+		for($i = 0; $i * ($every + 1) + $every < count($array); $i++){
+			array_splice($array, $i * ($every + 1) + $every, 0, $element);
+		}
+	}
+
+	/**
 	 * Add "name" and "full_name", and format first and last names.
 	 * And cleans up the email address.
 	 *
