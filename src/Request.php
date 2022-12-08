@@ -377,7 +377,7 @@ class Request {
 		}
 
 		# Ensure token belongs to this IP address
-		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
+		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			// If the token IP and the connecting IP are not the same
 			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)){
 				//If the IP address doesn't belong to any of the whitelisted ASN domains
@@ -386,7 +386,7 @@ class Request {
 				$this->hash->set("reload");
 				$this->log->warning([
 					"title" => "Expired connection",
-					"message" => "Your connection has expired. It will now be refreshed.",
+					"message" => "Your connection has expired ({$connection['ip']} != {$_SERVER['REMOTE_ADDR']}). It will now be refreshed.",
 				]);
 				return false;
 			}
