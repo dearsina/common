@@ -1663,6 +1663,9 @@ class str {
 							$val .= "{$vk}:{$vv};";
 						}
 					}
+					if(is_numeric($k) && !is_array($v)){
+						$val .= $v;
+					}
 					else if(!is_array($k) && is_array($v)){
 						$val .= "{$k}:" . end($v) . ";";
 					}
