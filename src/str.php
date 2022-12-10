@@ -232,6 +232,7 @@ class str {
 	 * Words or abbreviations that should always be all uppercase
 	 */
 	const ALL_UPPERCASE = [
+		"KYC",
 		"UK",
 		"VAT",
 	];
