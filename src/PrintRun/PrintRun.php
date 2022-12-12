@@ -109,6 +109,8 @@ class PrintRun extends \App\Common\Prototype {
 		$slept = self::wait();
 		// Also count how many seconds we had to wait for the log
 
+		global $user_id;
+
 		# When we're ready to start, let's go!
 		Factory::getInstance()->update([
 			"table" => "print_run",
@@ -116,7 +118,8 @@ class PrintRun extends \App\Common\Prototype {
 			"set" => [
 				"slept" => $slept,
 				"started" => "NOW()"
-			]
+			],
+			"user_id" => $user_id ?: false
 		]);
 
 		# Return the new print run ID
@@ -139,6 +142,8 @@ class PrintRun extends \App\Common\Prototype {
 			return;
 		}
 
+		global $user_id;
+
 		# Stop the run
 		Factory::getInstance()->update([
 			"table" => "print_run",
@@ -147,7 +152,8 @@ class PrintRun extends \App\Common\Prototype {
 				"reruns" => $rerun,
 				"seconds" => str::stopTimer(),
 				"stopped" => "NOW()"
-			]
+			],
+			"user_id" => $user_id ?: false
 		]);
 
 		# Remove the print run from the process window
