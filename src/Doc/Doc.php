@@ -388,9 +388,14 @@ class Doc extends \App\Common\Prototype {
 				throw new \Exception("Unable to move uploaded file. Please try uploading again.");
 			}
 
+			if(!$files[$i]['size'] = $file['size'][$i]){
+				//If the filesize is zero
+				throw new \Exception("The file uploaded ({$file['name'][$i]}) is empty. Please try again.");
+			}
+
 			$files[$i]['name'] = $file['name'][$i];
 			$files[$i]['type'] = $file['type'][$i];
-			$files[$i]['size'] = $file['size'][$i];
+
 
 			# Record the MD5 hash of the file
 			$files[$i]['md5'] = md5_file($tmp_name);

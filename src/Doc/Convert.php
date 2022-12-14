@@ -217,8 +217,16 @@ class Convert {
 			$filename = $file['tmp_name'];
 		}
 
-		# Read the first (and only) page
-		$imagick->readImage($filename);
+		try{
+			# Read the first (and only) page
+			$imagick->readImage($filename);
+		}
+			# Catch errors
+		catch (\ImagickException $e){
+			// If there is an error, there isn't much we can do here
+			return;
+		}
+
 
 		$number_of_colours = $imagick->getImageColors();
 
