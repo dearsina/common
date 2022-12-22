@@ -235,6 +235,7 @@ class str {
 		"KYC",
 		"UK",
 		"VAT",
+		"ID",
 	];
 
 	/**
