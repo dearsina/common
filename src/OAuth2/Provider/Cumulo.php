@@ -374,7 +374,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 
 		if($rerun){
 			$this->log->error([
-				"title" => "Reran signing",
+				"title" => "Re-ran signing",
 				"message" => "Had to re-run singing {$rerun} times to sign the {$file['name']} PDF.",
 				"display" => false,
 			]);
