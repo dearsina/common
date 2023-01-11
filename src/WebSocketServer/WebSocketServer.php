@@ -15,7 +15,7 @@ use App\Common\str;
  *
  * Needs to be executed from the command line.
  *
- * Requries the following $_ENV variables to be set:
+ * Requires the following $_ENV variables to be set:
  *
  * local_cert="/etc/letsencrypt/live/DOMAIN/cert.pem"     # Local SSL Certificate path
  * local_pk="/etc/letsencrypt/live/DOMAIN/privkey.pem"    # Local SSL Private Key path
@@ -307,6 +307,15 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onExternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame) {
 		$this->alert("External message from connection [{$frame->fd}]: {$frame->data}");
+
+		# If we receive a ping, return with a pong
+		if($frame->data === "ping"){
+			$server->push($frame->fd, json_encode([
+				"success" => true,
+				"pong" => true,
+			]));
+		}
+		// This is used to check if the browser can receive incoming WebSocket messages
 	}
 
 	/**
