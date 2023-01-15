@@ -228,7 +228,7 @@ class DateFinder extends \App\Common\Prototype {
 	 *
 	 * @return bool
 	 */
-	public function isADate(string $string): ?\DateTime
+	public function isADate(?string $string): ?\DateTime
 	{
 		# Ensure string is long enough to be a date
 		if(strlen($string) < 6){

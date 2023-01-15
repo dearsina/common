@@ -221,6 +221,7 @@ class str {
 	static function title(?string $string, ?bool $is_name = NULL, ?bool $all_words = NULL): ?string
 	{
 		$string = str_replace("doc_", "document_", $string);
+		$string = str_replace("_col", "_column", $string);
 		$string = str_replace("_", " ", $string);
 		if($is_name || $all_words){
 			return self::capitalise($string);
@@ -1812,7 +1813,7 @@ class str {
 
 	/**
 	 * Return an error message if the given pattern argument or its underlying regular expression
-	 * are not syntactically valid. Otherwise (if they are valid), NULL is returned.
+	 * are not syntactically valid. Otherwise, (if they are valid), NULL is returned.
 	 *
 	 * @param $pattern
 	 *
@@ -2254,7 +2255,7 @@ EOF;
 	 * Orders a multidimensional array by one or many
 	 * key values.
 	 *
-	 * Maintains the key values.
+	 * Maintains the key values, unless told otherwise.
 	 *
 	 * <code>
 	 * $order = [
@@ -2264,12 +2265,13 @@ EOF;
 	 *    "addr1" => "asc",
 	 * ];
 	 * </code>
-	 * @param array $array
-	 * @param array $order
+	 * @param array|null $array $array
+	 * @param array      $order
+	 * @param bool|null  $reset_keys If set to TRUE, will reset the root keys to match the new order.
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
-	static function multidimensionalOrderBy(?array &$array, array $order): void
+	static function multidimensionalOrderBy(?array &$array, array $order, ?bool $reset_keys = NULL): void
 	{
 		if(!$array){
 			return;
@@ -2292,6 +2294,10 @@ EOF;
 			}
 			return $t[$r] * $k;
 		});
+
+		if($reset_keys){
+			$array = array_values($array);
+		}
 	}
 
 	/**

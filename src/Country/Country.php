@@ -103,12 +103,25 @@ class Country extends Prototype {
 	 * @return array
 	 * @throws \Exception#
 	 */
-	public static function getAllCountries(): array
+	public static function getAllCountries(?bool $formatted = NULL): array
 	{
 		$info = Info::getInstance();
 
 		foreach($info->getInfo("country") as $country){
-			$country_options[$country['country_code']] = $country['name'];
+			if($formatted){
+				$country_options[$country['country_code']] = [
+					"title" => $country['name'],
+					"icon" => [
+						"type" => "flag",
+						"name" => $country['country_code'],
+					]
+				];
+			}
+
+			else {
+				$country_options[$country['country_code']] = $country['name'];
+			}
+
 		}
 
 		return $country_options;
@@ -204,10 +217,10 @@ class Country extends Prototype {
 	}
 
 	/**
-	 * Given a nationality string (case-insensitive), will return
+	 * Given a country name string (case-insensitive), will return
 	 * the ISO-alpha2 code of the country.
 	 *
-	 * Returns the nationality string if no match is found.
+	 * Returns the original country name string if no match is found.
 	 *
 	 * @param string|null $name
 	 *
@@ -226,7 +239,7 @@ class Country extends Prototype {
 		# Get all the countries
 		$countries = Info::getInstance()->getInfo("country");
 
-		# Run thru each country
+		# Run through each country
 		foreach($countries as $country){
 			# If there is a match, return the ISO-alpha2
 			if($name == strtolower($country['name'])){

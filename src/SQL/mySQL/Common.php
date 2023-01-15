@@ -2252,6 +2252,12 @@ abstract class Common {
 			# Make a copy of the table array
 			$tbl = $table;
 
+			# If the entire order-by is just a string (and there is no col value, other than a numeric key), use it as is
+			if(is_numeric($col) && !in_array(strtoupper($dir), ['ASC', 'DESC'])){
+				$order_by[] = $dir;
+				continue;
+			}
+
 			# The direction variable can also be an array if the table is not the main table [tbl_alias, col, dir]
 			if(is_array($dir) && count($dir) == 3){
 				[$tbl_alias, $col, $dir] = $dir;

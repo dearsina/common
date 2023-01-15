@@ -189,15 +189,10 @@ class Process {
 		$global_vars['ip'] = $_SERVER['REMOTE_ADDR'];
 		// Process threads don't have an IP as they were initiated locally
 
-		# Log the backtrace, but only in dev
+		# Log the backtrace, but only in dev because it's heavy
 		if(str::isDev()){
 			global $backtrace;
 			$global_vars['backtrace'] = $backtrace.base64_encode(str::backtrace(true));
-
-			# Remove the backtrace if it's too long
-			if(strlen($global_vars['backtrace']) > self::MAX_EXEC_CMD_LENGTH){
-				unset($global_vars['backtrace']);
-			}
 		}
 
 		if(!$as_string){

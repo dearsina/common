@@ -337,6 +337,7 @@ class Convert {
 	 * This was in 2010, the speeds I'm sure have improved, but useful reference
 	 * either way.
 	 *
+	 * <code>
 	 * FILTER_POINT took: 0.334532976151 seconds
 	 * FILTER_BOX took: 0.777871131897 seconds
 	 * FILTER_TRIANGLE took: 1.3695909977 seconds
@@ -352,6 +353,7 @@ class Convert {
 	 * FILTER_LANCZOS took: 3.74232912064 seconds
 	 * FILTER_BESSEL took: 4.03305602074 seconds
 	 * FILTER_SINC took: 4.90098690987 seconds
+	 * </code>
 	 *
 	 * @param array          $file
 	 * @param float|int|null $max_in     The default is set to 17 inches, the max width/height that Microsoft Cognitive
