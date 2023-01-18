@@ -405,7 +405,7 @@ class Doc extends \App\Common\Prototype {
 			//the extension is stored in all lowercase only
 
 			# Get the mime type
-			$files[$i]['mime_type'] = mime_content_type($tmp_name);
+			$files[$i]['mime_type'] = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $tmp_name);
 
 			# Update the tmp_name to the new tmp_name
 			$files[$i]['tmp_name'] = $tmp_name;
@@ -443,19 +443,34 @@ class Doc extends \App\Common\Prototype {
 		if(str::isNumericArray($_FILES[$key]['tmp_name'])){
 			//if multiple files have been uploaded at once
 			foreach($_FILES[$key]['tmp_name'] as $id => $tmp_name){
-				if(in_array(mime_content_type($tmp_name), $mime_type)){
+				if(in_array(finfo_file(finfo_open(FILEINFO_MIME_TYPE), $tmp_name), $mime_type)){
 					return $_FILES[$key]['name'][$id];
 				}
 			}
 		}
 
 		else {
-			if(in_array(mime_content_type($_FILES[$key]['tmp_name']), $mime_type)){
+			if(in_array(finfo_file(finfo_open(FILEINFO_MIME_TYPE), $_FILES[$key]['tmp_name']), $mime_type)){
 				return $_FILES[$key]['name'];
 			}
 		}
 
 		return NULL;
+	}
+
+	public static function isImageOrPdf(?array $file): bool
+	{
+		$mime_type = $file['mime_type'] ?: $file['type'];
+
+		if($mime_type == "application/pdf"){
+			return true;
+		}
+
+		if(strpos($mime_type, "image/") === 0){
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
