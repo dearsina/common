@@ -129,7 +129,7 @@ class Process {
 		$cmd .= "\$request = new App\\Common\\Request({$requester});";
 
 		# Long exec scripts
-		if(strlen($cmd) + strlen($params) > self::MAX_EXEC_CMD_LENGTH){
+		if((strlen($cmd) + strlen($params)) > self::MAX_EXEC_CMD_LENGTH){
 			//if more than the max number allowed is being sent
 
 			# Create temporary filename name
@@ -191,8 +191,16 @@ class Process {
 
 		# Log the backtrace, but only in dev because it's heavy
 		if(str::isDev()){
+			# Get the global backtrace from the previous request
 			global $backtrace;
-			$global_vars['backtrace'] = $backtrace.base64_encode(str::backtrace(true));
+
+			# Add the current backtrace to it
+			$backtrace .= base64_encode(str::backtrace(true));
+
+			# If it's not super long add it to the global vars
+			if(strlen($backtrace) < self::MAX_EXEC_CMD_LENGTH){
+				$global_vars['backtrace'] = $backtrace;
+			}
 		}
 
 		if(!$as_string){
