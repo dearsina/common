@@ -166,15 +166,15 @@ abstract class Prototype {
 	 * @param null        $refresh
 	 * @param array|null  $joins
 	 *
-	 * @return array|null
+	 * @return array|string|null
 	 * @throws Exception
 	 */
-	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL, ?array $joins = NULL): ?array
+	protected function info($rel_table_or_array, ?string $rel_id = NULL, $refresh = NULL, ?array $joins = NULL, ?bool $return_query = NULL)
 	{
 		if(!$this->info){
 			$this->info = Info::getInstance();
 		}
-		return $this->info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh, $joins);
+		return $this->info->getInfo($rel_table_or_array, $rel_id, (bool)$refresh, $joins, $return_query);
 	}
 
 	/**

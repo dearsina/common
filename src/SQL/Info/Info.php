@@ -84,10 +84,10 @@ class Info {
 	 * @param string|null $rel_id
 	 * @param bool|null   $refresh If set to TRUE, will ignore any cached results.
 	 *
-	 * @return array|null
+	 * @return array|string|null
 	 * @throws \Exception
 	 */
-	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL, ?array $joins = NULL): ?array
+	public function getInfo($a, ?string $rel_id = NULL, ?bool $refresh = NULL, ?array $joins = NULL, ?bool $return_query = NULL)
 	{
 		if(is_string($a)){
 			$a = [
@@ -123,10 +123,14 @@ class Info {
 
 		# Run either a custom or generic process to get the rows
 		if($class_path = str::findClass("Info", $a['rel_table'], $a['grandparent_class'])){
-			$rows = $this->customProcess($class_path, $a, $joins);
+			$rows = $this->customProcess($class_path, $a, $joins, $return_query);
 		}
 		else {
-			$rows = $this->genericProcess($a);
+			$rows = $this->genericProcess($a, $return_query);
+		}
+
+		if($return_query){
+			return $rows;
 		}
 
 		# Store the cached results
@@ -163,7 +167,7 @@ class Info {
 	 *
 	 * @return array|bool|mixed|string
 	 */
-	private function genericProcess(array $a)
+	private function genericProcess(array $a, ?bool $return_query = NULL)
 	{
 		# Set a generic order by, unless one has been passed
 		$a['order_by'] = $a['order_by'] ?: [
@@ -172,8 +176,12 @@ class Info {
 		];
 
 		# Run the SQL query
-		if(!$rows = $this->sql->select($a)){
+		if(!$rows = $this->sql->select($a, $return_query)){
 			return false;
+		}
+
+		if($return_query){
+			return $rows;
 		}
 
 		# Ensure rows array is numerical
@@ -210,14 +218,18 @@ class Info {
 	 *
 	 * @return array|bool|mixed|string
 	 */
-	private function customProcess(string $class_path, array $a, ?array $joins = NULL)
+	private function customProcess(string $class_path, array $a, ?array $joins = NULL, ?bool $return_query = NULL)
 	{
 		# Fatten the variable array
 		$class_path::prepare($a, $joins);
 
 		# Run the SQL query
-		if(!$rows = $this->sql->select($a)){
+		if(!$rows = $this->sql->select($a, $return_query)){
 			return false;
+		}
+
+		if($return_query){
+			return $rows;
 		}
 
 		# Ensure rows array is numerical
