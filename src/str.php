@@ -1312,7 +1312,7 @@ class str {
 
 			$hash = "{$rel_table}/{$rel_id}/{$action}";
 
-			if(!$vars) {
+			if(!$vars){
 				//if there are no variables attached
 
 				# Remove any surplus slashes and dashes at the end
@@ -1830,38 +1830,37 @@ class str {
 
 	/**
 	 * Given an mySQL datetime value, will return a HTML string with JavaScript
-	 * that will display the amount of time *ago* that timestap was.
+	 * that will display the amount of time *ago* that timestamp was.
 	 * The amount of time will change as time passes.
 	 *
-	 * @param datetime $datetime_or_time mySQL datetime value
-	 * @param bool     $future           If set to to true will also show future times
+	 * @param \DateTime|string|null $dt     mySQL datetime value
+	 * @param bool|null             $future If set to true will also show future times
 	 *
 	 * @return string
 	 * @throws \Exception
 	 */
-	static function ago($datetime_or_time, $future = NULL)
+	static function ago($dt, ?bool $future = NULL): ?string
 	{
-		if(!$datetime_or_time){
-			return '';
-		}
-		else if(is_object($datetime_or_time)){
-			$then = clone $datetime_or_time;
-			$datetime_or_time = $then->format("Y-m-d H:i:s");
-		}
-		else {
-			$then = new \DateTime($datetime_or_time);
+		# Empty
+		if(!$dt){
+			return NULL;
 		}
 
-		if($future){
-			$future = "jQuery.timeago.settings.allowFuture = true;";
+		# Ensure we have a DateTime object
+		if(!is_object($dt)){
+			$dt = new \DateTime($dt);
 		}
 
-		$id = str::id("timeago");
-		//gives the timeago element uniqueness, in case it is used as the key in an array
-		return <<<EOF
-<time id="{$id}" class="timeago" datetime="{$then->format('c')}">{$datetime_or_time}</time> [{$then->format('j M Y')}]
-<script>{$future}$("time.timeago").timeago();</script>
-EOF;
+		# The element ID (for uniqueness)
+		$id = str::getAttrTag("id", str::id("timeago"));
+
+		# The class (for triggering the JavaScript)
+		$class = str::getAttrTag("class", ["timeago", $future ? "allow-future" : NULL]);
+
+		# The datetime attribute, as required by the timeAgo jQuery plugin
+		$datetime = str::getAttrTag("datetime", $dt->format('c'));
+
+		return "<time{$id}{$class}{$datetime}>{$dt->format("Y-m-d H:i:s")}</time> [{$dt->format('j M Y')}]";
 	}
 
 	/**
@@ -2265,7 +2264,7 @@ EOF;
 	 *    "addr1" => "asc",
 	 * ];
 	 * </code>
-	 * @param array|null $array $array
+	 * @param array|null $array      $array
 	 * @param array      $order
 	 * @param bool|null  $reset_keys If set to TRUE, will reset the root keys to match the new order.
 	 *
@@ -3002,7 +3001,7 @@ EOF;
 			return;
 		}
 
-		echo str::title($marker)." ".str::stopTimer().PHP_EOL;
+		echo str::title($marker) . " " . str::stopTimer() . PHP_EOL;
 	}
 
 	/**
@@ -3476,8 +3475,9 @@ EOF;
 	 * Can also handle local files.
 	 *
 	 * @param string|null $url
-	 * @link https://stackoverflow.com/a/37329149/429071
+	 *
 	 * @return bool
+	 * @link https://stackoverflow.com/a/37329149/429071
 	 */
 	public static function remote_file_exists(?string $url): bool
 	{
