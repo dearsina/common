@@ -458,6 +458,20 @@ class Request {
 			$rel_table = "home";
 		}
 
+		# If *all* vars are undefined, stop the request
+		if($rel_table == "undefined"
+			&& $rel_id == "undefined"
+			&& $action == "undefined"){
+			return true;
+		}
+
+		# Undefined vars are set to NULL
+		foreach(["rel_table", "rel_id,action", "vars"] as $var){
+			if($$var == "undefined"){
+				$$var = NULL;
+			}
+		}
+
 		if(!$classPath = str::findClass($rel_table)){
 			//if a class doesn't exist
 			unset($a['vars']);
