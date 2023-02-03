@@ -428,6 +428,10 @@ class Request {
 		}
 		//If the string isn't a base64 encoded array, it will be completely ignored
 
+		# Convert "-" to NULL
+		$a['rel_id'] = $a['rel_id'] === "-" ? NULL : $a['rel_id'];
+		$a['action'] = $a['action'] === "-" ? NULL : $a['action'];
+
 		# Extract the vars
 		extract($a);
 
