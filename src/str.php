@@ -2516,13 +2516,21 @@ EOF;
 	}
 
 	/**
+	 * Returns the input with a "A" or "AN" depending on the word.
+	 * Generally ,if the word starts with a vowel, "AN" is used,
+	 * but there are exceptions.
+	 *
 	 * @param string|null $input
 	 * @param bool|null   $include_word
 	 *
-	 * @return string
+	 * @return string|null
 	 */
-	public static function A(?string $input, ?bool $include_word = true)
+	public static function A(?string $input, ?bool $include_word = true): ?string
 	{
+		if(!$input = trim(strip_tags($input))){
+			return NULL;
+		}
+
 		# Filter out the word in case there are more than one
 		preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
 
