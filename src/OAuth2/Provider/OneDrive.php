@@ -16,8 +16,7 @@ use App\Common\str;
  *
  *       https://developer.microsoft.com/en-us/graph/graph-explorer
  */
-class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\FileProviderInterface
-{
+class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\FileProviderInterface {
 	public function __construct(array $oauth_token)
 	{
 		OAuth2Handler::ensureTokenIsFresh($oauth_token);
@@ -39,7 +38,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 				"https://graph.microsoft.com/Files.ReadWrite.All",
 				'offline_access',
 			],
-			'defaultEndPointVersion' => '2.0'
+			'defaultEndPointVersion' => '2.0',
 		]);
 
 		// Set to use v2 API
@@ -49,31 +48,34 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	}
 
 	/**
-	 * @inheritDoc
+	 * Given a folder name, will create a folder with that name in
+	 * a given parent folder. If no parent folder is given, will
+	 * create the folder in root. Returns the folder ID.
+	 *
+	 * @param string      $folder_name
+	 * @param string|null $parent_folder_id
+	 *
+	 * @return string|null
+	 * @link https://learn.microsoft.com/en-us/onedrive/developer/rest-api/api/driveitem_post_children?view=odsp-graph-online
 	 */
 	public function createFolder(string $folder_name, ?string $parent_folder_id = "root"): ?string
 	{
-		$folder = new \Microsoft\Graph\Model\Folder([
-			"name" => $folder_name,
-			"folder" => []
-		]);
-
 		try {
 			$response = $this->graph->setApiVersion("v1.0")
-				->createRequest("POST", "/drives/me/items/{$parent_folder_id}/children")
+				->createRequest("POST", "/me/drive/items/{$parent_folder_id}/children")
 				->addHeaders([
-					"Content-Type" => "application/json"
+					"Content-Type" => "application/json",
 				])
 				->attachBody(json_encode([
 					"name" => $folder_name,
-					"folder" => []
+					"folder" => [],
 				], JSON_FORCE_OBJECT))
 				->execute();
 
 			$response_array = $response->getBody();
 		}
 
-		catch(\Exception $e){
+		catch(\Exception $e) {
 			$this->throwError($e, "%s error creating {$folder_name} folder in parent folder ID {$parent_folder_id}: %s");
 		}
 
@@ -90,14 +92,14 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			$response = $this->graph->setApiVersion("v1.0")
 				->createRequest("PUT", "/drives/me/items/{$parent_folder_id}:/{$file['name']}:/content")
 				->addHeaders([
-					"Content-Type" => $file['type']
+					"Content-Type" => $file['type'],
 				])
 				->upload($file['tmp_name']);
 
 			$response_array = $response->getBody();
 		}
 
-		catch(\Exception $e){
+		catch(\Exception $e) {
 			$this->throwError($e, "%s error when uploading {$file['name']} into the folder ID {$parent_folder_id}: %s");
 		}
 
@@ -121,7 +123,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			$response_array = $response->getBody();
 		}
 
-		catch(\Exception $e){
+		catch(\Exception $e) {
 			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s");
 		}
 
@@ -159,7 +161,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			$response_array = $response->getBody();
 		}
 
-		catch(\Exception $e){
+		catch(\Exception $e) {
 			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s");
 		}
 
@@ -186,7 +188,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	 */
 	public function getFolderName(?string $folder_id): ?string
 	{
-		try{
+		try {
 			$response = $this->graph->setApiVersion("v1.0")
 				->createRequest("GET", "/drives/me/items/{$folder_id}")
 				->execute();
@@ -200,7 +202,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 				Log::getInstance()->warning([
 					"title" => "Destination folder removed",
 					"message" => "The destination folder on your Microsoft OneDrive connection cannot be found.
-					Please choose another destination folder. Otherwise the connection will not work."
+					Please choose another destination folder. Otherwise the connection will not work.",
 				]);
 				return "[REMOVED]";
 			}
@@ -319,7 +321,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			$docs = $response->getPage();
 
 			# Get any subsequent pages
-			while (!$response->isEnd()) {
+			while(!$response->isEnd()) {
 				$docs = array_merge($docs, $response->getPage());
 			}
 
@@ -329,7 +331,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 					continue;
 				}
 				$children[$doc->getId()] = [
-					"name" => $doc->getName()
+					"name" => $doc->getName(),
 				];
 			}
 		}
@@ -395,7 +397,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			"display" => false,
 			"title" => "OneDrive OAuth2 error",
 			"message" => $narrative,
-			"trace" => $error
+			"trace" => $error,
 		]);
 
 		throw new \Exception($narrative);
