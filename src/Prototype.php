@@ -700,8 +700,8 @@ abstract class Prototype {
 	 */
 	public function getRemoved(string $rel_table, string $rel_id): ?array
 	{
-		if(!$removed = $this->sql->select([
-			"table" => $rel_table,
+		if(!$removed = $this->info([
+			"rel_table" => $rel_table,
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
@@ -709,7 +709,7 @@ abstract class Prototype {
 				],
 				"include_removed" => true,
 			]],
-			"id" => $rel_id,
+			"rel_id" => $rel_id,
 			"where" => [
 				["removed", "IS NOT", NULL],
 			],
@@ -733,6 +733,38 @@ abstract class Prototype {
 		}
 
 		return $removed;
+	}
+
+	/**
+	 * Checks to see if a particular rel_table/id was removed.
+	 * If it was, will return the row with a warning,
+	 * unless requested silently.
+	 *
+	 * @param array     $a
+	 * @param bool|null $silent
+	 *
+	 * @return array|null
+	 * @throws Exception
+	 */
+	public function wasRemoved(array $a, ?bool $silent = NULL): ?array
+	{
+		extract($a);
+
+		if(!$row = $this->getRemoved($rel_table, $rel_id)){
+			return NULL;
+		}
+
+		$dt = new \DateTime($row['removed']);
+
+		if(!$silent){
+			$this->log->warning([
+				"icon" => Icon::get("remove"),
+				"title" => str::title("{$rel_table} removed"),
+				"message" => str::title("This {$rel_table} was removed {$dt->format("H:i:s, j F Y")} by {$row['user']['name']}, and can no longer be accessed."),
+			]);
+		}
+
+		return $row;
 	}
 
 	/**
