@@ -37,6 +37,7 @@ class Convert {
 		Convert::heic($file);
 		Convert::bw($file);
 		Convert::big($file);
+		Convert::mirror($file);
 	}
 
 	public static function getOriginals(array $file): ?array
@@ -92,6 +93,87 @@ class Convert {
 		}
 
 		return [$blob_id, $name, $type];
+	}
+
+	/**
+	 * Will mirror the image if it's a PDF that has no text.
+	 * This is primarily used to fix selfies where the flip
+	 * feature was enabled on the camera.
+	 *
+	 * @param array $file
+	 *
+	 * @return void
+	 * @throws \ImagickException
+	 */
+	public static function mirror(array &$file): void
+	{
+		# We only need to do this once
+		if(Convert::hasAlreadyBeenProcessed($file, __FUNCTION__)){
+			return;
+		}
+
+		# Fire up ImageMagick
+		$imagick = new \Imagick();
+
+		# Read the image
+		$imagick->readImage($file['tmp_name']);
+
+		# Load PDF slightly differently
+		if($file['pdf_info']){
+			//if the file is a PDF
+
+			# We're not interested in PDFs that have text
+			if($file['pdf_info']['text']){
+				// They don't need flipping
+				$file['original'][__FUNCTION__] = "Has text.";
+				return;
+			}
+
+			# Keep a copy of the original, rename the file to avoid it being overwritten
+			$original = Convert::makeCopy($file, __FUNCTION__);
+
+			# For each page, flip it
+			foreach ($imagick as $page) {
+				$clone = clone $page;
+				$clone->flipImage();
+				$imagick->addImage($clone);
+				$clone->clear();
+			}
+
+			$imagick->resetIterator();
+			$imagick->setImageFormat("pdf");
+
+			# Save the image
+			$imagick->writeImages($file['tmp_name'], true);
+		}
+
+		else {
+			# Keep a copy of the original, rename the file to avoid it being overwritten
+			$original = Convert::makeCopy($file, __FUNCTION__);
+
+			# Mirror the image
+			$imagick->flopImage();
+
+			# Store it in the same format as it came in
+			$imagick->writeImage("{$file['ext']}:" . $file['tmp_name']);
+		}
+
+		# And we're done with ImageMagick
+		$imagick->clear();
+
+		# Set the new metadata
+		clearstatcache();
+		/**
+		 * Data fetched by filesize() is "statcached",
+		 * we need to clear it as the same file name
+		 * has a different size now.
+		 */
+
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+
+		# Attach the original back
+		$file['original'][__FUNCTION__] = $original;
 	}
 
 	/**
