@@ -3791,14 +3791,27 @@ EOF;
 
 	/**
 	 * Given an array of hue/saturation/lightness, returns the corresponding hex value.
+	 * The hue value can be either 0-360 or 0-1.
+	 * The saturation and lightness values can be either 0-100 or 0-1.
+	 * The returned hex value will be in the format #RRGGBB.
 	 *
-	 * @param array $hsl An array containging hue, saturation, lightness.
+	 * @param array $hsl An array containing hue, saturation, lightness.
 	 *
-	 * @return string A string containgin a HEX colour value (ex. FF0000 for red)
+	 * @return string A string containing a HEX colour value (ex. #FF0000 for red)
 	 */
-	static function hsl2hex($hsl)
+	static function hsl2hex(array $hsl): string
 	{
 		[$h, $s, $l] = $hsl;
+
+		if($h > 1){
+			$h /= 360;
+		}
+		if($s > 1){
+			$s /= 100;
+		}
+		if($l > 1){
+			$l /= 100;
+		}
 
 		if($s == 0){
 			$r = $g = $b = 1;
@@ -3812,7 +3825,7 @@ EOF;
 			$b = str::hue2rgb($p, $q, $h - 1 / 3);
 		}
 
-		return str::rgb2hex($r) . str::rgb2hex($g) . str::rgb2hex($b);
+		return "#" . str::rgb2hex($r) . str::rgb2hex($g) . str::rgb2hex($b);
 	}
 
 	/**
