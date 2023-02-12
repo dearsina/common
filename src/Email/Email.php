@@ -24,7 +24,7 @@ class Email extends Prototype {
 	 * Contains the swift message envelope
 	 * @var \Swift_Message
 	 */
-	private $envelope;
+	public $envelope;
 
 	/**
 	 * @var bool
@@ -573,19 +573,19 @@ class Email extends Prototype {
 		}
 
 		# Ensure no emails are sent from the dev environment
-				if(str::isDev()){
-					Log::getInstance()->warning([
-						"icon" => "ban",
-						"title" => "Email not sent",
-						"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
-					]);
-					Log::getInstance()->info([
-						"icon" => "email",
-						"title" => $this->envelope->getSubject(),
-						"message" => $this->envelope->getBody(),
-					]);
-					return true;
-				}
+		if(str::isDev()){
+			Log::getInstance()->warning([
+				"icon" => "ban",
+				"title" => "Email not sent",
+				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
+			]);
+			Log::getInstance()->info([
+				"icon" => "email",
+				"title" => $this->envelope->getSubject(),
+				"message" => $this->envelope->getBody(),
+			]);
+			return true;
+		}
 
 		# If we're attempting to send from an external Exchange server
 		if($this->oauth_token){

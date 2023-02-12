@@ -125,6 +125,23 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 			}
 		}
 
+		# Inline images
+		if($images = $email->envelope->getChildren()){
+			foreach ($images as $image) {
+				if ($image instanceof \Swift_Image) {
+					$message['attachments'][] = [
+						"@odata.type" => "#microsoft.graph.fileAttachment",
+						"name" => $image->getFilename(),
+						"isInline" => true,
+						"contentId" => $image->getId(),
+						"contentType" => $image->getContentType(),
+						"contentBytes" => chunk_split(base64_encode($image->getBody())),
+					];
+				}
+			}
+		}
+
+		# Attachments
 		if($attachments = $email->getAttachments()){
 			foreach($attachments as $attachment){
 				$message['attachments'][] = [
