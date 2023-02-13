@@ -3,6 +3,7 @@
 
 namespace App\Common\User;
 
+use App\Common\Geolocation\Geolocation;
 use App\Common\Prototype;
 use App\Common\Connection\Connection;
 use App\Common\Email\Email;
@@ -37,7 +38,13 @@ class User extends Prototype {
 	 * before it expires, if the password expiry
 	 * flag is set.
 	 */
-	const DATE_EXPIRY_LENGTH = 90;
+	const DATE_EXPIRY_LENGTH = 60;
+
+	/**
+	 * The number of failed login attempts
+	 * before the user is locked out.
+	 */
+	const MAX_FAILED_LOGIN_ATTEMPTS = 3;
 
 	/**
 	 * @return Card
@@ -1661,7 +1668,7 @@ class User extends Prototype {
 			"set" => [
 				"key" => $key,
 			],
-			"user_id" => false
+			"user_id" => false,
 			//So that this method can be run from CLI
 		]);
 
@@ -1719,10 +1726,10 @@ class User extends Prototype {
 	}
 
 	/**
-	 * Reset password form
+	 * Reset password form.
 	 * Presented to the user if they wish to reset their password.
 	 * If the email address is valid, will send a reset email
-	 * from the ResetPassword() class.
+	 * from the ResetPassword() method.
 	 *
 	 *
 	 * @param null $a
@@ -1876,22 +1883,9 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	public function sendResetPasswordEmail($a = NULL)
+	public function sendResetPasswordEmail(array $a): bool
 	{
 		extract($a);
-
-		$hash = [
-			"rel_table" => $rel_table,
-			"action" => "reset_password",
-			"vars" => [
-				"email" => $vars['email'],
-			],
-		];
-
-		# Ensure reCAPTCHA is validated
-		//		if(!$this->validateRecaptcha($vars['recaptcha_response'], "reset_password", $hash)) {
-		//			return false;
-		//		}
 
 		if(!$vars['email']){
 			$this->log->error([
@@ -2113,15 +2107,58 @@ class User extends Prototype {
 			return false;
 		}
 
-		# Check to see if the password is correct, compared to the password on file
-		if(!$this->validatePassword($vars['password'], $user['password'])){
+		# Check to see if the user has reached the maximum number of failed login attempts
+		if($this->tooManyFailedLoginAttempts($user)){
+			// If the user has reached the maximum number of failed login attempts
 			$this->log->error([
 				"container" => ".card-body",
-				"title" => 'Incorrect password',
-				"message" => 'Please ensure you have written the correct password.',
+				"title" => 'Account locked',
+				"message" => 'You reached the maximum number of failed login attempts.
+				Your account has been locked. Please reset your password,
+				or contact your subscription administrator to unlock your account.',
 			]);
+
+			# Prevent them from trying again
 			return false;
 		}
+
+		# Check to see if the password is correct, compared to the password on file
+		if(!$this->validatePassword($vars['password'], $user['password'])){
+			// If the password is incorrect
+
+			# Register one more failed login attempt
+			$this->addOneMoreFailedLoginAttempt($user);
+
+			# Warn user about the failed login attempt
+			$this->warnUserAboutFailedLoginAttempt($user);
+
+			if($remaining_login_attempts = User::MAX_FAILED_LOGIN_ATTEMPTS - $user['failed_login_attempts']){
+				$this->log->error([
+					"container" => ".card-body",
+					"title" => 'Incorrect password',
+					"message" => "Please ensure you have written the correct password.
+						After {$remaining_login_attempts} more failed login " .
+						str::pluralise_if($remaining_login_attempts, "attempt") . ", your account will be locked.",
+				]);
+			}
+
+			else {
+				// If the user has reached the maximum number of failed login attempts
+				$this->log->error([
+					"container" => ".card-body",
+					"title" => 'Too many failed login attempts',
+					"message" => 'You have reached the maximum number of failed login attempts.
+					Your account has been locked. Please reset your password,
+					or contact your subscription administrator to unlock your account.',
+				]);
+
+			}
+
+			return false;
+		}
+
+		# Reset failed login attempts number as the user has successfully logged in
+		$this->resetFailedLoginAttempts($user);
 
 		# If password has expired
 		if(User::passwordHasExpired($user)){
@@ -2147,6 +2184,73 @@ class User extends Prototype {
 
 		# Log the verified user in
 		return $this->logUserIn($user, $vars['remember']);
+	}
+
+	private function addOneMoreFailedLoginAttempt(array &$user): void
+	{
+		$user['failed_login_attempts']++;
+
+		$this->sql->update([
+			"table" => "user",
+			"id" => $user['user_id'],
+			"set" => [
+				"failed_login_attempts" => $user['failed_login_attempts'],
+			],
+			"user_id" => false
+		]);
+	}
+
+	public function resetFailedLoginAttempts(array &$user): void
+	{
+		$user['failed_login_attempts'] = 0;
+
+		$this->sql->update([
+			"table" => "user",
+			"id" => $user['user_id'],
+			"set" => [
+				"failed_login_attempts" => $user['failed_login_attempts'],
+			],
+			"user_id" => false
+		]);
+	}
+
+	/**
+	 * Returns true if the user has reached
+	 * and gone beyond the maximum number of
+	 * failed login attempts.
+	 *
+	 * @param array $user
+	 *
+	 * @return bool
+	 */
+	public function tooManyFailedLoginAttempts(array $user): bool
+	{
+		return $user['failed_login_attempts'] >= self::MAX_FAILED_LOGIN_ATTEMPTS;
+	}
+
+	/**
+	 * Warn the user about the failed login attempt.
+	 * Sends an email to the user's email address,
+	 * warning them about the failed login attempt
+	 * and the IP address from which the attempt was made.
+	 *
+	 * @param array $user
+	 */
+	private function warnUserAboutFailedLoginAttempt(array $user): void
+	{
+		$email = new Email();
+
+		$geolocation = new Geolocation();
+
+
+		$variables = [
+			"geolocation" => Geolocation::get($_SERVER['REMOTE_ADDR']),
+			"remaining_login_attempts" => self::MAX_FAILED_LOGIN_ATTEMPTS - $user['failed_login_attempts'],
+		];
+
+		$email->template("failed_login_attempt", $variables)
+			->to($user['email'])
+			->send();
 	}
 
 	public static function passwordHasExpired(array $user): bool
@@ -2649,6 +2753,9 @@ class User extends Prototype {
 			]);
 		}
 
+		# Reset failed login attempts, in case the user was locked out
+		$this->user->resetFailedLoginAttempts($user);
+
 		return true;
 	}
 
@@ -2700,18 +2807,35 @@ class User extends Prototype {
 			return false;
 		}
 
+		# Hash the password
+		$hashed_password = $this->generatePasswordHash($vars['new_password']);
+
+		# Check to see if the password has been used before
+		if(in_array($hashed_password, $user['password_history'] ?: [])){
+			// If the password has been used before, reject it
+			$this->log->error([
+				"title" => "Cannot reuse passwords",
+				"message" => "The new password has been used before. You cannot reuse old passwords.",
+			]);
+			return false;
+		}
+
+		# Add the new password to the password history
+		$user['password_history'][] = $hashed_password;
+
 		# Encrypt and store the new password and update the key
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => [
-				"password" => $this->generatePasswordHash($vars['new_password']),
+				"password" => $hashed_password,
+				"password_history" => $user['password_history'],
 				"key" => str::uuid(),
 			],
 			"id" => $rel_id,
 			"user_id" => $rel_id,
 		]);
 
-		# Store the hash
+		# Send the user to the login page
 		$this->hash->set([
 			"rel_table" => "user",
 			"action" => "login",
@@ -2777,7 +2901,7 @@ class User extends Prototype {
 		$param = '$' . implode('$', [
 				"2y", //select the most secure version of blowfish (>=PHP 5.3.7)
 				str_pad($cost, 2, "0", STR_PAD_LEFT), //add the cost in two digits
-				$salt //add the salt
+				$salt, //add the salt
 			]);
 
 		//now do the actual hashing
