@@ -319,6 +319,16 @@ class Request {
 
 		# If we haven't been given that information
 		else {
+			//if we don't have the HTTP_ORIGIN or HTTP_REFERER
+
+			# Log the error internally
+			$this->log->error([
+				"display" => false,
+				"title" => "CSRF",
+				"message" => "Unknown domain request origin. \$_SERVER array: " . print_r($_SERVER, true),
+			]);
+
+			# Display a generic error to the user
 			throw new \Exception("Unknown domain request origin.");
 		}
 
