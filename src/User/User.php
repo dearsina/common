@@ -2219,12 +2219,17 @@ class User extends Prototype {
 	 * and gone beyond the maximum number of
 	 * failed login attempts.
 	 *
-	 * @param array $user
+	 * @param array|null $user
 	 *
 	 * @return bool
 	 */
-	public function tooManyFailedLoginAttempts(array $user): bool
+	public function tooManyFailedLoginAttempts(?array $user): bool
 	{
+		# If no user is passed, return false
+		if(!$user){
+			return false;
+		}
+
 		return $user['failed_login_attempts'] >= self::MAX_FAILED_LOGIN_ATTEMPTS;
 	}
 
