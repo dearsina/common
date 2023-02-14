@@ -325,7 +325,10 @@ class Request {
 			$this->log->error([
 				"display" => false,
 				"title" => "CSRF",
-				"message" => "Unknown domain request origin. \$_SERVER array: " . print_r($_SERVER, true),
+				"message" => "Unknown domain request origin."
+					. "\$_REQUEST array: " . print_r($_REQUEST, true)
+					. "\$_SERVER array: " . print_r($_SERVER, true)
+				,
 			]);
 
 			# Display a generic error to the user
