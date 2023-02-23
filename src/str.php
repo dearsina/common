@@ -2931,8 +2931,8 @@ EOF;
 	}
 
 	/**
-	 * Given (whole) seconds, returns the equivalent in hours,
-	 * minutes and seconds.
+	 * Given (whole) seconds, returns the equivalent with the
+	 * following format: N hrs, N min, N sec.
 	 *
 	 * @param int|null $seconds
 	 *
@@ -2945,7 +2945,9 @@ EOF;
 			return NULL;
 		}
 
-		return str_pad(floor($seconds / 3600), 2, "0") . gmdate(":i:s", $seconds % 3600);;
+		$dt = new \DateTime("1970-01-01 {$seconds} seconds");
+
+		return ((int)$dt->format('H'))." hr, ".((int)$dt->format('i'))." min, ".((int)$dt->format('s'))." sec";
 	}
 
 	/**
@@ -3756,7 +3758,12 @@ EOF;
 	{
 		$hex = [$hex[0] . $hex[1], $hex[2] . $hex[3], $hex[4] . $hex[5]];
 		$rgb = array_map(function($part){
-			return hexdec($part) / 255;
+			# Ensure the part is a valid hex value
+			if(preg_match('/^[0-9a-f]{2}$/i', $part)){
+				return hexdec($part) / 255;
+			}
+			# Otherwise, return NULL to avoid a depreciated error
+			return NULL;
 		}, $hex);
 
 		$max = max($rgb);
