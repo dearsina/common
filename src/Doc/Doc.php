@@ -171,6 +171,7 @@ class Doc extends \App\Common\Prototype {
 			}
 			$file['pdf_info'] = [
 				'error' => $error,
+				"tmp_name" => $file['tmp_name'],
 			];
 			return;
 		}
