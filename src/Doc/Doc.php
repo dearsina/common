@@ -128,7 +128,7 @@ class Doc extends \App\Common\Prototype {
 	 *
 	 * @param array $file
 	 */
-	public static function addPDFMetadata(array &$file): void
+	public static function addPDFMetadata(array &$file, ?bool $silent = NULL): void
 	{
 		if(mime_content_type($file['tmp_name']) != "application/pdf"){
 			//If the file is NOT a PDF, do nothing
@@ -149,15 +149,30 @@ class Doc extends \App\Common\Prototype {
 		# Ensure the PDF was readable (and error out if not)
 		switch($return_var) {
 		case 1: # Error opening a PDF file.
-			throw new BadRequest("There was an error opening your PDF file <code>{$file['name']}</code>. Please ensure it is a valid PDF file and try again.");
+			$error = "There was an error opening your PDF file <code>{$file['name']}</code>. Please ensure it is a valid PDF file and try again.";
+			break;
 		case 2: # Error opening an output file.
-			throw new BadRequest("There was an error opening an output file for your PDF file <code>{$file['name']}</code>. Please try again.");
+			$error = "There was an error opening an output file for your PDF file <code>{$file['name']}</code>. Please try again.";
+			break;
 		case 3: # Error related to PDF permissions.
-			throw new BadRequest("There was a permission error when opening your PDF file <code>{$file['name']}</code>. Please remove any passwords this PDF may have and try again.");
+			$error = "There was a permission error when opening your PDF file <code>{$file['name']}</code>. Please remove any passwords this PDF may have and try again.";
+			break;
 		case 99: # Other error.
-			throw new BadRequest("There was an unknown error opening your PDF file <code>{$file['name']}</code>. Please ensure it is a valid PDF file and try again.");
+			$error = "There was an unknown error opening your PDF file <code>{$file['name']}</code>. Please ensure it is a valid PDF file and try again.";
+			break;
 		default: # No error reported
 			break;
+		}
+
+		# Handle errors, depending on whether or not we're in silent mode
+		if($error){
+			if(!$silent){
+				throw new BadRequest($error);
+			}
+			$file['pdf_info'] = [
+				'error' => $error,
+			];
+			return;
 		}
 
 		# Add the extracted metadata to the $file array
@@ -247,8 +262,8 @@ class Doc extends \App\Common\Prototype {
 			}
 		}
 
-		# Any errors and assume no text can be extracted
-		catch(\Exception $e){
+			# Any errors and assume no text can be extracted
+		catch(\Exception $e) {
 			return false;
 		}
 
@@ -737,13 +752,13 @@ class Doc extends \App\Common\Prototype {
 			}
 
 				# If there is an error
-			catch (\ImagickException $e){
+			catch(\ImagickException $e) {
 
 				# Log the error, but the show must go on
 				Log::getInstance()->error([
 					"display" => str::isDev(),
 					//No need to show this to the end user at this point
-					"title" => "Unable to shrink image: ".json_encode($file),
+					"title" => "Unable to shrink image: " . json_encode($file),
 					"message" => $e->getMessage(),
 					"trace" => str::backtrace(true),
 				]);
@@ -773,7 +788,7 @@ class Doc extends \App\Common\Prototype {
 			$data = [
 				"data" => $data,
 				"width" => $new_width,
-				"height" => $new_height
+				"height" => $new_height,
 			];
 		}
 
@@ -784,8 +799,9 @@ class Doc extends \App\Common\Prototype {
 	 * Relies on the ImageTracer Java file.
 	 *
 	 * @param array $file
-	 * @link https://github.com/jankovicsandras/imagetracerjava
+	 *
 	 * @throws \Exception
+	 * @link https://github.com/jankovicsandras/imagetracerjava
 	 */
 	public static function convertToVector(array &$file, bool $bw = true): void
 	{
@@ -799,17 +815,17 @@ class Doc extends \App\Common\Prototype {
 
 		exec($cmd, $output, $return_var);
 		if($return_var){
-			throw new \Exception("{$return_var}: Unable to convert file {$file['tmp_name']} to vector: ".implode("<br>", $output)."<br> Please try again.");
+			throw new \Exception("{$return_var}: Unable to convert file {$file['tmp_name']} to vector: " . implode("<br>", $output) . "<br> Please try again.");
 		}
 
 		# Get rid of the raster version
-//		unlink($file['tmp_name']);
+		//		unlink($file['tmp_name']);
 
 		# Update the tmp name
 		$file['tmp_name'] .= ".svg";
 
 		# Ensure the name nas a .svg extension
-		$file['name'] = $file['name'].".svg";
+		$file['name'] = $file['name'] . ".svg";
 
 		# Set the size
 		$file['size'] = filesize($file['tmp_name']);
@@ -832,7 +848,7 @@ class Doc extends \App\Common\Prototype {
 		// Get statistics for the LIGHTNESS
 		$Lchannel = $imagick->getImageChannelMean(\Imagick::CHANNEL_ALL);
 		// Calcualte the mean
-		return $Lchannel['mean']/$imagick->getQuantum();
+		return $Lchannel['mean'] / $imagick->getQuantum();
 	}
 
 	/**
@@ -853,8 +869,9 @@ class Doc extends \App\Common\Prototype {
 	 * Returns true if the image has an alpha channel (transparency).
 	 *
 	 * @param array $file
-	 * @link https://stackoverflow.com/questions/2581469/detect-alpha-channel-with-imagemagick
+	 *
 	 * @return bool
+	 * @link https://stackoverflow.com/questions/2581469/detect-alpha-channel-with-imagemagick
 	 */
 	public static function hasTransparency(array $file): bool
 	{
@@ -864,8 +881,9 @@ class Doc extends \App\Common\Prototype {
 
 	/**
 	 * @param array $file
-	 * @link https://stackoverflow.com/a/24511102/429071
+	 *
 	 * @throws \ImagickException
+	 * @link https://stackoverflow.com/a/24511102/429071
 	 */
 	public static function convertToMonochrome(array &$file): void
 	{
@@ -878,13 +896,13 @@ class Doc extends \App\Common\Prototype {
 		}
 
 			# If there is an error
-		catch (\ImagickException $e){
+		catch(\ImagickException $e) {
 
 			# Log the error, but the show must go on
 			Log::getInstance()->error([
 				"display" => str::isDev(),
 				//No need to show this to the end user at this point
-				"title" => "Unable to read image to then crop: ".json_encode($file),
+				"title" => "Unable to read image to then crop: " . json_encode($file),
 				"message" => $e->getMessage(),
 				"trace" => str::backtrace(true),
 			]);
@@ -915,7 +933,7 @@ class Doc extends \App\Common\Prototype {
 		$im->whiteThresholdImage($thresholdColor);
 
 		# Force just black and white colours
-//		self::forceBlackAndWhite($im);
+		//		self::forceBlackAndWhite($im);
 		// We don't need to do it here, it will be done by the vector converter
 
 		# Shrink to half the size after growing and converting to monochrome
@@ -930,7 +948,7 @@ class Doc extends \App\Common\Prototype {
 		$cmd = "convert {$file['tmp_name']} -fuzz 2% -transparent white {$file['tmp_name']}.transparent && mv {$file['tmp_name']}.transparent {$file['tmp_name']}";
 		exec($cmd, $output, $return_var);
 		if($return_var){
-			throw new \Exception("Unable to add transparency to file {$file['tmp_name']}: ".implode("<br>", $output)."<br> Please try again.");
+			throw new \Exception("Unable to add transparency to file {$file['tmp_name']}: " . implode("<br>", $output) . "<br> Please try again.");
 		}
 	}
 
@@ -941,13 +959,13 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Add the file extension to the tmp name value
-		$file['tmp_name'] = substr($file['tmp_name'], (strlen($ext) + 1) * -1) == ".{$ext}" ? $file['tmp_name'] : $file['tmp_name'].".{$ext}";
+		$file['tmp_name'] = substr($file['tmp_name'], (strlen($ext) + 1) * -1) == ".{$ext}" ? $file['tmp_name'] : $file['tmp_name'] . ".{$ext}";
 
 		# Make a copy
 		file_put_contents($file['tmp_name'], $im->getImageBlob());
 
 		# Ensure the name also nas a .png extension
-		$file['name'] = substr($file['name'], (strlen($ext) + 1) * -1) == ".{$ext}" ? $file['name'] : $file['name'].".{$ext}";
+		$file['name'] = substr($file['name'], (strlen($ext) + 1) * -1) == ".{$ext}" ? $file['name'] : $file['name'] . ".{$ext}";
 
 		# Set the size
 		$file['size'] = filesize($file['tmp_name']);
@@ -991,13 +1009,13 @@ class Doc extends \App\Common\Prototype {
 			}
 
 				# If there is an error
-			catch (\ImagickException $e){
+			catch(\ImagickException $e) {
 
 				# Log the error, but the show must go on
 				Log::getInstance()->error([
 					"display" => str::isDev(),
 					//No need to show this to the end user at this point
-					"title" => "Unable to read image to then crop: ".json_encode($file),
+					"title" => "Unable to read image to then crop: " . json_encode($file),
 					"message" => $e->getMessage(),
 					"trace" => str::backtrace(true),
 				]);
@@ -1037,7 +1055,7 @@ class Doc extends \App\Common\Prototype {
 			}
 
 			$divisor = $width / $new_width;
-			$new_height = floor( $height / $divisor);
+			$new_height = floor($height / $divisor);
 		}
 
 		else {
@@ -1049,7 +1067,7 @@ class Doc extends \App\Common\Prototype {
 			}
 
 			$divisor = $newheight ? $height / $newheight : $height;
-			$new_width = floor( $width / $divisor );
+			$new_width = floor($width / $divisor);
 		}
 
 		return [$new_width, $new_height];
