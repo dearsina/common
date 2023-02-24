@@ -321,13 +321,21 @@ class Request {
 		else {
 			//if we don't have the HTTP_ORIGIN or HTTP_REFERER
 
+			# Remove the ENV keys before logging the error
+			foreach($_SERVER as $key => $val){
+				if($_ENV[$key]){
+					continue;
+				}
+				$server_array[$key] = $val;
+			}
+
 			# Log the error internally
 			$this->log->error([
 				"display" => false,
 				"title" => "CSRF",
 				"message" => "Unknown domain request origin."
 					. "\$_REQUEST array: " . print_r($_REQUEST, true)
-					. "\$_SERVER array: " . print_r($_SERVER, true)
+					. "\$_SERVER array: " . print_r($server_array, true)
 				,
 			]);
 
