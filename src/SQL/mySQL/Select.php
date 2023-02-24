@@ -47,6 +47,9 @@ class Select extends Common {
 		# Set where
 		$this->setWhere($where, $or);
 
+		# Set group by
+		$this->setGroupBy($group_by);
+
 		# Set order by
 		$this->setOrderBy($order_by);
 
@@ -340,17 +343,37 @@ class Select extends Common {
 	private function getGroupBySQL(?array $alias_only = NULL, ?array $except_alias = NULL): ?string
 	{
 		$columns = $this->getAllColumns($alias_only, $except_alias);
-		if(!array_filter(array_column($columns, "agg"))){
-			//If there are no columns to group by around
-			return NULL;
+
+		$strings = [];
+
+		# If there are aggregate columns to group by around
+		if(array_filter(array_column($columns, "agg"))){
+			foreach($columns as $id => $column){
+				if($column['agg']){
+					continue;
+				}
+				$strings[$id] .= $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
+				$strings[$id] .= $column['name'] ? "`{$column['name']}`" : NULL;
+			}
 		}
 
-		foreach($columns as $id => $column){
-			if($column['agg']){
-				continue;
+		# If there are custom group bys
+		if($this->group_by){
+			# Go through each group by value
+			foreach($this->group_by as $group_by){
+				# Compare each value to the column names
+				foreach($columns as $column){
+					# If there is a match, pull in the table alias and column name wrapped in backticks
+					if($column['name'] == $group_by){
+						$string = $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
+						$string .= $column['name'] ? "`{$column['name']}`" : NULL;
+						$strings[] = $string;
+						continue 2;
+					}
+				}
+				# Otherwise, just use the value as is
+				$strings[] = $group_by;
 			}
-			$strings[$id] .= $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
-			$strings[$id] .= $column['name'] ? "`{$column['name']}`" : NULL;
 		}
 
 		if(!$strings){
@@ -487,6 +510,28 @@ class Select extends Common {
 		}
 
 		return $strings ? array_filter($strings) : NULL;
+	}
+
+	/**
+	 * Sets the group by for instances where the
+	 * class itself doesn't know what to group by.
+	 *
+	 * @param array|string|null $group_by
+	 *
+	 * @return void
+	 */
+	private function setGroupBy($group_by): void
+	{
+		if(!$group_by){
+			return;
+		}
+
+		if(is_array($group_by)){
+			$this->group_by = $group_by;
+			return;
+		}
+
+		$this->group_by[] = $group_by;
 	}
 
 	/**

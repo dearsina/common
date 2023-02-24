@@ -119,6 +119,12 @@ abstract class Common {
 	protected ?array $join = [];
 
 	/**
+	 * Contains any custom group bys in the query.
+	 * @var array|null
+	 */
+	protected ?array $group_by = [];
+
+	/**
 	 * Contains the order bys of the main table.
 	 * @var array|null
 	 */

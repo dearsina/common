@@ -221,7 +221,7 @@ class Process {
 	 * @return string
 	 * @link https://stackoverflow.com/a/65878993/429071
 	 */
-	private static function stringifyArray($a)
+	private static function stringifyArray(array $a): string
 	{
 		$params = "[";
 		foreach($a as $key => $val){

@@ -5,6 +5,7 @@ namespace App\Common;
 use App\Common\Exception\BadRequest;
 use App\Common\Output\Tab;
 use App\UI\Button;
+use App\UI\Form\SelectOption;
 
 /**
  * Tracks the output of a ajax call
@@ -432,13 +433,14 @@ EOF;
 			foreach($rows as $id => $row){
 				# If even the value is an array of data
 				if(is_array($row)){
-					# We'll accept the entire array wholesale
-					$option = $row;
+					# Load the option
+					$select_option = new SelectOption($id, $row, false);
+					$option = $select_option->getOption();
 
 					# And the text is replaced with the title, unless a text has been provided
 					$option['text'] = $option['text'] ?: $row['title'];
 
-					# Adn the ID is the same as the text
+					# And the ID is the same as the text
 					$option['id'] = $option['text'];
 
 					$options[] = $option;
@@ -462,17 +464,17 @@ EOF;
 		# If the keys matter
 		else {
 			foreach($rows as $id => $text){
-
 				# If even the value is an array of data
 				if(is_array($text)){
-					# We'll accept the entire array wholesale
-					$option = $text;
-
-					# Except the ID, which will be taken from the key
-					$option['id'] = $id;
+					# Load the option
+					$select_option = new SelectOption($id, $text, false);
+					$option = $select_option->getOption();
 
 					# And the text is replaced with the title, unless a text has been provided
-					$option['text'] = $option['text'] ?: $text['title'];
+					$option['text'] = $option['text'] ?: $option['title'];
+
+					# Add the ID, which will be taken from the key
+					$option['id'] = $id;
 
 					$options[] = $option;
 				}

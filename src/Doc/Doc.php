@@ -136,7 +136,7 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Run the pdfinfo command
-		exec("pdfinfo {$file['tmp_name']}", $output, $return_var);
+		exec("pdfinfo '{$file['tmp_name']}'", $output, $return_var);
 
 		# Ensure the PDF was readable (and error out if not)
 		switch($return_var) {

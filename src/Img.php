@@ -16,14 +16,18 @@ class Img {
 	 *
 	 * @return bool|string
 	 */
-	public static function generate($a)
+	public static function generate($a): ?string
 	{
+		if(!$a){
+			return NULL;
+		}
+
 		if(is_string($a)){
 			$a = ["src" => $a];
 		}
 
 		if(!is_array($a)){
-			return false;
+			return NULL;
 		}
 
 		if($a['svg']){
@@ -42,7 +46,7 @@ class Img {
 			return self::contents($a);
 		}
 
-		return false;
+		return NULL;
 	}
 
 	/**
@@ -76,14 +80,19 @@ class Img {
 		return self::img($a);
 	}
 
-	private static function svg($a)
+	/**
+	 * @param array|string|null $a
+	 *
+	 * @return string|null
+	 */
+	private static function svg($a): ?string
 	{
 		if(is_string($a)){
 			$a = ["svg" => $a];
 		}
 
 		if(!is_array($a)){
-			return false;
+			return NULL;
 		}
 
 		extract($a);
@@ -106,14 +115,14 @@ class Img {
 	 *
 	 * @return bool|string
 	 */
-	private static function img($a)
+	private static function img($a): ?string
 	{
 		if(is_string($a)){
 			$a = ["src" => $a];
 		}
 
 		if(!is_array($a)){
-			return false;
+			return NULL;
 		}
 
 		extract($a);
