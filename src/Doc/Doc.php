@@ -135,6 +135,14 @@ class Doc extends \App\Common\Prototype {
 			return;
 		}
 
+		# Can't extract data if the file is password protected
+		if(\App\Doc\Doc::isPasswordProtected($file)){
+			$file['pdf_info'] = [
+				'encrypted' => 'yes',
+			];
+			return;
+		}
+
 		# Run the pdfinfo command
 		exec("pdfinfo '{$file['tmp_name']}'", $output, $return_var);
 
