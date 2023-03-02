@@ -939,6 +939,22 @@ class str {
 	}
 
 	/**
+	 * Checks to see if a given string is base64 or not.
+	 *
+	 * @param string|null $str
+	 *
+	 * @return bool
+	 */
+	public static function isBase64(?string $str): bool
+	{
+		if(!$str){
+			return false;
+		}
+
+		return base64_encode(base64_decode($str, true)) === $str;
+	}
+
+	/**
 	 * Validates a phone number.
 	 *
 	 * A valid phone number will consist of the following characters only:

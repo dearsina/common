@@ -545,10 +545,31 @@ class Request {
 	private function output(?bool $success): ?string
 	{
 		if($_SESSION['database_calls']){
-//						$this->log->info("{$_SESSION['database_calls']} database calls.");
-//						var_dump(Info::getInstance()->info);
-//						print_r($_SESSION['queries']);
-//						exit;
+			if($_SESSION['database_calls'] > 50){
+				$this->log->info("{$_SESSION['database_calls']} database calls.");
+			}
+			//			var_dump($_SESSION['queries'][0]);exit;
+
+			//						foreach($_SESSION['queries'] as &$query){
+			//							unset($query['backtrace']);
+			//							if($queries[$query['query_md5']]){
+			//								$queries[$query['query_md5']]['count']++;
+			//								$queries[$query['query_md5']]['time'] += $query['time'];
+			//								continue;
+			//							}
+			//							$queries[$query['query_md5']] = $query;
+			//							$queries[$query['query_md5']]['count'] = 1;
+			//						}
+			//						str::multidimensionalOrderBy($queries, [
+			//							"time" => "DESC"
+			//						]);
+			//						print_r($queries);
+			//						exit;
+
+			//			ob_start();
+			//			print_r($_SESSION['queries']);
+			//			file_put_contents($_ENV['tmp_dir']."process.log", ob_get_contents(), FILE_APPEND);
+			//			ob_clean();
 		}
 
 		$output = $this->output->get();
