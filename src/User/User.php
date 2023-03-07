@@ -354,13 +354,6 @@ class User extends Prototype {
 			"sm" => 6,
 		]]);
 
-		$a['vars']['owner_id'] = $user['user_id'];
-
-		$subscription = new Subscription();
-		$page->setGrid([
-			"html" => $subscription->card()->all($a),
-		]);
-
 		$this->output->html($page->getHTML());
 
 		return true;
