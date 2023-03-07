@@ -2835,6 +2835,8 @@ class User extends Prototype {
 				"password" => $hashed_password,
 				"password_history" => $user['password_history'],
 				"key" => str::uuid(),
+				"failed_login_attempts" => 0,
+				// Reset failed login attempts, in case the user was locked out
 			],
 			"id" => $rel_id,
 			"user_id" => $rel_id,
