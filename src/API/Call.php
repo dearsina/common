@@ -288,7 +288,7 @@ class Call {
 		}
 
 		# Ensure the subscription is active
-		if(!in_array($subscription['status'], ["active", "closing", "closing"])){
+		if(!in_array($subscription['status'], ["trial", "active", "closing", "closing"])){
 			throw new Unauthorized(
 			"The subscription is {$subscription['status']} and the API is no longer accessible.",
 			"Subscription ID [{$subscription['subscription_id']}] API still active, subscription is {$subscription['status']}.");
