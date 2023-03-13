@@ -427,7 +427,9 @@ abstract class Common {
 		# A request for a count will override any other column requirements
 		if(($columns = $this->generateCountColumn($table)) !== NULL){
 			return $columns;
-		} # Columns can be ignored all together
+		}
+
+		# Columns can be ignored all together
 		else if($c === false){
 			return NULL;
 		}
@@ -1395,11 +1397,12 @@ abstract class Common {
 	 * Create the row limit string, based on either start+length or length/limit values.
 	 * If neither of the three values are given, the string value is not set.
 	 *
-	 * @param      $limit
-	 * @param null $start
-	 * @param null $length
+	 * @param array|int|null $limit
+	 * @param int|null       $start
+	 * @param int|null       $length
+	 * @param int|null       $offset
 	 */
-	protected function setLimit($limit, $start = NULL, $length = NULL): void
+	protected function setLimit($limit, ?int $start = NULL, ?int $length = NULL, ?int $offset = NULL): void
 	{
 		if(is_array($limit)){
 			[$start, $length] = $limit;
@@ -1408,11 +1411,17 @@ abstract class Common {
 		if($start && $length){
 			$this->limit = "LIMIT {$start}, {$length}";
 		}
+
 		else if($length){
 			$this->limit = "LIMIT {$length}";
 		}
+
 		else if($limit){
 			$this->limit = "LIMIT {$limit}";
+		}
+
+		else if($offset){
+			$this->limit = "LIMIT {$offset}, 18446744073709551615";
 		}
 	}
 

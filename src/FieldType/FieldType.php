@@ -6,83 +6,86 @@ namespace App\Common\FieldType;
 
 use App\Common\Prototype\ModalPrototype;
 use App\Common\SQL\Info\Info;
+use App\Common\str;
 use App\UI\Icon;
 
 class FieldType extends ModalPrototype {
 	/**
 	 * @return Card
 	 */
-	public function card(){
-	    return new Card();
+	public function card()
+	{
+		return new Card();
 	}
 
 	/**
 	 * @return Modal
 	 */
-	public function modal(){
-	    return new Modal();
+	public function modal()
+	{
+		return new Modal();
 	}
 
 	public function rowHandler(array $cols, ?array $a = []): array
 	{
-	    extract($a);
+		extract($a);
 
-	    # For the order function
+		# For the order function
 		$row["id"] = $cols["{$rel_table}_id"];
 
-	    $row['icon'] = [
+		$row['icon'] = [
 			"sortable" => false,
 			"sm" => 1,
 			"style" => [
-				"margin" => "0.3rem 0"
+				"margin" => "0.3rem 0",
 			],
 			"icon" => $cols['icon'],
 		];
 
-	    if($cols['display_only']){
+		if($cols['display_only']){
 			$badges[] = [
-	    		"icon" => "eye",
+				"icon" => "eye",
 				"colour" => "primary",
 				"basic" => true,
-				"alt" => "Display only"
+				"alt" => "Display only",
 			];
 		}
 
-	    if($cols['form_value']){
+		if($cols['form_value']){
 			$badges[] = [
-	    		"icon" => Icon::get("form_value"),
+				"icon" => Icon::get("form_value"),
 				"colour" => "green",
 				"basic" => true,
-				"alt" => "Can be used as a field value type"
+				"alt" => "Can be used as a field value type",
 			];
 		}
 
-	    $row['Type'] = [
-	    	"accordion" => [
+		$row['Type'] = [
+			"accordion" => [
 				"header" => [
 					"title" => $cols['title'],
 					"class" => "text-title",
-					"badge" => $badges
+					"badge" => $badges,
 				],
 				"body" => [
 					"html" => $cols['desc'],
-					"class" => "text-body"
-				]
+					"class" => "text-body",
+				],
 			],
 		];
 
-	    $row['HTML'] = [
-	    	"html" => $cols['name'],
-			"sm" => 2
+		$row['HTML'] = [
+			"html" => $cols['name'],
+			"sm" => 2,
 		];
 
-	    $row[''] = [
+		$row[''] = [
 			"sortable" => false,
-	    	"button" => $this->getRowButtons($cols, $a),
-			"sm" => 2
+			"button" => $this->getRowButtons($cols, $a),
+			"sm" => 2,
 		];
 
-	    return $row;
+		return $row;
 	}
 
 	/**
@@ -135,29 +138,40 @@ class FieldType extends ModalPrototype {
 		foreach((Info::getInstance())->getInfo([
 			"columns" => [
 				"field_type_id",
-				"name"
+				"name",
 			],
 			"rel_table" => "field_type",
 			"where" => [
 				"display_only" => 1,
-			]
-		]) ?:[] as $field_type){
+			],
+		]) ?: [] as $field_type){
 			$display_only[$field_type['field_type_id']] = $field_type['name'];
 		}
 
-		return $display_only ?:[];
+		return $display_only ?: [];
 	}
 
-	public static function getFieldTypesExDisplayOnlyOptions(): ?array
+	public static function getFieldTypesExDisplayOnlyOptions(?array $only_include = NULL): ?array
 	{
 		foreach((Info::getInstance())->getInfo([
 			"rel_table" => "field_type",
 			"where" => [
 				"display_only" => NULL,
-			]
-		]) ?:[] as $field_type){
-			$field_types[$field_type['field_type_id']] = $field_type['title'];
+			],
+		]) ?: [] as $field_type){
+			if($only_include){
+				if(!in_array($field_type['name'], $only_include)){
+					continue;
+				}
+			}
+			$field_types[$field_type['field_type_id']] = [
+				"title" => $field_type['title'],
+				"icon" => $field_type['icon'],
+				"alt" => $field_type['desc'],
+			];
 		}
+
+		str::multidimensionalOrderBy($field_types, "title");
 
 		return $field_types;
 	}

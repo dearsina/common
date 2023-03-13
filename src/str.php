@@ -2280,16 +2280,20 @@ EOF;
 	 *    "addr1" => "asc",
 	 * ];
 	 * </code>
-	 * @param array|null $array      $array
-	 * @param array      $order
-	 * @param bool|null  $reset_keys If set to TRUE, will reset the root keys to match the new order.
+	 * @param array|null   $array      $array
+	 * @param array|string $order
+	 * @param bool|null    $reset_keys If set to TRUE, will reset the root keys to match the new order.
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
-	static function multidimensionalOrderBy(?array &$array, array $order, ?bool $reset_keys = NULL): void
+	static function multidimensionalOrderBy(?array &$array, $order, ?bool $reset_keys = NULL): void
 	{
 		if(!$array){
 			return;
+		}
+
+		if(!is_array($order)){
+			$order = [$order => 'asc'];
 		}
 
 		uasort($array, function($a, $b) use ($order){
@@ -2464,7 +2468,7 @@ EOF;
 	 *
 	 * @return array|null
 	 */
-	public static function convertCsvToArray(string $data, ?bool $has_header_row = NULL, ?string $separator = NULL, ?string $enclosure = NULL, ?string $escape = NULL): ?array
+	public static function convertCsvToArray(string $data, ?bool $has_header_row = NULL, ?string $separator = NULL, ?string $enclosure = NULL, ?string $escape = NULL, ?string $null = NULL): ?array
 	{
 		# External file
 		if(filter_var($data, FILTER_VALIDATE_URL) !== false){
@@ -2496,10 +2500,23 @@ EOF;
 		$f->setFlags(\SplFileObject::READ_CSV
 			| \SplFileObject::SKIP_EMPTY
 			| \SplFileObject::READ_AHEAD
+			| \SplFileObject::DROP_NEW_LINE
 		);
 		$f->setCsvControl($separator, $enclosure, $escape);
 
 		foreach($f as $row_number => $row){
+			# Trim all cells
+			foreach($row as $id => $cell){
+				$row[$id] = trim($cell);
+
+				# Convert empty strings to NULL
+				if($null){
+					if($row[$id] === $null){
+						$row[$id] = NULL;
+					}
+				}
+			}
+
 			if(!$row_number && $has_header_row){
 				$header = $row;
 
@@ -2963,7 +2980,7 @@ EOF;
 
 		$dt = new \DateTime("1970-01-01 {$seconds} seconds");
 
-		return ((int)$dt->format('H'))." hr, ".((int)$dt->format('i'))." min, ".((int)$dt->format('s'))." sec";
+		return ((int)$dt->format('H')) . " hr, " . ((int)$dt->format('i')) . " min, " . ((int)$dt->format('s')) . " sec";
 	}
 
 	/**
@@ -3042,7 +3059,10 @@ EOF;
 	{
 		# If it's already an array, just return it
 		if(is_array($string)){
-			return $string;
+			# Remove empty values
+			return array_filter($string, function($value){
+				return (bool)strlen($value);
+			});
 		}
 
 		# If it's missing, return NULL

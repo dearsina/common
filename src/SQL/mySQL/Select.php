@@ -54,7 +54,7 @@ class Select extends Common {
 		$this->setOrderBy($order_by);
 
 		# Set limits
-		$this->setLimit($limit, $start, $length);
+		$this->setLimit($limit, $start, $length, $offset);
 
 		# Generate the query
 		if($this->limit && $this->join){

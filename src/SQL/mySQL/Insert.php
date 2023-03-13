@@ -36,9 +36,14 @@ class Insert extends Common {
 		# Set the columns that are going to be SET into this table
 		$this->setSet($set, $html, $ignore_empty, $include_meta);
 
+		# Add ID, created by and time
 		if($include_meta !== false){
-			# Add ID, created by and time
 			$this->addRowMetadata($user_id);
+		}
+
+		# Alternatively, add ID only
+		else if($include_id){
+			$this->addRowID();
 		}
 
 		# Generate the query
@@ -132,6 +137,28 @@ class Insert extends Common {
 
 		# Add the columns to the list of columns that will be populated by the insert
 		$this->addColumns([$this->table["id_col"],"created","created_by"]);
+	}
+
+	/**
+	 * For each row to insert, add the ID (only).
+	 *
+	 * @param string|null $user_id
+	 *
+	 * @return void
+	 */
+	protected function addRowId(): void
+	{
+		if(empty($this->set)){
+			$this->set = [[]];
+		}
+
+		foreach($this->set as $id => $row){
+			# Generate a unique table row ID
+			$this->set[$id][$this->table["id_col"]] = $this->generateUUID();
+		}
+
+		# Add the columns to the list of columns that will be populated by the insert
+		$this->addColumns([$this->table["id_col"]]);
 	}
 
 	/**
