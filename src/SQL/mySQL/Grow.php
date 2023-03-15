@@ -273,6 +273,22 @@ class Grow extends Common {
 			return $this->getNewColumnQuery($table, $col, $val, $type, $tableMetadata);
 		}
 
+		# If the column exists can handle the (smaller) data type
+		if(in_array($type, ["blob", "longtext", "mediumtext", "text", "varchar"])){
+			if($tableMetadata[$key]['DATA_TYPE'] == "blob" && in_array($type, ["longtext", "mediumtext", "text", "varchar"])){
+				return null;
+			}
+			if($tableMetadata[$key]['DATA_TYPE'] == "longtext" && in_array($type, ["mediumtext", "text", "varchar"])){
+				return null;
+			}
+			if($tableMetadata[$key]['DATA_TYPE'] == "mediumtext" && in_array($type, ["text", "varchar"])){
+				return null;
+			}
+			if($tableMetadata[$key]['DATA_TYPE'] == "text" && in_array($type, ["varchar"])){
+				return null;
+			}
+		}
+
 		# If the column exists, but for a different data type
 		if($tableMetadata[$key]['DATA_TYPE'] != $type){
 			return $this->getChangeColumnQuery($table, $col, $val, $type, $tableMetadata);
