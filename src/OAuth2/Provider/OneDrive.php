@@ -237,6 +237,11 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 				return $folders;
 			}
 
+			# If the root folder doesn't have any children, we're done
+			if(!$folders[$parent_id]['children']){
+				return $folders;
+			}
+
 			# If there *is* a destination folder ID, set it as the ID
 			$id = $folder_id;
 

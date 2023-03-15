@@ -691,7 +691,7 @@ class Email extends Prototype {
 			# Try again
 			sleep($tries);
 			$tries++;
-			
+
 			return $this->sender($tries);
 		}
 
