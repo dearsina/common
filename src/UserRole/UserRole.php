@@ -127,16 +127,25 @@ class UserRole extends \App\Common\Prototype {
 
 		# Email the user about the new role
 		$email = new Email();
-		$email->template("new_role", $variables)
+		if($email->template("new_role", $variables)
 			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
-			->send();
+			->send()){
+			$this->log->info([
+				"icon" => Icon::get("role"),
+				"title" => "{$user['first_name']} emailed about {$vars['role']} role",
+				"message" => "An email was sent to {$user['first_name']} informing them about their new role as ".str::A($vars['role']).".",
+				"container" => ".modal-body"
+			]);
+		}
 
-		$this->log->info([
-			"icon" => Icon::get("role"),
-			"title" => "{$user['first_name']} emailed about {$vars['role']} role",
-			"message" => "An email was sent to {$user['first_name']} informing them about their new role as ".str::A($vars['role']).".",
-			"container" => ".modal-body"
-		]);
+		else {
+			$this->log->error([
+				"icon" => Icon::get("role"),
+				"title" => "Failed to email {$user['first_name']} about {$vars['role']} role",
+				"message" => "An email was not sent to {$user['first_name']} informing them about their new role as ".str::A($vars['role']).".",
+				"container" => ".modal-body"
+			]);
+		}
 
 		# A change in roles will have impact on the navigation
 		Navigation::update();

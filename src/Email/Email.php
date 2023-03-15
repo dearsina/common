@@ -4,6 +4,7 @@
 namespace App\Common\Email;
 
 use App\Common\EmailWrapper\EmailWrapper;
+use App\Common\Exception\BadRequest;
 use App\Common\Log;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\Prototype;
@@ -562,9 +563,10 @@ class Email extends Prototype {
 	 *
 	 * @param null $a
 	 *
-	 * @return bool
+	 * @return bool Whether the email was sent successfully
+	 * @throws BadRequest
 	 */
-	public function send($a = NULL)
+	public function send($a = NULL): bool
 	{
 		if(is_array($a)){
 			foreach($a as $key => $val){
@@ -598,15 +600,23 @@ class Email extends Prototype {
 				// If the email is sent, our job is done
 				return true;
 			}
+			// If that didn't work, send it the old-fashioned way
 		}
 
 		# Attempt to send the message
-		$this->sender(1);
-
-		return true;
+		return $this->sender(1);
 	}
 
-	private function sender(int $tries): void
+	/**
+	 * Sends the actual email. Separated out
+	 * so that it can be called recursively
+	 * if the first attempt fails.
+	 *
+	 * @param int $tries
+	 *
+	 * @return bool Whether the email was sent successfully
+	 */
+	private function sender(int $tries): bool
 	{
 		# Reuse the mailer if it has already been initiated
 		global $mailer;
@@ -669,20 +679,20 @@ class Email extends Prototype {
 				]);
 			}
 
-			if($tries == 10){
-				// Don't try more than 10 times
+			if($tries == 5){
+				// Don't try more than 5 times
 				Log::getInstance()->error([
 					"title" => "Unable to send email",
 					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response.",
 				]);
-				return;
+				return false;
 			}
 
 			# Try again
 			sleep($tries);
 			$tries++;
-			$this->sender($tries);
-			return;
+			
+			return $this->sender($tries);
 		}
 
 		if($tries > 1){
@@ -692,6 +702,8 @@ class Email extends Prototype {
 				"body" => "The email was successfully sent after {$tries} tries.",
 			]);
 		}
+
+		return true;
 	}
 
 	private function getMailer(): \Swift_Mailer

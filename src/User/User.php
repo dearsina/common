@@ -1621,13 +1621,13 @@ class User extends Prototype {
 			"checksum" => str::generateChecksum([$vars['new_email'], $key]),
 		];
 
-		# Send an email to the current email address warning about the update
+		# Email the current email address warning about the update
 		$email = new Email();
 		$email->template("update_email_warning", $variables)
 			->to([$user['email'] => "{$user['first_name']} {$user['last_name']}"])
 			->send();
 
-		# Send an email to the new email with a link to change email
+		# Email the new email with a link to change email
 		$email = new Email();
 		$email->template("update_email", $variables)
 			->to([$vars['new_email'] => "{$user['first_name']} {$user['last_name']}"])
