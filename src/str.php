@@ -4174,7 +4174,7 @@ EOF;
 	static function getDataAttr(?array $a, ?bool $keep_empty = NULL): ?string
 	{
 		if(!is_array($a)){
-			return false;
+			return NULL;
 		}
 
 		foreach($a as $key => $val){
@@ -4211,7 +4211,7 @@ EOF;
 				# Escape double quotes
 				$val = str_replace("\"", "&quot;", $val);
 
-				# Store as a double quoted string
+				# Store as a double-quoted string
 				$str .= " data-{$key}=\"{$val}\"";
 			}
 		}
