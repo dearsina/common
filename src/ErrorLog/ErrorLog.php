@@ -362,7 +362,6 @@ class ErrorLog extends Prototype {
 			"hash" => $error['user'][0]['user_id'] ? [
 				"rel_table" => "user",
 				"rel_id" => $error['user'][0]['user_id'],
-				"action" => "log_in_as"
 			] : NULL,
 		];
 
