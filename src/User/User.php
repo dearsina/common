@@ -2044,7 +2044,9 @@ class User extends Prototype {
 		extract($a);
 
 		# Decrypt any encrypted variables
-		Form::decryptVars($vars);
+		if(!Form::decryptVars($vars)){
+			return false;
+		}
 
 		# Check to see if the given email address can be found
 		if(!$user = $this->sql->select([
