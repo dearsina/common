@@ -317,9 +317,23 @@ class Request {
 			$domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
 		}
 
-		# If we haven't been given that information
-		else {
-			//if we don't have the HTTP_ORIGIN or HTTP_REFERER
+		# Root requests are allowed without HTTP_ORIGIN or HTTP_REFERER (should they be?)
+		else if(count($_REQUEST ?:[]) == 1 && $_REQUEST['subdomain']){
+			/**
+			 * If the request is just for root (i.e. /),
+			 * the only request key being subdomain,
+			 * then we can assume that this is a valid
+			 * request, but for some reason the browser
+			 * didn't send the HTTP_ORIGIN or HTTP_REFERER.
+			 */
+			$domain = $_REQUEST['HTTP_HOST'];
+			// HTTP_HOST: "subdomain.example.com"
+		}
+
+		# If it's not just a root request (i.e. /)
+		else{
+			//if we don't have the HTTP_ORIGIN or HTTP_REFERER and a particular non-root request is being made
+
 
 			# Remove the ENV keys before logging the error
 			foreach($_SERVER as $key => $val){
