@@ -326,7 +326,7 @@ class Request {
 			 * request, but for some reason the browser
 			 * didn't send the HTTP_ORIGIN or HTTP_REFERER.
 			 */
-			$domain = $_REQUEST['HTTP_HOST'];
+			$domain = $_SERVER['HTTP_HOST'];
 			// HTTP_HOST: "subdomain.example.com"
 		}
 
