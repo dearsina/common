@@ -334,24 +334,7 @@ class Request {
 		else{
 			//if we don't have the HTTP_ORIGIN or HTTP_REFERER and a particular non-root request is being made
 
-
-			# Remove the ENV keys before logging the error
-			foreach($_SERVER as $key => $val){
-				if($_ENV[$key]){
-					continue;
-				}
-				$server_array[$key] = $val;
-			}
-
-			# Log the error internally
-			$this->log->error([
-				"display" => false,
-				"title" => "CSRF",
-				"message" => "Unknown domain request origin."
-					. "\$_REQUEST array: " . print_r($_REQUEST, true)
-					. "\$_SERVER array: " . print_r($server_array, true)
-				,
-			]);
+			$this->logErrorInternally("Unknown domain request origin.");
 
 			# Display a generic error to the user
 			throw new \Exception("Unknown domain request origin.");
@@ -369,6 +352,7 @@ class Request {
 		# Ensure the request was sent from our domain via AJAX
 		if($_SERVER["HTTP_X_REQUESTED_WITH"] != "XMLHttpRequest"){
 			//if this request wasn't done via AJAX on our own domain
+			$this->logErrorInternally("HTTP_X_REQUESTED_WITH <> XMLHttpRequest");
 			throw new Unauthorized("A cross domain XHR request was attempted.");
 		}
 
@@ -428,6 +412,27 @@ class Request {
 		}
 
 		return true;
+	}
+
+	private function logErrorInternally(string $message): void
+	{
+		# Remove the ENV keys before logging the error
+		foreach($_SERVER as $key => $val){
+			if($_ENV[$key]){
+				continue;
+			}
+			$server_array[$key] = $val;
+		}
+
+		# Log the error internally
+		$this->log->error([
+			"display" => false,
+			"title" => "CSRF",
+			"message" => $message
+				. "\$_REQUEST array: " . print_r($_REQUEST, true)
+				. "\$_SERVER array: " . print_r($server_array, true)
+			,
+		]);
 	}
 
 	/**
