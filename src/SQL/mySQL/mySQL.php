@@ -153,7 +153,7 @@ class mySQL extends Common {
 			throw new mysqli_sql_exception("SQL select calls must be either in array or string format.");
 		}
 
-		# Reconnect (for long running scripts)
+		# Reconnect (for long-running scripts)
 		if($a['reconnect']){
 			$this->reconnect();
 		}

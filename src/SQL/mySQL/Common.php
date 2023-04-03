@@ -245,7 +245,7 @@ abstract class Common {
 		$array["id_col"] = $id_col ? str::i($id_col) : "{$array["name"]}_id";
 		//The table ID columns (optional, default is just the table name suffixed with _id)
 
-		$array["id"] = $id;
+		$array["id"] = str::i($id);
 		//If only this one ID value is to be extracted
 
 		$array["include_removed"] = $is_tmp ?: $include_removed;
