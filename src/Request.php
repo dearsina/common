@@ -317,27 +317,15 @@ class Request {
 			$domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
 		}
 
-		# Root requests are allowed without HTTP_ORIGIN or HTTP_REFERER (should they be?)
-		else if(count($_REQUEST ?:[]) == 1 && $_REQUEST['subdomain']){
-			/**
-			 * If the request is just for root (i.e. /),
-			 * the only request key being subdomain,
-			 * then we can assume that this is a valid
-			 * request, but for some reason the browser
-			 * didn't send the HTTP_ORIGIN or HTTP_REFERER.
-			 */
-			$domain = $_SERVER['HTTP_HOST'];
-			// HTTP_HOST: "subdomain.example.com"
-		}
+		# HTTP_ORIGIN or HTTP_REFERER must be present
+		else {
+			//if we don't have the HTTP_ORIGIN or HTTP_REFERER
 
-		# If it's not just a root request (i.e. /)
-		else{
-			//if we don't have the HTTP_ORIGIN or HTTP_REFERER and a particular non-root request is being made
+			# Reload to get either
+			$this->hash->set("reload");
 
-			$this->logErrorInternally("Unknown domain request origin.");
-
-			# Display a generic error to the user
-			throw new \Exception("Unknown domain request origin.");
+			# Return false, but don't raise an exception
+			return false;
 		}
 
 		# Remove the subdomain
@@ -346,13 +334,14 @@ class Request {
 		# Ensure the request was sent from our domain
 		if($domain != $_ENV['domain']){
 			//if this request wasn't done from our own domain
-			throw new Unauthorized("A cross domain request was attempted. {$domain} != {$_ENV['domain']}");
+			$this->logErrorInternally("A cross domain request was attempted. {$domain} != {$_ENV['domain']}");
+			throw new Unauthorized("A cross domain request was attempted.");
 		}
 
 		# Ensure the request was sent from our domain via AJAX
 		if($_SERVER["HTTP_X_REQUESTED_WITH"] != "XMLHttpRequest"){
 			//if this request wasn't done via AJAX on our own domain
-			$this->logErrorInternally("HTTP_X_REQUESTED_WITH <> XMLHttpRequest");
+			$this->logErrorInternally("A cross domain XHR request was attempted.");
 			throw new Unauthorized("A cross domain XHR request was attempted.");
 		}
 
@@ -381,6 +370,7 @@ class Request {
 			"flat" => true, // To ensure a speedy response, as the join is only needed in edge cases
 			"id" => $_SERVER['HTTP_CSRF_TOKEN'],
 		])){
+			//if the token doesn't exist
 			throw new Unauthorized("Invalid CSRF token supplied.");
 		}
 
