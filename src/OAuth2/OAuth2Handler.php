@@ -3,10 +3,12 @@
 namespace App\Common\OAuth2;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Log;
 use App\Common\Process;
 use App\Common\Request;
 use App\Common\SQL\Factory;
 use App\Common\str;
+use App\Webhook\Webhook;
 use League\OAuth2\Client\Grant\RefreshToken;
 
 /**
@@ -283,7 +285,19 @@ class OAuth2Handler extends \App\Common\Prototype {
 
 		# Get a new token based on the refresh token
 		$grant = new RefreshToken();
-		$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
+
+		try{
+			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
+		}
+		catch(\Exception $e){
+			$title = "Could not connect to ".Webhook::PROVIDERS[$oauth_token['provider']]['title'];
+			$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
+			Log::getInstance()->error([
+				"title" => $title,
+				"message" => $message,
+			]);
+			return;
+		}
 
 		# Store the new token for current use
 		$oauth_token['token'] = $token->getToken();
