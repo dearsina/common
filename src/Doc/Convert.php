@@ -561,6 +561,55 @@ class Convert {
 		$file['original'][__FUNCTION__] = $original;
 	}
 
+
+	/**
+	 * If the PDF is a single page PDF, the page is converted to a JPG.
+	 * This is because Azure is not very good at reading PDFs, and it's
+	 * better to have a JPG to work with.
+	 *
+	 * @param array    $file
+	 * @param int|null $resolution
+	 * @param int|null $quality
+	 *
+	 * @return void
+	 */
+	public static function single(array &$file, ?int $resolution = 200, ?int $quality = 50): void
+	{
+		# We only need to do this once
+		if(Convert::hasAlreadyBeenProcessed($file, __FUNCTION__)){
+			return;
+		}
+		# Ensure file is PDF
+		if(!$file['pdf_info']){
+			//if the file isn't a PDF
+			return;
+		}
+
+		# Ensure the PDF only has one page
+		if($file['pdf_info']['pages'] != 1){
+			// If the PDF has more than one page
+			return;
+		}
+
+		# Keep a copy of the original, rename the file to avoid it being overwritten
+		$original = Convert::makeCopy($file, __FUNCTION__);
+
+		# Write command to conver the PDF to JPG using pdftoppm
+		$cmd = "pdftoppm -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
+
+		# Add the pdftoppm suffix
+		$file['tmp_name'] .= '-1.jpg';
+
+		# Execute the command
+		shell_exec($cmd);
+
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+
+		# Attach the original back
+		$file['original'][__FUNCTION__] = $original;
+	}
+
 	/**
 	 * The fuzz value is based on the quantum range,
 	 * which is usually 65,535 in these kinds of
