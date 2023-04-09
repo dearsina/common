@@ -11,7 +11,7 @@ use App\UI\Form\SelectOption;
  * Tracks the output of a ajax call
  */
 class Output {
-	private array $output = [];
+	private ?array $output = [];
 	private array $direction = [];
 
 	/**
