@@ -78,7 +78,7 @@ class Output {
 	 *
 	 * @param array $data
 	 */
-	public function set(array $data): void
+	public function set(?array $data): void
 	{
 		$this->output = $data;
 	}
