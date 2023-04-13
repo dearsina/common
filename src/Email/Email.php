@@ -671,10 +671,16 @@ class Email extends Prototype {
 			}
 
 			else {
+				# Collect recipients
+				$recipients = array_filter(array_merge($this->envelope->getTo(), $this->envelope->getCc(), $this->envelope->getBcc()));
+				if(is_array($recipients)){
+					$recipients = implode(", ", $recipients);
+				}
+
 				# Notify the admins of any unknown errors
 				\App\Email\Email::notifyAdmins([
 					"subject" => "Unknown email error",
-					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}",
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . " to send the email to {$recipients}: {$e->getMessage()}",
 					"backtrace" => str::backtrace(true),
 				]);
 			}
