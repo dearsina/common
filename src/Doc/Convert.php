@@ -594,7 +594,7 @@ class Convert {
 		# Keep a copy of the original, rename the file to avoid it being overwritten
 		$original = Convert::makeCopy($file, __FUNCTION__);
 
-		# Write command to conver the PDF to JPG using pdftoppm
+		# Write command to convert the PDF to JPG using pdftoppm
 		$cmd = "pdftoppm -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
 
 		# Add the pdftoppm suffix
@@ -605,6 +605,8 @@ class Convert {
 
 		$file['md5'] = md5_file($file['tmp_name']);
 		$file['size'] = filesize($file['tmp_name']);
+		$file['type'] = mime_content_type($file['tmp_name']);
+		$file['ext'] = pathinfo($file['tmp_name'], PATHINFO_EXTENSION);
 
 		# Attach the original back
 		$file['original'][__FUNCTION__] = $original;

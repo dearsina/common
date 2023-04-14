@@ -611,6 +611,38 @@ class Doc extends \App\Common\Prototype {
 	}
 
 	/**
+	 * Converts the nth page of a PDF to a JPG.
+	 *
+	 * @param array    $file
+	 * @param int|null $page_number
+	 * @param int|null $resolution
+	 * @param int|null $quality
+	 */
+	public static function convertPdfToJpg(array &$file, ?int $page_number = 1, ?int $resolution = 200, ?int $quality = 50): void
+	{
+		# Ensure file is PDF
+		if($file['type'] != "application/pdf"){
+			//if the file isn't a PDF
+			return;
+		}
+
+		# Write command to convert the PDF to JPG using pdftoppm
+		$cmd = "pdftoppm -f {$page_number} -l {$page_number} -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
+
+		# Execute the command
+		shell_exec($cmd);
+
+		# Add the pdftoppm suffix
+		$file['tmp_name'] .= "-{$page_number}.jpg";
+
+		# Update the metadata
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+		$file['type'] = mime_content_type($file['tmp_name']);
+		$file['ext'] = pathinfo($file['tmp_name'], PATHINFO_EXTENSION);
+	}
+
+	/**
 	 * Assuming the file is an SVG, will look for any <style>
 	 * tags, and convert all styles to inline styles. This is
 	 * useful if the SVG is to be embedded into a DOCX and
