@@ -66,6 +66,15 @@ class Email extends Prototype {
 	private ?array $bcc = [];
 
 	/**
+	 * Contains the error message,
+	 * if one was picked up when attempting
+	 * to send the email.
+	 *
+	 * @var string|null
+	 */
+	private ?string $error_message;
+
+	/**
 	 * Email constructor.
 	 *
 	 * @param null $a
@@ -691,6 +700,10 @@ class Email extends Prototype {
 					"title" => "Unable to send email",
 					"message" => "The system was unable to send your email after {$tries} tries. The following error message has been logged with our engineers: {$e->getMessage()}. Please await their response.",
 				]);
+
+				# Set the error message so that it can be picked up by the method calling for the email to be sent
+				$this->setErrorMessage($e->getMessage());
+
 				return false;
 			}
 
@@ -710,6 +723,30 @@ class Email extends Prototype {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Set the error message that was returned by the email server,
+	 * if the email was not sent successfully.
+	 *
+	 * @param string|null $message
+	 *
+	 * @return void
+	 */
+	private function setErrorMessage(?string $message): void
+	{
+		$this->error_message = $message;
+	}
+
+	/**
+	 * Get the error message that was returned by the email server,
+	 * if the email was not sent successfully.
+	 *
+	 * @return string|null
+	 */
+	public function getErrorMessage(): ?string
+	{
+		return $this->error_message;
 	}
 
 	private function getMailer(): \Swift_Mailer
