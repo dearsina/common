@@ -443,6 +443,41 @@ class Doc extends \App\Common\Prototype {
 	}
 
 	/**
+	 * At times, the selfie camera will accidentally upload a black image,
+	 * when the camera has been turned off, but the "picture" is still taken.
+	 * This function will check if the image is all black, and if so,
+	 * will (optionally) delete it and return true.
+	 *
+	 * @param array     $file
+	 * @param bool|null $delete
+	 *
+	 * @return bool
+	 */
+	public static function pureBlackImageWasUploaded(array $file, ?bool $delete = true): bool
+	{
+		# This only applies to images, not PDFs, etc
+		if(strpos($file['mime_type'], "image") === false){
+			return false;
+		}
+
+		# This command will return the average color of the image, if it's 0, the image is all black
+		$cmd = "convert {$file['tmp_name']} -colorspace gray -format \"%[fx:mean]\n\" info:";
+
+		# If the image is not all black, return false
+		if((float)exec($cmd)){
+			return false;
+		}
+
+		# Remove the tmp file
+		if($delete){
+			unlink($file['tmp_name']);
+		}
+
+		# The image is all black
+		return true;
+	}
+
+	/**
 	 * Given one or more mime types, will check to see if
 	 * any of the uploaded files belong to that mine type.
 	 * If at least one file does, will return the file
