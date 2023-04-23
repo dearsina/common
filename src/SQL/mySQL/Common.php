@@ -94,6 +94,14 @@ abstract class Common {
 	protected array $table = [];
 
 	/**
+	 * An array of CTEs, where the key
+	 * is the CTE alias and the value is the CTE query.
+	 *
+	 * @var array
+	 */
+	protected array $ctes = [];
+
+	/**
 	 * Columns belonging to the main table.
 	 * @var array|null
 	 */
@@ -232,9 +240,15 @@ abstract class Common {
 			throw new mysqli_sql_exception("No table name was given.");
 		}
 
-		$array["db"] = $is_tmp ? NULL : str::i($db);
-		//The database name can also be in the table array, will override the explicitly given db name
-		//if the table is a tmp table, set the db to NULL
+		if($is_tmp || $this->ctes[$name]){
+			//if the table is a tmp table or is s CTE, set the db to NULL
+			$array["db"] = NULL;
+		}
+
+		else {
+			$array["db"] = str::i($db);
+			//The database name can also be in the table array, will override the explicitly given db name
+		}
 
 		$array["name"] = str::i($name);
 		// The table name is the table name, cleaned up
@@ -248,7 +262,7 @@ abstract class Common {
 		$array["id"] = str::i($id);
 		//If only this one ID value is to be extracted
 
-		$array["include_removed"] = $is_tmp ?: $include_removed;
+		$array["include_removed"] = $is_tmp || $this->ctes[$name] ?: $include_removed;
 		//A boolean flag that determines whether we should ignore removed ("removed IS NULL") or include them
 
 		$array["count"] = $count;
@@ -256,6 +270,9 @@ abstract class Common {
 
 		# Set if the table is a temporary table
 		$array['is_tmp'] = $is_tmp;
+
+		# Set if the table is a CTE
+		$array['is_cte'] = $this->ctes[$name];
 
 		return $array;
 	}
@@ -1542,6 +1559,8 @@ abstract class Common {
 	 *
 	 * @param string     $condition_type
 	 * @param array|null $on
+	 * @param array|null $only_aliases
+	 * @param array|null $exclude_aliases
 	 *
 	 * @return string|null
 	 */
@@ -1615,6 +1634,11 @@ abstract class Common {
 		if($table['is_tmp']){
 			return "{$type} JOIN `{$table['name']}` AS `{$table['alias']}`";
 		}
+
+		if($this->ctes[$table['name']]){
+			return "{$type} JOIN `{$table['name']}` AS `{$table['alias']}`";
+		}
+
 		return "{$type} JOIN `{$table['db']}`.`{$table['name']}` AS `{$table['alias']}`";
 	}
 
@@ -2513,6 +2537,11 @@ abstract class Common {
 	 */
 	protected function verifyTableArray(array $table): bool
 	{
+		# Check if the table is a CTE
+		if($this->ctes[$table['name']]){
+			return true;
+		}
+
 		# Ensure the database exists
 		if($table["db"] && !$this->dbExists($table["db"])){
 			throw new mysqli_sql_exception("The database <code>{$table["db"]}</code> doesn't seem to exists or the current user does not have access to it.");
@@ -2624,6 +2653,17 @@ abstract class Common {
 
 		# Clean the table name
 		if(!$name = str::i($name)){
+			return false;
+		}
+
+		# CTEs have to be treated differently
+		if($is_cte){
+			# Go through each CTE column and see if the name matches
+			foreach($this->ctes[$name]['columns'] as $column){
+				if($column['name'] == $col || $column['alias'] == $col){
+					return true;
+				}
+			}
 			return false;
 		}
 

@@ -28,6 +28,8 @@ class Select extends Common {
 	{
 		extract($a);
 
+		$this->setCTEs($cte);
+
 		# Set the (main) table (needs to be done first)
 		$this->setTable($db, $table, $id, $include_removed, $count);
 
@@ -56,11 +58,24 @@ class Select extends Common {
 		# Set limits
 		$this->setLimit($limit, $start, $length, $offset);
 
-		# Generate the query
+		# Generate the query with a sub-query if needed
 		if($this->limit && $this->join){
-			$query = $this->generateLimitedJoinQuery();
+			// If there are joins (with columns) and a limit, we need to use a sub-query
+
+			# Go through each join and check if there are columns
+			foreach($this->join as $joins){
+				foreach($joins as $join){
+					if($join['columns'] !== NULL){
+						// If there are columns, we need to use a sub-query
+						$query = $this->generateLimitedJoinQuery();
+						break 2;
+					}
+				}
+			}
 		}
-		else {
+
+		# Otherwise, generate a normal query
+		if(!$query){
 			$query = $this->generateQuery();
 		}
 
@@ -155,6 +170,33 @@ class Select extends Common {
 		return $rows;
 	}
 
+	protected function setCTEs(?array $ctes): void
+	{
+		if(!$ctes){
+			return;
+		}
+
+		foreach($ctes as $alias => $cte){
+			$select = new Select($this->mysqli);
+			$this->ctes[$alias]['query'] = $select->select($cte, true);
+			$this->ctes[$alias]['columns'] = $select->getAllColumns();
+		}
+	}
+
+	protected function getCTEs(): ?string
+	{
+		if(!$this->ctes){
+			return NULL;
+		}
+
+		foreach($this->ctes as $alias => $cte){
+			$cte = str_replace("\r\n", "\r\n\t", $cte['query']);
+			$ctes[] = "`{$alias}` AS (\r\n\t{$cte}\r\n)";
+		}
+
+		return "WITH ".implode(", ", $ctes);
+	}
+
 	/**
 	 * If a column is a JSON column,
 	 * json decode the value
@@ -214,6 +256,9 @@ class Select extends Common {
 		 * table is (obviously) the most important.
 		 */
 
+		# Get any CTEs that feed into the tables
+		$table[] = $this->getCTEs();
+
 		# Generate table sub-query
 		$table[] = "SELECT";
 		$table[] = $this->getDistinctSQL();
@@ -245,6 +290,9 @@ class Select extends Common {
 	 */
 	private function generateQuery(): string
 	{
+		# Get any CTEs that feed into the tables
+		$query[] = $this->getCTEs();
+
 		$query[] = "SELECT";
 		$query[] = $this->getDistinctSQL();
 		$query[] = $this->getColumnsSQL();
