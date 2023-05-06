@@ -565,7 +565,7 @@ class Convert {
 	/**
 	 * If the PDF is a single page PDF, the page is converted to a JPG.
 	 * This is because Azure is not very good at reading PDFs, and it's
-	 * better to have a JPG to work with.
+	 * much better to have a JPG to work with.
 	 *
 	 * @param array    $file
 	 * @param int|null $resolution
