@@ -191,7 +191,11 @@ class Geolocation extends \App\Common\Prototype {
 	 * Each list must have a URL and a separator.
 	 */
 	const ASN_LISTS = [[
-		"url" => "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/input/ASN.txt",
+//		"url" => "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/input/ASN.txt",
+		"url" => "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/input/datacenter/ASN.txt",
+		"separator" => " # "
+	],[
+		"url" => "https://raw.githubusercontent.com/X4BNet/lists_vpn/main/input/vpn/ASN.txt",
 		"separator" => " # "
 	]];
 
