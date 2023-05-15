@@ -607,7 +607,8 @@ EOF;
 		}
 
 		# Both \ and " must be escaped or else the command will fail
-		$cron_job_json = str_replace(["\\", '"'],["\\\\",'\\"'],json_encode($cron_job));
+		$cron_job_json = str_replace(["'", "\\", '"'],["", "\\\\",'\\"'],json_encode($cron_job));
+		// In addition, we're just stripping out single quotes, because they're not needed
 
 		# Build the command that executes the execute method
 		$cmd  = "go(function(){";
