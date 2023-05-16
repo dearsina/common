@@ -432,20 +432,6 @@ class str {
 	}
 
 	/**
-	 * Case-insensitive in_array function.
-	 *
-	 * @param $needle
-	 * @param $haystack
-	 *
-	 * @return bool
-	 * @link https://www.php.net/manual/en/function.in-array.php#89256
-	 */
-	public static function in_arrayi($needle, $haystack)
-	{
-		return in_array(strtolower($needle), array_map('strtolower', $haystack));
-	}
-
-	/**
 	 * Given a title string, will suffix with (n), where "n" is an incremental
 	 * number. Will not suffix (n) if an (n) already exists, instead it will
 	 * increase n by 1.
@@ -1539,6 +1525,20 @@ class str {
 	}
 
 	/**
+	 * Case-insensitive in_array function.
+	 *
+	 * @param $needle
+	 * @param $haystack
+	 *
+	 * @return bool
+	 * @link https://www.php.net/manual/en/function.in-array.php#89256
+	 */
+	public static function in_array_ci($needle, $haystack)
+	{
+		return in_array(strtolower($needle), array_map('strtolower', $haystack));
+	}
+
+	/**
 	 * Given a snippet of text, will replace
 	 * line breaks with HTML line breaks <br>.
 	 *
@@ -2028,14 +2028,14 @@ class str {
 	 *
 	 * @return string|null
 	 */
-	static function number(?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2): ?string
+	static function number(?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2, ?bool $monospace = true): ?string
 	{
 		# A number (even if it's "0") is required
 		if(!strlen($amount)){
 			return NULL;
 		}
 
-		# include thousand separators, decimals and a decimal point
+		# include thousand-separators, decimals and a decimal point
 		$amount = number_format($amount, $decimals, '.', ',');
 
 		# Pad if required
@@ -2048,7 +2048,11 @@ class str {
 			$amount = "{$currency} {$amount}";
 		}
 
-		return str::monospace($amount);
+		if($monospace){
+			$amount = str::monospace($amount);
+		}
+
+		return $amount;
 	}
 
 	/**
@@ -2079,7 +2083,7 @@ class str {
 		}
 
 		# Replace spaces with &nbsp; (seems to be the only way to enforce spacing)
-		$text = str_replace(" ", "&nbsp;", $text);
+		$text = str_replace(" ", "&nbsp;", $text ?: $html);
 
 		# ID (optional)
 		$id = str::getAttrTag("id", $id);
