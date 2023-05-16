@@ -251,7 +251,6 @@ class Doc extends \App\Common\Prototype {
 
 			$pdf = @$parser->parseFile($file['tmp_name']);
 
-
 			# Get the text
 			if($text = @$pdf->getText()){
 				# Filter the text for unfriendly characters
