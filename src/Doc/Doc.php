@@ -222,6 +222,7 @@ class Doc extends \App\Common\Prototype {
 
 		# If the file is bigger than 2mb, don't try to extract text
 		if($file['size'] > 2000000){
+			$file['pdf_info']['text_error'] = "This PDF is too large to extract text from.";
 			return false;
 		}
 
@@ -236,38 +237,87 @@ class Doc extends \App\Common\Prototype {
 			# Create structure from raw data.
 			[$xref, $data] = $rawDataParser->parseData($contents);
 
-			if(isset($xref['trailer']['encrypt'])){
-				// if the file is secured, assume it has text
-				return true;
-			}
-
+			# Ensure file isn't password protected
 			if(empty($data)){
-				// if the file has no data, assume it's secured?
+				// if the file has no data, assume it's password protected
+				$file['pdf_info']['text_error'] = "No data was extracted, possibly because the PDF is password protected.";
 				return true;
 			}
 
-			# Try extracting text
-			$parser = new \Smalot\PdfParser\Parser();
+			else if(isset($xref['trailer']['encrypt'])){
+				// if the file is secured (but not password protected), assume it has text
 
-			$pdf = @$parser->parseFile($file['tmp_name']);
-
-			# Get the text
-			if($text = @$pdf->getText()){
-				# Filter the text for unfriendly characters
-				$text = preg_replace('/[^[:print:][:space:]]/', "", $text);
-				// We're removing all non-printable and non-space characters to avoid issues loading the array (as a JSON)
-
-				# Load it to the pdf-info array
-				$file['pdf_info']['text'] = $text;
+				# Extract the text with a more liberal approach
+				if(!Doc::setTextFromPdfToTextCommand($file)){
+					// If that didn't work, abort mission
+					return false;
+				}
 			}
+
+			# Try extracting text using both the conservative Smalot parser, and the liberal pdftotext command
+			else {
+				$parser = new \Smalot\PdfParser\Parser();
+				$pdf = @$parser->parseFile($file['tmp_name']);
+				# Get the text
+				if(!$file['pdf_info']['text'] = @$pdf->getText()){
+					// If that didn't work
+
+					# Try a more liberal approach
+					if(!Doc::setTextFromPdfToTextCommand($file)){
+						// If that didn't work either, abort mission
+						return false;
+					}
+				}
+			}
+
+			if(!$file['pdf_info']['text']){
+				$file['pdf_info']['text_error'] = "There was an error extracting text from this PDF.";
+				return false;
+			}
+
+			# Filter the text for unfriendly characters
+			$file['pdf_info']['text'] = preg_replace('/[^[:print:][:space:]]/', "", $file['pdf_info']['text']);
+			// We're removing all non-printable and non-space characters to avoid issues loading the array (as a JSON)
 		}
 
 			# Any errors and assume no text can be extracted
 		catch(\Exception $e) {
+			$file['pdf_info']['text_error'] = "There was an error parsing the data from this PDF.";
 			return false;
 		}
 
 		return (bool)strlen($file['pdf_info']['text']);
+	}
+
+	/**
+	 * Extract and set the text from a PDF using the pdftotext command.
+	 *
+	 * Uses a more liberal approach to extract text from a PDF.
+	 * Will populate the $file['pdf_info']['text'] variable if successful.
+	 * Will return the success of the operation.
+	 * If there is an error, it will be added to the $file array.
+	 *
+	 * @param array       $file
+	 * @link https://stackoverflow.com/a/75046857/429071
+	 * @return bool
+	 */
+	private static function setTextFromPdfToTextCommand(array &$file): bool
+	{
+		# Try extracting text
+		$cmd = "pdftotext -nopgbrk \"{$file['tmp_name']}\" -";
+		exec($cmd, $output, $result_code);
+		// nopgbrk means no page break, so the entire document is extracted as one long string
+		// The dash at the end means the output is sent to stdout
+
+		# If there are no errors, set the text
+		if($result_code == 0){
+			$file['pdf_info']['text'] = implode("\n", $output);
+			return true;
+		}
+
+		# If there are errors, set the error and return false
+		$file['pdf_info']['text_error'] = "When using pdftotext [{$cmd}], the following error [{$result_code}] was encountered: ".implode("\n", $output);
+		return false;
 	}
 
 	/**
