@@ -1334,7 +1334,7 @@ class str {
 				$vars['callback'] = str::generate_uri($vars['callback'], true);
 			}
 			if(count($vars) == count($vars, COUNT_RECURSIVE)){
-				//if the vars array is NOT multi-dimensional
+				//if the vars array is NOT multidimensional
 				foreach($vars as $key => $val){
 					if($val === NULL){
 						//Only if they're literally NULL, shall they be ignored

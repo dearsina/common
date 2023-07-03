@@ -252,8 +252,10 @@ EOF;
 	 *  - $data
 	 *
 	 * @param mixed $a
+	 *
+	 * @throws BadRequest
 	 */
-	public function save($a): void
+	public function save($a, ?array $recipients = NULL): void
 	{
 		if(!is_array($a)){
 			$a = ["data" => $a];
@@ -278,6 +280,10 @@ EOF;
 
 		else {
 			throw new BadRequest("Either a URL or data contents must be passed to save.");
+		}
+
+		if($recipients){
+			PA::getInstance()->speak($recipients, array_merge(["success" => true], $this->output));
 		}
 	}
 
