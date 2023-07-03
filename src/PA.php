@@ -230,6 +230,17 @@ class PA {
 	 */
 	private function getConnections(array $a): ?array
 	{
+		# Failsafe in case someone sends an empty array (but with valid keys)
+		foreach($a as $key => $val){
+			if(!strlen($val)){
+				unset($a[$key]);
+			}
+		}
+		if(!$a){
+			return NULL;
+		}
+
+
 		extract($a);
 
 		# If a list of recipient FDs was explicitly sent
