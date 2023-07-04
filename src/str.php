@@ -3030,7 +3030,7 @@ EOF;
 	 *
 	 * @return float
 	 */
-	public static function stopTimer(?float $start_time = NULL): float
+	public static function stopTimer(?float $start_time = NULL, ?string $marker = NULL): float
 	{
 		$now = microtime(true);
 
@@ -3039,7 +3039,13 @@ EOF;
 			$start_time = $request_start_time;
 		}
 
-		return round($now - $start_time, 3);
+		$stop_time = round($now - $start_time, 3);
+
+		if($marker){
+			echo "{$marker}: $stop_time" . PHP_EOL;
+		}
+
+		return $stop_time;
 	}
 
 	public static function marker(?string $marker = "Marker", ?bool $prod_enable = NULL): void
