@@ -26,7 +26,7 @@ class PrintRun extends \App\Common\Prototype {
 	 * @return string|null
 	 * @throws \Exception
 	 */
-	private static function getExistingPrintRunId(string $md5): ?string
+	public static function getExistingPrintRunId(string $md5): ?string
 	{
 		# Use the global session ID (not the local one)
 		global $session_id;
