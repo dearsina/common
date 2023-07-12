@@ -237,6 +237,7 @@ class str {
 		"UK",
 		"VAT",
 		"ID",
+		"AI",
 	];
 
 	/**
@@ -917,11 +918,24 @@ class str {
 	 */
 	public static function isJson($str): bool
 	{
+		# Must be a string
 		if(!is_string($str)){
 			return false;
 		}
-		$json = json_decode($str);
-		return $json && $str != $json;
+
+		# Must start with either "{" or "["
+		if(!in_array(substr(trim($str), 0, 1), ["{", "["])){
+			return false;
+		}
+
+		# Must end with either "}" or "]"
+		if(!in_array(substr(trim($str), -1), ["}", "]"])){
+			return false;
+		}
+
+		# Must decode without error
+		json_decode($str);
+		return json_last_error() === JSON_ERROR_NONE;
 	}
 
 	/**
@@ -1300,6 +1314,10 @@ class str {
 	 */
 	static function generate_uri($array_or_string, ?bool $urlencoded = NULL, ?bool $for_email = NULL): ?string
 	{
+
+		if(!$array_or_string){
+			return NULL;
+		}
 
 		# If an array is given (most common)
 		if(is_array($array_or_string)){
@@ -2284,13 +2302,15 @@ EOF;
 	 *    "addr1" => "asc",
 	 * ];
 	 * </code>
-	 * @param array|null   $array      $array
+	 * @param array|null   $array          $array
 	 * @param array|string $order
-	 * @param bool|null    $reset_keys If set to TRUE, will reset the root keys to match the new order.
+	 * @param bool|null    $reset_keys     If set to TRUE, will reset the root keys to match the new order.
+	 * @param bool|null    $case_sensitive If set to TRUE, will sort case-sensitive. Uppercase will have priority over
+	 *                                     lowercase.
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
-	static function multidimensionalOrderBy(?array &$array, $order, ?bool $reset_keys = NULL): void
+	static function multidimensionalOrderBy(?array &$array, $order, ?bool $reset_keys = NULL, ?bool $case_sensitive = NULL): void
 	{
 		if(!$array){
 			return;
@@ -2300,7 +2320,7 @@ EOF;
 			$order = [$order => 'asc'];
 		}
 
-		uasort($array, function($a, $b) use ($order){
+		uasort($array, function($a, $b) use ($order, $case_sensitive){
 			$t = [true => -1, false => 1];
 			$r = true;
 			$k = 1;
@@ -2309,7 +2329,13 @@ EOF;
 					continue;
 				}
 				$k = (mb_strtolower($value) === 'asc') ? 1 : -1;
-				$r = ($a[$key] < $b[$key]);
+				if($case_sensitive){
+					$r = ($a[$key] < $b[$key]);
+				}
+				else {
+					$r = (strtolower($a[$key]) < strtolower($b[$key]));
+
+				}
 				if($a[$key] !== $b[$key]){
 					return $t[$r] * $k;
 				}

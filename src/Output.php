@@ -583,6 +583,8 @@ EOF;
 		if($recipients){
 			PA::getInstance()->speak($recipients, [
 				"success" => true,
+				"silent" => $type == "remove",
+				// If the action is remove, do it silently (don't mess with the URL)
 				"actions" => [[
 					$type => [
 						$id => $data,

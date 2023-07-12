@@ -60,6 +60,35 @@ class DateFinder extends \App\Common\Prototype {
 	}
 
 	/**
+	 *
+	 * @param string $input_string
+	 * @link https://en.wikipedia.org/wiki/Republic_of_China_calendar
+	 * @return void
+	 */
+	private function translateChineseDate(string &$input_string): void
+	{
+		# Chinese date format: 112年12月31日
+		$pattern = "/(\d{2,4})年(\d{2})月(\d{2})日/u";
+
+		# If there is a match, convert the date to Y-m-d
+		if(preg_match($pattern, $input_string, $matches)){
+			switch(strlen($matches[1])){
+				case 2:
+					# If only two numbers (very uncharacteristic), let PHP handle it
+					$input_string = $matches[3] . "-" . $matches[2] . "-" . $matches[1];
+					break;
+				case 3:
+					# Account for RoC years
+					$matches[1] += 1911;
+				case 4:
+					# Most common case
+				$input_string = $matches[1] . "-" . $matches[2] . "-" . $matches[3];
+				break;
+			}
+		}
+	}
+
+	/**
 	 * If a date has the month written in full, will translate
 	 * the date to English. Will also filter away non-date characters
 	 * from the string to make it easier for the machine to
@@ -140,15 +169,19 @@ class DateFinder extends \App\Common\Prototype {
 	 *
 	 * Change DDth of MMM YYYY to DD MMM YYYY
 	 *
+	 * The only shortcoming with this approach is that it doesn't
+	 * take into consideration that there may be more than one
+	 * date in the string.
+	 *
 	 * @param $string
 	 */
 	private function changeCommonChallengingFormats(&$string): void
 	{
 		# Changing YYYY/MM/DD to YYYY-MM-DD
-		$string = preg_replace("/(\d{4})\/(\d{2})\/(\d{2})/", "\$1-\$2-\$3", $string);
+		$string = preg_replace("/.*(\d{4})\/(\d{2})\/(\d{2}).*/", "\$1-\$2-\$3", $string);
 
 		# Changing DD/MM/YYYY to DD-MM-YYYY (ignoring US dates)
-		$string = preg_replace("/(\d{2})\/(\d{2})\/(\d{4})/", "\$1-\$2-\$3", $string);
+		$string = preg_replace("/.*(\d{2})\/(\d{2})\/(\d{4}).*/", "\$1-\$2-\$3", $string);
 
 		# Changing DD.MM.YY and DD-MM-YY and DD/MM/YY to YYYY-MM-DD (ignoring US dates)
 		if(preg_match("/^(\d{2})(?:\.|\-|\/)(\d{2})(?:\.|\-|\/)(\d{2})$/", $string, $matches)){
@@ -158,8 +191,8 @@ class DateFinder extends \App\Common\Prototype {
 			$string = "{$year}-{$month}-{$date}";
 		}
 
-		# Catch strings that contain long form narrative dates
-		$string = preg_replace("/.*[^\d](\d{1,2}(?:(?:st)|(?:nd)|(?:rd)|(?:th))?)(?:[^\w\d]+|(?: of ))((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}).*/i", "\$1 \$2", $string);
+		# Simplify strings that contain long form narrative dates
+		$string = preg_replace("/.*\b(\d{1,2})(?:(?:st)|(?:nd)|(?:rd)|(?:th))?(?:\s+|(?: of ))?((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{4})\b.*/i", "\$1-\$2-\$3", $string);
 	}
 
 	private function handleStringWithoutAlpha(string $string): ?\DateTime
@@ -229,7 +262,7 @@ class DateFinder extends \App\Common\Prototype {
 	 * @return bool
 	 */
 	public function isADate(?string $string): ?\DateTime
-	{
+	{if($string == "We hereby confirm that Mr Malte Kersten has the following account(s) at Capitec Bank Limited on 09/10/2019"){$a=true;}
 		# Ensure string is long enough to be a date
 		if(strlen($string) < 6){
 			//Date string needs to be at least 6 characters (YYMMDD), all in
@@ -240,6 +273,9 @@ class DateFinder extends \App\Common\Prototype {
 		if(!preg_match("/\d/", $string)){
 			return NULL;
 		}
+
+		# Translate Chinese dates to Y-m-d
+		$this->translateChineseDate($string);
 
 		# Translate the date to English (if it's in a non-English language)
 		$this->translateDate($string);
