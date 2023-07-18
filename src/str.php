@@ -2329,7 +2329,8 @@ EOF;
 					continue;
 				}
 				$k = (mb_strtolower($value) === 'asc') ? 1 : -1;
-				if($case_sensitive){
+				if($case_sensitive || is_array($a[$key]) || is_array($b[$key])){
+					//If either side is an array, we can't use strtolower()
 					$r = ($a[$key] < $b[$key]);
 				}
 				else {
