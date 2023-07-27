@@ -35,6 +35,7 @@ class Modal extends \App\Common\Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
+			"id" => "modal-user-role-all",
 //			"size" => "s",
 			"icon" => Icon::get("role"),
 			"header" => "User roles",

@@ -18,11 +18,13 @@ class Modal extends \App\Common\Prototype {
 	 *
 	 * @return string
 	 */
-	public function all(array $a){
+	public function all(array $a)
+	{
 		extract($a);
 
 		$modal = new \App\UI\Modal\Modal([
-//			"size" => "l",
+			"id" => "modal-role-all",
+			//			"size" => "l",
 			"icon" => Icon::get("roles"),
 			"header" => "All roles",
 			"body" => [
@@ -33,16 +35,16 @@ class Modal extends \App\Common\Prototype {
 				"id" => "all_role",
 			],
 			"footer" => [
-				"button" => ["close_md",[
+				"button" => ["close_md", [
 					"hash" => [
 						"rel_table" => $rel_table,
-						"action" => "new"
+						"action" => "new",
 					],
 					"title" => "New",
 					"icon" => Icon::get("new"),
 					"colour" => "primary",
-//					"class" => "float-right"
-				]]
+					//					"class" => "float-right"
+				]],
 			],
 			"draggable" => true,
 			"resizable" => true,
@@ -51,10 +53,11 @@ class Modal extends \App\Common\Prototype {
 		return $modal->getHTML();
 	}
 
-	public function new($a){
+	public function new(array $a): string
+	{
 		extract($a);
 
-		$buttons = ["save","cancel_md"];
+		$buttons = ["save", "cancel_md"];
 
 		$form = new Form([
 			"action" => "insert",
@@ -63,10 +66,11 @@ class Modal extends \App\Common\Prototype {
 			"callback" => $this->hash->getCallback(),
 			"fields" => Field::role($a['vars']),
 			"buttons" => $buttons,
-			"modal" => true
+			"modal" => true,
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
+			"id" => "modal-role-new",
 			"size" => "s",
 			"header" => [
 				"icon" => Icon::get("new"),
@@ -86,15 +90,16 @@ class Modal extends \App\Common\Prototype {
 	 *
 	 * @return string
 	 */
-	public function edit($a){
+	public function edit(array $a): string
+	{
 		extract($a);
 
 		$$rel_table = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
-		$buttons = ["save","cancel_md"];
+		$buttons = ["save", "cancel_md"];
 
 		$form = new Form([
 			"action" => "update",
@@ -103,10 +108,11 @@ class Modal extends \App\Common\Prototype {
 			"callback" => $this->hash->getCallback(),
 			"fields" => Field::role($$rel_table),
 			"buttons" => $buttons,
-			"modal" => true
+			"modal" => true,
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
+			"id" => "modal-role-edit",
 			"size" => "s",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Edit {$rel_table}"),

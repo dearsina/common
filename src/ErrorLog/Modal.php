@@ -59,6 +59,7 @@ class Modal extends \App\Common\Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
+			"id" => "modal-error-log-link-to-existing-issue",
 			"size" => "xl",
 			"icon" => Icon::get("link"),
 			"header" => "Link to existing issue",
