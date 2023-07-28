@@ -18,7 +18,6 @@ class Modal extends \App\Common\Prototype {
 		extract($a);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-admin-error-notification",
 			"size" => "m",
 			"icon" => "cog",
 			"header" => "Error notification schedules",

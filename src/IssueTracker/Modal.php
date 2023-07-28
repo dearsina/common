@@ -50,7 +50,6 @@ class Modal extends Prototype {
 		}
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-issue-tracker-new",
 			"size" => "lg",
 			"icon" => Icon::get("new"),
 			"header" => "New issue",
@@ -184,7 +183,6 @@ class Modal extends Prototype {
 		$in->updateIssueNoteTable($rel_id);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-issue-tracker-edit",
 			"size" => "xl",
 			"icon" => Icon::get("edit"),
 			"header" => "Edit issue",

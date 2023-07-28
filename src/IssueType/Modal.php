@@ -21,7 +21,6 @@ class Modal extends \App\Common\Prototype {
 		extract($a);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-issue-type-all",
 			"size" => "m",
 			"icon" => "cog",
 			"header" => "All issue types",
@@ -77,7 +76,6 @@ class Modal extends \App\Common\Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-issue-type-edit",
 			"size" => "s",
 			"icon" => Icon::get("edit"),
 			"header" => "Edit issue type",
@@ -106,7 +104,6 @@ class Modal extends \App\Common\Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-issue-type-new",
 			"size" => "s",
 			"icon" => Icon::get("new"),
 			"header" => "New issue type",

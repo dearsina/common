@@ -23,7 +23,6 @@ class Modal extends \App\Common\Prototype {
 		extract($a);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-role-all",
 			//			"size" => "l",
 			"icon" => Icon::get("roles"),
 			"header" => "All roles",
@@ -70,7 +69,6 @@ class Modal extends \App\Common\Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-role-new",
 			"size" => "s",
 			"header" => [
 				"icon" => Icon::get("new"),
@@ -112,7 +110,6 @@ class Modal extends \App\Common\Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-role-edit",
 			"size" => "s",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Edit {$rel_table}"),

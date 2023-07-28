@@ -1268,7 +1268,22 @@ class str {
 	public static function camelToSnakeCase(string $string, string $us = "_"): string
 	{
 		return str_replace(" ", $us, mb_strtolower(preg_replace(
-			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/', $us, $string)));
+			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/u', $us, $string)));
+	}
+
+	/**
+	 * Given a camelCase string returns kebab-case.
+	 * Somewhat redundant, as the camelToSnakeCase can
+	 * also perform this transformation, but it's here
+	 * for completeness.
+	 *
+	 * @param string $string
+	 *
+	 * @return string
+	 */
+	public static function camelToKebabCase(string $string): string
+	{
+		return mb_strtolower(preg_replace('/(?<!^)[\p{L}]/u', '-$0', $string));
 	}
 
 	/**

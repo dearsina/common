@@ -92,7 +92,6 @@ class Modal extends Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-user-edit",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Edit {$rel_table}"),
 			"body" => $form->getHTML(),
@@ -129,7 +128,6 @@ class Modal extends Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-user-edit-email",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("Update email address"),
 			"body" => $form->getHTML(),
@@ -212,7 +210,6 @@ class Modal extends Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"id" => "modal-user-new",
 			"icon" => Icon::get("new"),
 			"header" => str::title("New {$rel_table}"),
 			"body" => $form->getHTML(),
