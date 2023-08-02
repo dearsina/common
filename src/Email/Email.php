@@ -347,6 +347,15 @@ class Email extends Prototype {
 			else {
 				//if this is an external file (even if it's hosted locally)
 
+				/**
+				 * Confusingly, the image path that we get from Azure contains spaces
+				 * and &quot; instead of quotes. We need to replace these with their
+				 * URL encoded equivalents, and in the case of the quotes, replace
+				 * them with actual quotes for it to work in emails.
+				 */
+				$image_path = str_replace(" ", "%20", $image_path);
+				$image_path = str_replace("&quot;", '"', $image_path);
+
 				# Get the image content
 				if(!$data = @file_get_contents($image_path)){
 					Log::getInstance()->error([
