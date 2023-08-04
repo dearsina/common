@@ -8,6 +8,55 @@ use Exception;
 
 class Connection extends Prototype {
 	/**
+	 * Second-level domains, that are prefixed
+	 * to some TLDs, like the UK.
+	 *
+	 * @link https://en.wikipedia.org/wiki/.uk
+	 *       https://en.wikipedia.org/wiki/.il
+	 *       https://en.wikipedia.org/wiki/.za
+	 */
+	const SECOND_LEVEL_DOMAINS = [
+		"ac",
+		"bl",
+		"co",
+		"gov",
+		"judiciary",
+		"ltd",
+		"me",
+		"mod",
+		"net",
+		"nhs",
+		"nic",
+		"org",
+		"parliament",
+		"plc",
+		"police",
+		"rct",
+		"royal",
+		"sch",
+		"aea",
+
+		"k12",
+		"muni",
+		"idf",
+
+		"edu",
+		"law",
+		"nom",
+		"school",
+		"web",
+		"ngo",
+		"tm",
+	];
+
+	public static function getTopLevelDomains(): ?array
+	{
+		if(!$txt = @file_get_contents("https://tld-list.com/df/tld-list-basic.txt")){
+			return NULL;
+		}
+		return explode("\n", $txt);
+	}
+	/**
 	 * Given a user ID, get the most recent connection ID.
 	 *
 	 * @param string|null $user_id

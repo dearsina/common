@@ -2480,12 +2480,11 @@ class User extends Prototype {
 	/**
 	 * Logs the time the user logged in and keeps a record of the time before that they logged in.
 	 *
-	 * @param $user_id
+	 * @param string $user_id
 	 *
-	 * @return bool
-	 * @throws Exception
+	 * @return void
 	 */
-	private function logAccess(string $user_id)
+	private function logAccess(string $user_id): void
 	{
 		$this->sql->update([
 			"table" => "user",
@@ -2497,6 +2496,10 @@ class User extends Prototype {
 			],
 		]);
 
+		if(!$_SERVER['HTTP_CSRF_TOKEN']){
+			return;
+		}
+
 		# Update the connection record to include user_id
 		$this->sql->update([
 			"table" => "connection",
@@ -2505,8 +2508,6 @@ class User extends Prototype {
 			],
 			"id" => $_SERVER['HTTP_CSRF_TOKEN'],
 		]);
-
-		return true;
 	}
 
 	/**
