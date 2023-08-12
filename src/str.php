@@ -326,7 +326,7 @@ class str {
 		$string = preg_replace("/,([^\s])/", ", $1", $string);
 
 		# A word is anything separated by spaces or a dash
-		$string = preg_replace_callback("/([^\s\-\.]+)/u", function($matches){
+		$string = preg_replace_callback("/([^\s\-\.\(\)]+)/u", function($matches){
 			# Make the word lowercase
 			$word = mb_strtolower($matches[1]);
 
@@ -4447,5 +4447,18 @@ EOF;
 		}
 
 		return $merged;
+	}
+
+	/**
+	 * Simple shortcut to wrap a string in a span with the ellipsis class.
+	 *
+	 * @param string|null $string
+	 * @param string|null $tag
+	 *
+	 * @return string
+	 */
+	public static function ellipsis(?string $string, ?string $tag = "span"): string
+	{
+		return "<{$tag} class=\"ellipsis\">{$string}</{$tag}>";
 	}
 }

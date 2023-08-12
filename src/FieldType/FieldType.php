@@ -109,7 +109,9 @@ class FieldType extends ModalPrototype {
 		}
 
 		# Get all the display only fields
-		$display_only_fields = FieldType::getDisplayOnlyFieldTypes();
+		$display_only_fields = FieldType::getFieldTypesOptions([
+			"display" => true,
+		]);
 
 		# If the field is not display only
 		if(!$display_only_fields[$field_type_id]){
@@ -151,28 +153,68 @@ class FieldType extends ModalPrototype {
 		return $display_only ?: [];
 	}
 
-	public static function getFieldTypesExDisplayOnlyOptions(?array $only_include = NULL): ?array
+	/**
+	 * Returns field types.
+	 * If filters are provided, they will be applied.
+	 * The key is the field_type_id, and the value is an array.
+	 *
+	 * Accepted filters:
+	 * - `exclude` (array) - field types to exclude by name or title
+	 * - `include` (array) - field types to include by name or title
+	 * - `display` (bool) - `true`, will only have display, `false`, will exclude display
+	 *
+	 *
+	 * @param array|null $filters
+	 *
+	 * @return array|null
+	 * @throws \Exception
+	 */
+	public static function getFieldTypesOptions(?array $filters = []): ?array
 	{
-		foreach((Info::getInstance())->getInfo([
-			"rel_table" => "field_type",
-			"where" => [
-				"display_only" => NULL,
-			],
-		]) ?: [] as $field_type){
-			if($only_include){
-				if(!in_array($field_type['name'], $only_include)){
-					continue;
-				}
-			}
-			$field_types[$field_type['field_type_id']] = [
-				"title" => $field_type['title'],
-				"icon" => $field_type['icon'],
-				"alt" => $field_type['desc'],
+		if(is_array($filters)){
+			extract($filters);
+		}
+
+		if($display === true){
+			$where = [
+				"display_only" => 1,
 			];
 		}
 
-		str::multidimensionalOrderBy($field_types, "title");
+		if($display === false){
+			$where = [
+				"display_only" => NULL,
+			];
+		}
 
-		return $field_types;
+		$field_types = Info::getInstance()->getInfo([
+			"rel_table" => "field_type",
+			"where" => $where,
+		]);
+
+		foreach($field_types as $field_type){
+			if(is_array($exclude)){
+				if(str::in_array_ci($field_type['title'], $exclude)
+					|| str::in_array_ci($field_type['name'], $exclude)){
+					continue;
+				}
+			}
+
+			if(is_array($include)){
+				if(!str::in_array_ci($field_type['title'], $include)
+					&& !str::in_array_ci($field_type['name'], $include)){
+					continue;
+				}
+			}
+
+			$field_type['tooltip'] = $field_type['desc'];
+			$field_type['alt'] = $field_type['desc'];
+
+			$field_type_options[$field_type['field_type_id']] = $field_type;
+		}
+
+		str::multidimensionalOrderBy($field_type_options, "order");
+
+		return $field_type_options;
 	}
 }
