@@ -3,6 +3,7 @@
 namespace App\Common\Country;
 
 use API\ExchangeRates\ExchangeRates;
+use App\Address\JaroWinkler;
 use App\Common\Prototype;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
@@ -678,5 +679,71 @@ EOF;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Given a country name or nationality, will return the
+	 * ISO-2 country code.
+	 * Allows for fuzzy matching.
+	 *
+	 * @param string|null $val The value that could be a country code, name or nationality
+	 * @param int|null    $fuzzy value between 0 and 1 corresponding to the level of fuzziness (Jaro-Winkler score)
+	 * @param string|null $return_col The column to return. Defaults to "country_code"
+	 *
+	 * @return string|null Returns NULL if no match can be found.
+	 * @throws \Exception
+	 */
+	public static function getCountryCode(?string $val, ?int $fuzzy = NULL, ?string $return_col = "country_code"): ?string
+	{
+		# A value must be included
+		if(!$val){
+			return NULL;
+		}
+
+		# Load the country array
+		$countries = Info::getInstance()->getInfo("country");
+
+		# Load the columns to search through
+		$columns_to_search = [
+			"country_code",
+			"iso_alpha-3",
+			"alt_iso_alpha-3",
+			"name",
+
+			# Can contain more than one value, semicolon separated
+			"alt_name",
+			"nationality"
+		];
+
+		foreach($countries as $country){
+			foreach($columns_to_search as $col){
+				if(!$country[$col]){
+					// Not all countries have all columns
+					continue;
+				}
+
+				foreach(preg_split("/\s*;\s*/", $country[$col]) as $name){
+					// The alt_name and nationality columns can contain more than one value, semicolon separated
+
+					# Trim and lowercase the values
+					$name = trim($name);
+					$name = strtolower($name);
+					$val = trim($val);
+					$val = strtolower($val);
+
+					if($fuzzy){
+						if(JaroWinkler::compare($name, $val) >= $fuzzy){
+							return $country[$return_col];
+						}
+					}
+
+					if($name == $val){
+						return $country[$return_col];
+					}
+				}
+			}
+		}
+
+		return NULL;
 	}
 }
