@@ -101,7 +101,7 @@ class str {
 	 * @return mixed
 	 * @link http://www.php.net/manual/en/function.ucwords.php#60064
 	 */
-	static function capitalise_name($str, $is_name = false, $all_words = false)
+	/*static function capitalise_name($str, $is_name = false, $all_words = false)
 	{
 		if(is_array($str)){
 			return $str;
@@ -202,7 +202,7 @@ class str {
 			}, $str);
 		}
 		return $str;
-	}
+	}*/
 
 	/**
 	 * Fixes the casing on all titles
@@ -213,20 +213,82 @@ class str {
 	 * </code>
 	 *
 	 * @param string|null $string
-	 * @param bool|null   $is_name
-	 * @param bool|null   $all_words
+	 * @param bool|null   $capitalise_all_words If set to TRUE will capitalise all words, if set to FALSE, will not
+	 *                                          capitalise any words
 	 *
 	 * @return string|null
 	 */
-	static function title(?string $string, ?bool $is_name = NULL, ?bool $all_words = NULL): ?string
+	static function title(?string $string, ?bool $capitalise_all_words = NULL): ?string
 	{
 		$string = str_replace("doc_", "document_", $string);
 		$string = str_replace("_col", "_column", $string);
 		$string = str_replace("_", " ", $string);
-		if($is_name || $all_words){
+
+		if($capitalise_all_words === false){
+			return $string;
+		}
+
+		if($capitalise_all_words){
 			return self::capitalise($string);
 		}
-		return self::capitalise_name($string, $is_name, $all_words);
+
+		# If only the first word is to be capitalised
+		$str_array = explode(" ", $string);
+		$first_word = array_shift($str_array);
+		$str = str::mb_ucfirst(mb_strtolower(trim($string)));
+
+		if(is_array(self::ALL_UPPERCASE)){
+			// Capitalize acronyms and initials, e.g. PHP
+			$all_uppercase = '';
+			foreach(self::ALL_UPPERCASE as $uc){
+				if($first_word == mb_strtolower($uc)){
+					$str = strtoupper($first_word) . " " . implode(" ", $str_array);
+				}
+				$all_uppercase .= mb_strtolower($uc) . '|';
+				//set them all to lowercase
+			}
+
+			//$str = preg_replace("/\\b($all_uppercase)\\b/e", 'strtoupper("$1")', $str);
+			$str = preg_replace_callback("/\\b($all_uppercase)\\b/u", function($matches){
+				return strtoupper($matches[1]);
+			}, $str);
+		}
+
+		if(is_array(self::ALL_LOWERCASE)){
+			// Remove capitalisation from short words, e.g. "and"
+			$all_lowercase = '';
+			foreach(self::ALL_LOWERCASE as $uc){
+				if($first_word == mb_strtolower($uc)){
+					$str = mb_strtolower($first_word) . " " . implode(" ", $str_array);
+				}
+				$all_lowercase .= mb_strtolower($uc) . '|';
+				//set them all to lowercase
+			}
+
+			// The first and last word will not be changed to lowercase (i.e. titles)
+			$str = preg_replace_callback("/(?<=\\W)($all_lowercase)(?=\\W)/u", function($matches){
+				return mb_strtolower($matches[1]);
+			}, $str);
+
+		}
+		if(is_array(self::NAME_PREFIXES)){
+			// Capitalize letter after certain name prefixes e.g 'Mc'
+			foreach(self::NAME_PREFIXES as $prefix){
+				$str = preg_replace_callback("/\\b($prefix)(\\w)/u", function($matches){
+					return "${matches[1]}" . strtoupper($matches[2]);
+				}, $str);
+			}
+		}
+
+		if(is_array(self::NAME_SUFFIXES)){
+			// Remove capitalisation from certain word suffixes, e.g. 's
+			foreach(self::NAME_SUFFIXES as $suffix){
+				$str = preg_replace_callback("/(\\w)($suffix)\\b/u", function($matches){
+					return "${matches[1]}" . mb_strtolower($matches[2]);
+				}, $str);
+			}
+		}
+		return $str;
 	}
 
 	/**
@@ -238,6 +300,14 @@ class str {
 		"VAT",
 		"ID",
 		"AI",
+	];
+
+	const NAME_PREFIXES = [
+		"Mc"
+	];
+
+	const NAME_SUFFIXES = [
+		"'S"
 	];
 
 	/**
@@ -2789,12 +2859,12 @@ EOF;
 	 * Will also add a suffix of your choosing. The default is an ellipsis.
 	 *
 	 * @param string|null $string $string
-	 * @param int         $max_length
+	 * @param int|null    $max_length
 	 * @param string|null $suffix
 	 *
 	 * @return string|null
 	 */
-	public static function truncateIf(?string $string, int $max_length, ?string $suffix = "..."): ?string
+	public static function truncateIf(?string $string, ?int $max_length = 50, ?string $suffix = "..."): ?string
 	{
 		if(!$string){
 			return $string;
