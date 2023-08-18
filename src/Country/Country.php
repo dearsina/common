@@ -710,7 +710,7 @@ EOF;
 			"alt_iso_alpha-3",
 			"name",
 
-			# Can contain more than one value, semicolon separated
+			# Can contain more than one value, pipe-delimited
 			"alt_name",
 			"nationality"
 		];
@@ -722,8 +722,8 @@ EOF;
 					continue;
 				}
 
-				foreach(preg_split("/\s*;\s*/", $country[$col]) as $name){
-					// The alt_name and nationality columns can contain more than one value, semicolon separated
+				foreach(explode("|", $country[$col]) as $name){
+					// The alt_name and nationality columns can contain more than one value, pipe-delimited
 
 					# Trim and lowercase the values
 					$name = trim($name);
