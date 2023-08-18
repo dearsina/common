@@ -365,6 +365,7 @@ class SheetHandler extends \App\Common\Prototype {
 			"db" => $this->data_db,
 			"table" => $this->data_table,
 			"set" => $sets,
+			"html" => array_keys(reset($sets)),
 			"include_meta" => false,
 			"include_id" => true,
 		]);
