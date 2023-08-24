@@ -269,51 +269,58 @@ class File {
 		# Open ImageMagik
 		$image = new Imagick();
 
-		# Read the original file (as uploaded by the client)
-		$image->readImage($file['tmp_name']);
+		try {
+			# Read the original file (as uploaded by the client)
+			$image->readImage($file['tmp_name']);
 
-		# Set new (reduced) image quality
-		$image->setImageCompression(Imagick::COMPRESSION_JPEG);
-		$image->setImageCompressionQuality(self::MAX_JPG_QUALITY);
-		$image->setImageFormat('jpg');
-		$image->stripImage();
+			# Set new (reduced) image quality
+			$image->setImageCompression(Imagick::COMPRESSION_JPEG);
+			$image->setImageCompressionQuality(self::MAX_JPG_QUALITY);
+			$image->setImageFormat('jpg');
+			$image->stripImage();
 
-		# Save it
-		$image->writeImage($file['tmp_name']);
-		$image->clear();
-
-		# Read the new (compressed) image
-		$image->readImage($file['tmp_name']);
-
-		# Get the new file size, if it's NOW small enough, stop
-		if($image->getImageLength() / 1048576 <= $max_filesize_mb){
-			$file['size'] = $image->getImageLength();
+			# Save it
+			$image->writeImage($file['tmp_name']);
 			$image->clear();
-			return;
+
+			# Read the new (compressed) image
+			$image->readImage($file['tmp_name']);
+
+			# Get the new file size, if it's NOW small enough, stop
+			if($image->getImageLength() / 1048576 <= $max_filesize_mb){
+				$file['size'] = $image->getImageLength();
+				$image->clear();
+				return;
+			}
+
+			# If the image is still too big, calculate the proportional scale
+			$size_difference = $image->getImageLength() / (1048576 * $max_filesize_mb);
+
+			# Reset the resolution
+			$image->setImageResolution(72, 72);
+			$image->resampleImage(72, 72, Imagick::FILTER_UNDEFINED, 1);
+
+			# Get the dimensions
+			$geometry = $image->getImageGeometry();
+
+			# Scale the image down proportionately (assuming a direct relationship between image and file size)
+			$new_width = floor($geometry['width'] / $size_difference);
+			$new_height = floor($geometry['height'] / $size_difference);
+			$image->scaleImage($new_width, $new_height);
+
+			# Save it
+			$image->writeImage($file['tmp_name']);
+
+			# Save the new length
+			$file['size'] = $image->getImageLength();
+
+			# And we're done
+			$image->clear();
 		}
 
-		# If the image is still too big, calculate the proportional scale
-		$size_difference = $image->getImageLength() / (1048576 * $max_filesize_mb);
-
-		# Reset the resolution
-		$image->setImageResolution(72, 72);
-		$image->resampleImage(72, 72, Imagick::FILTER_UNDEFINED, 1);
-
-		# Get the dimensions
-		$geometry = $image->getImageGeometry();
-
-		# Scale the image down proportionately (assuming a direct relationship between image and file size)
-		$new_width = floor($geometry['width'] / $size_difference);
-		$new_height = floor($geometry['height'] / $size_difference);
-		$image->scaleImage($new_width, $new_height);
-
-		# Save it
-		$image->writeImage($file['tmp_name']);
-
-		# Save the new length
-		$file['size'] = $image->getImageLength();
-
-		# And we're done
-		$image->clear();
+		catch (ImagickException $e){
+			// If there is an error, do nothing
+			return;
+		}
 	}
 }
