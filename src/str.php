@@ -303,11 +303,11 @@ class str {
 	];
 
 	const NAME_PREFIXES = [
-		"Mc"
+		"Mc",
 	];
 
 	const NAME_SUFFIXES = [
-		"'S"
+		"'S",
 	];
 
 	/**
@@ -1190,8 +1190,9 @@ class str {
 
 	/**
 	 * Returns an MD5 of an array or string.
+	 * Will convert binary strings to base64.
 	 *
-	 * Case INsensitive.
+	 * Case-insensitive.
 	 *
 	 * @param array|string $value
 	 *
@@ -1199,7 +1200,7 @@ class str {
 	 */
 	public static function getHash($value): string
 	{
-		return md5(mb_strtolower(json_encode($value)));
+		return md5(mb_strtolower(str::json_encode($value, "base64")));
 	}
 
 	/**
@@ -2828,28 +2829,32 @@ EOF;
 	}
 
 	/**
-	 * Flatten multidimentional array.
+	 * Flatten multi-dimensional array.
 	 *
-	 * @param array  $array The array to flatten
-	 * @param string $glue  The glue to use in the flattened array keys. Default is dot-notation.
+	 * @param mixed|null  $array $array The array to flatten
+	 * @param string|null $glue  The glue to use in the flattened array keys. Default is dot-notation.
 	 *
-	 * @return array|bool
+	 * @return array|NULL
 	 * @link https://stackoverflow.com/a/10424516/429071
 	 */
-	public static function flatten($array, $glue = '.')
+	public static function flatten($array, ?string $glue = '.')
 	{
 		if(!is_array($array)){
-			return false;
+			return $array;
 		}
+
 		$ritit = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($array));
+
 		$result = [];
+
 		foreach($ritit as $leafValue){
 			$keys = [];
 			foreach(range(0, $ritit->getDepth()) as $depth){
 				$keys[] = $ritit->getSubIterator($depth)->key();
 			}
-			$result[join($glue, $keys)] = $leafValue;
+			$result[implode($glue, $keys)] = $leafValue;
 		}
+
 		return $result;
 	}
 
@@ -3195,6 +3200,63 @@ EOF;
 		return explode($delimiter, $string);
 	}
 
+	/**
+	 * A safe way of converting an array to JSON.
+	 * Will take into consideration that binary strings
+	 * cannot be converted to JSON, and will convert
+	 * them to NULL values or base64 encoded strings.
+	 *
+	 * @param mixed|null       $data
+	 * @param string|null $conversion_type Options are "null" or "base64". Default is "null".
+	 *
+	 * @return false|string
+	 */
+	public static function json_encode($data, ?string $conversion_type = NULL)
+	{
+		$data = self::convertToJsonFriendlyValue($data, $conversion_type);
+		return json_encode($data);
+	}
+
+	/**
+	 * @param mixed|null  $value
+	 * @param string|null $conversion_type
+	 *
+	 * @return array|mixed|string|null
+	 */
+	private static function convertToJsonFriendlyValue($value, ?string $conversion_type = NULL)
+	{
+		if(is_array($value)){
+			$value = array_map(function($value){
+				return self::convertToJsonFriendlyValue($value);
+			}, $value);
+		}
+
+		else if(is_object($value)){
+			$value = (array)$value;
+			$value = array_map(function($value){
+				return self::convertToJsonFriendlyValue($value);
+			}, $value);
+		}
+
+		else if(str::isBinary($value)){
+			switch($conversion_type) {
+			case 'base64':
+				$value = base64_encode($value);
+				break;
+			case 'null':
+			default:
+				$value = NULL;
+				break;
+			}
+		}
+
+		return $value;
+	}
+
+	public static function isBinary(string $data): bool
+	{
+		return !mb_check_encoding($data, 'UTF-8');
+	}
 
 	/**
 	 * Takes a JSON string and converts it into an array.

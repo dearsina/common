@@ -165,6 +165,22 @@ class Country extends Prototype {
 		return $countries[$key]['country_code'];
 	}
 
+	public static function convertIso2toIso3(?string $iso2): ?string
+	{
+		if(!$iso2){
+			return NULL;
+		}
+
+		$countries = Info::getInstance()->getInfo("country");
+		$key = array_search($iso2, array_column($countries, 'country_code'));
+
+		if($key === false){
+			return $iso2;
+		}
+
+		return $countries[$key]['iso_alpha-3'];
+	}
+
 	public static function getNationalityFromISOAlpha2(?string $iso2): ?string
 	{
 		if(!$iso2){

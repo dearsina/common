@@ -321,6 +321,7 @@ class File {
 		catch (ImagickException $e){
 			// If there is an error, do nothing
 			return;
+			// Todo, do something with this error
 		}
 	}
 }
