@@ -3253,8 +3253,11 @@ EOF;
 		return $value;
 	}
 
-	public static function isBinary(string $data): bool
+	public static function isBinary(?string $data): bool
 	{
+		if(!$data){
+			return false;
+		}
 		return !mb_check_encoding($data, 'UTF-8');
 	}
 

@@ -299,6 +299,12 @@ abstract class Common {
 		if($this->table['is_tmp']){
 			return "FROM `{$this->table['name']}` AS `{$this->table['alias']}`";
 		}
+		if($this->ctes){
+			if(in_array($this->table['name'], array_keys($this->ctes))){
+				//if the table is a CTE, ignore the db name
+				return "FROM `{$this->table['name']}` AS `{$this->table['alias']}`";
+			}
+		}
 		return "FROM `{$this->table['db']}`.`{$this->table['name']}` AS `{$this->table['alias']}`";
 	}
 
