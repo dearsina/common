@@ -448,9 +448,17 @@ class Select extends Common {
 		# Get all columns
 		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
 
+		# If there are no columns, and the table is a CTE, load the CTE columns
+		if(!$columns && $this->table['is_cte']){
+			foreach($this->table['is_cte']['columns'] as $column){
+				$column['table_alias'] = $this->table['name'];
+				$columns[] = $column;
+			}
+		}
+		// Not 100% sure why they weren't loaded in the first place
+
 		# Format all the columns
 		if(!$formatted_columns = $this->formatColumns($columns, $alias_only)){
-//			var_dump($this->columns);
 			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
 				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated to the <code>{$this->table['name']}</code> table.");
