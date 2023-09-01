@@ -415,9 +415,14 @@ class SheetHandler extends \App\Common\Prototype {
 				"{$this->meta_table}_id" => $this->meta_id,
 			],
 		])){
-			# If they exist, let's not recreate them
-			$this->form_list_cols = $form_list_cols;
-			return;
+			if (count($form_list_cols) >= $this->sheet_metadata[$sheet_name]['col_count']){
+				// And the number of columns matches the number of columns in the sheet
+				$this->form_list_cols = $form_list_cols;
+				return;
+			}
+
+			# If new columns have been added
+			$i = $this->sheet_metadata[$sheet_name]['col_count'] - 1;
 		}
 
 		if($this->meta['header_row'] != NULL){
@@ -425,13 +430,13 @@ class SheetHandler extends \App\Common\Prototype {
 				if($row_number != $this->meta['header_row']){
 					continue;
 				}
-				$headers = array_keys($row);
+				$headers = $row->toArray();
 				break;
 			}
 		}
 
 		# Otherwise, we need to create the table
-		for($i = 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
+		for($i = $i ?: 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
 			$this->sql->insert([
 				"db" => $this->meta_db,
 				"table" => "{$this->meta_table}_col",
@@ -467,19 +472,36 @@ class SheetHandler extends \App\Common\Prototype {
 			"name" => $data_table,
 		]);
 
+		$metadata = $sql->select([
+			"columns" => [
+				"header_row",
+				"row_count",
+			],
+			"db" => $meta_db,
+			"table" => $meta_table,
+			"id" => $meta_id
+		]);
+
 		foreach($data_table_columns as $column => $column_data){
 			$result = $sql->select([
-				"db" => $data_db,
-				"table" => $data_table,
+				"cte" => [
+					"limited" => [
+						"db" => $data_db,
+						"table" => $data_table,
+						"columns" => $column,
+						"where" => [
+							"{$column} IS NOT NULL",
+						],
+						"include_removed" => true,
+						"limit" => [$metadata['header_row'], $metadata['row_count'] - $metadata['header_row']]
+					]
+				],
+				"table" => "limited",
 				"columns" => [
 					"indistinct" => ["COUNT(`{$column}`)"],
 					"distinct" => ["COUNT(DISTINCT `{$column}`)"],
 				],
-				"where" => [
-					"{$column} IS NOT NULL",
-				],
-				"include_removed" => true,
-				"limit" => 1,
+				"limit" => 1
 			]);
 
 			$sql->update([
@@ -494,6 +516,65 @@ class SheetHandler extends \App\Common\Prototype {
 				],
 			]);
 		}
+	}
+
+	public static function updateRowCount(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): void
+	{
+		$sql = Factory::getInstance();
+
+		$row_count = $sql->select([
+			"count" => true,
+			"db" => $data_db,
+			"table" => $data_table,
+			"include_removed" => true,
+		]);
+
+		$sql->update([
+			"db" => $meta_db,
+			"table" => $meta_table,
+			"where" => [
+				"{$meta_table}_id" => $meta_id,
+			],
+			"set" => [
+				"row_count" => $row_count
+			],
+		]);
+	}
+
+	public static function updateColCount(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): void
+	{
+		$sql = Factory::getInstance();
+
+		$data_table_columns = $sql->getTableMetadata([
+			"db" => $data_db,
+			"name" => $data_table,
+		]);
+
+		$sql->update([
+			"db" => $meta_db,
+			"table" => $meta_table,
+			"where" => [
+				"{$meta_table}_id" => $meta_id,
+			],
+			"set" => [
+				"col_count" => count($data_table_columns)
+			],
+		]);
+	}
+	
+	public static function refreshMetaData(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): void
+	{
+		# Identify unique columns
+		SheetHandler::identifyUniqueColumns($meta_db, $meta_table, $meta_id, $data_db, $data_table);
+
+		# Identify empty columns
+		SheetHandler::identifyEmptyColumns($meta_db, $meta_table, $meta_id, $data_db, $data_table);
+
+		# Identify the row count
+		SheetHandler::updateRowCount($meta_db, $meta_table, $meta_id, $data_db, $data_table);
+
+		# Identify the col count
+		SheetHandler::updateColCount($meta_db, $meta_table, $meta_id, $data_db, $data_table);
 	}
 
 	/**
@@ -536,14 +617,20 @@ class SheetHandler extends \App\Common\Prototype {
 				"set" => [
 					# If no data can be found in the column, it's empty
 					"is_empty" => !$sql->select([
-						"db" => $data_db,
-						"table" => $data_table,
-						"columns" => $column,
+						"cte" => [
+							"limited" => [
+								"db" => $data_db,
+								"table" => $data_table,
+								"columns" => $column,
+								"include_removed" => true,
+								"limit" => [$meta_data['header_row'], $meta_data['row_count'] - $meta_data['header_row']]
+							]
+						],
+						"table" => "limited",
 						"where" => [
 							"{$column} IS NOT NULL",
 						],
-						"include_removed" => true,
-						"limit" => [$meta_data['header_row'], 1],
+						"limit" => 1
 					])
 					/**
 					 * In this context, data means a value that is not NULL.
