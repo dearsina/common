@@ -388,7 +388,8 @@ class Request {
 		# Ensure token belongs to this IP address
 		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			// If the token IP and the connecting IP are not the same
-			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)){
+			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)
+			&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)){
 				//If the IP address doesn't belong to any of the whitelisted ASN domains
 
 				# Refresh the connection
@@ -433,6 +434,10 @@ class Request {
 		"telkom.co.za",
 		"afrihost.com",
 		"three.co.uk",
+	];
+
+	const WHITELISTED_ASN_NAMES = [
+		"Liquid Telecommunications South Africa"
 	];
 
 	/**
