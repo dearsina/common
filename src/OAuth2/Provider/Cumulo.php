@@ -278,11 +278,31 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			// create a writer instance
 			$writer = new \SetaPDF_Core_Writer_String();
 			$tmpWriter = new \SetaPDF_Core_Writer_TempFile();
-			// create the document instance
+
+			// Create the document instance
 			$document = \SetaPDF_Core_Document::loadByFilename($file['tmp_name'], $tmpWriter);
 
+			# If the document is to be encrypted
+			if($file['password'] !== NULL){
+				# Create a security handler instance
+				$secHandler = \SetaPDF_Core_SecHandler_Standard_Aes256::factory($document, $file['password'], $file['password']);
+
+				# Set the security handler instance
+				$document->setSecHandler($secHandler);
+
+				# Create a signer instance with the password
+				$signer = new \SetaPDF_Signer($document, static function(\SetaPDF_Core_SecHandler_SecHandlerInterface $secHandler) use ($file) {
+					$secHandler->auth($file['password']);
+				});
+			}
+
+			# If the document is not to be encrypted
+			else {
+				$signer = new \SetaPDF_Signer($document);
+			}
+
 			// create the signer instance
-			$signer = new \SetaPDF_Signer($document);
+			//			$signer = new \SetaPDF_Signer($document);
 			$signer->setAllowSignatureContentLengthChange(false);
 			$signer->setSignatureContentLength(26000);
 
@@ -308,6 +328,13 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 			$signer->sign($module);
 
 			$document = \SetaPDF_Core_Document::loadByFilename($tmpWriter->getPath(), $writer);
+
+			# If the document was encrypted already, we need to now decrypt it
+			if($file['password'] !== NULL){
+				# Decrypt both the owner and the user passwords that were set above
+				$document->getSecHandler()->authByOwnerPassword($file['password']);
+				$document->getSecHandler()->authByUserPassword($file['password']);
+			}
 
 			// Create a collection of trusted certificats:
 			$trustedCertificates = new \SetaPDF_Signer_X509_Collection($chainCertificates);
