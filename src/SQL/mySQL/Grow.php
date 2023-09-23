@@ -289,6 +289,13 @@ class Grow extends Common {
 			}
 		}
 
+		# If the column is date, and the value is a date, even if it listed as varchar, leave it
+		if(in_array($tableMetadata[$key]['DATA_TYPE'], ["date"]) && $type == "varchar"){
+			if(strtotime($val)){
+				return null;
+			}
+		}
+
 		# If the column exists, but for a different data type
 		if($tableMetadata[$key]['DATA_TYPE'] != $type){
 			return $this->getChangeColumnQuery($table, $col, $val, $type, $tableMetadata);
