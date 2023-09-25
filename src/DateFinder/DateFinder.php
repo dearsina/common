@@ -262,7 +262,7 @@ class DateFinder extends \App\Common\Prototype {
 	 * @return bool
 	 */
 	public function isADate(?string $string): ?\DateTime
-	{if($string == "We hereby confirm that Mr Malte Kersten has the following account(s) at Capitec Bank Limited on 09/10/2019"){$a=true;}
+	{
 		# Ensure string is long enough to be a date
 		if(strlen($string) < 6){
 			//Date string needs to be at least 6 characters (YYMMDD), all in

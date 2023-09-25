@@ -2396,7 +2396,7 @@ EOF;
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 */
-	static function multidimensionalOrderBy(?array &$array, $order, ?bool $reset_keys = NULL, ?bool $case_sensitive = NULL): void
+	static function multidimensionalOrderBy(?array &$array, $order = ["order" => "ASC"], ?bool $reset_keys = NULL, ?bool $case_sensitive = NULL): void
 	{
 		if(!$array){
 			return;

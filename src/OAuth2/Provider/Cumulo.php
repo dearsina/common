@@ -153,8 +153,6 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 	private function getCertificateId(object $client): string
 	{
 		$certificateInfos = $client->listCertificates();
-		//		return $certificateInfos[1]['id'];
-		//		// Not quite sure why it's taking the _second_ certificate ID
 		$certificate = end($certificateInfos);
 		return $certificate['id'];
 	}
