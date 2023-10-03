@@ -714,7 +714,7 @@ class Doc extends \App\Common\Prototype {
 		$cmd = "pdftoppm -f {$page_number} -l {$page_number} -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
 
 		# Execute the command
-		shell_exec($cmd);
+		$file['output'] = shell_exec($cmd);
 
 		# Add the pdftoppm suffix
 		$file['tmp_name'] .= "-{$page_number}.jpg";
