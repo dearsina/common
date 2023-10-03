@@ -3211,10 +3211,10 @@ EOF;
 	 *
 	 * @return false|string
 	 */
-	public static function json_encode($data, ?string $conversion_type = NULL)
+	public static function json_encode($data, ?string $conversion_type = NULL, $flags = NULL)
 	{
 		$data = self::convertToJsonFriendlyValue($data, $conversion_type);
-		return json_encode($data);
+		return json_encode($data, $flags);
 	}
 
 	/**
