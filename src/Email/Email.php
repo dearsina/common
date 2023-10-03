@@ -690,7 +690,7 @@ class Email extends Prototype {
 
 			else {
 				# Collect recipients
-				$recipients = array_filter(array_merge($this->envelope->getTo(), $this->envelope->getCc(), $this->envelope->getBcc()));
+				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
 				if(is_array($recipients)){
 					$recipients = implode(", ", $recipients);
 				}
