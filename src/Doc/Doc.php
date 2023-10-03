@@ -695,7 +695,17 @@ class Doc extends \App\Common\Prototype {
 	}
 
 	/**
+	 * Max width/height generally accepted
+	 * by AWS/Azure.
+	 */
+	const MAX_WIDTH_HEIGHT_PX = 3000;
+
+	/**
 	 * Converts the nth page of a PDF to a JPG.
+	 *
+	 * Ensures the image isn't larger than the
+	 * max width/height in px to be used in AWS
+	 * Rekognition or Azure's OCR.
 	 *
 	 * @param array    $file
 	 * @param int|null $page_number
@@ -713,11 +723,23 @@ class Doc extends \App\Common\Prototype {
 		# Write command to convert the PDF to JPG using pdftoppm
 		$cmd = "pdftoppm -f {$page_number} -l {$page_number} -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
 
-		# Execute the command
-		$file['output'] = shell_exec($cmd);
+		# Log and execute the command
+		$file['cmd'][] = $cmd;
+		$file['output'][] = shell_exec($cmd);
 
-		# Add the pdftoppm suffix
+		# Remove the PDF copy
+		unlink($file['tmp_name']);
+
+		# Add the pdftoppm suffix (this is added automatically from the above command)
 		$file['tmp_name'] .= "-{$page_number}.jpg";
+
+		# Resize to max width or height
+		$cmd = "convert {$file['tmp_name']} -resize ".self::MAX_WIDTH_HEIGHT_PX."x".self::MAX_WIDTH_HEIGHT_PX."\> {$file['tmp_name']}";
+		// This is only a problem if you're dealing with unique PDFs with very high DPIs
+
+		# Log and execute the command
+		$file['cmd'][] = $cmd;
+		$file['output'][] = shell_exec($cmd);
 
 		# Update the metadata
 		$file['md5'] = md5_file($file['tmp_name']);
