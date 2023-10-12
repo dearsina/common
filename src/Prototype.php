@@ -588,14 +588,22 @@ abstract class Prototype {
 		$blob_count = $azure->getBlobCount($rel_id);
 		$azure->deleteContainer($rel_id);
 
-		if($table_counts){
-			foreach($table_counts as $table => $count){
-				$table_narratives[] = str::title(str::pluralise_if($count, "row", true) . " from the <b>{$table}</b> table");
+		# If the user has elevated permissions, show them the detailed narrative
+		if($this->permission()->get($rel_table)){
+			if($table_counts){
+				foreach($table_counts as $table => $count){
+					$table_narratives[] = str::title(str::pluralise_if($count, "row", true) . " from the <b>{$table}</b> table");
+				}
+				$narrative[] = str::oxfordImplode($table_narratives) . " were deleted.";
 			}
-			$narrative[] = str::oxfordImplode($table_narratives) . " were deleted.";
+
+			$narrative[] = " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
 		}
 
-		$narrative[] = " From the cloud, " . str::were($blob_count, "file", true) . " deleted.";
+		# Otherwise, just tell them the rel_table was removed
+		else {
+			$narrative[] = str::title("The {$rel_table} was removed successfully.");
+		}
 
 		if(!$silent){
 			$this->log->info([
