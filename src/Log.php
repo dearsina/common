@@ -106,7 +106,7 @@ class Log {
 		]));
 
 		# Don't alert the user more than once in the same go
-		if(isset($alerts[$md5])){
+		if($alerts[$md5]){
 			return;
 		}
 
