@@ -1766,6 +1766,7 @@ class str {
 	 */
 	static function getAttrTag($attr, $val, $if_null = NULL)
 	{
+
 		if(is_array($val)){
 			$val_array = $val;
 			unset($val);
@@ -1780,6 +1781,7 @@ class str {
 			}
 			else {
 				//if keys do matter
+
 				foreach($val_array as $k => $v){
 					if(is_numeric($k) && is_array($v)){
 						foreach($v as $vk => $vv){
@@ -1801,7 +1803,10 @@ class str {
 			}
 		}
 
-		if(!strlen(trim($val))){
+		// if(!strlen(trim($val))){
+			# Cass - Checked if not null since trim cant work o null 
+
+		if ($val !== null && !strlen(trim($val))) {
 			//if there is no visible val
 
 			if($if_null === true){
@@ -1818,7 +1823,10 @@ class str {
 			}
 		}
 
-		$val = str_replace("\"", "&quot;", $val);
+		# PHP 8 doesnt allow parsing null to string_replace
+		if ($val !== null) {
+			$val = str_replace("\"", "&quot;", $val);
+		}
 		//make sure the val doesn't break the whole tag
 		//@link https://stackoverflow.com/a/1081581/429071
 
@@ -4092,7 +4100,14 @@ EOF;
 	 */
 	static function rgb2hex($rgb)
 	{
-		return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
+		
+		# Cass: - Depreciated
+		// return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
+
+		# Cass: - Adding an interger sice Dechex request to check Int. 
+		return str_pad(dechex((int)($rgb * 255)), 2, '0', STR_PAD_LEFT);
+		
+		
 	}
 
 	/**
