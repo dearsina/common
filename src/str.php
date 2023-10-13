@@ -1803,30 +1803,26 @@ class str {
 			}
 		}
 
-		// if(!strlen(trim($val))){
-			# Cass - Checked if not null since trim cant work o null 
-
-		if ($val !== null && !strlen(trim($val))) {
-			//if there is no visible val
+		if($val === NULL || !strlen(trim($val))){
+			// If val is NULL or empty, return the replacement value
 
 			if($if_null === true){
 				//If you just need there to be a tag, even if the value is empty
 				$val = "";
 			}
+			
 			else if($if_null){
 				//if there is a replacement
 				$val = $if_null;
 			}
+
 			else {
 				//otherwise peace out
-				return false;
+				return NULL;
 			}
 		}
 
-		# PHP 8 doesnt allow parsing null to string_replace
-		if ($val !== null) {
-			$val = str_replace("\"", "&quot;", $val);
-		}
+		$val = str_replace("\"", "&quot;", $val ?? "");
 		//make sure the val doesn't break the whole tag
 		//@link https://stackoverflow.com/a/1081581/429071
 
