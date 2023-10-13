@@ -331,7 +331,8 @@ EOF;
 		}
 	}
 
-	/**
+	/** 
+	 * 
 	 * A unique method only called by the error.php file
 	 * in the root of the project, when an error occurs
 	 * on the ajax.php pathway.
