@@ -127,6 +127,7 @@ class Email extends Prototype {
 		if (!empty($_ENV['email_username']) && !empty($_ENV['email_name'])) {
 			$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
 		}
+		
 		return $this;
 	}
 
