@@ -1,0 +1,29 @@
+{
+  "name": "dearsina/common",
+  "version": "0.0.1",
+  "dist": {
+    "url": "https://github.com/dearsina/common/archive/master.zip",
+    "type": "zip"
+  },
+  "type": "library",
+  "description": "A set of commonly used PHP classes",
+  "keywords": ["common","php"],
+  "homepage": "https://github.com/dearsina/common",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Sina Bahrami",
+      "email": "github@pixbox.co.uk",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=7.0",
+    "vlucas/phpdotenv": "4.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\Common\\": "src/"
+    }
+  }
+}
