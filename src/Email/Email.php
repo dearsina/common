@@ -124,8 +124,9 @@ class Email extends Prototype {
 	 */
 	public function from(string $from): object
 	{
-		$this->envelope->setFrom([$_ENV['email_username'] => "{$from} via {$_ENV['email_name']}"]);
-
+		if (!empty($_ENV['email_username']) && !empty($_ENV['email_name'])) {
+			$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
+		}
 		return $this;
 	}
 
