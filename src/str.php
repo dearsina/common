@@ -1801,24 +1801,26 @@ class str {
 			}
 		}
 
-		if(!strlen(trim($val))){
-			//if there is no visible val
+		if($val === NULL || !strlen(trim($val))){
+			// If val is NULL or empty, return the replacement value
 
 			if($if_null === true){
 				//If you just need there to be a tag, even if the value is empty
 				$val = "";
 			}
+			
 			else if($if_null){
 				//if there is a replacement
 				$val = $if_null;
 			}
+
 			else {
 				//otherwise peace out
-				return false;
+				return NULL;
 			}
 		}
 
-		$val = str_replace("\"", "&quot;", $val);
+		$val = str_replace("\"", "&quot;", $val ?? "");
 		//make sure the val doesn't break the whole tag
 		//@link https://stackoverflow.com/a/1081581/429071
 
@@ -4092,7 +4094,14 @@ EOF;
 	 */
 	static function rgb2hex($rgb)
 	{
-		return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
+		
+		# Cass: - Depreciated
+		// return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
+
+		# Cass: - Adding an interger sice Dechex request to check Int. 
+		return str_pad(dechex((int)($rgb * 255)), 2, '0', STR_PAD_LEFT);
+		
+		
 	}
 
 	/**
