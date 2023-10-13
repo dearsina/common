@@ -5,6 +5,7 @@ namespace App\Common\Doc;
 use App\Common\Exception\BadRequest;
 use App\Common\Log;
 use App\Common\str;
+use App\Email\Email;
 use Pelago\Emogrifier\CssInliner;
 use Smalot\PdfParser\RawData\RawDataParser;
 
@@ -701,6 +702,62 @@ class Doc extends \App\Common\Prototype {
 	const MAX_WIDTH_HEIGHT_PX = 3000;
 
 	/**
+	 * The max page size in inches.
+	 *
+	 * @param array $file
+	 *
+	 * @return void
+	 */
+	const MAX_PAGE_SIZE_IN = 11;
+
+	/**
+	 *  Max page size width/height
+	 *  is 11 inches, which is the height
+	 *  of an A4 page. At times, PDFs are
+	 *  uploaded with larger page sizes.
+	 *  This method will rescale the PDF
+	 *  to be max 11 inches in
+	 *  width/height. This doesn't change
+	 *  the content or filesize, but it
+	 *  allows for better handling.
+	 *
+	 * @param array $file
+	 *
+	 * @return void
+	 */
+	private static function rescalePdfWidthAndHeight(array &$file): void
+	{
+		$output = shell_exec("pdfinfo {$file['tmp_name']} | grep 'Page size'");
+		if (!preg_match("/Page size:\s+(\d+\.\d+) x (\d+\.\d+)/", $output, $matches)) {
+			// If the page size can't be found, abort mission
+			return;
+		}
+
+		$file['width'] = $matches[1] / 72;  // Convert points to inches
+		$file['height'] = $matches[2] / 72;  // Convert points to inches
+
+		if($file['width'] <= self::MAX_PAGE_SIZE_IN && $file['height'] <= self::MAX_PAGE_SIZE_IN){
+			// If the page size is already within the max size, pencils down
+			return;
+		}
+
+		$scale_width = self::MAX_PAGE_SIZE_IN / $file['width'];
+		$scale_height = self::MAX_PAGE_SIZE_IN / $file['height'];
+
+		$scale_factor = min($scale_width, $scale_height);
+
+		$new_width = intval($dimensions['width'] * $scale_factor * 72);  // Convert back to points
+		$new_height = intval($dimensions['height'] * $scale_factor * 72); // Convert back to points
+
+		# Use GhostScript to resize the PDF
+		$cmd = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile={$file['tmp_name']} -g{$new_width}x{$new_height} -r72x72 -c \"<</BeginPage{{$scale_factor} {$scale_factor} scale}>> setpagedevice\" -f {$file['tmp_name']}";
+
+		# Log and execute the command
+		$file['cmd'][] = $cmd;
+		$file['output'][] = shell_exec($cmd);
+	}
+
+	/**
 	 * Converts the nth page of a PDF to a JPG.
 	 *
 	 * Ensures the image isn't larger than the
@@ -721,11 +778,32 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Write command to convert the PDF to JPG using pdftoppm
-		$cmd = "pdftoppm -f {$page_number} -l {$page_number} -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
+		$cmd = "pdftoppm -f {$page_number} -l {$page_number} -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']} 2>&1";
 
 		# Log and execute the command
 		$file['cmd'][] = $cmd;
 		$file['output'][] = shell_exec($cmd);
+
+		if(end($file['output']) !== NULL){
+			// If there is an issue
+
+			# Rescale the PDF, that will probably solve it
+			self::rescalePdfWidthAndHeight($file);
+
+			# Try again
+			$file['cmd'][] = $cmd;
+			$file['output'][] = shell_exec($cmd);
+
+			if(end($file['output']) !== NULL){
+				// If there is still an issue, inform admin, return
+				Email::notifyAdmins([
+					"subject" => "PDF resizing issue",
+					"body" => "Tried to resize a PDF, didn't work. See PDF info below.<br><pre>".json_encode($file, JSON_PRETTY_PRINT)."</pre>",
+					"backtrace" => str::backtrace(true)
+				]);
+				return;
+			}
+		}
 
 		# Remove the PDF copy
 		unlink($file['tmp_name']);
@@ -734,7 +812,7 @@ class Doc extends \App\Common\Prototype {
 		$file['tmp_name'] .= "-{$page_number}.jpg";
 
 		# Resize to max width or height
-		$cmd = "convert {$file['tmp_name']} -resize ".self::MAX_WIDTH_HEIGHT_PX."x".self::MAX_WIDTH_HEIGHT_PX."\> {$file['tmp_name']}";
+		$cmd = "convert {$file['tmp_name']} -resize ".self::MAX_WIDTH_HEIGHT_PX."x".self::MAX_WIDTH_HEIGHT_PX."\> {$file['tmp_name']} 2>&1";
 		// This is only a problem if you're dealing with unique PDFs with very high DPIs
 
 		# Log and execute the command
