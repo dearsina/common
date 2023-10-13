@@ -96,12 +96,8 @@ class Email extends Prototype {
 		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 
 		# Set the From address with an associative array
-		#removed
-		#$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
-		// Handling errors to he function 
-		if (!empty($_ENV['email_username']) && !empty($_ENV['email_name'])) {
-			$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
-		}
+		
+		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
 
 		# Set the default email format (include the OAuth token if one is set)
 		$this->format = array_merge(
@@ -124,10 +120,7 @@ class Email extends Prototype {
 	 */
 	public function from(string $from): object
 	{
-		#hancling errror to the function
-		if (!empty($_ENV['email_username']) && !empty($_ENV['email_name'])) {
-			$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
-		}
+		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
 		
 		return $this;
 	}
