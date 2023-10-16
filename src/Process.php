@@ -17,7 +17,7 @@ namespace App\Common;
 class Process {
 	private $pid;
 	private $command;
-
+	
 	/**
 	 * Process constructor.
 	 *

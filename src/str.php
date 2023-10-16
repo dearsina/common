@@ -938,6 +938,7 @@ class str {
 	 */
 	public static function isNotSpamEmail(string $email): bool
 	{
+		
 		$client = new Client([
 			"base_uri" => "http://api.stopforumspam.org/",
 		]);
