@@ -1481,12 +1481,15 @@ class str {
 	 * Safe URL encoding.
 	 * Only URL encodes if the string needs it, or hasn't already been encoded.
 	 *
-	 * @param $str
+	 * @param string|null $str
 	 *
 	 * @return string
 	 */
-	static function urlencode($str)
+	static function urlencode(?string $str): ?string
 	{
+		if($str === NULL){
+			return NULL;
+		}
 		return strpos($str, '/') !== false ? urlencode($str) : $str;
 	}
 
@@ -1808,7 +1811,7 @@ class str {
 				//If you just need there to be a tag, even if the value is empty
 				$val = "";
 			}
-			
+
 			else if($if_null){
 				//if there is a replacement
 				$val = $if_null;
