@@ -1008,6 +1008,8 @@ class str {
 		return json_last_error() === JSON_ERROR_NONE;
 	}
 
+
+	
 	/**
 	 * Checks to see if a given string is base64 or not.
 	 *
