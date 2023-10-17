@@ -938,6 +938,7 @@ class str {
 	 */
 	public static function isNotSpamEmail(string $email): bool
 	{
+		
 		$client = new Client([
 			"base_uri" => "http://api.stopforumspam.org/",
 		]);
@@ -1008,6 +1009,8 @@ class str {
 		return json_last_error() === JSON_ERROR_NONE;
 	}
 
+
+	
 	/**
 	 * Checks to see if a given string is base64 or not.
 	 *
