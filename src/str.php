@@ -1267,8 +1267,12 @@ class str {
 	 * @return string
 	 * @return string
 	 */
-	public static function getMethodCase($snake)
+	public static function getMethodCase(?string $snake) : ?string
 	{
+        if($snake == NULL){
+            return null;
+        }
+
 		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
 	}
 
