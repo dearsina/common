@@ -131,7 +131,7 @@ class Field extends FieldPrototype {
 				],
 				"minLength" => 2,
 			],
-			"value" => urldecode($first_name),
+			"value" => urldecode($first_name ? $first_name : ''),
 			"sm" => 5,
 		], [
 			"name" => "last_name",
@@ -145,7 +145,7 @@ class Field extends FieldPrototype {
 				],
 				"minLength" => 2,
 			],
-			"value" => urldecode($last_name),
+			"value" => urldecode($last_name ? $first_name : ''),
 			"sm" => 7,
 		]], [
 			"type" => "email",

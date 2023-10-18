@@ -1838,7 +1838,7 @@ abstract class Common {
 
 		# Int columns
 		if($table_metadata[$col]['DATA_TYPE'] == 'int'){
-			if(!strlen($val) || !is_numeric($val)){
+			if($val != NULL && !strlen($val) || !is_numeric($val)){
 				//if the value is ""
 				return "NULL";
 				// Because INT columns do not accept strings, even empty ones
