@@ -205,7 +205,7 @@ class Hash {
 	{
 
 		# Remove the first slash (not sure about the consequences)
-		if(substr(urldecode($this->callback), 0, 1) == '/'){
+		if($this->callback !== null && substr(urldecode($this->callback), 0, 1) == '/'){
 			$this->callback = substr(urldecode($this->callback), 1);
 		}
 
@@ -213,7 +213,7 @@ class Hash {
 			return str::urlencode($this->callback);
 		}
 		else {
-			return urldecode($this->callback);
+			return urldecode($this->callback ? $this->callback : '');
 		}
 	}
 }

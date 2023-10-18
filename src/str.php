@@ -612,7 +612,7 @@ class str {
 	 */
 	public static function base64_decode_url(?string $string)
 	{
-		$string = base64_decode(str_replace(['-', '_'], ['+', '/'], $string));
+		$string = base64_decode(str_replace(['-', '_'], ['+', '/'], ($string ? $string : '')));
 
 		if(str::isJson($string)){
 			$string = json_decode($string, true);
