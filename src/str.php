@@ -2703,7 +2703,13 @@ EOF;
 		}
 
 		# Get the indefinite article
-		$result = self::getIndefiniteArticle($word, $include_word);
+		$result = self::getIndefiniteArticle($word, true);
+		// For some reason, we have to include word or else it gets it wrong
+
+		if(!$include_word){
+			$result = trim(str_replace($word, "", $result));
+		}
+
 		return $pre . $result . $post;
 	}
 
