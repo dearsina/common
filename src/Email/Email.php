@@ -9,6 +9,7 @@ use App\Common\Log;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\Prototype;
 use App\Common\str;
+use App\Common\Email\CustomMailer;
 
 /**
  * Class Email
@@ -655,7 +656,7 @@ class Email extends Prototype {
 		catch(\Exception $e) {
 			# Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
 			if(strpos($e->getMessage(), "250") !== false){
-				\App\Email\Email::notifyAdmins([
+                CustomMailer::notifyAdmins([
 					"subject" => "250 2.1.0 Sender OK email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
 					"backtrace" => str::backtrace(true),
@@ -664,7 +665,7 @@ class Email extends Prototype {
 
 			# Expected response code 250 but got code "432", with message "432 4.3.2 Concurrent connections limit exceeded. Visit https://aka.ms/concurrent_sending for more information.
 			else if(strpos($e->getMessage(), "432") !== false){
-				\App\Email\Email::notifyAdmins([
+               CustomMailer::notifyAdmins([
 					"subject" => "432 4.3.2 Concurrent connections limit exceeded email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
 					"backtrace" => str::backtrace(true),
@@ -673,7 +674,7 @@ class Email extends Prototype {
 
 			# Failed to authenticate on SMTP server with username "info@kycdd.co.za" using 2 possible authenticators. Authenticator LOGIN returned Connection to tcp://smtp.office365.com:587 Timed Out. Authenticator XOAUTH2 returned Connection to tcp://smtp.office365.com:587 Timed Out
 			else if(strpos($e->getMessage(), "Failed to authenticate") !== false){
-				\App\Email\Email::notifyAdmins([
+                CustomMailer::notifyAdmins([
 					"subject" => "Failed to authenticate email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
 					"backtrace" => str::backtrace(true),
@@ -682,7 +683,7 @@ class Email extends Prototype {
 
 			# Connection to tcp://smtp.office365.com:587 Timed Out
 			else if(strpos($e->getMessage(), "Timed Out") !== false){
-				\App\Email\Email::notifyAdmins([
+                CustomMailer::notifyAdmins([
 					"subject" => "Timed out email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
 					"backtrace" => str::backtrace(true),
@@ -695,10 +696,10 @@ class Email extends Prototype {
 				if(is_array($recipients)){
 					$recipients = implode(", ", $recipients);
 				}
-
-				# Notify the admins of any unknown errors
-				\App\Email\Email::notifyAdmins([
-					"subject" => "Unknown email error",
+                # Notify the admins of any unknown errors
+                CustomMailer::notifyAdmins
+                ([
+                "subject" => "Unknown email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . " to send the email to {$recipients}: {$e->getMessage()}",
 					"backtrace" => str::backtrace(true),
 				]);
@@ -726,7 +727,7 @@ class Email extends Prototype {
 
 		if($tries > 1){
 			// If the email was sent successfully on a second/third try, notify admins again
-			\App\Email\Email::notifyAdmins([
+            \Common\Email\CustomMailer::notifyAdmins([
 				"subject" => "Email sent successfully on try {$tries}",
 				"body" => "The email was successfully sent after {$tries} tries.",
 			]);

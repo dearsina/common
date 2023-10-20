@@ -220,13 +220,16 @@ class Select extends Common {
 
 		# For each JSON column, json_decode the value
 		foreach($rows as $id => $row){
-			foreach($row as $col_name => $col_value){
-				if(in_array($col_name, $json_columns)){
-					$rows[$id][$col_name] = json_decode($col_value, true);
-				}
-			}
+			foreach($row as $col_name => $col_value) {
+                if ($col_value !== NULL) {
+                    if(in_array($col_name, $json_columns)){
+                        $rows[$id][$col_name] = json_decode($col_value, true);
+                    }
+                }
+            }
 		}
 	}
+
 
 	/**
 	 * If a table has joins, and a limit on rows, the cap
