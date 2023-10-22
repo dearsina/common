@@ -164,7 +164,7 @@ abstract class Prototype {
 	 * @param             $rel_table_or_array
 	 * @param string|null $rel_id
 	 * @param null        $refresh
-	 * @param array|null  $joins
+	 * @param array|null  $joins NULL equals run all the joins, [] equals run NO joins
 	 *
 	 * @return array|string|null
 	 * @throws Exception
