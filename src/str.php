@@ -1198,8 +1198,18 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function getHash($value): string
+	public static function getHash($value): ?string
 	{
+		# If the value is NULL, get the hash of an empty string
+		if($value === NULL){
+			return md5("");
+		}
+
+		# Order keys alphabetically (to ensure that the JSON string is always the same)
+		if(is_array($value)){
+			ksort($value);
+		}
+
 		return md5(mb_strtolower(str::json_encode($value, "base64")));
 	}
 
