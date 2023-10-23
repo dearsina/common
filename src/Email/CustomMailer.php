@@ -11,7 +11,6 @@ class CustomMailer extends Email
     public function notifyAdminsWorker(array $a): bool
     {
         extract($a);
-
         $email = new \App\Common\Email\Email();
 
         # Notify the generic email address

@@ -93,7 +93,7 @@ class Email extends Prototype {
 
 		# Set a unique message ID
 		$headers = $this->envelope->getHeaders();
-		$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
+//		$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
 		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 
 		# Set the From address with an associative array
@@ -648,13 +648,13 @@ class Email extends Prototype {
 			$mailer = $this->getMailer();
 		}
 
-		try {
+        try {
 			# Send the email
 			$mailer->send($this->envelope);
 		}
 
 		catch(\Exception $e) {
-			# Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
+            # Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
 			if(strpos($e->getMessage(), "250") !== false){
                 CustomMailer::notifyAdmins([
 					"subject" => "250 2.1.0 Sender OK email error",
@@ -693,9 +693,8 @@ class Email extends Prototype {
 			else {
 				# Collect recipients
 				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
-				if(is_array($recipients)){
-					$recipients = implode(", ", $recipients);
-				}
+                $recipients = implode(", ", $recipients);
+
                 # Notify the admins of any unknown errors
                 CustomMailer::notifyAdmins
                 ([
@@ -766,7 +765,7 @@ class Email extends Prototype {
 		$transport = new \Swift_SmtpTransport();
 		$transport->setHost($_ENV['email_smtp_host']);
 		$transport->setPort($_ENV['email_smtp_port']);
-		$transport->setEncryption("TLS");
+        $transport->setEncryption("SSL");
 		$transport->setUsername($_ENV['email_username']);
 		$transport->setPassword($_ENV['email_password']);
 
