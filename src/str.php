@@ -44,7 +44,7 @@ class str {
 	{
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 
@@ -1659,7 +1659,7 @@ class str {
 	 * Case-insensitive in_array function.
 	 *
 	 * @param $needle
-	 * @param $haystack
+	 * @param  $haystack
 	 *
 	 * @return bool
 	 * @link https://www.php.net/manual/en/function.in-array.php#89256
@@ -2710,13 +2710,14 @@ EOF;
 	 */
 	public static function A(?string $input, ?bool $include_word = true): ?string
 	{
-		if(!$input = trim(strip_tags($input))){
+		if($input !== NULL && !$input = trim(strip_tags($input))){
 			return NULL;
 		}
 
 		# Filter out the word in case there are more than one
-		preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
-
+        if($input !== NULL) {
+            preg_match("/\A(\s*)(?:an?\s+)?(.+?)(\s*)\Z/i", $input, $matches);
+        }
 		# Break up the matches array into its constituent parts
 		[$all, $pre, $word, $post] = $matches;
 
@@ -2967,6 +2968,7 @@ EOF;
 	 * @return array|null
 	 * @link https://www.php.net/manual/en/function.array-search.php#88465
 	 */
+
 	public static function array_search_all($needle, array $haystack): ?array
 	{
 		foreach($haystack as $k => $v){
