@@ -30,6 +30,8 @@ class PrintRun extends \App\Common\Prototype {
 	{
 		# Use the global session ID (not the local one)
 		global $session_id;
+		$session_id = $session_id ?: session_id();
+		// But if there isn't a global one, use the local one
 
 		if(!$print_run = Factory::getInstance()->select([
 			"table" => "print_run",
@@ -76,6 +78,9 @@ class PrintRun extends \App\Common\Prototype {
 	{
 		# Use the global session ID (not the local one)
 		global $session_id;
+		$session_id = $session_id ?: session_id();
+		// But if there isn't a global one, use the local one
+
 
 		# If this is a rerun, just return the existing print run ID
 		if($rerun){
@@ -142,6 +147,9 @@ class PrintRun extends \App\Common\Prototype {
 			return;
 		}
 
+		global $session_id;
+		$session_id = $session_id ?: session_id();
+
 		global $user_id;
 
 		# Stop the run
@@ -179,10 +187,13 @@ class PrintRun extends \App\Common\Prototype {
 
 		# Use the global session ID (not the local one)
 		global $session_id;
+		$session_id = $session_id ?: session_id();
+		// But if there isn't a global one, use the local one
+
 		global $user_id;
 
 		# Stop the run
-		Factory::getInstance()->update([
+		$this->sql->update([
 			"table" => "print_run",
 			"id" => $rel_id,
 			"set" => [
@@ -193,11 +204,11 @@ class PrintRun extends \App\Common\Prototype {
 		]);
 
 		# Remove the print run from the process window
-		Output::getInstance()->remove("#print-run-{$rel_id}", ["session_id" => $session_id]);
+		$this->output->remove("#print-run-{$rel_id}", ["session_id" => $session_id]);
 
 		# Remove the progress window (if there are no other active runs)
 		if(!self::getAllActivePrintRuns()){
-			Output::getInstance()->remove("#print-run", ["session_id" => $session_id]);
+			$this->output->remove("#print-run", ["session_id" => $session_id]);
 		}
 
 		# Return the URL to what it was
@@ -219,6 +230,8 @@ class PrintRun extends \App\Common\Prototype {
 	{
 		# Use the global session ID (not the local one)
 		global $session_id;
+		$session_id = $session_id ?: session_id();
+		// But if there isn't a global one, use the local one
 
 		return Factory::getInstance()->select([
 			"table" => "print_run",
@@ -242,6 +255,8 @@ class PrintRun extends \App\Common\Prototype {
 	{
 		# Use the global session ID (not the local one)
 		global $session_id;
+		$session_id = $session_id ?: session_id();
+		// But if there isn't a global one, use the local one
 
 		# Get all active print runs for this session ID
 		if(!$print_runs = self::getAllActivePrintRuns()){
