@@ -63,8 +63,10 @@ class mySQL extends Common {
 		}
 
 		catch(\mysqli_sql_exception $e) {
-			if($e->getCode() == "2002"){
-				//if it's a connection error, retry 3 times
+			switch($e->getCode()) {
+				# Connection errors warrant re-tries
+			case "2002":
+			case "2006":
 				if($retry <= 3){
 					$retry++;
 					# Wait 3, 6, 9 seconds between tries
@@ -124,13 +126,13 @@ class mySQL extends Common {
 	 *
 	 * <code>
 	 * $this->sql->select([
-	 * 	"db" => "",
-	 * 	"table" => "",
-	 * 	"export" => [
-	 * 		"format" => $vars['format'],
-	 * 		"header" => $dashboard_tile['form_field_ids'],
-	 * 	],
-	 * 	"include_removed" => true,
+	 *    "db" => "",
+	 *    "table" => "",
+	 *    "export" => [
+	 *        "format" => $vars['format'],
+	 *        "header" => $dashboard_tile['form_field_ids'],
+	 *    ],
+	 *    "include_removed" => true,
 	 * ]);
 	 * </code>
 	 *
