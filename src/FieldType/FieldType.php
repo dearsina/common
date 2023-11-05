@@ -153,6 +153,20 @@ class FieldType extends ModalPrototype {
 		return $display_only ?: [];
 	}
 
+	public static function getFieldTypeIcon(string $name): ?string
+	{
+		return (Info::getInstance())->getInfo([
+			"columns" => [
+				"icon",
+			],
+			"rel_table" => "field_type",
+			"where" => [
+				"name" => $name,
+			],
+			"limit" => 1
+		])['icon'];
+	}
+
 	/**
 	 * Returns field types.
 	 * If filters are provided, they will be applied.

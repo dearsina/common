@@ -391,6 +391,11 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 		}
 
 		if($context){
+			if(substr_count($context, "%") > 2){
+				// If there are more than two, remove any extra ones that are not suffixed with s
+				$context = preg_replace("/%([^s])/", "-$1", $context);
+			}
+
 			$narrative = sprintf($context, $error_code, $error_message);
 		}
 
