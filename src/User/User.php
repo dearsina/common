@@ -170,6 +170,23 @@ class User extends Prototype {
 	}
 
 	/**
+	 * Get a given user's name.
+	 * If no ID is supplied, assumes it means the current
+	 * logged-in user (from global $user_id).
+	 *
+	 * @param string|null $user_id
+	 *
+	 * @return string|null
+	 */
+	public function getName(?string $user_id = NULL): ?string
+	{
+		if(!$user = $this->get($user_id)){
+			return NULL;
+		}
+		return $user['name'];
+	}
+
+	/**
 	 * Returns a given (or global) user's email address.
 	 *
 	 * @param string|null $user_id
