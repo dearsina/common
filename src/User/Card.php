@@ -496,7 +496,7 @@ class Card extends Prototype {
 	 *
 	 * @return string
 	 */
-	public function user($user): string
+	public function user(array $user): string
 	{
 		$rows = [
 			"First Name" => $user['first_name'],
