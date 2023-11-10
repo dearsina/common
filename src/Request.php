@@ -338,6 +338,13 @@ class Request {
 			throw new Unauthorized("A cross domain request was attempted.");
 		}
 
+		if(!key_exists("HTTP_X_REQUESTED_WITH", $_SERVER)){
+			//if this request wasn't done via AJAX
+			$this->logErrorInternally("A non XHR request was potentially attempted. Forced reload.");
+			# Reload to get the XHR header
+			return false;
+		}
+
 		# Ensure the request was sent from our domain via AJAX
 		if($_SERVER["HTTP_X_REQUESTED_WITH"] != "XMLHttpRequest"){
 			//if this request wasn't done via AJAX on our own domain
@@ -423,8 +430,8 @@ class Request {
 			"display" => false,
 			"title" => "CSRF",
 			"message" => $message
-				. "\$_REQUEST array: " . print_r($_REQUEST, true)
-				. "\$_SERVER array: " . print_r($server_array, true)
+				. "\r\n\$_REQUEST " . print_r($_REQUEST, true)
+				. "\$_SERVER " . print_r($server_array, true)
 			,
 		]);
 	}
