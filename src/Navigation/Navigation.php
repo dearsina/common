@@ -24,7 +24,8 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function generate(?array $a = NULL){
+	public function generate(?array $a = NULL): bool
+	{
 		return Navigation::update($a);
 	}
 
@@ -52,7 +53,14 @@ class Navigation {
 		 * Calling this function will refresh the session
 		 * and global variables.
 		 */
-		$user->isLoggedIn(true);
+		if(!$user->isLoggedIn(true)){
+			// If the user is NOT logged in
+			# And we're viewing this through an iframe
+			if($a['subdomain'] == "iframe"){
+				# No navigation is required
+				return true;
+			}
+		}
 
 		$levels = [];
 
