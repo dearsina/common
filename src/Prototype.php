@@ -96,7 +96,7 @@ abstract class Prototype {
 	 *
 	 * @return bool
 	 */
-	function setAttr($a = NULL)
+	function setAttributes($a = NULL)
 	{
 		if(!is_array($a)){
 			return true;
