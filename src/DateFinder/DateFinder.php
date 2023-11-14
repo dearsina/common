@@ -177,6 +177,9 @@ class DateFinder extends \App\Common\Prototype {
 	 */
 	private function changeCommonChallengingFormats(&$string): void
 	{
+		# Change 2023 November 06 to 06-November-2023
+		$string = preg_replace("/(\d{4})\s+((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{1,2})/", "\$3-\$2-\$1", $string);
+
 		# Changing YYYY/MM/DD to YYYY-MM-DD
 		$string = preg_replace("/.*(\d{4})\/(\d{2})\/(\d{2}).*/", "\$1-\$2-\$3", $string);
 
