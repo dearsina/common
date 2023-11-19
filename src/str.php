@@ -4400,7 +4400,7 @@ EOF;
 
 		foreach($a as $key => $val){
 			if(!$keep_empty){
-				if(!$val){
+				if($val === NULL || $val === "" || $val === []){
 					continue;
 				}
 			}
@@ -4411,7 +4411,7 @@ EOF;
 
 				if($key != "dependency"){
 					# Remove empty (unless requested otherwise)
-					$val = $keep_empty ? $val : str::array_filter_recursive($val);
+					$val = $keep_empty ? $val : str::array_filter_recursive($val, true);
 					// Dependency values will be boolean at times
 				}
 
@@ -4523,8 +4523,8 @@ EOF;
 	 *
 	 * @param           $input
 	 * @param bool|null $leave_zeros If set, will only remove values
-	 *                               that are === NULL and empty arrays
-	 *                               but not "0" values
+	 *                               that are === NULL, empty strings,
+	 *                               and empty arrays but not "0" values
 	 *
 	 * @return array
 	 */
@@ -4537,9 +4537,9 @@ EOF;
 		}
 
 		if($leave_zeros){
-			# Filter === NULLs (only)
+			# Filter away NULL, empty strings, and empty arrays
 			$filtered_input = array_filter($input, static function($var){
-				return $var !== NULL;
+				return $var !== NULL && $var !== "" && $var !== [];
 			});
 
 			# If all is left is an empty array, get rid of that too
