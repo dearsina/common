@@ -598,7 +598,7 @@ class Email extends Prototype {
 			Log::getInstance()->warning([
 				"icon" => "ban",
 				"title" => "Email not sent",
-				"message" => "Emails will not be sent from the development environment [{$_ENV['dev_ip']}].",
+				"message" => "Emails will not be sent from the development environment [{$_SERVER['SERVER_ADDR']}].",
 			]);
 			Log::getInstance()->info([
 				"icon" => "email",
