@@ -732,12 +732,15 @@ class str {
 	 */
 	public static function isDev(): bool
 	{
+		$dev_ips = explode(",", $_ENV['dev_ip']);
+
 		if($_SERVER['SERVER_ADDR']){
 			//if the $_SERVER array is set
-			return $_SERVER['SERVER_ADDR'] == $_ENV['dev_ip'];
+			return in_array($_SERVER['SERVER_ADDR'], $dev_ips);
 		}
 
-		return in_array($_ENV['dev_ip'], str::getLocalServerIPs());
+		# Check if there is an overlap between the arrays
+		return count(array_intersect($dev_ips, str::getLocalServerIPs())) > 0;
 	}
 
 	/**
