@@ -168,6 +168,42 @@ class FieldType extends ModalPrototype {
 	}
 
 	/**
+	 * Given a field type name, return the field type ID.
+	 *
+	 * @param string $name
+	 *
+	 * @return string|null
+	 * @throws \Exception
+	 */
+	public static function getFieldTypeIdFromName(string $name): ?string
+	{
+		return (Info::getInstance())->getInfo([
+			"columns" => [
+				"field_type_id",
+			],
+			"rel_table" => "field_type",
+			"where" => [
+				"name" => $name,
+			],
+			"limit" => 1
+		])['field_type_id'];
+	}
+
+	public static function getFieldTypeNameFromId(string $field_type_id): ?string
+	{
+		return (Info::getInstance())->getInfo([
+			"columns" => [
+				"name",
+			],
+			"rel_table" => "field_type",
+			"where" => [
+				"field_type_id" => $field_type_id,
+			],
+			"limit" => 1
+		])['name'];
+	}
+
+	/**
 	 * Returns field types.
 	 * If filters are provided, they will be applied.
 	 * The key is the field_type_id, and the value is an array.
