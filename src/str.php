@@ -4631,4 +4631,26 @@ EOF;
 	{
 		return "<{$tag} class=\"ellipsis\">{$string}</{$tag}>";
 	}
+
+	/**
+	 * Just like the PHP function `trim()`, but removes all kinds of whitespace.
+	 *
+	 * \p{Z}: Matches any kind of whitespace or invisible separator, including spaces, tabs, and line breaks. This is a Unicode property that covers a broad range of space characters.
+	 * \s: In a Unicode-aware context (like with the u modifier), this matches all whitespace characters, including space, tab, newline (\n), carriage return (\r), and other Unicode space characters.
+	 * \x{2000}-\x{200F}: Zero-Width Space, and a bunch of other esoteric space and non-width characters.
+	 * \x{2028}: Line Separator, a character used to denote the end of a line of text.
+	 * \x{2029}: Paragraph Separator, a character used to denote the end of a paragraph.
+	 * \x{00A0}: Non-Breaking Space, a space character that prevents an automatic line break at its position.
+	 * \x{3000}: Ideographic Space, used in CJK (Chinese, Japanese, Korean) typography.
+	 * \x{FEFF}: Zero Width No-Break Space, a zero-width space that is not a line-breaking space and prevents consecutive whitespace characters from collapsing.
+	 *
+	 * @param string|null $string
+	 * @link https://www.compart.com/en/unicode/block/U+2000
+	 *
+	 * @return string|null
+	 */
+	public static function trim(?string $string): ?string
+	{
+		return preg_replace('/^[\p{Z}\s\x{2000}-\x{200F}\x{2028}\x{2029}\x{00A0}\x{3000}\x{FEFF}]+|[\p{Z}\s\x{2000}-\x{200F}\x{2028}\x{2029}\x{00A0}\x{3000}\x{FEFF}]+$/u', '', $string);
+	}
 }
