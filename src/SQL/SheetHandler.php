@@ -356,6 +356,9 @@ class SheetHandler extends \App\Common\Prototype {
 					$val = $val->format("Y-m-d H:i:s");
 				}
 
+				# Trim whitespace from the value
+				$val = str::trim($val);
+
 				$set[$key] = $val;
 			}
 			$sets[] = $set;
@@ -382,7 +385,7 @@ class SheetHandler extends \App\Common\Prototype {
 		}
 
 		# Set the table ID column
-		$cols[] = "`{$this->data_table}_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL";
+		$cols[] = "`{$this->data_table}_id` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL";
 
 		# Add any use-case specific columns
 		if($this->data_table_columns){
@@ -391,14 +394,14 @@ class SheetHandler extends \App\Common\Prototype {
 
 		# Add the data columns using the Excel column names
 		for($i = 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
-			$cols[] = "`" . str::excelKey($i) . "` TEXT COLLATE utf8mb4_unicode_ci DEFAULT NULL";
+			$cols[] = "`" . str::excelKey($i) . "` TEXT COLLATE utf8mb4_0900_ai_ci DEFAULT NULL";
 		}
 
 		# Add an index to the ID column
 		$cols[] = "PRIMARY KEY (`{$this->data_table}_id`)";
 
 		# Create the table query
-		$query = "CREATE TABLE `{$this->data_db}`.`{$this->data_table}` (" . implode(",", $cols) . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+		$query = "CREATE TABLE `{$this->data_db}`.`{$this->data_table}` (" . implode(",", $cols) . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;";
 		// The name of the data table is the same as the meta table row ID
 
 		# Execute the query to create the table
