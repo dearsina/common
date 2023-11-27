@@ -106,16 +106,16 @@ class Grow extends Common {
 		$query = /** @lang MySQL */
 			"
 		CREATE TABLE `{$table['db']}`.`{$table['name']}` (
-			`{$table['name']}_id` CHAR(36) NOT NULL COLLATE 'utf8mb4_unicode_ci',
+			`{$table['name']}_id` CHAR(36) NOT NULL COLLATE 'utf8mb4_0900_ai_ci',
 			`created` DATETIME NULL DEFAULT NULL,
-			`created_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+			`created_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_0900_ai_ci',
 			`updated` DATETIME NULL DEFAULT NULL,
-			`updated_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+			`updated_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_0900_ai_ci',
 			`removed` DATETIME NULL DEFAULT NULL,
-			`removed_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+			`removed_by` CHAR(36) NULL DEFAULT NULL COLLATE 'utf8mb4_0900_ai_ci',
 			PRIMARY KEY (`{$table['name']}_id`) USING BTREE
 		)
-		COLLATE='utf8mb4_unicode_ci'
+		COLLATE='utf8mb4_0900_ai_ci'
 		ENGINE=InnoDB
 		;
 		";
