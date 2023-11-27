@@ -375,11 +375,11 @@ class Country extends Prototype {
 
 		$query = <<<EOF
 CREATE TABLE IF NOT EXISTS `{$this->db}`.`{$country_code}_postcode` (
-  `postcode` char({$postcode['length']}) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `name` varchar({$name_length}) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `postcode` char({$postcode['length']}) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `name` varchar({$name_length}) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   KEY `postcode` (`postcode`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 EOF;
 		$this->sql->run($query);
 	}

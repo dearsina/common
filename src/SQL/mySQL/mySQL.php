@@ -69,7 +69,7 @@ class mySQL extends Common {
 			switch($e->getCode()) {
 				# Connection errors warrant re-tries
 			case "2002":
-			case "2006":
+			case "2006": //SQL reconnection error when trying to get the metadata of a db [2006]: MySQL server has gone away
 			default:
 				if($retry <= 3){
 					$retry++;
