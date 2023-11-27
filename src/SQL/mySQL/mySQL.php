@@ -52,7 +52,10 @@ class mySQL extends Common {
 	{
 		try {
 			# Connect to the mySQL server
-			$mysqli = new \mysqli($_ENV['db_servername'], $_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database']);
+			if(!$mysqli = @new \mysqli($_ENV['db_servername'], $_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database'])){
+				// An attempt to suppress the "Warning:  mysqli::__construct(): Error while reading greeting packet" error
+				throw new \mysqli_sql_exception("New SQL connection error: " . mysqli_connect_error(), mysqli_connect_errno());
+			}
 
 			# Ensure everything is UTF8mb4
 			$mysqli->set_charset('utf8mb4');
@@ -67,6 +70,7 @@ class mySQL extends Common {
 				# Connection errors warrant re-tries
 			case "2002":
 			case "2006":
+			default:
 				if($retry <= 3){
 					$retry++;
 					# Wait 3, 6, 9 seconds between tries
