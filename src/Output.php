@@ -426,11 +426,13 @@ EOF;
 		return $this->output[$type] = $data;
 	}
 
-	public function setOptions(?array $rows, ?string $placeholder = ""): void
+	public function setOptions(?array $rows, ?string $placeholder = "", ?string $element = NULL): void
 	{
+		$this->output["placeholder"] = $placeholder;
+		$this->output["element"] = $element;
+
 		if(!$rows){
 			$this->output["options"] = NULL;
-			$this->output["placeholder"] = $placeholder;
 			return;
 		}
 
@@ -500,7 +502,6 @@ EOF;
 		});
 
 		$this->output["options"] = $options;
-		$this->output["placeholder"] = $placeholder;
 	}
 
 	/**
