@@ -324,7 +324,7 @@ EOF;
 	 * Close the top-most modal.
 	 * Or include a particular modal ID to close.
 	 *
-	 * @param string|null $modal_id
+	 * @param string|null $modal_id You don't need to prefix the ID with #
 	 * @param array|null  $recipients
 	 *
 	 * @return mixed
