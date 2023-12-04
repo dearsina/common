@@ -44,7 +44,10 @@ class Run extends Common {
 
 			try {
 				# Run the query
-				$result = $this->mysqli->query($query);
+				if(!$result = @$this->mysqli->query($query)){
+					// Something went wrong
+					throw new \mysqli_sql_exception("SQL query error: " . mysqli_connect_error(), mysqli_connect_errno());
+				}
 			}
 
 			catch(\mysqli_sql_exception $e){
@@ -54,6 +57,7 @@ class Run extends Common {
 
 				switch($message){
 				case 'MySQL server has gone away':
+				default:
 					# Try again
 					if($tries < 4){
 						# Close the connection
