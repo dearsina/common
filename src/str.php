@@ -2245,7 +2245,8 @@ class str {
 	}
 
 	/**
-	 * Experimental
+	 * Returns UTC time wrapped in a span that is handled by JavaScript,
+	 * and converted to local time.
 	 *
 	 * @param string|null $datetime_string
 	 * @param bool|null   $time
@@ -2253,11 +2254,12 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function jsDateTime(?string $datetime_string, ?bool $time = true, ?bool $date = true): string
+	public static function jsDateTime(?string $datetime_string, ?bool $time = true, ?bool $date = true, ?bool $timezone = false): string
 	{
 		$date = $date ? "date" : NULL;
 		$time = $time ? "time" : NULL;
-		return "<span class=\"js-datetime {$date} {$time}\">{$datetime_string}</span>";
+		$timezone = $timezone ? "timezone" : NULL;
+		return "<span class=\"js-datetime {$date} {$time} {$timezone}\">{$datetime_string}</span>";
 	}
 
 	/**
