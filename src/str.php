@@ -2,9 +2,8 @@
 
 namespace App\Common;
 
+use App\Email\Email;
 use App\UI\Badge;
-use App\UI\Button;
-use App\UI\Dropdown;
 use App\UI\Icon;
 use GuzzleHttp\Client;
 
@@ -771,6 +770,11 @@ class str {
 	static function runFromCLI(?bool $or_die = NULL): bool
 	{
 		if($or_die){
+			Email::notifyAdmins([
+				"subject" => "runFromCLI() called from HTTP",
+				"body" => "Check the backtrace",
+				"backtrace" => str::backtrace(true, false)
+			]);
 			str::runFromCLI() or die("This method can only be accessed from the command line.");
 			return true;
 		}
