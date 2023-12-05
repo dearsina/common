@@ -261,15 +261,15 @@ class mySQL extends Common {
 	protected function reconnect(?int $tries = 0): bool
 	{
 		try {
-			if($this->mysqli->ping()){
-				return true;
+			if(!@$this->mysqli->ping()){
+				throw new mysqli_sql_exception("SQL ping error: " . mysqli_connect_error(), mysqli_connect_errno());
 			}
 			return true;
 		}
 		catch(mysqli_sql_exception $e) {
 			if($tries < 4){
 				# Close the connection
-				$this->mysqli->close();
+				@$this->mysqli->close();
 				# Sleep
 				sleep($tries);
 				# Create a new connection
