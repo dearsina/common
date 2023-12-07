@@ -259,10 +259,21 @@ class Doc extends \App\Common\Prototype {
 			else {
 				$parser = new \Smalot\PdfParser\Parser();
 				$pdf = @$parser->parseFile($file['tmp_name']);
-				# Get the text
-				if(!$file['pdf_info']['text'] = @$pdf->getText()){
-					// If that didn't work
 
+				# Get the text
+				try {
+					$file['pdf_info']['text'] = @$pdf->getText();
+				}
+				catch(\TypeError $t){
+					/**
+					 * If there was a type error, ignore it,
+					 * and extract the text using the pdftotext
+					 * command below instead
+					 */
+				}
+
+				# If that didn't work
+				if(!$file['pdf_info']['text']){
 					# Try a more liberal approach
 					if(!Doc::setTextFromPdfToTextCommand($file)){
 						// If that didn't work either, abort mission
