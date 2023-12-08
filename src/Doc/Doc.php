@@ -257,12 +257,22 @@ class Doc extends \App\Common\Prototype {
 
 			# Try extracting text using both the conservative Smalot parser, and the liberal pdftotext command
 			else {
-				$parser = new \Smalot\PdfParser\Parser();
-				$pdf = @$parser->parseFile($file['tmp_name']);
 				# Get the text
-				if(!$file['pdf_info']['text'] = @$pdf->getText()){
-					// If that didn't work
+				try {
+					$parser = new \Smalot\PdfParser\Parser();
+					$pdf = @$parser->parseFile($file['tmp_name']);
+					$file['pdf_info']['text'] = @$pdf->getText();
+				}
+				catch(\Exception $e){
+					/**
+					 * If there was a type error, ignore it,
+					 * and extract the text using the pdftotext
+					 * command below instead
+					 */
+				}
 
+				# If that didn't work
+				if(!$file['pdf_info']['text']){
 					# Try a more liberal approach
 					if(!Doc::setTextFromPdfToTextCommand($file)){
 						// If that didn't work either, abort mission
