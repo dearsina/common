@@ -259,7 +259,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function getClassMethods($a) : bool
+	public function getClassMethods(array $a) : bool
 	{
 		extract($a);
 
@@ -281,8 +281,8 @@ class CronJob extends Prototype {
 
 		foreach($methods as $method){
 			$options[] = [
-				"id" => $method['name'],
-				"text" => $method['name']
+				"id" => $method->getName(),
+                "text" => $method->getName()
 			];
 		}
 

@@ -119,7 +119,7 @@ class Card extends \App\Common\Prototype {
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars']?:[],[
-						"created_by" => urlencode($row['user.user_id']) ?: "NULL"
+						"created_by" => urlencode($row['user.user_id'] ? $row['user.user_id'] : '') ?: "NULL"
 					])
 				];
 				$errors[] = [

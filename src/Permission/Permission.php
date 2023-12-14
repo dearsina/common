@@ -34,7 +34,7 @@ class Permission extends Prototype {
 	public function get (string $rel_table, ?string $rel_id = NULL, ?string $crud = NULL): bool
 	{
 		# If no CRUD is specified = ALL access
-		if (!strlen($crud)) {
+		if (!strlen($crud ? $crud : '')) {
 			$crud = "crud";
 		}
 

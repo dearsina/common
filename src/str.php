@@ -2,10 +2,12 @@
 
 namespace App\Common;
 
-use App\Email\Email;
 use App\UI\Badge;
+use App\UI\Button;
+use App\UI\Dropdown;
 use App\UI\Icon;
 use GuzzleHttp\Client;
+use ReflectionClass;
 
 /**
  * Static class related mainly to string manipulation.
@@ -731,15 +733,12 @@ class str {
 	 */
 	public static function isDev(): bool
 	{
-		$dev_ips = explode(",", $_ENV['dev_ip']);
-
 		if($_SERVER['SERVER_ADDR']){
 			//if the $_SERVER array is set
-			return in_array($_SERVER['SERVER_ADDR'], $dev_ips);
+			return $_SERVER['SERVER_ADDR'] == $_ENV['dev_ip'];
 		}
 
-		# Check if there is an overlap between the arrays
-		return count(array_intersect($dev_ips, str::getLocalServerIPs())) > 0;
+		return in_array($_ENV['dev_ip'], str::getLocalServerIPs());
 	}
 
 	/**
@@ -770,11 +769,6 @@ class str {
 	static function runFromCLI(?bool $or_die = NULL): bool
 	{
 		if($or_die){
-			Email::notifyAdmins([
-				"subject" => "runFromCLI() called from HTTP",
-				"body" => "Check the backtrace",
-				"backtrace" => str::backtrace(true, false)
-			]);
 			str::runFromCLI() or die("This method can only be accessed from the command line.");
 			return true;
 		}
@@ -1208,18 +1202,8 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function getHash($value): ?string
+	public static function getHash($value): string
 	{
-		# If the value is NULL, get the hash of an empty string
-		if($value === NULL){
-			return md5("");
-		}
-
-		# Order keys alphabetically (to ensure that the JSON string is always the same)
-		if(is_array($value)){
-			ksort($value);
-		}
-
 		return md5(mb_strtolower(str::json_encode($value, "base64")));
 	}
 
@@ -1238,42 +1222,65 @@ class str {
 	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC"): array
 	{
 		$modifier = strtoupper($modifier);
-		$cmd = "go(function(){";
-		//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
-		$cmd .= "require \"/var/www/html/app/settings.php\";";
-		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
-		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
-		$cmd .= "});";
+//		$cmd = "go(function(){";
+//		//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
+//		$cmd .= "require \"/var/www/html/app/settings.php\";";
+//		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
+//		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
+//		$cmd .= "});";
+//
+//		# Run the command
+//		exec("php -r '{$cmd}' 2>&1", $output);
+//
+//		# Temporary filter before Swoole 4.6+
+//		$output = array_filter($output, function($line){
+//			return $line != "Deprecated: Swoole\Event::rshutdown(): Event::wait() in shutdown function is deprecated in Unknown on line 0";
+//		});
+//
+//		# Return false if no methods matching are found
+//		if(!$array = json_decode($output[0], true)){
+//			return [];
+//		}
+//
+//		foreach($array as $method){
+//			# We're not interested in inherited classes
+//			if($class != $method['class']){
+//				continue;
+//			}
+//
+//			# We're not interested in magic methods
+//			if(substr($method['name'], 0, 2) == "__"){
+//				continue;
+//			}
+//
+//			# Collect all the methods
+//			$methods[] = $method;
+//		}
+//
+//		return $methods;
 
-		# Run the command
-		exec("php -r '{$cmd}' 2>&1", $output);
+        # Create a ReflectionClass object
+        $reflectionClass = new ReflectionClass($class);
 
-		# Temporary filter before Swoole 4.6+
-		$output = array_filter($output, function($line){
-			return $line != "Deprecated: Swoole\Event::rshutdown(): Event::wait() in shutdown function is deprecated in Unknown on line 0";
-		});
+        # Get all methods
+        if(!$allMethods = $reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC)) {
 
-		# Return false if no methods matching are found
-		if(!$array = json_decode($output[0], true)){
-			return [];
-		}
+            return [];
 
-		foreach($array as $method){
-			# We're not interested in inherited classes
-			if($class != $method['class']){
-				continue;
-			}
+        }
 
-			# We're not interested in magic methods
-			if(substr($method['name'], 0, 2) == "__"){
-				continue;
-			}
+        foreach ($allMethods as $method) {
 
-			# Collect all the methods
-			$methods[] = $method;
-		}
+            # We're not interested in magic methods
+            if (substr($method->getName(), 0, 2) == "__") {
+                continue;
+            }
 
-		return $methods;
+            $methods[] = $method;
+        }
+
+
+        return $methods;
 	}
 
 	/**
@@ -1284,11 +1291,11 @@ class str {
 	 * @return string
 	 * @return string
 	 */
-	public static function getMethodCase(?string $snake): ?string
+	public static function getMethodCase(?string $snake) : ?string
 	{
-		if($snake == NULL){
-			return NULL;
-		}
+        if($snake == NULL){
+            return null;
+        }
 
 		return lcfirst(str_replace("_", "", ucwords($snake, "_")));
 	}
@@ -2254,8 +2261,7 @@ class str {
 	}
 
 	/**
-	 * Returns UTC time wrapped in a span that is handled by JavaScript,
-	 * and converted to local time.
+	 * Experimental
 	 *
 	 * @param string|null $datetime_string
 	 * @param bool|null   $time
@@ -2263,12 +2269,11 @@ class str {
 	 *
 	 * @return string
 	 */
-	public static function jsDateTime(?string $datetime_string, ?bool $time = true, ?bool $date = true, ?bool $timezone = false): string
+	public static function jsDateTime(?string $datetime_string, ?bool $time = true, ?bool $date = true): string
 	{
 		$date = $date ? "date" : NULL;
 		$time = $time ? "time" : NULL;
-		$timezone = $timezone ? "timezone" : NULL;
-		return "<span class=\"js-datetime {$date} {$time} {$timezone}\">{$datetime_string}</span>";
+		return "<span class=\"js-datetime {$date} {$time}\">{$datetime_string}</span>";
 	}
 
 	/**
@@ -2728,13 +2733,7 @@ EOF;
 		}
 
 		# Get the indefinite article
-		$result = self::getIndefiniteArticle($word, true);
-		// For some reason, we have to include word or else it gets it wrong
-
-		if(!$include_word){
-			$result = trim(str_replace($word, "", $result));
-		}
-
+		$result = self::getIndefiniteArticle($word, $include_word);
 		return $pre . $result . $post;
 	}
 
@@ -3206,66 +3205,6 @@ EOF;
 		return $stop_time;
 	}
 
-	/**
-	 * Same as exec(), except it will terminate the process
-	 * if it takes longer than the timeout.
-	 *
-	 * @param string     $command
-	 * @param array|null $output
-	 * @param int|null   $timeout
-	 *
-	 * @return bool
-	 */
-	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30): bool
-	{
-		$descriptorspec = [
-			0 => ["pipe", "r"],  // stdin
-			1 => ["pipe", "w"],  // stdout
-			2 => ["pipe", "w"],   // stderr
-		];
-
-		$process = proc_open($command, $descriptorspec, $pipes);
-
-		if(is_resource($process)){
-			// Wait for the process to terminate or the timeout to expire
-			$endTime = time() + $timeout;
-			while(time() < $endTime && $status = proc_get_status($process)) {
-				if(!$status['running']){
-					break; // Process finished before timeout
-				}
-				usleep(100000); // Sleep for 0.1 seconds
-			}
-
-			if($status['running']){
-				// The process is still running, so terminate it
-				proc_terminate($process);
-				return false;
-			}
-
-			else {
-				// Process completed, read its output
-				$stdout = stream_get_contents($pipes[1]);
-				$stderr = stream_get_contents($pipes[2]);
-			}
-
-			// Close all pipes and terminate the process
-			fclose($pipes[0]);
-			fclose($pipes[1]);
-			fclose($pipes[2]);
-			proc_close($process);
-		}
-
-		if($stdout){
-			$output = explode(PHP_EOL, $stdout);
-		}
-
-		if($stderr){
-			$output = explode(PHP_EOL, $stderr);
-		}
-
-		return true;
-	}
-
 	public static function marker(?string $marker = "Marker", ?bool $prod_enable = NULL): void
 	{
 		if(!$prod_enable && !str::isDev()){
@@ -3307,7 +3246,7 @@ EOF;
 	 * cannot be converted to JSON, and will convert
 	 * them to NULL values or base64 encoded strings.
 	 *
-	 * @param mixed|null  $data
+	 * @param mixed|null       $data
 	 * @param string|null $conversion_type Options are "null" or "base64". Default is "null".
 	 *
 	 * @return false|string
@@ -4193,14 +4132,14 @@ EOF;
 	 */
 	static function rgb2hex($rgb)
 	{
-
+		
 		# Cass: - Depreciated
 		// return str_pad(dechex($rgb * 255), 2, '0', STR_PAD_LEFT);
 
 		# Cass: - Adding an interger sice Dechex request to check Int. 
 		return str_pad(dechex((int)($rgb * 255)), 2, '0', STR_PAD_LEFT);
-
-
+		
+		
 	}
 
 	/**
@@ -4474,7 +4413,7 @@ EOF;
 
 		foreach($a as $key => $val){
 			if(!$keep_empty){
-				if($val === NULL || $val === "" || $val === []){
+				if(!$val){
 					continue;
 				}
 			}
@@ -4485,7 +4424,7 @@ EOF;
 
 				if($key != "dependency"){
 					# Remove empty (unless requested otherwise)
-					$val = $keep_empty ? $val : str::array_filter_recursive($val, true);
+					$val = $keep_empty ? $val : str::array_filter_recursive($val);
 					// Dependency values will be boolean at times
 				}
 
@@ -4597,8 +4536,8 @@ EOF;
 	 *
 	 * @param           $input
 	 * @param bool|null $leave_zeros If set, will only remove values
-	 *                               that are === NULL, empty strings,
-	 *                               and empty arrays but not "0" values
+	 *                               that are === NULL and empty arrays
+	 *                               but not "0" values
 	 *
 	 * @return array
 	 */
@@ -4611,9 +4550,9 @@ EOF;
 		}
 
 		if($leave_zeros){
-			# Filter away NULL, empty strings, and empty arrays
+			# Filter === NULLs (only)
 			$filtered_input = array_filter($input, static function($var){
-				return $var !== NULL && $var !== "" && $var !== [];
+				return $var !== NULL;
 			});
 
 			# If all is left is an empty array, get rid of that too
@@ -4703,31 +4642,5 @@ EOF;
 	public static function ellipsis(?string $string, ?string $tag = "span"): string
 	{
 		return "<{$tag} class=\"ellipsis\">{$string}</{$tag}>";
-	}
-
-	/**
-	 * Just like the PHP function `trim()`, but removes all kinds of whitespace.
-	 *
-	 * \p{Z}: Matches any kind of whitespace or invisible separator, including spaces, tabs, and line breaks. This is a
-	 * Unicode property that covers a broad range of space characters.
-	 * \s: In a Unicode-aware context (like with the u modifier), this matches all whitespace characters, including
-	 * space, tab, newline (\n), carriage return (\r), and other Unicode space characters.
-	 * \x{2000}-\x{200F}: Zero-Width Space, and a bunch of other esoteric space and non-width characters.
-	 * \x{2028}: Line Separator, a character used to denote the end of a line of text.
-	 * \x{2029}: Paragraph Separator, a character used to denote the end of a paragraph.
-	 * \x{00A0}: Non-Breaking Space, a space character that prevents an automatic line break at its position.
-	 * \x{3000}: Ideographic Space, used in CJK (Chinese, Japanese, Korean) typography.
-	 * \x{FEFF}: Zero Width No-Break Space, a zero-width space that is not a line-breaking space and prevents
-	 * consecutive whitespace characters from collapsing.
-	 *
-	 * @param string|null $string
-	 *
-	 * @return string|null
-	 * @link https://www.compart.com/en/unicode/block/U+2000
-	 *
-	 */
-	public static function trim(?string $string): ?string
-	{
-		return preg_replace('/^[\p{Z}\s\x{2000}-\x{200F}\x{2028}\x{2029}\x{00A0}\x{3000}\x{FEFF}]+|[\p{Z}\s\x{2000}-\x{200F}\x{2028}\x{2029}\x{00A0}\x{3000}\x{FEFF}]+$/u', '', $string);
 	}
 }

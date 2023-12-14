@@ -338,13 +338,6 @@ class Request {
 			throw new Unauthorized("A cross domain request was attempted.");
 		}
 
-		if(!key_exists("HTTP_X_REQUESTED_WITH", $_SERVER)){
-			//if this request wasn't done via AJAX
-			$this->logErrorInternally("A non XHR request was potentially attempted. Forced reload.");
-			# Reload to get the XHR header
-			return false;
-		}
-
 		# Ensure the request was sent from our domain via AJAX
 		if($_SERVER["HTTP_X_REQUESTED_WITH"] != "XMLHttpRequest"){
 			//if this request wasn't done via AJAX on our own domain
@@ -396,11 +389,8 @@ class Request {
 		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			// If the token IP and the connecting IP are not the same
 			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)
-			&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)
-			&& !in_array($connection['ip'], self::WHITELISTED_IPS)){
+			&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)){
 				//If the IP address doesn't belong to any of the whitelisted ASN domains
-				//and the IP address doesn't belong to any of the whitelisted ASN names
-				//and the IP address doesn't belong to any of the whitelisted IPs
 
 				# Refresh the connection
 				$this->hash->set("reload");
@@ -430,8 +420,8 @@ class Request {
 			"display" => false,
 			"title" => "CSRF",
 			"message" => $message
-				. "\r\n\$_REQUEST " . print_r($_REQUEST, true)
-				. "\$_SERVER " . print_r($server_array, true)
+				. "\$_REQUEST array: " . print_r($_REQUEST, true)
+				. "\$_SERVER array: " . print_r($server_array, true)
 			,
 		]);
 	}
@@ -448,12 +438,6 @@ class Request {
 
 	const WHITELISTED_ASN_NAMES = [
 		"Liquid Telecommunications South Africa"
-	];
-
-	const WHITELISTED_IPS = [
-		# F-Wise
-		"196.201.106.33",
-		"41.160.141.66"
 	];
 
 	/**

@@ -328,7 +328,7 @@ class ErrorLog extends Prototype {
 			"action" => $error['action']
 		]);
 
-		$error['vars'] = json_decode($error['vars'], true);
+		$error['vars'] = json_decode($error['vars'] ? $error['vars'] : '', true);
 
 		if($error['vars']){
 			$row['Action'] = [

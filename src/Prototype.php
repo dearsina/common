@@ -96,7 +96,7 @@ abstract class Prototype {
 	 *
 	 * @return bool
 	 */
-	function setAttributes($a = NULL)
+	function setAttr($a = NULL)
 	{
 		if(!is_array($a)){
 			return true;
@@ -164,7 +164,7 @@ abstract class Prototype {
 	 * @param             $rel_table_or_array
 	 * @param string|null $rel_id
 	 * @param null        $refresh
-	 * @param array|null  $joins NULL equals run all the joins, [] equals run NO joins
+	 * @param array|null  $joins
 	 *
 	 * @return array|string|null
 	 * @throws Exception

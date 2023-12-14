@@ -232,6 +232,7 @@ class UserRole extends \App\Common\Prototype {
 			if($role['role'] == "user"){
 				continue;
 			}
+
 			if(($key = array_search($role['role'], array_column($user_roles, "rel_table"))) !== false){
 				//if the user has this role
 				$buttons[] = [

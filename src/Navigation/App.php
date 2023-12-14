@@ -150,7 +150,7 @@ class App extends Prototype implements NavigationInterface {
 		];
 
 		global $role;
-
+//        echo $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'];
 		$this->levels[1]['items'][] = [
 			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
 			"alt" => "You are currently in the {$role} role",

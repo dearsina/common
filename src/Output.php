@@ -324,7 +324,7 @@ EOF;
 	 * Close the top-most modal.
 	 * Or include a particular modal ID to close.
 	 *
-	 * @param string|null $modal_id You don't need to prefix the ID with #
+	 * @param string|null $modal_id
 	 * @param array|null  $recipients
 	 *
 	 * @return mixed
@@ -426,13 +426,11 @@ EOF;
 		return $this->output[$type] = $data;
 	}
 
-	public function setOptions(?array $rows, ?string $placeholder = "", ?string $element = NULL): void
+	public function setOptions(?array $rows, ?string $placeholder = ""): void
 	{
-		$this->output["placeholder"] = $placeholder;
-		$this->output["element"] = $element;
-
 		if(!$rows){
 			$this->output["options"] = NULL;
+			$this->output["placeholder"] = $placeholder;
 			return;
 		}
 
@@ -502,6 +500,7 @@ EOF;
 		});
 
 		$this->output["options"] = $options;
+		$this->output["placeholder"] = $placeholder;
 	}
 
 	/**

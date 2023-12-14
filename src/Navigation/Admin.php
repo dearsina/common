@@ -21,11 +21,13 @@ class Admin extends Prototype implements NavigationInterface {
 	 */
 	public function update (): array
 	{
+        $this->authorize();
 		$this->errors();
 		$this->issues();
 		$this->fieldTypes();
 		$this->cron();
 		$this->users();
+
 		$this->permissions();
 		$this->examples();
 		return $this->levels;
@@ -327,6 +329,29 @@ class Admin extends Prototype implements NavigationInterface {
 		];
 	}
 
+    private function authorize() : void
+    {
+        $children[] = [
+            "icon" => Icon::get("lock"),
+            "title"=> "Connect to Xero",
+            "alt"=>"Connect to Xero",
+            "hash"=>[
+                "rel_table"=>"xero",
+                "action"=>"new"
+            ]
+        ];
+
+        $this->levels[2]['items'][] = [
+            "icon" => Icon::get("key"),
+            "title" => "Authorization",
+            "alt" => "Authorize Apps errors",
+//			"hash" => [
+//				"rel_table" => "error_log",
+//				"action" => "unresolved"
+//			],
+            "children" => $children
+        ];
+    }
 	public function footer() : array
 	{
 		return $this->footers;
