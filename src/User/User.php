@@ -2138,13 +2138,14 @@ class User extends Prototype {
 		if(!$this->validatePassword($vars['password'], $user['password'])){
 			// If the password is incorrect
 
-			# Register one more failed login attempt
-			$this->addOneMoreFailedLoginAttempt($user);
-
 			# Warn user about the failed login attempt
 			$this->warnUserAboutFailedLoginAttempt($user);
 
 			if($remaining_login_attempts = User::MAX_FAILED_LOGIN_ATTEMPTS - $user['failed_login_attempts']){
+
+				# Register one more failed login attempt
+				$this->addOneMoreFailedLoginAttempt($user);
+
 				$this->log->error([
 					"container" => ".card-body",
 					"title" => 'Incorrect password',
