@@ -105,6 +105,16 @@ class Email extends Prototype {
 			["oauth_token" => $this->oauth_token]);
 	}
 
+	/**
+	 * Returns the entire underlying Swift Message object.
+	 *
+	 * @return \Swift_Message
+	 */
+	public function getEnvelope(): \Swift_Message
+	{
+		return $this->envelope;
+	}
+
 	public function format(?array $format = NULL): object
 	{
 		# Set the email format
