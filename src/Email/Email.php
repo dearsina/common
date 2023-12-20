@@ -8,7 +8,9 @@ use App\Common\Exception\BadRequest;
 use App\Common\Log;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\Prototype;
+use App\Common\SQL\Factory;
 use App\Common\str;
+use App\Subscription\SubscriptionHandler;
 
 /**
  * Class Email
@@ -81,12 +83,6 @@ class Email extends Prototype {
 	 */
 	public function __construct(?string $oauth_token_id = NULL)
 	{
-		# If an OAuth2 token has been passed and can be loaded, load it
-		if($oauth_token_id){
-			$this->oauth_token = $this->info("oauth_token", $oauth_token_id);
-			// We're still going to load the SwiftMessage as a fallback
-		}
-
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
 
@@ -95,14 +91,49 @@ class Email extends Prototype {
 		$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
 		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 
-		# Set the From address with an associative array
-		
-		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
+
+		# If an OAuth2 token has been passed and can be loaded, load it
+		if($oauth_token_id){
+			$this->oauth_token = $this->info("oauth_token", $oauth_token_id);
+			// We're still going to load the SwiftMessage as a fallback
+		}
+
+		# Set the From address
+		$this->setFrom();
+		// Will vary if there is an oAuth token
 
 		# Set the default email format (include the OAuth token if one is set)
 		$this->format = array_merge(
 			EmailWrapper::$defaults,
 			["oauth_token" => $this->oauth_token]);
+	}
+
+	private function setFrom(): void
+	{
+		# If an OAuth2 token has been passed and can be loaded, load it
+		if($this->oauth_token){
+			$subscription_email = Factory::getInstance()->select([
+				"table" => "subscription_email",
+				"where" => [
+					"oauth_token_id" => $this->oauth_token['oauth_token_id'],
+				],
+				"limit" => 1
+			]);
+
+			$subscription = new SubscriptionHandler($subscription_email['subscription_id']);
+
+			# Load the email sending provider
+			$class = OAuth2Handler::getProviderClass($this->oauth_token['provider']);
+			$provider = new $class($this->oauth_token);
+
+			# Set the From address to be the provider email address + the company name
+			$this->envelope->setFrom([$provider->getEmailAddress() => $subscription->getCompany("name")]);
+		}
+
+		else {
+			# Set the From address with an associative array
+			$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
+		}
 	}
 
 	/**
