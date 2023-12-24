@@ -57,6 +57,12 @@ abstract class CardPrototype extends Prototype {
 	{
 		extract($a);
 
+		if(!$this->info($rel_table, $rel_id)){
+			if($this->wasRemoved($a)){
+				return false;
+			}
+		}
+
 		if(!$this->permission()->get($rel_table, $rel_id, "U")){
 			return $this->accessDenied($a);
 		}

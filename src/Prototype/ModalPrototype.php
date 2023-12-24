@@ -137,6 +137,12 @@ abstract class ModalPrototype extends Prototype {
 			throw new \Exception("An edit was requested without an ID.");
 		}
 
+		if(!$this->info($rel_table, $rel_id)){
+			if($this->wasRemoved($a)){
+				return false;
+			}
+		}
+
 		if(!$this->permission()->get($rel_table, $rel_id, "U")){
 			return $this->accessDenied($a);
 		}
