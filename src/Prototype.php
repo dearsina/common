@@ -768,7 +768,7 @@ abstract class Prototype {
 			$this->log->warning([
 				"icon" => Icon::get("remove"),
 				"title" => str::title("{$rel_table} removed"),
-				"message" => str::title("This {$rel_table} was removed {$dt->format("H:i:s, j F Y")} by {$row['user']['name']}, and can no longer be accessed."),
+				"message" => str::title("This {$rel_table}")." was removed {$dt->format("H:i:s, j F Y")} by {$row['user']['name']}, and can no longer be accessed.",
 			]);
 		}
 
