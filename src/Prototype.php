@@ -697,7 +697,7 @@ abstract class Prototype {
 	 *
 	 * <code>
 	 * if($removed = $this->getRemoved($rel_table, $rel_id)){
-	 *    throw new BadRequest("This item was removed by {$removed['user']['name']} " . str::ago($removed['removed']) . ".");
+	 *    return false;
 	 * }
 	 * </code>
 	 *
@@ -713,7 +713,7 @@ abstract class Prototype {
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => [$rel_table, "removed_by"]
+					"user_id" => [$rel_table, "removed_by"],
 				],
 				"include_removed" => true,
 			]],
@@ -762,13 +762,15 @@ abstract class Prototype {
 			return NULL;
 		}
 
-		$dt = new \DateTime($row['removed']);
-
 		if(!$silent){
 			$this->log->warning([
 				"icon" => Icon::get("remove"),
 				"title" => str::title("{$rel_table} removed"),
-				"message" => str::title("This {$rel_table}")." was removed {$dt->format("H:i:s, j F Y")} by {$row['user']['name']}, and can no longer be accessed.",
+				"message" => implode(" ", [
+					str::title("This {$rel_table}") . " was removed at",
+					str::jsDateTime($row['removed'], true, true, true),
+					"by {$row['user']['name']}, and can no longer be accessed.",
+				]),
 			]);
 		}
 
