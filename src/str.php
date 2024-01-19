@@ -3237,8 +3237,20 @@ EOF;
 
 			else {
 				// Process completed, read its output
-				$stdout = stream_get_contents($pipes[1]);
-				$stderr = stream_get_contents($pipes[2]);
+
+				# Make sure $pipes have something to read using stream_get_meta_data
+				$meta_data[1] = stream_get_meta_data($pipes[1]);
+				$meta_data[2] = stream_get_meta_data($pipes[2]);
+
+				if($meta_data[1]['unread_bytes'] > 0){
+					$stdout = stream_get_contents($pipes[1], $meta_data[1]['unread_bytes']);
+				}
+
+				if($meta_data[2]['unread_bytes'] > 0){
+					$stderr = stream_get_contents($pipes[2], $meta_data[2]['unread_bytes']);
+				}
+
+				// This should prevent pipe hangs
 			}
 
 			// Close all pipes and terminate the process
