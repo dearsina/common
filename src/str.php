@@ -3238,19 +3238,23 @@ EOF;
 			else {
 				// Process completed, read its output
 
-				# Make sure $pipes have something to read using stream_get_meta_data
+				# Get the pipe metadata to ensure the pipes are not blocked
 				$meta_data[1] = stream_get_meta_data($pipes[1]);
 				$meta_data[2] = stream_get_meta_data($pipes[2]);
 
-				if($meta_data[1]['unread_bytes'] > 0){
-					$stdout = stream_get_contents($pipes[1], $meta_data[1]['unread_bytes']);
+				if($meta_data[1]['blocked']){
+					//unblock the stdout stream
+					stream_set_blocking($pipes[1], 0);
 				}
 
-				if($meta_data[2]['unread_bytes'] > 0){
-					$stderr = stream_get_contents($pipes[2], $meta_data[2]['unread_bytes']);
+				if($meta_data[2]['blocked']){
+					//unblock the stderr stream
+					stream_set_blocking($pipes[2], 0);
 				}
-
 				// This should prevent pipe hangs
+
+				$stdout = stream_get_contents($pipes[1]);
+				$stderr = stream_get_contents($pipes[2]);
 			}
 
 			// Close all pipes and terminate the process
