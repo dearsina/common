@@ -759,8 +759,8 @@ class str {
 	}
 
 	/**
-	 * Returns TRUE if script is run from the command line (CLI),
-	 * or false if it's run from a browser (http).
+	 * Returns TRUE if the script is run from the command line (`cli`),
+	 * or false if it's run from a browser (`http` or `apache2handler`).
 	 *
 	 *
 	 * @param bool|null $or_die If set to TRUE, will kill the script execution if it's NOT run from CLI.
@@ -770,11 +770,6 @@ class str {
 	static function runFromCLI(?bool $or_die = NULL): bool
 	{
 		if($or_die){
-			Email::notifyAdmins([
-				"subject" => "runFromCLI() called from HTTP",
-				"body" => "Check the backtrace",
-				"backtrace" => str::backtrace(true, false)
-			]);
 			str::runFromCLI() or die("This method can only be accessed from the command line.");
 			return true;
 		}
@@ -3253,7 +3248,7 @@ EOF;
 					//unblock the stderr stream
 					stream_set_blocking($pipes[2], 0);
 				}
-				// This should prevent pipe hangs
+				// This will the pipes hanging
 
 				$stdout = stream_get_contents($pipes[1]);
 				$stderr = stream_get_contents($pipes[2]);
