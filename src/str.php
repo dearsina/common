@@ -3307,7 +3307,7 @@ EOF;
 		$headers = preg_split('/\s+/', trim(array_shift($output)));
 
 		// Initialize an associative array
-		$processInfo = [];
+		$pid_info = [];
 
 		// Process the remaining lines
 		foreach ($output as $line) {
@@ -3320,25 +3320,25 @@ EOF;
 			$columns = preg_split('/\s+/', trim($line), -1, PREG_SPLIT_NO_EMPTY);
 
 			// Combine headers and columns to form an associative array
-			$processInfo[] = array_combine($headers, $columns);
+			$pid_info[] = array_combine($headers, $columns);
 		}
 
-		if(!$processInfo){
+		if(!$pid_info){
 			return NULL;
 		}
 
 		# There will only ever be one process
-		$processInfo = reset($processInfo);
+		$pid_info = reset($pid_info);
 
 		# If the elapsed time includes days, we need to split it up
-		if(strpos($processInfo['ELAPSED'], "-")){
-			list($days, $time) = explode('-', $processInfo['ELAPSED']);
+		if(strpos($pid_info['ELAPSED'], "-")){
+			list($days, $time) = explode('-', $pid_info['ELAPSED']);
 		}
 
 		# Otherwise, just set the days to 0
 		else {
 			$days = 0;
-			$time = $processInfo['ELAPSED'];
+			$time = $pid_info['ELAPSED'];
 		}
 
 		# Break up the time into hours, minutes, and seconds
@@ -3352,9 +3352,9 @@ EOF;
 		$startTime->sub($interval);
 
 		# Add the start time to the process info
-		$processInfo['START_TIME'] = $startTime->format('Y-m-d H:i:s');
+		$pid_info['START_TIME'] = $startTime->format('Y-m-d H:i:s');
 
-		return $processInfo;
+		return $pid_info;
 	}
 
 	public static function marker(?string $marker = "Marker", ?bool $prod_enable = NULL): void
