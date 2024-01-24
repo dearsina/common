@@ -3272,6 +3272,58 @@ EOF;
 		return true;
 	}
 
+	/**
+	 * Returns an array of information about a given process ID.
+	 * If the process ID is not found, returns NULL.
+	 *
+	 * Array contains the following keys:
+	 * - pid (process ID)
+	 * - comm (command)
+	 * - etime (elapsed time)
+	 * - user (user)
+	 * - pcpu (CPU usage)
+	 * - pmem (memory usage)
+	 * - vsz (virtual memory size)
+	 * - rss (resident set size)
+	 * - tty (terminal)
+	 * - stat (status)
+	 * - wchan (wait channel)
+	 *
+	 * @param string $pid
+	 *
+	 * @return array|null
+	 */
+	public static function getPidInfo(string $pid): ?array
+	{
+		// Command to execute
+		$command = "ps -p $pid -o pid,comm,etime,user,pcpu,pmem,vsz,rss,tty,stat,wchan";
+
+		// Array to store the output
+		$output = [];
+
+		// Execute the command
+		str::exec($command, $output);
+
+		// Remove and process the first line (column headers)
+		$headers = preg_split('/\s+/', trim(array_shift($output)));
+
+		// Initialize an associative array
+		$processInfo = [];
+
+		// Process the remaining lines
+		foreach ($output as $line) {
+			// Split the line into columns
+			$columns = preg_split('/\s+/', trim($line), -1, PREG_SPLIT_NO_EMPTY);
+
+			// Combine headers and columns to form an associative array
+			$processInfo[] = array_combine($headers, $columns);
+		}
+
+		// $processInfo now contains an associative array of the ps output
+		return $processInfo ? reset($processInfo) : NULL;
+		// Or null if the process ID cannot be found
+	}
+
 	public static function marker(?string $marker = "Marker", ?bool $prod_enable = NULL): void
 	{
 		if(!$prod_enable && !str::isDev()){
