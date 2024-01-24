@@ -252,6 +252,7 @@ class Card extends Prototype {
 	 * @param null $a
 	 *
 	 * @return string
+	 * @throws \Exception
 	 */
 	public function login($a = NULL)
 	{
