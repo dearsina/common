@@ -3277,17 +3277,17 @@ EOF;
 	 * If the process ID is not found, returns NULL.
 	 *
 	 * Array contains the following keys:
-	 * - pid (process ID)
-	 * - comm (command)
-	 * - etime (elapsed time)
-	 * - user (user)
-	 * - pcpu (CPU usage)
-	 * - pmem (memory usage)
-	 * - vsz (virtual memory size)
-	 * - rss (resident set size)
-	 * - tty (terminal)
-	 * - stat (status)
-	 * - wchan (wait channel)
+	 * - PID (process ID)
+	 * - COMMAND (command)
+	 * - ELAPSED (elapsed time)
+	 * - USER (user)
+	 * - %CPU (CPU usage)
+	 * - %MEM (memory usage)
+	 * - VSZ (virtual memory size)
+	 * - RSS (resident set size)
+	 * - TT (terminal)
+	 * - STAT (status)
+	 * - WCHAN (wait channel)
 	 *
 	 * @param string $pid
 	 *
@@ -3312,6 +3312,11 @@ EOF;
 
 		// Process the remaining lines
 		foreach ($output as $line) {
+			# Ignore empty lines
+			if(!$line){
+				continue;
+			}
+
 			// Split the line into columns
 			$columns = preg_split('/\s+/', trim($line), -1, PREG_SPLIT_NO_EMPTY);
 
