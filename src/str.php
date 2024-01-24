@@ -3280,6 +3280,7 @@ EOF;
 	 * - PID (process ID)
 	 * - COMMAND (command)
 	 * - ELAPSED (elapsed time)
+	 * - START_TIME (start time in UTC)
 	 * - USER (user)
 	 * - %CPU (CPU usage)
 	 * - %MEM (memory usage)
@@ -3324,9 +3325,38 @@ EOF;
 			$processInfo[] = array_combine($headers, $columns);
 		}
 
-		// $processInfo now contains an associative array of the ps output
-		return $processInfo ? reset($processInfo) : NULL;
-		// Or null if the process ID cannot be found
+		if(!$processInfo){
+			return NULL;
+		}
+
+		# There will only ever be one process
+		$processInfo = reset($processInfo);
+
+		# If the elapsed time includes days, we need to split it up
+		if(strpos($processInfo['ELAPSED'], "-")){
+			list($days, $time) = explode('-', $processInfo['ELAPSED']);
+		}
+
+		# Otherwise, just set the days to 0
+		else {
+			$days = 0;
+			$time = $processInfo['ELAPSED'];
+		}
+
+		# Break up the time into hours, minutes, and seconds
+		list($hours, $minutes, $seconds) = explode(':', $time);
+
+		# Create a DateInterval object for the elapsed time
+		$interval = new \DateInterval("P{$days}DT{$hours}H{$minutes}M{$seconds}S");
+
+		# Subtract the interval from the current time
+		$startTime = new \DateTime();
+		$startTime->sub($interval);
+
+		# Add the start time to the process info
+		$processInfo['START_TIME'] = $startTime->format('Y-m-d H:i:s');
+
+		return $processInfo;
 	}
 
 	public static function marker(?string $marker = "Marker", ?bool $prod_enable = NULL): void
