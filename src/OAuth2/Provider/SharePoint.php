@@ -146,9 +146,6 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		catch(\Exception $e) {
-			if($e->getCode() == "404"){
-				return NULL;
-			}
 			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s", $endpoint);
 		}
 
