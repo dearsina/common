@@ -149,7 +149,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 			if($e->getCode() == "404"){
 				return NULL;
 			}
-			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s");
+			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s", $endpoint);
 		}
 
 		if(!$response_array['value']){
@@ -576,7 +576,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	 *
 	 * @throws \Exception
 	 */
-	private function throwError(\Exception $e, ?string $context = NULL): void
+	private function throwError(\Exception $e, ?string $context = NULL, ?string $endpoint = NULL): void
 	{
 		# The best way of getting error responses
 		if(method_exists($e, "getResponse") && method_exists($e->getResponse(), "getBody")){
@@ -614,6 +614,8 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		else {
 			$narrative = $error_message ?: $error;
 		}
+
+		$narrative .= $endpoint ? " ({$endpoint})" : NULL;
 
 		Log::getInstance()->error([
 			"display" => false,
