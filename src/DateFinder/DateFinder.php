@@ -158,6 +158,23 @@ class DateFinder extends \App\Common\Prototype {
 		return strlen(preg_replace("/[^0-9]/", "", $string)) > 14;
 	}
 
+	const COMPLEX_DATE_PATTERNS = [
+		# Change 2023 Nov(ember) 06 to 06-Nov(ember)-2023
+		"/(\d{4})\s+((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{1,2})/" => "\$3-\$2-\$1",
+
+		# Change 06 Nov(ember) 2023 to 06-Nov(ember)-2023
+		"/.*(\d{2})\s+((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{2})/" => "\$1-\$2-\$3",
+
+		# Changing YYYY/MM/DD to YYYY-MM-DD
+		"/.*(\d{4})\/(\d{2})\/(\d{2}).*/" => "\$1-\$2-\$3",
+
+		# Changing DD/MM/YYYY to DD-MM-YYYY (ignoring US dates)
+		"/.*(\d{2})\/(\d{2})\/(\d{4}).*/" => "\$1-\$2-\$3",
+
+		# Simplify strings that contain long form narrative dates
+		"/.*\b(\d{1,2})(?:(?:st)|(?:nd)|(?:rd)|(?:th))?(?:\s+|(?: of ))?((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{4})\b.*/i" => "\$1-\$2-\$3",
+	];
+
 	/**
 	 * Change YYYY/MM/DD to YYYY-MM-DD
 	 *
@@ -177,14 +194,10 @@ class DateFinder extends \App\Common\Prototype {
 	 */
 	private function changeCommonChallengingFormats(&$string): void
 	{
-		# Change 2023 November 06 to 06-November-2023
-		$string = preg_replace("/(\d{4})\s+((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{1,2})/", "\$3-\$2-\$1", $string);
-
-		# Changing YYYY/MM/DD to YYYY-MM-DD
-		$string = preg_replace("/.*(\d{4})\/(\d{2})\/(\d{2}).*/", "\$1-\$2-\$3", $string);
-
-		# Changing DD/MM/YYYY to DD-MM-YYYY (ignoring US dates)
-		$string = preg_replace("/.*(\d{2})\/(\d{2})\/(\d{4}).*/", "\$1-\$2-\$3", $string);
+		# Simplify complex date formats
+		foreach(self::COMPLEX_DATE_PATTERNS as $pattern => $replacement){
+			$string = preg_replace($pattern, $replacement, $string);
+		}
 
 		# Changing DD.MM.YY and DD-MM-YY and DD/MM/YY to YYYY-MM-DD (ignoring US dates)
 		if(preg_match("/^(\d{2})(?:\.|\-|\/)(\d{2})(?:\.|\-|\/)(\d{2})$/", $string, $matches)){
@@ -193,9 +206,6 @@ class DateFinder extends \App\Common\Prototype {
 			$date = $matches[1];
 			$string = "{$year}-{$month}-{$date}";
 		}
-
-		# Simplify strings that contain long form narrative dates
-		$string = preg_replace("/.*\b(\d{1,2})(?:(?:st)|(?:nd)|(?:rd)|(?:th))?(?:\s+|(?: of ))?((?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?))\s+(\d{4})\b.*/i", "\$1-\$2-\$3", $string);
 	}
 
 	private function handleStringWithoutAlpha(string $string): ?\DateTime
