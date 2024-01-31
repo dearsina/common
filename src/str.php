@@ -1570,23 +1570,24 @@ class str {
 	 * @param array|string $delimiters
 	 * @param array|string $string
 	 *
-	 * @return array|bool
+	 * @return array|null
 	 */
-	static function explode($delimiters, $string)
+	static function explode($delimiters, $string): ?array
 	{
 		if(!is_array(($delimiters)) && !is_array($string)){
 			//if neither the delimiter nor the string are arrays
 			return explode($delimiters, $string);
 		}
+
 		else if(!is_array($delimiters) && is_array($string)){
 			//if the delimiter is not an array but the string is
+			$items = [];
 			foreach($string as $item){
-				foreach(explode($delimiters, $item) as $sub_item){
-					$items[] = $sub_item;
-				}
+				$items = array_merge($items, explode($delimiters, $item));
 			}
 			return $items;
 		}
+
 		else if(is_array($delimiters) && !is_array($string)){
 			//if the delimiter is an array but the string is not
 			$string_array[] = $string;
@@ -1595,7 +1596,19 @@ class str {
 			}
 			return $string_array;
 		}
-		return false;
+
+		else if(is_array($delimiters) && is_array($string)){
+			//if both the delimiter and the string are arrays
+			$items = [];
+			foreach($string as $item){
+				foreach($delimiters as $delimiter){
+					$items = array_merge($items, explode($delimiter, $item));
+				}
+			}
+			return $items;
+		}
+
+		return NULL;
 	}
 
 	/**
@@ -3333,6 +3346,12 @@ EOF;
 		# If the elapsed time includes days, we need to split it up
 		if(strpos($pid_info['ELAPSED'], "-")){
 			list($days, $time) = explode('-', $pid_info['ELAPSED']);
+		}
+
+		# If the elapsed time only includes one :, then it's hours and minutes
+		else if(substr_count($pid_info['ELAPSED'], ':') == 1){
+			$days = 0;
+			$time = "00:" . $pid_info['ELAPSED'];
 		}
 
 		# Otherwise, just set the days to 0
