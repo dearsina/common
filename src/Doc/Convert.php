@@ -597,11 +597,14 @@ class Convert {
 		# Write command to convert the PDF to JPG using pdftoppm
 		$cmd = "pdftoppm -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']}";
 
-		# Add the pdftoppm suffix
-		$file['tmp_name'] .= '-1.jpg';
-
 		# Execute the command
 		shell_exec($cmd);
+
+		# Remove the original PDF
+		unlink($file['tmp_name']);
+
+		# Add the pdftoppm suffix (to reflect the conversion to JPG)
+		$file['tmp_name'] .= '-1.jpg';
 
 		$file['md5'] = md5_file($file['tmp_name']);
 		$file['size'] = filesize($file['tmp_name']);
