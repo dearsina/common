@@ -565,6 +565,41 @@ class Request {
 		return true;
 	}
 
+	private function printQueries(?bool $unset_backtrace = NULL, ?int $top = NULL, ?string $order_by = "time", ?bool $output_to_file = NULL): void
+	{
+		foreach($_SESSION['queries'] as &$query){
+			if($unset_backtrace){
+				unset($query['backtrace']);
+			}
+			if($queries[$query['query_md5']]){
+				$queries[$query['query_md5']]['count']++;
+				$queries[$query['query_md5']]['time'] += $query['time'];
+				continue;
+			}
+			$queries[$query['query_md5']] = $query;
+			$queries[$query['query_md5']]['count'] = 1;
+		}
+
+		str::multidimensionalOrderBy($queries, [
+			$order_by => "DESC"
+		]);
+
+		if($output_to_file){
+			ob_start();
+			print_r($_SESSION['queries']);
+			file_put_contents($_ENV['tmp_dir']."process.log", ob_get_contents(), FILE_APPEND);
+			ob_clean();
+			exit;
+		}
+
+		if($top){
+			$queries = array_slice($queries, 0, $top);
+		}
+		print_r(array_slice($queries, 0, 10));
+		print_r($queries);
+		exit;
+	}
+
 	/**
 	 * Returns the output as a json-encoded array.
 	 *
@@ -578,29 +613,10 @@ class Request {
 			if($_SESSION['database_calls'] > 50){
 				$this->log->info("{$_SESSION['database_calls']} database calls.");
 			}
-			//			var_dump($_SESSION['queries'][0]);exit;
-
-			//						foreach($_SESSION['queries'] as &$query){
-			//							unset($query['backtrace']);
-			//							if($queries[$query['query_md5']]){
-			//								$queries[$query['query_md5']]['count']++;
-			//								$queries[$query['query_md5']]['time'] += $query['time'];
-			//								continue;
-			//							}
-			//							$queries[$query['query_md5']] = $query;
-			//							$queries[$query['query_md5']]['count'] = 1;
-			//						}
-			//						str::multidimensionalOrderBy($queries, [
-			//							"time" => "DESC"
-			//						]);
-			//						print_r($queries);
-			//						exit;
-
-			//			ob_start();
-			//			print_r($_SESSION['queries']);
-			//			file_put_contents($_ENV['tmp_dir']."process.log", ob_get_contents(), FILE_APPEND);
-			//			ob_clean();
 		}
+
+		# Enable to print queries
+//		$this->printQueries(false, 10);
 
 		$output = $this->output->get();
 
