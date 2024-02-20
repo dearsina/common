@@ -1352,7 +1352,7 @@ class str {
 	 * @return string
 	 * @link https://stackoverflow.com/a/40514305/429071
 	 */
-	public static function camelToSnakeCase(string $string, string $us = "_"): string
+	public static function camelToSnakeCase(?string $string, string $us = "_"): string
 	{
 		return str_replace(" ", $us, mb_strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/u', $us, $string)));
@@ -3135,11 +3135,14 @@ EOF;
 	 * @return string|null
 	 * @link https://stackoverflow.com/a/34681477/429071
 	 */
-	public static function getHisFromS(?int $seconds = NULL): ?string
+	public static function getHisFromS(?float $seconds = NULL): ?string
 	{
 		if($seconds === NULL){
 			return NULL;
 		}
+
+		# In case a float is passed, round it
+		$seconds = round($seconds);
 
 		$dt = new \DateTime("1970-01-01 {$seconds} seconds");
 

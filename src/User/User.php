@@ -1026,14 +1026,14 @@ class User extends Prototype {
 	 *
 	 * @param array $a
 	 *
-	 * @return bool
+	 * @return bool|string
 	 * @throws Exception
 	 */
-	public function insert(array $a): bool
+	public function insert(array $a, ?bool $silent = NULL)
 	{
 		extract($a);
 
-		if(!$this->permission()->get($rel_table)){
+		if(!$this->permission()->get("user")){
 			return $this->accessDenied($a);
 		}
 
@@ -1080,7 +1080,7 @@ class User extends Prototype {
 		]);
 
 		# Give the user permission to their own account
-		$this->permission()->set($rel_table, $user_id, "rud", $user_id);
+		$this->permission()->set("user", $user_id, "rud", $user_id);
 
 		# Create the link between the user and the user type
 		$this->sql->insert([
@@ -1098,6 +1098,11 @@ class User extends Prototype {
 			if(!$this->sendWelcomeEmail($a)){
 				return false;
 			}
+		}
+
+		# If silent, just return the new user ID
+		if($silent){
+			return $user_id;
 		}
 
 		$this->output->closeModal();
@@ -2100,7 +2105,7 @@ class User extends Prototype {
 
 		# Check to see if the user has saved a password
 		if(!$user['password']){
-			//if the user DOESN'T have a password (edge case, but could happen)
+			//if the user DOESN'T have a password, because they only logged in via SSO
 
 			# Resend verification email
 			$this->sendVerifyEmail([
@@ -2428,7 +2433,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function logUserIn($user, $remember)
+	protected function logUserIn($user, $remember)
 	{
 		# Store the user_id both globally and locally
 		$_SESSION['user_id'] = $user['user_id'];
@@ -2821,8 +2826,33 @@ class User extends Prototype {
 			return false;
 		}
 
+		# Ensure the new password is long enough
 		if(strlen($vars['new_password']) < Field::minimumPasswordLength){
 			$this->log->error("Ensure your password is at least " . Field::minimumPasswordLength . " characters long.");
+			return false;
+		}
+
+		# Ensure the new password has at least one uppercase unicode letter
+		if(!preg_match("/\p{Lu}/u", $vars['new_password'])){
+			$this->log->error("Ensure your password has at least one uppercase letter.");
+			return false;
+		}
+
+		# Ensure the new password has at least one lowercase unicode letter
+		if(!preg_match("/\p{Ll}/u", $vars['new_password'])){
+			$this->log->error("Ensure your password has at least one lowercase letter.");
+			return false;
+		}
+
+		# Ensure the new password has at least one number
+		if(!preg_match("/\p{N}/u", $vars['new_password'])){
+			$this->log->error("Ensure your password has at least one number.");
+			return false;
+		}
+
+		# Ensure the new password has at least one special character
+		if(!preg_match("/[^\p{L}\p{N}]/u", $vars['new_password'])){
+			$this->log->error("Ensure your password has at least one special character.");
 			return false;
 		}
 

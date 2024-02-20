@@ -60,6 +60,8 @@ class DateFinder extends \App\Common\Prototype {
 	}
 
 	/**
+	 * Handles Chinese dates and translates them to Y-m-d.
+	 * Includes the Republic of China calendar.
 	 *
 	 * @param string $input_string
 	 * @link https://en.wikipedia.org/wiki/Republic_of_China_calendar
@@ -68,20 +70,24 @@ class DateFinder extends \App\Common\Prototype {
 	private function translateChineseDate(string &$input_string): void
 	{
 		# Chinese date format: 112年12月31日
-		$pattern = "/(\d{2,4})年(\d{2})月(\d{2})日/u";
+		$pattern = "/(\d{2,4})年(\d{1,2})月(\d{1,2})日/u";
 
 		# If there is a match, convert the date to Y-m-d
 		if(preg_match($pattern, $input_string, $matches)){
+			# Ensure the month and day are two digits
+			$matches[2] = str_pad($matches[2], 2, "0", STR_PAD_LEFT);
+			$matches[3] = str_pad($matches[3], 2, "0", STR_PAD_LEFT);
+
 			switch(strlen($matches[1])){
-				case 2:
-					# If only two numbers (very uncharacteristic), let PHP handle it
-					$input_string = $matches[3] . "-" . $matches[2] . "-" . $matches[1];
-					break;
-				case 3:
-					# Account for RoC years
-					$matches[1] += 1911;
-				case 4:
-					# Most common case
+			case 2:
+				# If only two numbers (very uncharacteristic), let PHP handle it
+				$input_string = $matches[3] . "-" . $matches[2] . "-" . $matches[1];
+				break;
+			case 3:
+				# Account for RoC years
+				$matches[1] += 1911;
+			case 4:
+				# Most common case
 				$input_string = $matches[1] . "-" . $matches[2] . "-" . $matches[3];
 				break;
 			}
