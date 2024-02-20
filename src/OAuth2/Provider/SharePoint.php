@@ -123,6 +123,23 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	}
 
 	/**
+	 * Formats a folder or file name to conform with Microsoft Graph.
+	 *
+	 * @param string      $name
+	 * @param string|null $wildcard The replacement for illegal characters. Defaults to "*".
+	 *
+	 * @return void
+	 */
+	private function formatName(string &$name, ?string $wildcard = "*"): void
+	{
+		# Convert illegal characters to wildcard
+		$name = str_replace(["'", "&", "?", "%", "#", "/"], $wildcard, $name);
+
+		# Convert space to %20
+		$name = str_replace(" ", "%20", $name);
+	}
+
+	/**
 	 * @inheritDoc
 	 * @link https://docs.microsoft.com/en-us/graph/query-parameters
 	 */
@@ -130,8 +147,8 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	{
 		$key = json_decode($parent_folder_id, true);
 
-		# Escape single quotes
-		$folder_name = str_replace("'", "\'", $folder_name);
+		# Format the name to search
+		$this->formatName($folder_name);
 
 		try {
 			$endpoint = str::generate_url("/sites/{$key['site_id']}/drive/items/{$key['item_id']}/children", [
@@ -181,8 +198,8 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	{
 		$key = json_decode($parent_folder_id, true);
 
-		# Escape single quotes
-		$file_name = str_replace("'", "\'", $file_name);
+		# Format the name for search
+		$this->formatName($file_name);
 
 		try {
 			$endpoint = str::generate_url("/sites/{$key['site_id']}/drive/items/{$key['item_id']}/children", [
@@ -605,6 +622,8 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		if($context){
+			$context = str_replace("%20", " ", $context);
+			// Replace %20 with space, or else sprintf will interpret it as a placeholder
 			$narrative = sprintf($context, $error_code, $error_message);
 		}
 

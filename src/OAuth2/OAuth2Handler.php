@@ -37,11 +37,12 @@ class OAuth2Handler extends \App\Common\Prototype {
 		 */
 
 		$this->output->function("openNewWindow", [
-			"url" => "https://app.{$_ENV['domain']}/oauth2.php?".http_build_query(array_filter($a)),
+			"url" => "https://app.{$_ENV['domain']}/oauth2.php?" . http_build_query(array_filter($a)),
 			"id" => session_id(),
 			"width" => 500,
-			"height" => 700
+			"height" => 700,
 		]);
+		// oauth2.php just calls the processRequest() method below
 	}
 
 	/**
@@ -67,7 +68,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		}
 
 		$this->output->function("closeWindow", [
-			"id" => $session_id
+			"id" => $session_id,
 		], $recipients);
 	}
 
@@ -184,7 +185,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 	private function handleRedirectErrors(array $requester): void
 	{
 		// If there was an error with our auth request
-		switch($_GET['error']){
+		switch($_GET['error']) {
 		case 'access_denied':
 			# The user did not grant the access requested
 			$this->log->error([
@@ -286,11 +287,11 @@ class OAuth2Handler extends \App\Common\Prototype {
 		# Get a new token based on the refresh token
 		$grant = new RefreshToken();
 
-		try{
+		try {
 			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
 		}
-		catch(\Exception $e){
-			$title = "Could not connect to ".Webhook::PROVIDERS[$oauth_token['provider']]['title'];
+		catch(\Exception $e) {
+			$title = "Could not connect to " . Webhook::PROVIDERS[$oauth_token['provider']]['title'];
 			$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
 			Log::getInstance()->error([
 				"title" => $title,
@@ -315,7 +316,38 @@ class OAuth2Handler extends \App\Common\Prototype {
 				"refresh_token" => $oauth_token['refresh_token'],
 				"expires" => $oauth_token['expires'],
 			],
-			"user_id" => false
+			"user_id" => false,
 		]);
+	}
+
+	/**
+	 * Parses a JWT token into its three parts.
+	 *
+	 * @param string|null $token
+	 *
+	 * @return array|null Returns an array with the header, payload and signature, or NULL if the token is invalid.
+	 */
+	public static function parseJwt(?string $token): ?array
+	{
+		$base64UrlDecode = function($input){
+			return base64_decode(strtr($input, '-_', '+/'));
+		};
+
+		[$header, $payload, $signature] = explode('.', $token);
+
+		# If any of the three parts are missing, the token is invalid
+		if(!$header || !$payload || !$signature){
+			return NULL;
+		}
+
+		$decodedHeader = json_decode($base64UrlDecode($header), true);
+		$decodedPayload = json_decode($base64UrlDecode($payload), true);
+		$decodedSignature = $base64UrlDecode($signature);
+
+		return [
+			"header" => $decodedHeader,
+			"payload" => $decodedPayload,
+			"signature" => $decodedSignature,
+		];
 	}
 }

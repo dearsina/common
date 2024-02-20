@@ -11,6 +11,13 @@ use App\Common\str;
  * Provider for sending emails via Microsoft Exchange.
  */
 class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailProviderInterface {
+	private \Microsoft\Graph\Graph $graph;
+
+	const SCOPES = [
+		"https://graph.microsoft.com/User.Read",
+		"https://graph.microsoft.com/Mail.Send",
+		'offline_access',
+	];
 
 	public function __construct(array $oauth_token)
 	{
@@ -106,7 +113,7 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 			}
 		}
 
-		if($bcc = $email->getCc()){
+		if($bcc = $email->getBcc()){
 			foreach($bcc as $email_address => $recipient_name){
 				$message['bccRecipients'][] = [
 					"emailAddress" => [
@@ -236,11 +243,7 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 			'clientSecret' => $_ENV['microsoft_graph_client_secret'],
 			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
 			"prompt" => $force_refresh_token ? "consent" : NULL,
-			'scopes' => [
-				"https://graph.microsoft.com/User.Read",
-				"https://graph.microsoft.com/Mail.Send",
-				'offline_access',
-			],
+			'scopes' => self::SCOPES,
 			'defaultEndPointVersion' => '2.0',
 		]);
 

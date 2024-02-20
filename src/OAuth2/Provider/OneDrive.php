@@ -107,13 +107,30 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	}
 
 	/**
+	 * Formats a folder or file name to conform with Microsoft Graph.
+	 *
+	 * @param string      $name
+	 * @param string|null $wildcard The replacement for illegal characters. Defaults to "*".
+	 *
+	 * @return void
+	 */
+	private function formatName(string &$name, ?string $wildcard = "*"): void
+	{
+		# Convert illegal characters to wildcard
+		$name = str_replace(["'", "&", "?", "%", "#", "/"], $wildcard, $name);
+
+		# Convert space to %20
+		$name = str_replace(" ", "%20", $name);
+	}
+
+	/**
 	 * @inheritDoc
 	 * @link https://docs.microsoft.com/en-us/graph/query-parameters
 	 */
 	public function folderExists(string $folder_name, ?string $parent_folder_id = "root"): ?string
 	{
-		# Escape single quotes
-		$folder_name = str_replace("'", "\'", $folder_name);
+		# Format the folder name
+		$this->formatName($folder_name);
 
 		try {
 			$response = $this->graph->setApiVersion("v1.0")
@@ -150,8 +167,8 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	 */
 	public function fileExists(string $file_name, ?string $parent_folder_id = "root"): ?array
 	{
-		# Escape single quotes
-		$file_name = str_replace("'", "\'", $file_name);
+		# Format the file name
+		$this->formatName($file_name);
 
 		try {
 			$response = $this->graph->setApiVersion("v1.0")
