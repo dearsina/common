@@ -9,4 +9,16 @@ class Prototype extends \App\Common\Prototype {
 	 * table.
 	 */
 	const PROVIDER = NULL;
+
+	/**
+	 * The oauth_token is the token that is used to authenticate
+	 * the user with the provider. It's an object that contains
+	 * the access token, the refresh token, and the expiry time.
+	 *
+	 * We store it in this class global in the event that it
+	 * expires during a call, and we need to refresh it.
+	 *
+	 * @var array
+	 */
+	public array $oauth_token;
 }

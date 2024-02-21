@@ -179,7 +179,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 		}
 
 		catch(\Exception $e) {
-			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s");
+			$this->throwError($e, "%s error when looking for the {$file_name} file: %s");
 		}
 
 		if(!$response_array['value']){

@@ -17,11 +17,47 @@ use App\Common\str;
  *       https://developer.microsoft.com/en-us/graph/graph-explorer
  */
 class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\FileProviderInterface {
+	/**
+	 * Takes the token, ensures its fresh, stores it in the class global
+	 * and loads the graph.
+	 *
+	 * @param array $oauth_token
+	 *
+	 * @throws \App\Common\Exception\BadRequest
+	 */
 	public function __construct(array $oauth_token)
 	{
+		# Ensure the token is fresh
 		OAuth2Handler::ensureTokenIsFresh($oauth_token);
+
+		# Store the fresh token in the class global
+		$this->oauth_token = $oauth_token;
+
+		# Load the graph
 		$this->graph = new \Microsoft\Graph\Graph();
+
+		# Set the access token
 		$this->graph->setAccessToken($oauth_token['token']);
+	}
+
+	/**
+	 * Ensure the token is fresh.
+	 *
+	 * @return void
+	 * @throws \App\Common\Exception\BadRequest
+	 */
+	public function ensureTokenIsFresh(): void
+	{
+		# If the token has yet to expire, we're good
+		if($this->oauth_token['expires'] > strtotime("now")){
+			return;
+		}
+
+		# Get a new token
+		OAuth2Handler::ensureTokenIsFresh($this->oauth_token);
+
+		# Set the refreshed access token
+		$this->graph->setAccessToken($this->oauth_token['token']);
 	}
 
 	/**
@@ -63,6 +99,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	{
 		$key = json_decode($parent_folder_id, true);
 
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$response = $this->graph->setApiVersion("v1.0")
 				->createRequest("POST", "/sites/{$key['site_id']}/drive/items/{$key['item_id']}/children")
@@ -97,6 +136,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	public function uploadFile(array $file, ?string $parent_folder_id = "root"): ?string
 	{
 		$key = json_decode($parent_folder_id, true);
+
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
 
 		try {
 			$response = $this->graph->setApiVersion("v1.0")
@@ -150,6 +192,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		# Format the name to search
 		$this->formatName($folder_name);
 
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$endpoint = str::generate_url("/sites/{$key['site_id']}/drive/items/{$key['item_id']}/children", [
 				"filter" => "(name eq '{$folder_name}')",
@@ -201,6 +246,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		# Format the name for search
 		$this->formatName($file_name);
 
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$endpoint = str::generate_url("/sites/{$key['site_id']}/drive/items/{$key['item_id']}/children", [
 				"filter" => "(name eq '{$file_name}')",
@@ -214,7 +262,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		catch(\Exception $e) {
-			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s");
+			$this->throwError($e, "%s error when looking for the {$file_name} file: %s");
 		}
 
 		if(!$response_array['value']){
@@ -239,6 +287,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		if(str::isJson($folder_id)){
 			$key = json_decode($folder_id, true);
 		}
+
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
 
 		try {
 			$response = $this->graph->setApiVersion("v1.0")
@@ -278,6 +329,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 
 	private function getSites(): ?array
 	{
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$response = $this->graph->createCollectionRequest("GET", "/sites?search=*")
 				->setReturnType(\Microsoft\Graph\Model\Site::class);
@@ -310,6 +364,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 
 	private function getDrives(string $site_id): ?array
 	{
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$response = $this->graph->createCollectionRequest("GET", "/sites/{$site_id}/drives?select=id,driveType,name")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
@@ -343,6 +400,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 
 	private function getDrive(string $site_id, string $drive_id): ?array
 	{
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$response = $this->graph->createCollectionRequest("GET", "/sites/{$site_id}/drives/{$drive_id}?select=id,driveType,name")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
@@ -358,6 +418,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 
 	private function getFolderItems(string $site_id, string $drive_id): ?array
 	{
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/root/children?select=id,name,sharepointIds,folder")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
@@ -400,6 +463,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 
 	private function getItems(string $site_id, string $drive_id, string $item_id): ?array
 	{
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
+
 		try {
 			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/items/{$item_id}/children?select=id,name,sharepointIds,folder")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
@@ -443,6 +509,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	private function getParents(string $folder_id, ?array $lineage = []): ?array
 	{
 		$key = json_decode($folder_id, true);
+
+		# Ensure the token is fresh before we make the request
+		$this->ensureTokenIsFresh();
 
 		try {
 			$response = $this->graph->createCollectionRequest("GET", "/drives/{$key['drive_id']}/items/{$key['item_id']}?select=id,name,folder,sharepointIds,parentReference")
