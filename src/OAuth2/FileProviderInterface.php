@@ -6,7 +6,6 @@ namespace App\Common\OAuth2;
  * An interface to unify provider classes.
  */
 interface FileProviderInterface extends ProviderInterface{
-
 	/**
 	 * Given a folder name, will create a folder with that name in
 	 * a given parent folder. If no parent folder is given, will
