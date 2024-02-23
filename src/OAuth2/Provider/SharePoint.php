@@ -177,13 +177,24 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	 */
 	private function formatNameForFiltering(string &$name, ?string $wildcard = "*"): void
 	{
+		# Remove leading and trailing spaces
+		$name = trim($name);
+
 		# Convert illegal characters to wildcard
 		$name = str_replace(["'", "&", "?", "%", "#", "/"], $wildcard, $name);
 
-		# Convert space to %20
+		# Convert spaces to %20
 		$name = str_replace(" ", "%20", $name);
 	}
 
+	/**
+	 * Format a (folder) name for saving.
+	 * This will remove illegal characters and leading and trailing spaces.
+	 *
+	 * @param string $name
+	 *
+	 * @return void
+	 */
 	private function formatNameForSaving(string &$name): void
 	{
 		# Remove leading and trailing spaces
@@ -220,6 +231,10 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		catch(\Exception $e) {
+			# If the folder doesn't exist, we sometimes get a 404
+			if($e->getCode() == "404"){
+				return NULL;
+			}
 			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s", $endpoint);
 		}
 
