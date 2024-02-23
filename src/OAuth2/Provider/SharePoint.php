@@ -155,7 +155,26 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		catch(\Exception $e) {
-			$this->throwError($e, "%s error when uploading {$file['name']} into the folder ID {$parent_folder_id}: %s");
+			# If we're getting a 404 on the sites endpoint, try the drive endpoint instead
+			if($e->getCode() == "404"){
+				try {
+					$response = $this->graph->setApiVersion("v1.0")
+						->createRequest("PUT", "/drives/{$key['drive_id']}/items/{$key['item_id']}:/{$file['name']}:/content")
+						->addHeaders([
+							"Content-Type" => $file['type'],
+						])
+						->upload($file['tmp_name']);
+
+					$response_array = $response->getBody();
+				}
+				catch(\Exception $ee) {
+					$this->throwError($ee, "%s error when uploading {$file['name']} into the folder ID {$parent_folder_id} using the drives endpoint: %s");
+				}
+			}
+			# For all other error codes, throw the error
+			else {
+				$this->throwError($e, "%s error when uploading {$file['name']} into the folder ID {$parent_folder_id} using the sites endpoint: %s");
+			}
 		}
 
 		return json_encode([
@@ -231,11 +250,27 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		catch(\Exception $e) {
-			# If the folder doesn't exist, we sometimes get a 404
+			# If we're getting a 404 on the sites endpoint, try the drive endpoint instead
 			if($e->getCode() == "404"){
-				return NULL;
+				try {
+					$endpoint = str::generate_url("/drives/{$key['drive_id']}/items/{$key['item_id']}/children", [
+						"filter" => "(name eq '{$folder_name}')",
+						"select" => "id,name,sharepointIds,folder",
+					]);
+					$response = $this->graph->setApiVersion("v1.0")
+						->createRequest("GET", $endpoint)
+						->execute();
+
+					$response_array = $response->getBody();
+				}
+				catch(\Exception $ee) {
+					$this->throwError($e, "%s error when looking for the {$folder_name} folder using the drive endpoint: %s", $endpoint);
+				}
 			}
-			$this->throwError($e, "%s error when looking for the {$folder_name} folder: %s", $endpoint);
+			# For all other error codes, throw the error
+			else {
+				$this->throwError($e, "%s error when looking for the {$folder_name} folder using the sites endpoint: %s", $endpoint);
+			}
 		}
 
 		if(!$response_array['value']){
@@ -289,7 +324,27 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		catch(\Exception $e) {
-			$this->throwError($e, "%s error when looking for the {$file_name} file: %s");
+			# If we're getting a 404 on the sites endpoint, try the drive endpoint instead
+			if($e->getCode() == "404"){
+				try {
+					$endpoint = str::generate_url("/drives/{$key['drive_id']}/items/{$key['item_id']}/children", [
+						"filter" => "(name eq '{$file_name}')",
+						"select" => "id,name,size",
+					]);
+					$response = $this->graph->setApiVersion("v1.0")
+						->createRequest("GET", $endpoint)
+						->execute();
+
+					$response_array = $response->getBody();
+				}
+				catch(\Exception $ee) {
+					$this->throwError($ee, "%s error when looking for the {$file_name} file using the drives endpoint: %s", $endpoint);
+				}
+			}
+			# For all other error codes, throw the error
+			else {
+				$this->throwError($e, "%s error when looking for the {$file_name} file using the sites endpoint: %s", $endpoint);
+			}
 		}
 
 		if(!$response_array['value']){
