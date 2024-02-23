@@ -99,6 +99,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	{
 		$key = json_decode($parent_folder_id, true);
 
+		# Format the name for saving
+		$this->formatNameForSaving($folder_name);
+
 		# Ensure the token is fresh before we make the request
 		$this->ensureTokenIsFresh();
 
@@ -172,13 +175,22 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	 *
 	 * @return void
 	 */
-	private function formatName(string &$name, ?string $wildcard = "*"): void
+	private function formatNameForFiltering(string &$name, ?string $wildcard = "*"): void
 	{
 		# Convert illegal characters to wildcard
 		$name = str_replace(["'", "&", "?", "%", "#", "/"], $wildcard, $name);
 
 		# Convert space to %20
 		$name = str_replace(" ", "%20", $name);
+	}
+
+	private function formatNameForSaving(string &$name): void
+	{
+		# Remove leading and trailing spaces
+		$name = trim($name);
+
+		# Remove illegal characters
+		$name = str::filter_filename($name);
 	}
 
 	/**
@@ -190,7 +202,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$key = json_decode($parent_folder_id, true);
 
 		# Format the name to search
-		$this->formatName($folder_name);
+		$this->formatNameForFiltering($folder_name);
 
 		# Ensure the token is fresh before we make the request
 		$this->ensureTokenIsFresh();
@@ -244,7 +256,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$key = json_decode($parent_folder_id, true);
 
 		# Format the name for search
-		$this->formatName($file_name);
+		$this->formatNameForFiltering($file_name);
 
 		# Ensure the token is fresh before we make the request
 		$this->ensureTokenIsFresh();
