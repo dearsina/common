@@ -336,7 +336,7 @@ abstract class Prototype {
 	 * @return array
 	 * @throws \ReflectionException
 	 */
-	protected function getFieldClassAndMethod($rel_table): array
+	protected function getFieldClassAndMethod(string $rel_table): array
 	{
 		$current_class = get_class($this);
 		$reflection_class = new ReflectionClass($current_class);
