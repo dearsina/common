@@ -77,6 +77,13 @@ class Email extends Prototype {
 	private ?string $error_message;
 
 	/**
+	 * If custom SMTP transport settings are required.
+	 *
+	 * @var array|null
+	 */
+	private ?array $smtp_transport_settings = NULL;
+
+	/**
 	 * Email constructor.
 	 *
 	 * @param null $a
@@ -684,8 +691,8 @@ class Email extends Prototype {
 		if(!$mailer || $tries > 1){
 			// If the mailer doesn't exist yet, or if we're on our second or third tries
 
-			# Get a (new) mailer
-			$mailer = $this->getMailer();
+			# Get a (new) SMTP mailer
+			$mailer = $this->getSmtpMailer();
 		}
 
 		try {
@@ -800,28 +807,75 @@ class Email extends Prototype {
 		return $this->error_message;
 	}
 
-	private function getMailer(): \Swift_Mailer
+	/**
+	 * Set the custom SMTP transport settings.
+	 * If this method is not called, the settings will be
+	 * taken from the .env file.
+	 *
+	 * The settings array must* or should contain the following keys:
+	 * - email_smtp_host*
+	 * - email_smtp_port*
+	 * - email_username*
+	 * - email_password*
+	 * - email_smtp_encryption
+	 * - dkim_private_key_file
+	 * - dkim_private_key
+	 * - dkim_domain
+	 *
+	 * @param array $settings
+	 *
+	 * @return void
+	 */
+	public function setSmtpTransportSettings(array $settings): void
 	{
+		$this->smtp_transport_settings = $settings;
+
+		# If the encryption setting is not set, default to TLS
+		if(!$this->smtp_transport_settings['email_smtp_encryption']){
+			$this->smtp_transport_settings['email_smtp_encryption'] = "TLS";
+		}
+
+		# If a DKIM private key file is set, and it exists, load it
+		if($this->smtp_transport_settings['dkim_private_key_file'] && file_exists($this->smtp_transport_settings['dkim_private_key_file'])){
+			$this->smtp_transport_settings['dkim_private_key'] = file_get_contents($this->smtp_transport_settings['dkim_private_key_file']);
+		}
+	}
+
+	private function getSmtpMailer(): \Swift_Mailer
+	{
+		# If custom SMTP settings haven't been set, use the default settings (from the .env file)
+		if(!$this->smtp_transport_settings){
+			$this->setSmtpTransportSettings([
+				"email_smtp_host" => $_ENV['email_smtp_host'],
+				"email_smtp_port" => $_ENV['email_smtp_port'],
+				"email_smtp_encryption" => "TLS",
+				"email_username" => $_ENV['email_username'],
+				"email_password" => $_ENV['email_password'],
+				"dkim_private_key_file" => $_ENV['dkim_private_key'],
+				"dkim_domain" => $_ENV['domain'],
+			]);
+		}
+
 		# Create the Transport
 		$transport = new \Swift_SmtpTransport();
-		$transport->setHost($_ENV['email_smtp_host']);
-		$transport->setPort($_ENV['email_smtp_port']);
-		$transport->setEncryption("TLS");
-		$transport->setUsername($_ENV['email_username']);
-		$transport->setPassword($_ENV['email_password']);
+		$transport->setHost($this->smtp_transport_settings['email_smtp_host']);
+		$transport->setPort($this->smtp_transport_settings['email_smtp_port']);
+		$transport->setEncryption($this->smtp_transport_settings['email_smtp_encryption']);
+		$transport->setUsername($this->smtp_transport_settings['email_username']);
+		$transport->setPassword($this->smtp_transport_settings['email_password']);
 
 		// Create the Mailer using your created Transport
-		$mailer = new \Swift_Mailer($transport);
+		$smtp_mailer = new \Swift_Mailer($transport);
 
 		# Add the DKIM key (if it exists)
-		if(file_exists($_ENV['dkim_private_key'])){
-			$privateKey = file_get_contents($_ENV['dkim_private_key']);
-			$domainName = $_ENV['domain'];
+		if($this->smtp_transport_settings['dkim_private_key'] && $this->smtp_transport_settings['dkim_domain']){
+			$privateKey = $this->smtp_transport_settings['dkim_private_key'];
+			$domainName = $this->smtp_transport_settings['dkim_domain'];
 			$selector = 'default';
 			$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
 			$this->envelope->attachSigner($signer);
 		}
 
-		return $mailer;
+		return $smtp_mailer;
 	}
 }
