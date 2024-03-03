@@ -220,7 +220,7 @@ class str {
 	static function title(?string $string, ?bool $capitalise_all_words = NULL): ?string
 	{
 		$string = str_replace("doc_", "document_", $string);
-		$string = str_replace("_col", "_column", $string);
+		$string = preg_replace("/_col\b/i", "_column", $string);
 		$string = str_replace("_", " ", $string);
 
 		if($capitalise_all_words === false){
