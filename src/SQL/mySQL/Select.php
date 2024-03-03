@@ -461,7 +461,24 @@ class Select extends Common {
 		if(!$formatted_columns = $this->formatColumns($columns, $alias_only)){
 			if(!$table_alias_only && !$except_table_alias){
 				//If no filters were applied, and there still were not columns
-				throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated to the <code>{$this->table['name']}</code> table.");
+
+				# Check if the given table name exists at all
+				if($dbs = $this->getSchemasFromTableName($this->table['name'])){
+					// if the table name exists
+					if(in_array($this->table['db'], $dbs)){
+						// If the database given is correct (but there are no columns)
+						throw new \mysqli_sql_exception("The SELECT query doesn't have any columns allocated to the <code>{$this->table['name']}</code> table.");
+					}
+					else {
+						# As the table _is_ found (but in a different database), inform them so that they can correct it
+						throw new \mysqli_sql_exception("The <code>{$table["name"]}</code> table can be found in the <code>".str::oxfordImplode($dbs)."</code> ".str::pluralise_if($dbs, "database").", not the <code>{$table["db"]}</code> database. Please address.");
+					}
+				}
+
+				# If the table name doesn't seem to exist in any schema
+				else {
+					throw new \mysqli_sql_exception("The <code>{$this->table['name']}</code> table does not seem to exist. Are you sure you have the correct table name?");
+				}
 			}
 		}
 

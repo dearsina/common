@@ -471,8 +471,15 @@ abstract class Common {
 		else {
 			$cols = $this->getAllTableColumns($table, $include_meta);
 		}
-
 		foreach($cols as $key => $val){
+			if(!is_string($val) && !is_array($val)){
+				throw new \TypeError("
+					When writing a query for mySQL, 
+					if columns are explicitly requested as an associative array,
+					the value must either be a string or an array.
+					For the <code>{$key}</code> column, the value was " . str::A(gettype($val)) . "."
+				);
+			}
 			$columns[] = $this->getColumn($table, $key, $val);
 		}
 
@@ -2560,16 +2567,8 @@ abstract class Common {
 		}
 
 		# Query to find the table across _all_ databases
-		$query = "
-		select table_schema as 'db'
-		from information_schema.tables
-		where table_type = 'BASE TABLE'
-		and table_schema not in ('information_schema','mysql','performance_schema','sys')
-		and TABLE_NAME = '{$table["name"]}'
-		";
-
-		# If the table can't be found _anywhere_ return an exception
-		if(!$row = $this->mysqli->query($query)->fetch_assoc()){
+		if(!$dbs = $this->getSchemasFromTableName($table["name"])){
+			// If the table can't be found _anywhere_ return an exception
 			throw new mysqli_sql_exception("Cannot find the <code>{$table["name"]}</code> table anywhere in the database, or the current user does not have access to it.");
 		}
 
@@ -2579,7 +2578,42 @@ abstract class Common {
 		]);
 
 		# As the table _is_ found (but in a different database), give the user a different exception
-		throw new mysqli_sql_exception("The <code>{$table["name"]}</code> table is in the <code>{$row['db']}</code> database, not the <code>{$table["db"]}</code> database. Please address.");
+		throw new mysqli_sql_exception("The <code>{$table["name"]}</code> table can be found in the <code>" . str::oxfordImplode($dbs) . "</code> " . str::pluralise_if($dbs, "database") . ", not the <code>{$table["db"]}</code> database. Please address.");
+	}
+
+	/**
+	 * Given a table name, will return an array of schema names
+	 * where the table exists, or NULL, if it doesn't exist.
+	 * This is used to find tables across all databases.
+	 *
+	 * @param string $table_name
+	 *
+	 * @return array|null
+	 * @throws Exception
+	 */
+	public function getSchemasFromTableName(string $table_name): ?array
+	{
+		# Query to find the table across _all_ databases
+		$query = "
+		select
+		  `TABLE_SCHEMA` as 'db'
+		from
+		  `information_schema`.`tables`
+		where
+		  `TABLE_TYPE` = 'BASE TABLE'
+		  and `TABLE_SCHEMA` not in (
+			'information_schema',
+			'mysql',
+			'performance_schema',
+			'sys'
+		  )
+		  and `TABLE_NAME` = '{$table_name}'
+		";
+
+		$sql = new Run($this->mysqli);
+		$result = $sql->run($query);
+
+		return array_column($result['rows'] ?: [], "db");
 	}
 
 	/**
