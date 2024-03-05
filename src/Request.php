@@ -246,38 +246,45 @@ class Request {
 	 * @return string
 	 * @link https://gist.github.com/abtris/1437966
 	 */
-	private function getExceptionTraceAsString($exception) {
+	private function getExceptionTraceAsString($exception)
+	{
 		$rtn = "";
 		$count = 0;
-		foreach ($exception->getTrace() as $frame) {
+		foreach($exception->getTrace() as $frame){
 			$args = "";
 			if(isset($frame['args'])){
 				$args = [];
 				foreach($frame['args'] as $arg){
 					if(is_string($arg)){
 						$args[] = "'" . $arg . "'";
-					} elseif (is_array($arg)) {
+					}
+					else if(is_array($arg)) {
 						$args[] = "Array";
-					} elseif (is_null($arg)) {
+					}
+					else if(is_null($arg)) {
 						$args[] = 'NULL';
-					} elseif (is_bool($arg)) {
+					}
+					else if(is_bool($arg)) {
 						$args[] = ($arg) ? "true" : "false";
-					} elseif (is_object($arg)) {
+					}
+					else if(is_object($arg)) {
 						$args[] = get_class($arg);
-					} elseif (is_resource($arg)) {
+					}
+					else if(is_resource($arg)) {
 						$args[] = get_resource_type($arg);
-					} else {
+					}
+					else {
 						$args[] = $arg;
 					}
 				}
 				$args = join(", ", $args);
 			}
-			$rtn .= sprintf( "#%s %s(%s): %s(%s)\n",
+			$rtn .= sprintf("#%s %s(%s): %s(%s)\n",
 				$count,
 				isset($frame['file']) ? $frame['file'] : 'unknown file',
 				isset($frame['line']) ? $frame['line'] : 'unknown line',
-				(isset($frame['class']))  ? $frame['class'].$frame['type'].$frame['function'] : $frame['function'],
-				$args );
+				(isset($frame['class'])) ? $frame['class'] . $frame['type'] . $frame['function'] : $frame['function'],
+				$args);
 			$count++;
 		}
 		return $rtn;
@@ -312,7 +319,7 @@ class Request {
 		}
 
 		# Or if we've been given the HTTP referer
-		else if ($_SERVER['HTTP_REFERER']){
+		else if($_SERVER['HTTP_REFERER']){
 			// HTTP_REFERER: "https://subdomain.example.com/folder"
 			$domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
 		}
@@ -396,8 +403,8 @@ class Request {
 		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			// If the token IP and the connecting IP are not the same
 			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)
-			&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)
-			&& !in_array($connection['ip'], self::WHITELISTED_IPS)){
+				&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)
+				&& !in_array($connection['ip'], self::WHITELISTED_IPS)){
 				//If the IP address doesn't belong to any of the whitelisted ASN domains
 				//and the IP address doesn't belong to any of the whitelisted ASN names
 				//and the IP address doesn't belong to any of the whitelisted IPs
@@ -447,13 +454,13 @@ class Request {
 	];
 
 	const WHITELISTED_ASN_NAMES = [
-		"Liquid Telecommunications South Africa"
+		"Liquid Telecommunications South Africa",
 	];
 
 	const WHITELISTED_IPS = [
 		# F-Wise
 		"196.201.106.33",
-		"41.160.141.66"
+		"41.160.141.66",
 	];
 
 	/**
@@ -565,10 +572,21 @@ class Request {
 		return true;
 	}
 
-	private function printQueries(?bool $unset_backtrace = NULL, ?int $top = NULL, ?string $order_by = "time", ?bool $output_to_file = NULL): void
+	/**
+	 * Print the queries that have been run.
+	 * This is useful for debugging.
+	 *
+	 * @param bool|null   $keep_backtrace Keep the backtrace key that lists the methods that called the query
+	 * @param int|null    $top            How many of the top queries to print
+	 * @param string|null $order_by       What to order the queries by
+	 * @param bool|null   $output_to_file If the output should be written to a file
+	 *
+	 * @return void
+	 */
+	private function printQueries(?bool $keep_backtrace = true, ?int $top = 10, ?string $order_by = "time", ?bool $output_to_file = NULL): void
 	{
 		foreach($_SESSION['queries'] as &$query){
-			if($unset_backtrace){
+			if(!$keep_backtrace){
 				unset($query['backtrace']);
 			}
 			if($queries[$query['query_md5']]){
@@ -581,13 +599,13 @@ class Request {
 		}
 
 		str::multidimensionalOrderBy($queries, [
-			$order_by => "DESC"
+			$order_by => "DESC",
 		]);
 
 		if($output_to_file){
 			ob_start();
 			print_r($_SESSION['queries']);
-			file_put_contents($_ENV['tmp_dir']."process.log", ob_get_contents(), FILE_APPEND);
+			file_put_contents($_ENV['tmp_dir'] . "process.log", ob_get_contents(), FILE_APPEND);
 			ob_clean();
 			exit;
 		}
@@ -616,7 +634,7 @@ class Request {
 		}
 
 		# Enable to print queries
-//		$this->printQueries(false, 10);
+//		$this->printQueries();
 
 		$output = $this->output->get();
 
@@ -646,7 +664,7 @@ class Request {
 
 		# Alerts
 		if($alerts = $this->log->getAlerts()){
-			$output['alerts'] = array_merge($output['alert'] ?:[], $alerts);
+			$output['alerts'] = array_merge($output['alert'] ?: [], $alerts);
 		}
 		/**
 		 * Alerts are fed into the $output array,
