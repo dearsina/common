@@ -913,44 +913,6 @@ class Doc extends \App\Common\Prototype {
 		}
 	}
 
-	public static function convertHeic(array $file, ?int $quality = 50): ?string
-	{
-		# Ensure file is indeed a HEIC file
-		if($file['ext'] != 'heic'){
-			//if the file isn't a HEIC file
-			return NULL;
-		}
-
-		# Open ImageMagik
-		$imagick = new \Imagick();
-
-		# Read the image
-		$imagick->readImage($file['tmp_name']);
-
-		# Set image quality
-		if($quality){
-			//if the quality variable is set
-			$imagick->setImageCompressionQuality($quality);
-		}
-
-		# Set image format
-		$imagick->setImageFormat("jpeg");
-
-		# Create a page specific file array
-		$file_page = [
-			'name' => "{$file['name']}.jpg",
-			'type' => 'image/jpeg',
-			'tmp_name' => "{$file['tmp_name']}-jpg",
-			'size' => $imagick->getImageLength(),
-		];
-
-		# Store the page as a JPG
-		$imagick->writeImage("jpg:" . $file_page['tmp_name']);
-
-		# Return the new tmp name
-		return $file_page['tmp_name'];
-	}
-
 	public static function getResizedImage(array $file, ?int $max_width = 0, ?int $max_height = 0, ?int $quality = 50, ?bool $base64_encode = NULL, ?bool $return_array = NULL)
 	{
 		# Open ImageMagik
