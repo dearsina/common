@@ -105,6 +105,35 @@ class Doc extends \App\Common\Prototype {
 	}
 
 	/**
+	 * Checks to see if a file is a HEIC file.
+	 * Does that by examining the type and/or the name extension.
+	 * Will also check the mime type if the file type is not set to HEIC.
+	 * The mime type check is expensive, so it's optional.
+	 *
+	 * @param array     $file
+	 * @param bool|null $check_mime_type If set to true, will check the mime type of the file as a last resort
+	 *
+	 * @return bool If the file is a HEIC, will return true, otherwise false.
+	 */
+	public static function isHeic(array $file, ?bool $check_mime_type = NULL): bool
+	{
+		if($file['type'] == "image/heic"){
+			return true;
+		}
+
+		if($file['type'] == "application/octet-stream" && strtolower(pathinfo($file['name'], PATHINFO_EXTENSION)) == "heic"){
+			return true;
+		}
+
+		if($check_mime_type && mime_content_type($file['tmp_name']) == "image/heic"){
+			// If the file is a HEIC, but the file type is not set to HEIC
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * If the uploaded file is a PDF, will try to open the
 	 * file and will add the following data points (and
 	 * others) to the $file array under the `pdf_info` key
@@ -263,7 +292,7 @@ class Doc extends \App\Common\Prototype {
 					$pdf = @$parser->parseFile($file['tmp_name']);
 					$file['pdf_info']['text'] = @$pdf->getText();
 				}
-				catch(\Exception $e){
+				catch(\Exception $e) {
 					/**
 					 * If there was a type error, ignore it,
 					 * and extract the text using the pdftotext
@@ -308,9 +337,10 @@ class Doc extends \App\Common\Prototype {
 	 * Will return the success of the operation.
 	 * If there is an error, it will be added to the $file array.
 	 *
-	 * @param array       $file
-	 * @link https://stackoverflow.com/a/75046857/429071
+	 * @param array $file
+	 *
 	 * @return bool
+	 * @link https://stackoverflow.com/a/75046857/429071
 	 */
 	private static function setTextFromPdfToTextCommand(array &$file): bool
 	{
@@ -327,7 +357,7 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# If there are errors, set the error and return false
-		$file['pdf_info']['text_error'] = "When using pdftotext [{$cmd}], the following error [{$result_code}] was encountered: ".implode("\n", $output);
+		$file['pdf_info']['text_error'] = "When using pdftotext [{$cmd}], the following error [{$result_code}] was encountered: " . implode("\n", $output);
 		return false;
 	}
 
@@ -738,7 +768,7 @@ class Doc extends \App\Common\Prototype {
 	private static function rescalePdfWidthAndHeight(array &$file): void
 	{
 		$output = shell_exec("pdfinfo {$file['tmp_name']} | grep 'Page size'");
-		if (!preg_match("/Page size:\s+(\d+\.\d+) x (\d+\.\d+)/", $output, $matches)) {
+		if(!preg_match("/Page size:\s+(\d+\.\d+) x (\d+\.\d+)/", $output, $matches)){
 			// If the page size can't be found, abort mission
 			return;
 		}
@@ -808,8 +838,8 @@ class Doc extends \App\Common\Prototype {
 				// If there is still an issue, inform admin, return
 				Email::notifyAdmins([
 					"subject" => "PDF resizing issue",
-					"body" => "Tried to resize a PDF, didn't work. See PDF info below.<br><pre>".json_encode($file, JSON_PRETTY_PRINT)."</pre>",
-					"backtrace" => str::backtrace(true)
+					"body" => "Tried to resize a PDF, didn't work. See PDF info below.<br><pre>" . json_encode($file, JSON_PRETTY_PRINT) . "</pre>",
+					"backtrace" => str::backtrace(true),
 				]);
 				return;
 			}
@@ -822,7 +852,7 @@ class Doc extends \App\Common\Prototype {
 		$file['tmp_name'] .= "-{$page_number}.jpg";
 
 		# Resize to max width or height
-		$cmd = "convert {$file['tmp_name']} -resize ".self::MAX_WIDTH_HEIGHT_PX."x".self::MAX_WIDTH_HEIGHT_PX."\> {$file['tmp_name']} 2>&1";
+		$cmd = "convert {$file['tmp_name']} -resize " . self::MAX_WIDTH_HEIGHT_PX . "x" . self::MAX_WIDTH_HEIGHT_PX . "\> {$file['tmp_name']} 2>&1";
 		// This is only a problem if you're dealing with unique PDFs with very high DPIs
 
 		# Log and execute the command
