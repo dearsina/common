@@ -202,29 +202,55 @@ class Convert {
 		# Keep a copy of the original, rename the file to avoid it being overwritten
 		$original = Convert::makeCopy($file, __FUNCTION__);
 
-		# Open ImageMagik
-		$imagick = new \Imagick();
+		# Try using ImageMagick first
+		try {
+			# Open ImageMagick
+			$imagick = new \Imagick();
 
-		# Read the image
-		$imagick->readImage($original['tmp_name']);
+			# Read the image
+			$imagick->readImage($original['tmp_name']);
 
-		# Set image quality
-		if($quality){
-			//if the quality variable is set
-			$imagick->setImageCompressionQuality($quality);
+			# Set image quality
+			if($quality){
+				//if the quality variable is set
+				$imagick->setImageCompressionQuality($quality);
+			}
+
+			# Set image format
+			$imagick->setImageFormat("jpeg");
+
+			# Store the HEIC as a JPG
+			$imagick->writeImage("jpg:" . $file['tmp_name']);
+
+			# And we're done with ImageMagick
+			$imagick->clear();
+
+			# Set the new metadata
+			clearstatcache();
 		}
 
-		# Set image format
-		$imagick->setImageFormat("jpeg");
+		# Failing that, use the old-fashioned way (command line)
+		catch (\ImagickException $e) {
+			# Command
+			$command = "magick convert {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.jpg";
+			# Execute the command
 
-		# Store the HEIC as a JPG
-		$imagick->writeImage("jpg:" . $file['tmp_name']);
+			$output = shell_exec($command);
+			// If the command has an output (that's bad news)
 
-		# And we're done with ImageMagick
-		$imagick->clear();
+			# Return the last bit of the output, which is generally the error message
+			if($output){
+				$error = explode(":", $output);
+				throw new \Exception(trim(end($error)));
+			}
 
-		# Set the new metadata
-		clearstatcache();
+			# Remove the original HEIC
+			unlink($file['tmp_name']);
+
+			# Add the jpg suffix to the tmp name (to reflect the conversion to JPG)
+			$file['tmp_name'] .= ".jpg";
+		}
+
 		/**
 		 * Data fetched by filesize() is "statcached",
 		 * we need to clear it as the same file name
