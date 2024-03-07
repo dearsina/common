@@ -187,7 +187,7 @@ class Request {
 		catch(\mysqli_sql_exception $e) {
 			$this->log->error([
 				"icon" => "database",
-				"title" => "mySQL error",
+				"title" => str::isDev() ? "mySQL error" : "Connection error",
 				"message" => $e->getMessage(),
 				"trace" => $this->getExceptionTraceAsString($e),
 			]);

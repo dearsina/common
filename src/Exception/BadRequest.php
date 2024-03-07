@@ -4,6 +4,8 @@
 namespace App\Common\Exception;
 
 
+use App\Common\str;
+
 /**
  * Class BadRequest
  * @package App\Common\Exception
@@ -19,7 +21,8 @@ class BadRequest extends Prototype {
 	 */
 	public function __construct(string $public_message, ?string $private_message = NULL, $code = 400, \Exception $previous = NULL)
 	{
-		self::logException("Bad Request", $private_message ?: $public_message, $code);
-		parent::__construct($public_message, $code, $previous);
+		$private_message = $private_message ?: $public_message;
+		self::logException("Bad Request", $private_message, $code);
+		parent::__construct(str::isDev() ? $private_message : $public_message, $code, $previous);
 	}
 }
