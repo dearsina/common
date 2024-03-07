@@ -25,6 +25,6 @@ class MySqlException extends Prototype {
 		self::logException("mySQL exception", $private_message ?: self::PUBLIC_MESSAGE, $code);
 
 		# Show the public message to the end user (unless we are in dev mode, in which case show the private message)
-		parent::__construct(str::isDev() ? $private_message : self::PUBLIC_MESSAGE, $code, $previous);
+		new \mysqli_sql_exception(str::isDev() ? $private_message : self::PUBLIC_MESSAGE, $code, $previous);
 	}
 }
