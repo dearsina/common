@@ -4,6 +4,7 @@
 namespace App\Common\SQL\mySQL;
 
 
+use App\Common\Exception\MySqlException;
 use App\Common\str;
 
 class Run extends Common {
@@ -45,7 +46,7 @@ class Run extends Common {
 				# Run the multi-query
 				if(!$result = @$this->mysqli->multi_query($query)){
 					// Something went wrong
-					throw new \mysqli_sql_exception("SQL multi-query error: " . mysqli_connect_error(), mysqli_connect_errno());
+					throw new MySqlException("SQL multi-query error: " . mysqli_connect_error(), mysqli_connect_errno());
 				}
 
 				# Consume the results so that a query can be run afterwards
@@ -61,7 +62,7 @@ class Run extends Common {
 				# Run the query
 				if(!$result = @$this->mysqli->query($query)){
 					// Something went wrong
-					throw new \mysqli_sql_exception("SQL query error: " . mysqli_connect_error(), mysqli_connect_errno());
+					throw new MySqlException("SQL query error: " . mysqli_connect_error(), mysqli_connect_errno());
 				}
 			}
 		}
@@ -94,7 +95,7 @@ class Run extends Common {
 				break;
 			}
 
-			throw new \mysqli_sql_exception($message, $e->getCode(), $e);
+			throw new MySqlException($message, $e->getCode(), $e);
 		}
 
 		/**

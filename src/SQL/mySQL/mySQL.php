@@ -2,6 +2,7 @@
 
 namespace App\Common\SQL\mySQL;
 
+use App\Common\Exception\MySqlException;
 use App\Common\str;
 
 use mysqli_sql_exception;
@@ -54,7 +55,7 @@ class mySQL extends Common {
 			# Connect to the mySQL server
 			if(!$mysqli = @new \mysqli($_ENV['db_servername'], $_ENV['db_username'], $_ENV['db_password'], $_ENV['db_database'])){
 				// An attempt to suppress the "Warning:  mysqli::__construct(): Error while reading greeting packet" error
-				throw new \mysqli_sql_exception("New SQL connection error: " . mysqli_connect_error(), mysqli_connect_errno());
+				throw new MySqlException("New SQL connection error: " . mysqli_connect_error(), mysqli_connect_errno());
 			}
 
 			# Ensure everything is UTF8mb4
@@ -94,7 +95,7 @@ class mySQL extends Common {
 				throw new \Swoole\ExitException($message);
 			}
 			else {
-				throw new \Exception($message, $e->getCode());
+				throw new MySqlException($message, $e->getCode(), $e);
 			}
 		}
 

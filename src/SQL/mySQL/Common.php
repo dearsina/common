@@ -4,6 +4,7 @@
 namespace App\Common\SQL\mySQL;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Exception\MySqlException;
 use App\Common\Log;
 use App\Common\str;
 use mysqli_sql_exception;
@@ -2137,34 +2138,20 @@ abstract class Common {
 		ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`";
 		// The columns are used by a variety of scripts, primarily the Grow() class.
 
-		# Run the query to get table metadata (assuming the database-table combo exists)
-		try {
-			$result = $this->mysqli->query($query);
-		}
-
-			# Retry the query, just in case the connection died
-		catch(\mysqli_sql_exception $e) {
-			if($retrying){
-				throw new \Exception("SQL reconnection error when trying to get the metadata of a db [{$e->getCode()}]: {$e->getMessage()}");
-			}
-			$this->mysqli = mySQL::getNewConnection();
-			$this->loadDatabaseMetadata($db, $refresh, true);
-			return;
-		}
+		$sql = new Run($this->mysqli);
+		$result = $sql->run($query);
 
 		# Go through the result (assuming the database exists)
-		if(is_object($result)){
+		if(is_array($result['rows'])){
 			# Save each result row
-			while($row = $result->fetch_assoc()) {
+			foreach($result['rows'] as $row){
 				# The meta array contains DB > Table > Column data
 				$this->meta[$row['TABLE_SCHEMA']][$row['TABLE_NAME']][$row['COLUMN_NAME']] = $row;
 			}
-			$result->close();
-			//Frees the memory associated with the result.
 		}
 
 		else {
-			throw new BadRequest("Cannot find the <code>{$db}</code> database: " . var_export($result, true));
+			throw new MySqlException("Cannot find the <code>{$db}</code> database: " . var_export($result, true));
 		}
 
 		# Log the added-to schema as a session schema cache

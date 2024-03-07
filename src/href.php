@@ -46,46 +46,53 @@ class href {
 
 		return "{$pre}<a{$id}{$class}{$style}{$href}{$target}{$alt}>{$html}</a>{$post}";
 	}
+
 	/**
 	 * Distinguishes between onClick, hash or an URL.
 	 * Returns HTML to put in a button or an a-tag.
 	 *
 	 * @param $a array
 	 *
-	 * @return string|bool	Will return <code>href="somevalue"</code> and at times also <code>onClick="somevalue".</code>
-	 * 						If it cannot make sense out of the href, it will return FALSE
+	 * @return string|null    Will return <code>href="somevalue"</code> and at times also
+	 *                        <code>onClick="somevalue".</code> If it cannot make sense out of the href, it will return
+	 *                        FALSE
 	 */
-	static function generate($a){
+	static function generate($a): ?string
+	{
 		if(!$a){
-			return false;
+			return NULL;
 		}
 
 		extract($a);
 
-		if($onclick){
-			$onClick = $onclick;
-		}
+		# Ensure the capitalisation is done in a uniform manner
+		$onClick = $onclick ?: $onClick;
 
-		if($uri){
-			$url = $uri;
-		}
+		# Treat URI and URL the same
+		$url = $uri ?: $url;
 
 		if(is_array($hash)){
 			$hash = str::generate_uri($hash);
 		}
 
-		# onClick and hash cannot both be present.
-		# onClick needs to take over.
-		# However -1 hash and hash+div will overwrite onCLick
+		/**
+		 * onClick and hash cannot both be present.
+		 * onClick needs to take over.
+		 * However -1 hash and hash+div will overwrite onCLick
+		 */
 		if($div && $hash){
 			$href = "#";
-			$hash .= substr($hash,-1) == "/" ? "" : "/";
-			$hash .=  "div/{$div}";
+			$hash .= substr($hash, -1) == "/" ? "" : "/";
+			$hash .= "div/{$div}";
 			$onClick = "hashChange('$hash');";
-		} else if($hash == -1){
+		}
+
+		else if($hash == -1){
 			$href = "#";
 			$onClick = "window.history.back();";
-		} else if($hash){
+		}
+
+		else if($hash){
 			$href = "/{$hash}";
 			/**
 			 * Hashes do NOT have a slash prefixed.
@@ -94,17 +101,14 @@ class href {
 			 */
 		}
 
-		if($remove){
-			$onClick .= "$('#{$id}').{$remove}.remove();";
-		}
-
 		# URL will overwrite hash
 		if($url){
 			if(is_array($url)){
 				foreach($url as $attr => $val){
 					$return[] = str::getAttrTag($attr, $val);
 				}
-			} else {
+			}
+			else {
 				$return[] = str::getAttrTag("href", $url);
 			}
 		}
@@ -118,7 +122,7 @@ class href {
 		}
 
 		if(!$return){
-			return false;
+			return NULL;
 		}
 
 		return implode(" ", $return);
