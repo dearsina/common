@@ -67,7 +67,7 @@ class Run extends Common {
 			}
 		}
 
-		catch(\mysqli_sql_exception $e) {
+		catch(MySqlException $e) {
 			# Grab the error message
 			$message = $e->getMessage();
 			// Grabbing it so that we can optionally add to it
