@@ -402,21 +402,30 @@ class Request {
 		# Ensure token belongs to this IP address
 		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
 			// If the token IP and the connecting IP are not the same
-			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)
-				&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)
-				&& !in_array($connection['ip'], self::WHITELISTED_IPS)){
-				//If the IP address doesn't belong to any of the whitelisted ASN domains
-				//and the IP address doesn't belong to any of the whitelisted ASN names
-				//and the IP address doesn't belong to any of the whitelisted IPs
+			$this->log->error([
+				"display" => false,
+				"log" => true,
+				"title" => "Expired connection",
+				"message" => "Your connection has expired ({$connection['ip']} != {$_SERVER['REMOTE_ADDR']}).
+				It will now be refreshed. [The connection was not closed.]",
+			]);
 
-				# Refresh the connection
-				$this->hash->set("reload");
-				$this->log->warning([
-					"title" => "Expired connection",
-					"message" => "Your connection has expired ({$connection['ip']} != {$_SERVER['REMOTE_ADDR']}). It will now be refreshed.",
-				]);
-				return false;
-			}
+			/**
+			 * Because this caused so much grief for people that were on connections that kept
+			 * changing IP addresses, I've decided to just log the error and let the request through.
+			 */
+
+//			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)
+//				&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)
+//				&& !in_array($connection['ip'], self::WHITELISTED_IPS)){
+//				//If the IP address doesn't belong to any of the whitelisted ASN domains
+//				//and the IP address doesn't belong to any of the whitelisted ASN names
+//				//and the IP address doesn't belong to any of the whitelisted IPs
+//
+//				# Refresh the connection
+//				$this->hash->set("reload");
+//				return false;
+//			}
 		}
 
 		return true;
