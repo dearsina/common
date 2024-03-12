@@ -2792,6 +2792,6 @@ abstract class Common {
 	 */
 	public function getTableColumnsUsersCannotUpdate(string $table): array
 	{
-		return array_merge(["${table}_id"], $this->meta_columns);
+		return array_merge(["{$table}_id"], $this->meta_columns);
 	}
 }
