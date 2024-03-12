@@ -274,7 +274,7 @@ class str {
 			// Capitalize letter after certain name prefixes e.g 'Mc'
 			foreach(self::NAME_PREFIXES as $prefix){
 				$str = preg_replace_callback("/\\b($prefix)(\\w)/u", function($matches){
-					return "${matches[1]}" . strtoupper($matches[2]);
+					return "{$matches[1]}" . strtoupper($matches[2]);
 				}, $str);
 			}
 		}
@@ -283,7 +283,7 @@ class str {
 			// Remove capitalisation from certain word suffixes, e.g. 's
 			foreach(self::NAME_SUFFIXES as $suffix){
 				$str = preg_replace_callback("/(\\w)($suffix)\\b/u", function($matches){
-					return "${matches[1]}" . mb_strtolower($matches[2]);
+					return "{$matches[1]}" . mb_strtolower($matches[2]);
 				}, $str);
 			}
 		}
