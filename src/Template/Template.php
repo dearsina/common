@@ -192,7 +192,6 @@ class Template {
 		}
 
 		return [
-			"colour" => "grey",
 			"footer" => $footer,
 		];
 	}

@@ -18,13 +18,17 @@ class EmailWrapper extends \App\Common\Prototype {
 	 */
 	public static array $defaults = [
 		"colour" => [
-			"header_background" => "#FFFFFF",
 			"header_text" => "#000000",
-			"body_background" => "#f9fafb",
-			"body_text" => "#666666",
+			"header_background" => "#ffffff",
 			"body_title" => "primary",
+
+			"body_text" => "#666666",
+			"button_text" => "#ffffff",
+			"footer_text" => "#999999",
+
+			"body_background" => "#f9fafb",
 			"button_background" => "primary",
-			"button_text" => "#FFFFFF",
+			"footer_background" => "#ffffff",
 		],
 		"logo_position" => "left",
 		"logo_width" => 100,
