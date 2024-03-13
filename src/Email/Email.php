@@ -493,7 +493,7 @@ class Email extends Prototype {
 	 *
 	 * @return $this
 	 */
-	public function attachments($a = NULL)
+	public function attachments($a = NULL): object
 	{
 		if(!$a){
 			return $this;

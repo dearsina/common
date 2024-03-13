@@ -11,16 +11,25 @@ namespace App\Common\EmailWrapper;
 class EmailWrapper extends \App\Common\Prototype {
 	/**
 	 * The default values when formatting an email.
+	 * Also includes the default colour names
+	 * and their default colours.
 	 *
 	 * @var array
 	 */
 	public static array $defaults = [
-		"header_background_colour" => "#FFFFFF",
-		"header_text_colour" => "#000000",
-		"background_colour" => "#f9fafb",
-		"text_colour" => "#666666",
-		"title_colour" => "primary",
-		"button_colour" => "primary",
+		"colour" => [
+			"header_text" => "#000000",
+			"header_background" => "#ffffff",
+			"body_title" => "primary",
+
+			"body_text" => "#666666",
+			"button_text" => "#ffffff",
+			"footer_text" => "#999999",
+
+			"body_background" => "#f9fafb",
+			"button_background" => "primary",
+			"footer_background" => "#ffffff",
+		],
 		"logo_position" => "left",
 		"logo_width" => 100,
 		"font_family" => "Arial, Helvetica, sans-serif",
@@ -44,32 +53,6 @@ class EmailWrapper extends \App\Common\Prototype {
 			"title" => "Centre",
 			"desc" => "Covering the entire header width."
 		]
-	];
-
-	/**
-	 * The various colours that can be set in an email.
-	 *
-	 * @var array
-	 */
-	public static array $colours = [
-		"header_background_colour" => [
-			"title" => "Header background colour",
-		],
-		"header_text_colour" => [
-			"title" => "Header text colour",
-		],
-		"background_colour" => [
-			"title" => "Body background colour",
-		],
-		"text_colour" => [
-			"title" => "Body text colour",
-		],
-		"title_colour" => [
-			"title" => "Body title colour",
-		],
-		"button_colour" => [
-			"title" => "Button background colour",
-		],
 	];
 
 	/**

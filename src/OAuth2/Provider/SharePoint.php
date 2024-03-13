@@ -362,6 +362,10 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	}
 
 	/**
+	 * Sharepoint has sites, that have drives, that have items that have more items.
+	 * This method will return the name of the item or drive passed in the folder_id
+	 * param.
+	 *
 	 * @inheritDoc
 	 */
 	public function getFolderName(?string $folder_id): ?string
@@ -374,6 +378,12 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$this->ensureTokenIsFresh();
 
 		try {
+			# If we're at one level above the root, we need to get the drive name (not the item name)
+			if(!$key['item_id']){
+				$drive = $this->getDrive($key['site_id'], $key['drive_id']);
+				return $drive['name'];
+			}
+
 			$response = $this->graph->setApiVersion("v1.0")
 				->createRequest("GET", "/drives/{$key['drive_id']}/items/{$key['item_id']}?select=name")
 				->execute();
@@ -486,7 +496,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$this->ensureTokenIsFresh();
 
 		try {
-			$response = $this->graph->createCollectionRequest("GET", "/sites/{$site_id}/drives/{$drive_id}?select=id,driveType,name")
+			$response = $this->graph->createCollectionRequest("GET", "/sites/{$site_id}/drives/{$drive_id}?select=id,driveType,name,sharepointIds,folder")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
 
 			# Get the drive
@@ -504,7 +514,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$this->ensureTokenIsFresh();
 
 		try {
-			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/root/children?select=id,name,sharepointIds,folder")
+			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/root/children?select=id,name,sharepointIds")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
 
 			# Get the first list
@@ -528,10 +538,10 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 					"site_id" => $site_id,
 					"drive_id" => $drive_id,
 					"list_id" => $item['sharepointIds']['listId'],
-					"item_id" => $item['id']
+					"item_id" => $item['id'],
 				];
 				$children[json_encode($key)] = [
-					"name" => $item['name']
+					"name" => $item['name'],
 				];
 			}
 		}
@@ -576,7 +586,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 					"item_id" => $item['id'],
 				];
 				$children[json_encode($key)] = [
-					"name" => $item['name']
+					"name" => $item['name'],
 				];
 			}
 		}
@@ -596,11 +606,18 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$this->ensureTokenIsFresh();
 
 		try {
-			$response = $this->graph->createCollectionRequest("GET", "/drives/{$key['drive_id']}/items/{$key['item_id']}?select=id,name,folder,sharepointIds,parentReference")
-				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
+			if($key['item_id']){
+				$response = $this->graph->createCollectionRequest("GET", "/drives/{$key['drive_id']}/items/{$key['item_id']}?select=id,name,folder,sharepointIds,parentReference")
+					->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
 
-			# Get the one item this call should be returning
-			$item = $response->getPage()->getProperties();
+
+				# Get the one item this call should be returning
+				$item = $response->getPage()->getProperties();
+			}
+
+			else {
+				return $this->getParentDriveAndSite($folder_id, []);
+			}
 		}
 
 		catch(\Exception $e) {
@@ -613,7 +630,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 				]);
 				return $this->getSites();
 			}
-			$this->throwError($e, "%s error when loading the children for list ID {$list_id}: %s");
+			$this->throwError($e, "%s error when loading the children for list ID {$folder_id}: %s");
 		}
 
 		if(!$lineage){
@@ -683,12 +700,25 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		];
 
 		# Add it to the lineage
-		$lineage = [
-			json_encode($drive_key) => [
-				"name" => $drive['name'],
-				"children" => $lineage[$folder_id]['children'],
-			],
-		];
+		if(!$lineage){
+			// If the drive is highest up in the hierarchy, check it
+			$lineage = [
+				json_encode($drive_key) => [
+					"name" => $drive['name'],
+					"checked" => true,
+				],
+			];
+		}
+
+		else {
+			// If there is a lineage (children), add them to the drive
+			$lineage = [
+				json_encode($drive_key) => [
+					"name" => $drive['name'],
+					"children" => $lineage[$folder_id]['children'],
+				],
+			];
+		}
 
 		# Get all the sites
 		$sites = $this->getSites();
