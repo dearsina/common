@@ -370,9 +370,12 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	 */
 	public function getFolderName(?string $folder_id): ?string
 	{
-		if(str::isJson($folder_id)){
-			$key = json_decode($folder_id, true);
+		# The folder name must be a JSON string
+		if(!str::isJson($folder_id)){
+			return NULL;
 		}
+
+		$key = json_decode($folder_id, true);
 
 		# Ensure the token is fresh before we make the request
 		$this->ensureTokenIsFresh();
