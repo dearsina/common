@@ -706,7 +706,7 @@ class Email extends Prototype {
 				\App\Email\Email::notifyAdmins([
 					"subject" => "250 2.1.0 Sender OK email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true),
+					"backtrace" => str::backtrace(true, false),
 				]);
 			}
 
@@ -715,7 +715,7 @@ class Email extends Prototype {
 				\App\Email\Email::notifyAdmins([
 					"subject" => "432 4.3.2 Concurrent connections limit exceeded email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true),
+					"backtrace" => str::backtrace(true, false),
 				]);
 			}
 
@@ -724,7 +724,7 @@ class Email extends Prototype {
 				\App\Email\Email::notifyAdmins([
 					"subject" => "Failed to authenticate email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true),
+					"backtrace" => str::backtrace(true, false),
 				]);
 			}
 
@@ -733,7 +733,7 @@ class Email extends Prototype {
 				\App\Email\Email::notifyAdmins([
 					"subject" => "Timed out email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-					"backtrace" => str::backtrace(true),
+					"backtrace" => str::backtrace(true, false),
 				]);
 			}
 
@@ -748,7 +748,7 @@ class Email extends Prototype {
 				\App\Email\Email::notifyAdmins([
 					"subject" => "Unknown email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . " to send the email to {$recipients}: {$e->getMessage()}",
-					"backtrace" => str::backtrace(true),
+					"backtrace" => str::backtrace(true, false),
 				]);
 			}
 

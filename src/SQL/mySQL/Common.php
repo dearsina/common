@@ -694,6 +694,27 @@ abstract class Common {
 
 	}
 
+	const SQL_AGGREGATE_FUNCTIONS = [
+		"AVG",
+		"BIT_AND",
+		"BIT_OR",
+		"BIT_XOR",
+		"COUNT",
+		"GROUP_CONCAT",
+		"JSON_ARRAYAGG",
+		"JSON_OBJECTAGG",
+		"MAX",
+		"MIN",
+		"STD",
+		"STDDEV",
+		"STDDEV_POP",
+		"STDDEV_SAMP",
+		"SUM",
+		"VAR",
+		"VARP",
+		"VARIANCE"
+	];
+
 	/**
 	 * Boolean check to ensure the function is an aggregate function.
 	 *
@@ -703,7 +724,7 @@ abstract class Common {
 	 */
 	protected function isAggregateFunction(string $function): bool
 	{
-		return in_array(strtoupper($function), ["COUNT", "MAX", "MIN", "AVG", "SUM", "GROUP_CONCAT"]);
+		return in_array(strtoupper($function), self::SQL_AGGREGATE_FUNCTIONS);
 	}
 
 	/**
@@ -780,7 +801,7 @@ abstract class Common {
 	 *
 	 * @return array
 	 */
-	private function recursiveWhere(array $table, string $glue, array $array, ?bool $where = NULL): array
+	protected function recursiveWhere(array $table, string $glue, array $array, ?bool $where = NULL): array
 	{
 		foreach($array as $key => $val){
 
@@ -1328,7 +1349,37 @@ abstract class Common {
 
 			return "`{$table['alias']}`.`{$col}` BETWEEN {$from_val} AND {$to_val}";
 
-		} # ["col", "=", "table_alias", "col"],
+		}
+
+		# ["AGGREGATE_FUNCTION", "col", "eq", "val"]
+		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && !array_filter($val, "is_array") && $this->isAggregateFunction($val[0])){
+			[$agg_function, $col, $eq, $val] = $val;
+
+			# Ensure the join table column exists
+			if(!$this->columnExists($table, $col)){
+				return NULL;
+			}
+
+			# Ensure comparison operator is valid
+			if(!$this->isValidComparisonOperator($eq)){
+				return NULL;
+			}
+
+			# Ensure the formatted value is valid
+			if(($val = $this->formatComparisonVal($val)) === NULL){
+				//A legit value can be "0"
+				return NULL;
+			}
+
+			if($where){
+				# Collecting all tables and parent tables with children that have where clauses
+				$this->setTableAliasWithWhere([$table['alias']]);
+			}
+
+			return "{$agg_function}(`{$table['alias']}`.`{$col}`) {$eq} {$val}";
+		}
+
+		# ["col", "=", "table_alias", "col"],
 		else if(is_numeric($col) && is_array($val) && (count($val) == 4) && !array_filter($val, "is_array")){
 			[$col, $eq, $tbl_alias, $tbl_col] = $val;
 
