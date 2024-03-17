@@ -52,6 +52,9 @@ class Select extends Common {
 		# Set group by
 		$this->setGroupBy($group_by);
 
+		# Set having
+		$this->setHaving($having);
+
 		# Set order by
 		$this->setOrderBy($order_by);
 
@@ -267,6 +270,7 @@ class Select extends Common {
 		$table[] = $this->getJoinsSQL(true, false);
 		$table[] = $this->getWhereSQL($this->getTableAliasWithWhereAndOrder());
 		$table[] = $this->getGroupBySQL($this->getTableAliasWithWhereAndOrder());
+		$table[] = $this->getHavingSQL($this->getTableAliasWithWhereAndOrder());
 		$table[] = $this->getOrderBySQL($this->getTableAliasWithWhereAndOrder());
 		$table[] = $this->getLimitSQL();
 
@@ -278,6 +282,7 @@ class Select extends Common {
 		$query[] = $this->getJoinsSQL(false, true);
 		$query[] = $this->getWhereSQL(NULL, $this->getTableAliasWithWhereAndOrder());
 		$query[] = $this->getGroupBySQL(NULL, $this->getTableAliasWithWhereAndOrder());
+		$query[] = $this->getHavingSQL(NULL, $this->getTableAliasWithWhereAndOrder());
 		$query[] = $this->getOrderBySQL(NULL, $this->getTableAliasWithWhereAndOrder());
 
 		return implode("\r\n", array_filter($query));
@@ -300,6 +305,7 @@ class Select extends Common {
 		$query[] = $this->getJoinsSQL();
 		$query[] = $this->getWhereSQL();
 		$query[] = $this->getGroupBySQL();
+		$query[] = $this->getHavingSQL();
 		$query[] = $this->getOrderBySQL();
 		$query[] = $this->getLimitSQL();
 		return implode("\r\n", array_filter($query));
@@ -394,8 +400,8 @@ class Select extends Common {
 
 		$strings = [];
 
-		# If there are aggregate columns to group by around
-		if(array_filter(array_column($columns, "agg"))){
+		# If there are aggregate columns to group by around, or if one of the having clauses is an aggregate function
+		if(array_filter(array_column($columns, "agg")) || $this->havingIsAggregate()){
 			foreach($columns as $id => $column){
 				if($column['agg']){
 					continue;
@@ -429,6 +435,15 @@ class Select extends Common {
 		}
 
 		return "GROUP BY " . implode(",\r\n", $strings);
+	}
+
+	private function getHavingSQL(?array $alias_only = NULL, ?array $except_alias = NULL): ?string
+	{
+		if(!$this->having){
+			return NULL;
+		}
+
+		return "HAVING " . implode(" AND ", $this->having);
 	}
 
 	/**
@@ -605,6 +620,38 @@ class Select extends Common {
 		}
 
 		$this->group_by[] = $group_by;
+	}
+
+	/**
+	 * Sets the having clause.
+	 *
+	 * @param $having
+	 *
+	 * @return void
+	 */
+	private function setHaving($having): void
+	{
+		if(!$having){
+			return;
+		}
+
+		$this->having = array_filter($this->recursiveWhere($this->table, "AND", $having));
+	}
+
+	private function havingIsAggregate(): bool
+	{
+		if(!$this->having){
+			return false;
+		}
+
+		# If any of the having conditions are aggregate functions
+		foreach($this->having as $condition){
+			if(preg_match("/^\b(?:".implode("|", self::SQL_AGGREGATE_FUNCTIONS).")\b/i", $condition)){
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
