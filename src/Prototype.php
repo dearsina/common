@@ -517,6 +517,49 @@ abstract class Prototype {
 	}
 
 	/**
+	 * Returns an array of schema and table names
+	 * that contain a given column name.
+	 *
+	 * @param string $column_name
+	 *
+	 * @return array|null Will return NULL or a numerical array with TABLE_SCHEMA and TABLE_NAME keys
+	 * @throws Exception
+	 */
+	protected function getAllTablesWithColumnName(string $column_name): ?array
+	{
+		# Look through all tables across all DBs for this column name
+		$results = $this->sql->run("
+			SELECT
+			    -- Distinct because we're only interested in one row per table name (and we're hitting the column table)
+				DISTINCT
+				`INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA`,
+				`INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_NAME` 
+			FROM `INFORMATION_SCHEMA`.`COLUMNS`
+			
+			-- Left join the views table to exclude any views
+			LEFT JOIN `INFORMATION_SCHEMA`.`VIEWS`
+            ON `INFORMATION_SCHEMA`.`VIEWS`.`TABLE_SCHEMA` = `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA`
+            AND `INFORMATION_SCHEMA`.`VIEWS`.`TABLE_NAME` = `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_NAME`
+			
+			WHERE 0=0
+		    -- We're not interested in views
+            AND `INFORMATION_SCHEMA`.`VIEWS`.`VIEW_DEFINITION` IS NULL
+            
+			-- We're interested in all tables except the cache tables
+			AND `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA` <> 'cache'
+			
+			-- Where the column name appears
+			AND `INFORMATION_SCHEMA`.`COLUMNS`.`COLUMN_NAME` = '{$column_name}';
+		");
+
+		if(!$results['num_rows']){
+			return NULL;
+		}
+
+		return $results['rows'];
+	}
+
+	/**
 	 * Given a rel_table/id, will translate the rel_table to a
 	 * `rel_table_id` column name and remove all rows from
 	 * all tables with that column name and the corresponding
@@ -535,33 +578,11 @@ abstract class Prototype {
 		# The column name is always table + _id
 		$column_name = "{$rel_table}_id";
 
-		# Look through all tables across all DBs for this column name
-		$results = $this->sql->run("
-			SELECT
-			    -- Distinct because we're only interested in one row per table name (and we're hitting the column table)
-				DISTINCT
-				`INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA`,
-				`INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_NAME` 
-			FROM `INFORMATION_SCHEMA`.`COLUMNS`
-			
-			-- Left join the views table to exclude any views
-			LEFT JOIN `INFORMATION_SCHEMA`.`VIEWS`
-            ON `INFORMATION_SCHEMA`.`VIEWS`.`TABLE_SCHEMA` = `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA`
-            AND `INFORMATION_SCHEMA`.`VIEWS`.`TABLE_NAME` = `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_NAME`
-			
-			WHERE 0=0
-		    -- We're not interested in views
-            AND `INFORMATION_SCHEMA`.`VIEWS`.`VIEW_DEFINITION` IS NULL
-			-- We're interested in all tables except the cache tables
-			AND `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA` <> 'cache'
-			-- Where the column name appears
-			AND `INFORMATION_SCHEMA`.`COLUMNS`.`COLUMN_NAME` = '{$column_name}';");
-
-		if(!$results['num_rows']){
+		if(!$tables = $this->getAllTablesWithColumnName($column_name)){
 			throw new \Exception("Could not find any tables with the <code>{$column_name}</code> column. Are you sure you got the right name?");
 		}
 
-		foreach($results['rows'] as $table){
+		foreach($tables as $table){
 			if(!$count = $this->sql->select([
 				"db" => $table['TABLE_SCHEMA'],
 				"count" => true,
