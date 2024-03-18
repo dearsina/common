@@ -712,7 +712,7 @@ abstract class Common {
 		"SUM",
 		"VAR",
 		"VARP",
-		"VARIANCE"
+		"VARIANCE",
 	];
 
 	/**
@@ -1171,115 +1171,28 @@ abstract class Common {
 
 		# "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
-			[$tbl_alias, $tbl_col] = $val;
-
-			# Both values have to exist
-			if(!$tbl_alias || !$tbl_col){
-				return NULL;
-			}
-
-			# Ensure the join table column exists
-			if(!$this->columnExists($table, $col)){
-				return NULL;
-			}
-
-			# Ensure table alias exists
-			if(!$tbl = $this->tableAliasExists($tbl_alias)){
-				return NULL;
-			}
-
-			# Get an update (at times parent_aliases are prefixed)
-			$tbl_alias = $tbl['alias'];
-
-			if($where){
-				# Collecting all tables and parent tables with children that have where clauses
-				$this->setTableAliasWithWhere([$table['alias'], $tbl_alias]);
-			}
-
-			# Is col a JSON column?
-			if($this->isColumnJson($table, $col)){
-				//if $col is JSON
-				//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
-				return "`{$tbl_alias}`.`{$tbl_col}` MEMBER OF (`{$table['alias']}`.`{$col}`)";
-			}
-
-			# Is tbl_col a JSON column?
-			if($this->isColumnJson($tbl, $tbl_col)){
-				//if $tbl_col is JSON
-				//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
-				return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$tbl_alias}`.`{$tbl_col}`)";
-			}
-
-			return "`{$table['alias']}`.`{$col}` = `{$tbl_alias}`.`{$tbl_col}`";
-
-		} # "col" => ["db", "name", "col"], (optionally) "FUNC(", ")"]
-		else if(is_string($col) && is_array($val) && in_array(count($val), [3, 4, 5])){
-			switch(count($val)) {
-			case 3:
-				[$tbl_db, $tbl_name, $tbl_col] = $val;
-				break;
-			case 4:
-				[$tbl_db, $tbl_name, $tbl_col, $pre] = $val;
-				break;
-			case 5:
-				[$tbl_db, $tbl_name, $tbl_col, $pre, $post] = $val;
-				break;
-			}
-
-			# Ensure the join table column exists
-			if(!$this->columnExists($table, $col)){
-				return NULL;
-			}
-
-			# Ensure the counterpart also exists
-			if(!$this->columnExists(["db" => $tbl_db, "name" => $tbl_name], $tbl_col)){
-				return NULL;
-			}
-
-			# Create the table alias
-			$tbl_alias = $this->getDbAndTableString($tbl_db, $tbl_name);
-
-			# Ensure table alias exists (and get an update if there is one)
-			if(!$tbl = $this->tableAliasExists($tbl_alias)){
-				throw new mysqli_sql_exception("{$tbl_db} : {$tbl_name}");
-			}
-
-			# Get an update (at times parent_aliases are prefixed)
-			$tbl_alias = $tbl['alias'];
-
-			if($where){
-				# Collecting all tables and parent tables with children that have where clauses
-				$this->setTableAliasWithWhere([$table['alias'], $tbl_alias]);
-			}
-
-			# Is col a JSON column?
-			if($this->isColumnJson($table, $col)){
-				//if $col is JSON
-				//				return "JSON_CONTAINS(`{$table['alias']}`.`{$col}`, JSON_QUOTE(`{$tbl_alias}`.`{$tbl_col}`))";
-				return "`{$tbl_alias}`.`{$tbl_col}` MEMBER OF (`{$table['alias']}`.`{$col}`)";
-			}
-
-			$tbl = [
-				"db" => $tbl_db,
-				"name" => $tbl_name,
+			$counterparty_table = [
+				"alias" => $val[0],
+				"col" => $val[1],
 			];
 
-			# Is tbl_col a JSON column?
-			if($this->isColumnJson($tbl, $tbl_col)){
-				//if $tbl_col is JSON
-				//				return "JSON_CONTAINS(`{$tbl_alias}`.`{$tbl_col}`, JSON_QUOTE(`{$table['alias']}`.`{$col}`))";
-				return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$tbl_alias}`.`{$tbl_col}`)";
-			}
+			return $this->getCounterpartyValString($table, $col, $counterparty_table, $where);
+		}
 
-			return "`{$table['alias']}`.`{$col}` = {$pre}`{$tbl_alias}`.`{$tbl_col}`{$post}";
-			/**
-			 * In cases where the same table from the same database
-			 * is referenced, and tbl_db + tbl_name are given,
-			 * the assumption is that it's the first table that is
-			 * referenced here.
-			 */
+		# "col" => ["db", "name", "col"], (optionally) "FUNC(", ")"]
+		else if(is_string($col) && is_array($val) && in_array(count($val), [3, 4, 5])){
+			$counterparty = [
+				"db" => $val[0],
+				"name" => $val[1],
+				"col" => $val[2],
+				"pre" => $val[3],
+				"post" => $val[4],
+			];
 
-		} # ["col", "=", "val"] or ["col", "IN", [1, 2,3]]
+			return $this->getCounterpartyValString($table, $col, $counterparty, $where);
+		}
+
+		# ["col", "=", "val"] or ["col", "IN", [1, 2,3]] or ["col", eq (except "IN" and "NOT IN"), ["db", "table", "col"]]
 		else if(is_numeric($col) && is_array($val) && (count($val) == 3)){
 			[$col, $eq, $val] = $val;
 
@@ -1301,15 +1214,68 @@ abstract class Common {
 				return "`{$table['alias']}`.`{$col}` {$eq} NULL";
 			}
 
-			# Ensure the formatted value is valid
-			if(($val = $this->formatComparisonVal($val)) === NULL){
-				//A legit value can be "0"
-				return NULL;
+			if(!in_array($eq, self::ARRAY_COMPARISON_OPERATORS) && str::isNumericArray($val)){
+				// If the eq is NOT an array comparison operator, but the val is still an array
+				switch(count($val)) {
+				case 2:
+					$counterparty_table = [
+						"alias" => $val[0],
+						"col" => $val[1],
+					];
+
+					# Both values have to exist
+					if(!$counterparty_table['alias'] || !$counterparty_table['col']){
+						// If either is missing, we can't continue
+						return NULL;
+					}
+					break;
+				case 3:
+				case 4:
+				case 5:
+					$counterparty_table = [
+						"db" => $val[0],
+						"name" => $val[1],
+						"col" => $val[2],
+						"pre" => $val[3],
+						"post" => $val[4],
+					];
+					break;
+				}
+
+				# Check the counterparty
+				if(!$this->ensureCounterpartyCompleteness($counterparty_table)){
+					return NULL;
+				}
+
+				# Collecting all tables and parent tables with children that have where clauses
+				if($where){
+					$this->setTableAliasWithWhere([$table['alias'], $counterparty_table['alias']]);
+				}
+
+				# When the counterparty column is JSON *and* the comparison operator is negative
+				if($this->isColumnJson($counterparty_table, $counterparty_table['col'])){
+					if($this->isNegativeComparisonOperator($eq)){
+						return "({$table['alias']}`.`{$col}` NOT MEMBER OF (`{$counterparty_table['alias']}`.`{$counterparty_table['col']}`) OR `{$table['alias']}`.`{$col}` IS NULL)";
+					}
+				}
+
+				# Create an equivalent $val string for the counterparty
+				$val = "{$counterparty_table['pre']}`{$counterparty_table['alias']}`.`{$counterparty_table['col']}`{$counterparty_table['post']}";
 			}
 
-			if($where){
-				# Collecting all tables and parent tables with children that have where clauses
-				$this->setTableAliasWithWhere([$table['alias']]);
+			# When val is NOT an array or when the eq is an array comparison operator
+			else {
+				# Ensure the formatted value is valid
+				if(($val = $this->formatComparisonVal($val)) === NULL){
+					//A legit value can be "0"
+					return NULL;
+				}
+
+				if($where){
+					# Collecting all tables and parent tables with children that have where clauses
+					$this->setTableAliasWithWhere([$table['alias']]);
+				}
+
 			}
 
 			# Negate missing NULLs in negative comparisons
@@ -1448,6 +1414,105 @@ abstract class Common {
 
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
 		}
+	}
+
+	/**
+	 * Checks a counterparty table and column to ensure
+	 * they all exist. A counterparty is the table being
+	 * compared against in either a WHERE or an ON clause.
+	 *
+	 * Will throw an error if the given
+	 * alias does not exist.
+	 *
+	 * @param array $counterparty_table
+	 *
+	 * @return bool
+	 * @throws BadRequest
+	 */
+	private function ensureCounterpartyCompleteness(array &$counterparty_table): bool
+	{
+		# Ensure we have an alias
+		if(!$counterparty_table['alias']){
+			// If we don't have an alias
+			if($counterparty_table['name']){
+				// But we have a name
+
+				# Get the alias from the name (and db if provided)
+				$counterparty_table['alias'] = $this->getDbAndTableString($counterparty_table['db'], $counterparty_table['name']);
+			}
+		}
+
+		# Ensure counterparty table alias exists (and get an update if there is one)
+		if($counterparty_update = $this->tableAliasExists($counterparty_table['alias'])){
+			# Get an update (don't update the whole array, because it also contains the col, pre, and post keys)
+
+			$counterparty_table['name'] = $counterparty_update['name'];
+			// If only an alias was given, get the name
+
+			$counterparty_table['alias'] = $counterparty_update['alias'];
+			// At times parent_aliases are prefixed
+		}
+
+		else {
+			throw new mysqli_sql_exception("Counterparty table alias <code>{$counterparty_table['alias']}</code> cannot be found.");
+		}
+
+		# Ensure the counterparty table exists
+		if(!$this->columnExists($counterparty_table, $counterparty_table['col'])){
+			return false;
+		}
+
+		# Both values have to exist
+		if(!$counterparty_table['alias'] || !$counterparty_table['col']){
+			// If either is missing, we can't continue
+			return false;
+		}
+
+		return true;
+	}
+
+	private function getCounterpartyValString(array $table, string $col, array $counterparty_table, ?bool $where): ?string
+	{
+		# Ensure the join table column exists
+		if(!$this->columnExists($table, $col)){
+			return NULL;
+		}
+
+		# Check the counterparty
+		if(!$this->ensureCounterpartyCompleteness($counterparty_table)){
+			return NULL;
+		}
+
+		if($counterparty_table['pre'] && !$counterparty_table['post']){
+			# If pre has been set but post hasn't assume post is just an end parenthesis
+			$counterparty_table['post'] = ")";
+		}
+
+		if($counterparty_table['post'] && !$counterparty_table['pre']){
+			# If post has been set but pre hasn't, remove the post
+			$counterparty_table['post'] = NULL;
+		}
+
+		# Collecting all tables and parent tables with children that have where clauses
+		if($where){
+			$this->setTableAliasWithWhere([$table['alias'], $counterparty_table['alias']]);
+		}
+
+		# Counterparty column is JSON
+		if($this->isColumnJson($counterparty_table, $counterparty_table['col'])){
+			// Pre and post are ignored if the column is JSON
+			return "`{$table['alias']}`.`{$col}` MEMBER OF (`{$counterparty_table['alias']}`.`{$counterparty_table['col']}`)";
+		}
+
+		# Counterparty column is NOT JSON (most common)
+		return "`{$table['alias']}`.`{$col}` = {$counterparty_table['pre']}`{$counterparty_table['alias']}`.`{$counterparty_table['col']}`{$counterparty_table['post']}";
+
+		/**
+		 * In cases where the same table from the same database
+		 * is referenced, and tbl_db + tbl_name are given,
+		 * the assumption is that it's the first table that is
+		 * referenced here.
+		 */
 	}
 
 	/**
@@ -2016,6 +2081,36 @@ abstract class Common {
 		return "'{$val}'";
 	}
 
+	const COMPARISON_OPERATORS = [
+		"=",
+		"!=",
+		"<",
+		">",
+		"<=",
+		">=",
+		"<>",
+		"<=>",
+		"IS",
+		"IS NOT",
+		"LIKE",
+		"NOT LIKE",
+		"IN",
+		"NOT IN",
+	];
+
+	const NEGATIVE_COMPARISON_OPERATORS = [
+		"!=",
+		"<>",
+		"IS NOT",
+		"NOT LIKE",
+		"NOT IN",
+	];
+
+	const ARRAY_COMPARISON_OPERATORS = [
+		"IN",
+		"NOT IN",
+	];
+
 	/**
 	 * Checks to see if the operator is a valid mySQL comparison operator.
 	 *
@@ -2025,7 +2120,7 @@ abstract class Common {
 	 */
 	protected function isValidComparisonOperator(string $operator): bool
 	{
-		return in_array(strtoupper($operator), ["=", "!=", "<", ">", "<=", ">=", "<>", "<=>", "IS", "IS NOT", "LIKE", "NOT LIKE", "IN", "NOT IN"]);
+		return in_array(strtoupper($operator), self::COMPARISON_OPERATORS);
 	}
 
 	/**
@@ -2037,7 +2132,7 @@ abstract class Common {
 	 */
 	protected function isNegativeComparisonOperator(string $operator): bool
 	{
-		return in_array(strtoupper($operator), ["!=", "<>", "NOT LIKE", "NOT IN", "IS NOT"]);
+		return in_array(strtoupper($operator), self::NEGATIVE_COMPARISON_OPERATORS);
 	}
 
 	/**
@@ -2705,24 +2800,23 @@ abstract class Common {
 	}
 
 	/**
-	 * Does this db-table-col combo exist?
+	 * Does the given column exist in the given table?
 	 *
-	 * Will rarely, if ever call a SQL query, because all the columns
+	 * Will rarely, if ever, call an SQL query, because all the columns
 	 * will be logged by the tableExists() method.
 	 *
-	 * @param string $db
-	 * @param string $table
-	 * @param string $col
+	 * @param array       $table
+	 * @param string|null $col
 	 *
 	 * @return bool
+	 * @throws BadRequest
 	 */
 	protected function columnExists(array $table, ?string $col): bool
 	{
+		# Ensure there is a column
 		if(!$col){
 			return false;
 		}
-
-		extract($table);
 
 		# Clean the column name
 		if(!$col = str::i($col)){
@@ -2730,15 +2824,16 @@ abstract class Common {
 		}
 
 		# Clean the table name
-		if(!$name = str::i($name)){
+		if(!$table['name'] = str::i($table['name'])){
 			return false;
 		}
 
 		# CTEs have to be treated differently
-		if($is_cte){
+		if($table['is_cte']){
 			# Go through each CTE column and see if the name matches
-			foreach($this->ctes[$name]['columns'] as $column){
-				if($column['name'] == $col || $column['alias'] == $col){
+			foreach($this->ctes[$table['name']]['columns'] as $column){
+				# If there is a match on name or alias, we're good
+				if(in_array($col, [$column['name'], $column['alias']])){
 					return true;
 				}
 			}
@@ -2746,19 +2841,19 @@ abstract class Common {
 		}
 
 		# Temporary tables have a different path
-		if($is_tmp){
-			$this->loadTmpTableMetadata($name);
-			return (bool)$this->meta["tmp"][$name][$col];
+		if($table['is_tmp']){
+			$this->loadTmpTableMetadata($table['name']);
+			return (bool)$this->meta["tmp"][$table['name']][$col];
 		}
 
 		# Clean the database name
-		else if(!$db = str::i($db)){
-			//if none is supplied, assume the generic db
-			$db = $_ENV['db_database'];
-		}
+		$table['db'] = str::i($table['db']);
 
-		$this->loadDatabaseMetadata($db);
-		return (bool)$this->meta[$db][$name][$col];
+		# If none is supplied, assume the generic db
+		$table['db'] = $table['db'] ?: $_ENV['db_database'];
+
+		$this->loadDatabaseMetadata($table['db']);
+		return (bool)$this->meta[$table['db']][$table['name']][$col];
 	}
 
 	/**
