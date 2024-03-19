@@ -22,7 +22,7 @@ class MySqlException extends Prototype {
 	public function __construct(?string $private_message = NULL, $code = 400, \Exception $previous = NULL)
 	{
 		# Log the private message (if there is one)
-		self::logException("mySQL exception", $private_message ?: self::PUBLIC_MESSAGE, $code);
+		self::logException("mySQL exception", $private_message ? $private_message." [A different message was shown to the user.]" : self::PUBLIC_MESSAGE, $code);
 
 		# Show the public message to the end user (unless we are in dev mode, in which case show the private message)
 		parent::__construct(str::isDev() ? $private_message : self::PUBLIC_MESSAGE, $code, $previous);

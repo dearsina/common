@@ -56,7 +56,7 @@ class Insert extends Common {
 
 		# Execute the SQL
 		$sql = new Run($this->mysqli);
-		$sql->run($query);
+		$sql->run($query, $log);
 
 		# Returns the FIRST id (only)
 		return reset($this->set)[$this->table["id_col"]];
