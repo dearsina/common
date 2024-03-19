@@ -4,6 +4,7 @@
 namespace App\Common;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Exception\MySqlException;
 use App\Common\Exception\Unauthorized;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
@@ -184,7 +185,7 @@ class Request {
 				$success = $this->input($a);
 			}
 		}
-		catch(\mysqli_sql_exception $e) {
+		catch(\mysqli_sql_exception | MySqlException $e) {
 			$this->log->error([
 				"icon" => "database",
 				"title" => str::isDev() ? "mySQL error" : "Connection error",
