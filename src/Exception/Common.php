@@ -36,6 +36,7 @@ abstract class Common extends \Exception {
 
 		# Insert the error in the DB
 		$sql->insert([
+			"log" => false,
 			"table" => 'error_log',
 			"set" => $alert_array,
 			"reconnect" => true // Reconnects in case the error was caused by a long running script

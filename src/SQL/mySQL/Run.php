@@ -22,16 +22,19 @@ class Run extends Common {
 	 * - `num_rows` (SELECT only) The number of rows found by the query
 	 * - `affected_rows` The number of rows affected by the query
 	 *
-	 * @param string   $query
-	 * @param int|null $tries
+	 * @param string    $query
+	 * @param bool|null $log If set to false, will not log the query in the session variable.
+	 * @param int|null  $tries
 	 *
 	 * @return array
 	 * @throws \Exception
 	 */
-	public function run(string $query, ?int $tries = 1): array
+	public function run(string $query, ?bool $log = true, ?int $tries = 1): array
 	{
 		# Store the query in a session variable
-		$this->logRun($query);
+		if($log){
+			$this->logRun($query);
+		}
 
 		# Ensure the connection is live
 		$this->ensureConnection();
@@ -76,7 +79,7 @@ class Run extends Common {
 			# Common error messages that warrant a re-run
 			switch($message) {
 			case 'MySQL server has gone away':
-			default:
+//			default:
 				# Try again if we haven't tried too many times
 				if($tries <= self::MAX_TRIES){
 					# Close the connection
@@ -88,7 +91,7 @@ class Run extends Common {
 					# Count the try
 					$tries++;
 					# Rerun the query
-					return $this->run($query, $tries);
+					return $this->run($query, $log, $tries);
 				}
 
 				# Note to the log that we tried really hard to make this work
