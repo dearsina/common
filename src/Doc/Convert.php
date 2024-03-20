@@ -80,14 +80,16 @@ class Convert {
 	{
 		if($originals = Convert::getOriginals($client_doc)){
 			foreach($originals as $method => $original_client_doc){
-				$blob_id = $client_doc['client_doc_id'] . Convert::GLUE . $method;
+				$blob_id = ($client_doc['bad_doc_id'] ?: $client_doc['client_doc_id']) . Convert::GLUE . $method;
+				// Bad docs also use this method
 				$name = $original_client_doc['name'];
 				$type = $original_client_doc['type'];
 			}
 		}
 
 		else {
-			$blob_id = $client_doc['client_doc_id'];
+			$blob_id = $client_doc['bad_doc_id'] ?: $client_doc['client_doc_id'];
+			// Bad docs also use this method
 			$name = $client_doc['name'];
 			$type = $client_doc['type'];
 		}
