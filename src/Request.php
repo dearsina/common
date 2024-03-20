@@ -187,10 +187,10 @@ class Request {
 		}
 		catch(\mysqli_sql_exception | MySqlException $e) {
 			$this->log->error([
+				"log" => false, // This error is logged in the MySqlException class already
 				"icon" => "database",
-				"title" => str::isDev() ? "mySQL error" : "Connection error",
+				"title" => "Connection error",
 				"message" => $e->getMessage(),
-				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 
 			# Only show the query itself in the dev environment
