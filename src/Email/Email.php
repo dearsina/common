@@ -24,6 +24,12 @@ class Email extends Prototype {
 	const CRLF = "\n";
 
 	/**
+	 * The maximum number of times to try sending an email
+	 * before giving up.
+	 */
+	const MAX_TRIES = 5;
+
+	/**
 	 * Contains the swift message envelope
 	 * @var \Swift_Message
 	 */
@@ -701,8 +707,26 @@ class Email extends Prototype {
 		}
 
 		catch(\Exception $e) {
+			# Expected response code 250 but got code "554", with message "554 5.2.270 MapiExceptionMaxSubmissionExceeded; Message size exceeds maximum size limit.
+			if($e->getCode() == 544){
+				# Collect recipients
+				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
+
+				\App\Email\Email::notifyAdmins([
+					"subject" => "544 5.2.270 Message size exceeds maximum size limit email error",
+					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}.<br><br>
+					The message subject was: {$this->envelope->getSubject()}<br>
+					The message ".str::pluralise_if($recipients, "recipient", true)." ".str::isAre($recipients, true).": ".implode(", ", $recipients)."<br>
+					The message will not be attempted re-sent, because the issue was with the sender.",
+					"backtrace" => str::backtrace(true, false),
+				]);
+
+				# Don't try again
+				$tries = self::MAX_TRIES;
+			}
+
 			# Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
-			if(strpos($e->getMessage(), "250") !== false){
+			else if(strpos($e->getMessage(), "250") !== false){
 				\App\Email\Email::notifyAdmins([
 					"subject" => "250 2.1.0 Sender OK email error",
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
@@ -752,7 +776,7 @@ class Email extends Prototype {
 				]);
 			}
 
-			if($tries == 5){
+			if($tries == self::MAX_TRIES){
 				// Don't try more than 5 times
 				Log::getInstance()->error([
 					"title" => "Unable to send email",
