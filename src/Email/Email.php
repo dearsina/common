@@ -708,7 +708,7 @@ class Email extends Prototype {
 
 		catch(\Exception $e) {
 			# Expected response code 250 but got code "554", with message "554 5.2.270 MapiExceptionMaxSubmissionExceeded; Message size exceeds maximum size limit.
-			if($e->getCode() == 544){
+			if($e->getCode() == 554){
 				# Collect recipients
 				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
 
