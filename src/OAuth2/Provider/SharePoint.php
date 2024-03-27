@@ -382,6 +382,11 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 
 		try {
 			# If we're at one level above the root, we need to get the drive name (not the item name)
+			if(!$key['drive_id']){
+				// If no drive ID has been passed, we're at the root
+				return NULL;
+			}
+
 			if(!$key['item_id']){
 				$drive = $this->getDrive($key['site_id'], $key['drive_id']);
 				return $drive['name'];
