@@ -614,6 +614,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$this->ensureTokenIsFresh();
 
 		try {
+			# If we have an item ID
 			if($key['item_id']){
 				$response = $this->graph->createCollectionRequest("GET", "/drives/{$key['drive_id']}/items/{$key['item_id']}?select=id,name,folder,sharepointIds,parentReference")
 					->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
@@ -623,8 +624,14 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 				$item = $response->getPage()->getProperties();
 			}
 
-			else {
+			# If we have a drive ID
+			else if($key['drive_id']){
 				return $this->getParentDriveAndSite($folder_id, []);
+			}
+
+			# Failing that, just return the (root) sites
+			else {
+				return $this->getSites();
 			}
 		}
 
