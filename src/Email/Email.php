@@ -774,6 +774,9 @@ class Email extends Prototype {
 					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . " to send the email to {$recipients}: {$e->getMessage()}",
 					"backtrace" => str::backtrace(true, false),
 				]);
+
+				# Don't try again
+				$tries = self::MAX_TRIES;
 			}
 
 			if($tries == self::MAX_TRIES){
@@ -797,7 +800,11 @@ class Email extends Prototype {
 		}
 
 		if($tries > 1){
-			// If the email was sent successfully on a second/third try, notify admins again
+			// If the email was sent successfully on a second/third try, notify admins
+
+			# But take a break first
+			$sleep($tries);
+
 			\App\Email\Email::notifyAdmins([
 				"subject" => "Email sent successfully on try {$tries}",
 				"body" => "The email was successfully sent after {$tries} tries.",
