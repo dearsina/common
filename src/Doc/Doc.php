@@ -30,13 +30,10 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Confusingly, will return 2 if there is NO password, and 0, if there IS one
-		$output = (int)trim(shell_exec("qpdf --requires-password {$file['tmp_name']} ; echo \$?"));
+		$output = (int) trim(shell_exec("qpdf --requires-password \"{$file['tmp_name']}\" ; echo \$?"));
 
-		if($output){
-			return false;
-		}
-
-		return true;
+		return $output === 0;
+		// Returns TRUE if the file is password protected
 	}
 
 	/**
@@ -256,78 +253,26 @@ class Doc extends \App\Common\Prototype {
 			return false;
 		}
 
-		# Get the file contents
-		$contents = file_get_contents($file['tmp_name']);
-
-		# Open the raw data parser
-		$rawDataParser = new RawDataParser();
-
-		# If there is an issue, abort mission
-		try {
-			# Create structure from raw data.
-			[$xref, $data] = $rawDataParser->parseData($contents);
-
-			# Ensure file isn't password protected
-			if(empty($data)){
-				// if the file has no data, assume it's password protected
-				$file['pdf_info']['text_error'] = "No data was extracted, possibly because the PDF is password protected.";
-				return true;
-			}
-
-			else if(isset($xref['trailer']['encrypt'])){
-				// if the file is secured (but not password protected), assume it has text
-
-				# Extract the text with a more liberal approach
-				if(!Doc::setTextFromPdfToTextCommand($file)){
-					// If that didn't work, abort mission
-					return false;
-				}
-			}
-
-			# Try extracting text using both the conservative Smalot parser, and the liberal pdftotext command
-			else {
-				# Get the text
-				try {
-					$parser = new \Smalot\PdfParser\Parser();
-					$pdf = @$parser->parseFile($file['tmp_name']);
-					$file['pdf_info']['text'] = @$pdf->getText();
-				}
-				catch(\Exception $e) {
-					/**
-					 * If there was a type error, ignore it,
-					 * and extract the text using the pdftotext
-					 * command below instead
-					 */
-				}
-
-				# If that didn't work
-				if(!$file['pdf_info']['text']){
-					# Try a more liberal approach
-					if(!Doc::setTextFromPdfToTextCommand($file)){
-						// If that didn't work either, abort mission
-						return false;
-					}
-				}
-			}
-
-			if(!$file['pdf_info']['text']){
-				$file['pdf_info']['text_error'] = "There was an error extracting text from this PDF.";
-				return false;
-			}
-
-			# Filter the text for unfriendly characters
-			$file['pdf_info']['text'] = preg_replace('/[^[:print:][:space:]]/', "", $file['pdf_info']['text']);
-			// We're removing all non-printable and non-space characters to avoid issues loading the array (as a JSON)
-		}
-
-			# Any errors and assume no text can be extracted
-		catch(\Exception $e) {
-			$file['pdf_info']['text_error'] = "There was an error parsing the data from this PDF.";
+		# Password-protected files can't have their text extracted
+		if(self::isPasswordProtected($file)){
+			$file['pdf_info']['text_error'] = "No data was extracted, because this PDF is password protected.";
 			return false;
 		}
 
+		# Populate the pdf_info > text key with the text from the PDF
+		if(!Doc::setTextFromPdfToTextCommand($file)){
+			// If that didn't work either, abort mission
+			return false;
+		}
+
+		# Filter the text for unfriendly characters
+		$file['pdf_info']['text'] = preg_replace('/[^[:print:][:space:]]/', "", $file['pdf_info']['text']);
+		// We're removing all non-printable and non-space characters to avoid issues loading the array (as a JSON)
+
 		return (bool)strlen($file['pdf_info']['text']);
 	}
+
+
 
 	/**
 	 * Extract and set the text from a PDF using the pdftotext command.
