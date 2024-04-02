@@ -7,7 +7,6 @@ use App\Common\Log;
 use App\Common\str;
 use App\Email\Email;
 use Pelago\Emogrifier\CssInliner;
-use Smalot\PdfParser\RawData\RawDataParser;
 
 /**
  * Generic document handling methods.
@@ -271,8 +270,6 @@ class Doc extends \App\Common\Prototype {
 
 		return (bool)strlen($file['pdf_info']['text']);
 	}
-
-
 
 	/**
 	 * Extract and set the text from a PDF using the pdftotext command.
