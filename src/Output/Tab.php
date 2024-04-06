@@ -2,6 +2,7 @@
 
 namespace App\Common\Output;
 
+use App\Common\Exception\BadRequest;
 use App\Common\Output;
 use App\UI\Tab\Tabs;
 
@@ -16,14 +17,14 @@ class Tab {
 	/**
 	 * Given a tabs ID, append a new tab to the tabs.
 	 *
-	 * @param string     $id         The ID of the tabs where you want to append a new tab.
-	 * @param array|null $tab        The tab data
-	 * @param array|null $recipients If set, will perform this action asynchronously to the given recipients
-	 * @param bool|null  $first		 Should this append go first in the order of events?
+	 * @param string        $id         The ID of the tabs where you want to append a new tab.
+	 * @param array|null    $tab        The tab data
+	 * @param array|null    $recipients If set, will perform this action asynchronously to the given recipients
+	 * @param bool|int|null $first      Should this append go first in the order of events?
 	 *
 	 * @throws \App\Common\Exception\BadRequest
 	 */
-	public function append(string $id, ?array $tab = NULL, ?array $recipients = NULL, ?bool $first = NULL): void
+	public function append(string $id, ?array $tab = NULL, ?array $recipients = NULL, $first = NULL): void
 	{
 		if(!$tab){
 			return;
@@ -85,12 +86,14 @@ class Tab {
 	/**
 	 * Given a tab ID and tab data, will replace the tab with the new tab.
 	 *
-	 * @param string     $tab_id     The ID of the tab being updated.
-	 * @param array|null $tab        The tab data.
-	 * @param bool|null  $active     If set, will set the updated tab as the active tab.
-	 * @param array|null $recipients If set, will perform this action asynchronously to the given recipients
+	 * @param string        $tab_id     The ID of the tab being updated.
+	 * @param array|null    $tab        The tab data.
+	 * @param array|null    $recipients If set, will perform this action asynchronously to the given recipients
+	 * @param bool|int|null $first
+	 *
+	 * @throws BadRequest
 	 */
-	public function update(string $tab_id, ?array $tab = NULL, ?array $recipients = NULL): void
+	public function update(string $tab_id, ?array $tab = NULL, ?array $recipients = NULL, $first = NULL): void
 	{
 		if(!$tab){
 			return;
@@ -103,7 +106,7 @@ class Tab {
 		$tab['header'] = $header;
 		$tab['pane'] = $pane;
 
-		$this->output->function("updateTab", $tab, $recipients);
+		$this->output->function("updateTab", $tab, $recipients, $first);
 	}
 
 	/**
