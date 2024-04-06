@@ -124,13 +124,14 @@ class Output {
 	 * Will update the *contents* a given div, based on their div ID.
 	 * It will not touch the div tag itself.
 	 *
-	 * @param string     $id         Expects an ID that jQuery will understand (prefixed with # or . etc)
-	 * @param string     $data
-	 * @param array|null $recipients If set, will send the update asynchronously to all relevant recipients
+	 * @param string        $id         Expects an ID that jQuery will understand (prefixed with # or . etc)
+	 * @param string        $data
+	 * @param array|null    $recipients If set, will send the update asynchronously to all relevant recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function update(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
+	public function update(string $id, $data, ?array $recipients = NULL, $first = NULL): bool
 	{
 		return $this->setData("update", $id, $data, $recipients, $first);
 	}
@@ -138,15 +139,15 @@ class Output {
 	/**
 	 * If you want to update the footer buttons.
 	 *
-	 * @param string     $id
-	 * @param array      $buttons
-	 * @param array|null $recipients
-	 * @param bool|null  $first
+	 * @param string        $id
+	 * @param array         $buttons
+	 * @param array|null    $recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function updateFooterButtons(string $id, array $buttons, ?array $recipients = NULL, ?bool $first = false): bool
+	public function updateFooterButtons(string $id, array $buttons, ?array $recipients = NULL, $first = NULL): bool
 	{
 		$html = Button::generate($buttons);
 		$html = <<<EOF
@@ -168,13 +169,14 @@ EOF;
 	/**
 	 * Will prepend a given div with data.
 	 *
-	 * @param string     $id
-	 * @param            $data
-	 * @param array|null $recipients If set, will send the prepend asynchronously to all relevant recipients
+	 * @param string        $id
+	 * @param               $data
+	 * @param array|null    $recipients If set, will send the prepend asynchronously to all relevant recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function prepend(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
+	public function prepend(string $id, $data, ?array $recipients = NULL, $first = NULL): bool
 	{
 		return $this->setData("prepend", $id, $data, $recipients, $first);
 	}
@@ -182,13 +184,14 @@ EOF;
 	/**
 	 * Will append a given div with data.
 	 *
-	 * @param string     $id
-	 * @param            $data
-	 * @param array|null $recipients If set, will send the append asynchronously to all relevant recipients
+	 * @param string        $id
+	 * @param               $data
+	 * @param array|null    $recipients If set, will send the append asynchronously to all relevant recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function append(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
+	public function append(string $id, $data, ?array $recipients = NULL, $first = NULL): bool
 	{
 		return $this->setData("append", $id, $data, $recipients, $first);
 	}
@@ -196,13 +199,14 @@ EOF;
 	/**
 	 * Will replace a given div, including the div tag itself.
 	 *
-	 * @param string     $id
-	 * @param            $data
-	 * @param array|null $recipients If set, will send the replace asynchronously to all relevant recipients
+	 * @param string        $id
+	 * @param               $data
+	 * @param array|null    $recipients If set, will send the replacement asynchronously to all relevant recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function replace(string $id, $data, ?array $recipients = NULL, ?bool $first = false): bool
+	public function replace(string $id, $data, ?array $recipients = NULL, $first = NULL): bool
 	{
 		return $this->setData("replace", $id, $data, $recipients, $first);
 	}
@@ -210,12 +214,13 @@ EOF;
 	/**
 	 * Will remove a given div, including the div tag itself.
 	 *
-	 * @param string     $id
-	 * @param array|null $recipients If set, will send the remove asynchronously to all relevant recipients
+	 * @param string        $id
+	 * @param array|null    $recipients If set, will send the remove asynchronously to all relevant recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function remove(string $id, ?array $recipients = NULL, ?bool $first = false): bool
+	public function remove(string $id, ?array $recipients = NULL, $first = NULL): bool
 	{
 		return $this->setData("remove", $id, NULL, $recipients, $first);
 	}
@@ -228,13 +233,14 @@ EOF;
 	 * Functions are treated a little different in as the data is not appended,
 	 * a new instance of the function method is called.
 	 *
-	 * @param string     $function_name
-	 * @param mixed      $data
-	 * @param array|null $recipients If set, will send the function asynchronously to all relevant recipients
+	 * @param string        $function_name
+	 * @param mixed         $data
+	 * @param array|null    $recipients If set, will send the function asynchronously to all relevant recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function function(string $function_name, $data = NULL, ?array $recipients = NULL, ?bool $first = false): bool
+	public function function(string $function_name, $data = NULL, ?array $recipients = NULL, $first = NULL): bool
 	{
 		if(is_array($data)){
 			$data = json_encode($data);
@@ -291,17 +297,18 @@ EOF;
 	 * Appends a modal HTML string to the #ui-modal.
 	 * Unless directed otherwise, modals are always created *first*
 	 *
-	 * @param string     $html
-	 * @param array|null $recipients
+	 * @param string        $html
+	 * @param array|null    $recipients
+	 * @param bool|int|null $first
 	 */
-	public function modal(string $html, ?array $recipients = NULL, ?bool $first = true): void
+	public function modal(string $html, ?array $recipients = NULL, $first = true): void
 	{
 		$data = [
 			"id" => "#ui-modal",
 			"html" => $html,
 		];
 
-		$this->setData("modal", NULL,  $data, $recipients, $first);
+		$this->setData("modal", NULL, $data, $recipients, $first);
 	}
 
 	/**
@@ -309,13 +316,13 @@ EOF;
 	 * Now 100% sure how it works if the ui-modal is also
 	 * updated in the same call.
 	 *
-	 * @param string     $html
-	 * @param array|null $recipients
-	 * @param bool|null  $first
+	 * @param string        $html
+	 * @param array|null    $recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function window(string $html, ?array $recipients = NULL, ?bool $first = true): bool
+	public function window(string $html, ?array $recipients = NULL, $first = NULL): bool
 	{
 		return $this->setData("prepend", "#ui-modal", $html, $recipients, $first);
 	}
@@ -324,19 +331,21 @@ EOF;
 	 * Close the top-most modal.
 	 * Or include a particular modal ID to close.
 	 *
-	 * @param string|null $modal_id You don't need to prefix the ID with #
-	 * @param array|null  $recipients
+	 * @param string|null   $modal_id You don't need to prefix the ID with #
+	 * @param array|null    $recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return mixed
 	 */
-	public function closeModal(?string $modal_id = NULL, ?array $recipients = NULL, ?bool $first = false): void
+	public function closeModal(?string $modal_id = NULL, ?array $recipients = NULL, $first = NULL): void
 	{
 		$data = [
 			"id" => $modal_id,
 			"close" => true,
+			"backtrace" => $modal_id ? NULL : debug_backtrace(),
 		];
-		
-		$this->setData("modal", NULL,  $data, $recipients, $first);
+
+		$this->setData("modal", NULL, $data, $recipients, $first);
 	}
 
 	/**
@@ -346,11 +355,14 @@ EOF;
 	 * If the output is_modal is set to true,
 	 * will force the output out as a modal.
 	 *
-	 * @param null $data
+	 * By default, it is placed first.
+	 *
+	 * @param null          $data
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function html($data, ?bool $first = true)
+	public function html($data, $first = true)
 	{
 		return $this->setData("update", "#ui-view", $data, NULL, $first);
 		//Updates to ui-view are by default always set first
@@ -506,15 +518,15 @@ EOF;
 
 	/**
 	 *
-	 * @param string      $type The name of the data key, an instruction on what to do with the data
-	 * @param string|null $id   The div ID where the data is going
-	 * @param mixed       $data The HTML or instructions.
-	 * @param array|null  $recipients
-	 * @param bool|null   $first
+	 * @param string        $type The name of the data key, an instruction on what to do with the data
+	 * @param string|null   $id   The div ID where the data is going
+	 * @param mixed         $data The HTML or instructions.
+	 * @param array|null    $recipients
+	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 */
-	public function setData(string $type, ?string $id, $data, ?array $recipients = NULL, ?bool $first = NULL)
+	public function setData(string $type, ?string $id, $data, ?array $recipients = NULL, $first = NULL)
 	{
 		if(in_array($type, ["modal", "function", "remove", "replace", "update", "prepend", "append"])){
 			$this->setAction($type, $id, $data, $recipients, $first);
@@ -557,7 +569,8 @@ EOF;
 
 				# If the element is to be moved up to the top so that it's updated first
 				if($first){
-					str::repositionArrayElement($this->output[$type], $id, 0);
+					$order = $first === true ? 0 : $first;
+					str::repositionArrayElement($this->output[$type], $id, $order);
 				}
 			}
 			else {
@@ -573,13 +586,13 @@ EOF;
 	 * This way, the order it was sent to the output array will be
 	 * the order the type is processed.
 	 *
-	 * @param string      $type
-	 * @param string|null $id
-	 * @param             $data
-	 * @param array|null  $recipients
-	 * @param bool|null   $first
+	 * @param string        $type
+	 * @param string|null   $id
+	 * @param               $data
+	 * @param array|null    $recipients
+	 * @param bool|int|null $first
 	 */
-	private function setAction(string $type, ?string $id, $data, ?array $recipients = NULL, ?bool $first = NULL): void
+	private function setAction(string $type, ?string $id, $data, ?array $recipients = NULL, $first = NULL): void
 	{
 		if($recipients){
 			PA::getInstance()->speak($recipients, [
@@ -659,7 +672,8 @@ EOF;
 
 		# If the element is to be moved up to the top so that it's actioned first
 		if($first){
-			str::repositionArrayElement($this->output['actions'], $order, 0);
+			$new_order = $first === true ? 0 : $first;
+			str::repositionArrayElement($this->output['actions'], $order, $new_order);
 		}
 	}
 }
