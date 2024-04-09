@@ -347,6 +347,9 @@ class SheetHandler extends \App\Common\Prototype {
 	{
 		# Last minute clean-up of the rows
 		foreach($rows as $row){
+			# Start with a clean set
+			$set = [];
+
 			foreach($row as $key => $val){
 				# Ensure key is in the Excel style
 				$key = !is_int($key) ? $key : str::excelKey($key);
@@ -361,6 +364,8 @@ class SheetHandler extends \App\Common\Prototype {
 
 				$set[$key] = $val;
 			}
+
+			# Move the set to the sets
 			$sets[] = $set;
 		}
 
