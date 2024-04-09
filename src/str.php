@@ -3538,7 +3538,7 @@ EOF;
 
 		# Decide between "no and "No"
 		if($rel_table == ucwords($rel_table)){
-			$number = ucwords($rel_table);
+			$number = ucwords($number);
 		}
 
 		# If the count is also be included
