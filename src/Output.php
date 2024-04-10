@@ -342,7 +342,7 @@ EOF;
 		$data = [
 			"id" => $modal_id,
 			"close" => true,
-			"backtrace" => $modal_id ? NULL : debug_backtrace(),
+//			"backtrace" => $modal_id ? NULL : debug_backtrace(),
 		];
 
 		$this->setData("modal", NULL, $data, $recipients, $first);
