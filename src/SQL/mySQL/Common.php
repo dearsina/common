@@ -1196,9 +1196,6 @@ abstract class Common {
 		else if(is_numeric($col) && is_array($val) && (count($val) == 3)){
 			[$col, $eq, $val] = $val;
 
-			# Clean up the col string
-			$col = $this->getColFromColString($col);
-
 			# Ensure the join table column exists
 			if(!$this->columnExists($table, $col)){
 				return NULL;
@@ -1417,34 +1414,6 @@ abstract class Common {
 
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
 		}
-	}
-
-	/**
-	 * Retrieves col from the following patterns:
-	 * - `table`.`col`
-	 * - `db::table`.`col`
-	 *
-	 * @param string|null $col
-	 *
-	 * @return string|null
-	 */
-	private function getColFromColString($col): ?string
-	{
-		# If by mistake, an array is passed
-		if(is_array($col)){
-			return NULL;
-		}
-
-		# If the column name uses backticks and is using pairs of backticks
-		if(strpos($col, "`") !== false && substr_count($col, "`") % 2 == 0){
-			# Separate the different elements each wrapped in `
-			$col_array = array_filter(explode("`", $col));
-			# We're only interested in the last element, which should be the column name
-			return array_pop($col_array);
-		}
-
-		# Otherwise, just return col as is
-		return $col;
 	}
 
 	/**
@@ -2102,11 +2071,6 @@ abstract class Common {
 
 		if(is_int($val) || is_float($val)){
 			//if it's a number or a float, return it as is
-			return $val;
-		}
-
-		# If the val already includes backticks or periods, keep it as is and assume the user knows what they're doing
-		if($val != $this->getColFromColString($val)){
 			return $val;
 		}
 
@@ -2769,7 +2733,7 @@ abstract class Common {
 		from
 		  `information_schema`.`tables`
 		where
-		  `TABLE_TYPE` IN ('BASE TABLE', 'VIEW')
+		  `TABLE_TYPE` = 'BASE TABLE'
 		  and `TABLE_SCHEMA` not in (
 			'information_schema',
 			'mysql',
