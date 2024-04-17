@@ -1058,6 +1058,20 @@ class str {
 	}
 
 	/**
+	 * Will return true if the datetime object modify string is valid.
+	 * False if it's not. Will not raise a warning.
+	 *
+	 * @param string|null $modify
+	 *
+	 * @return bool
+	 */
+	public static function isValidModify(?string $modify): bool
+	{
+		$dt = new \DateTime();
+		return (bool) @$dt->modify($modify);
+	}
+
+	/**
 	 * @link http://php.net/manual/en/function.mysql-real-escape-string.php#101248
 	 *
 	 * @param array|float|int|string $inp
