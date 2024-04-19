@@ -421,6 +421,12 @@ EOF;
 			$alert = ["message" => $a];
 		}
 
+		if(str::isBinary($alert['message'])){
+			# Strip the message from binary data
+			$alert['message'] = preg_replace("/[^\x20-\x7E]/", "", $alert['message']);
+			// Removes all non-printable characters, which would have prevented the message from being displayed
+		}
+
 		if(!$alert['icon']){
 			$alert['icon'] = Icon::DEFAULTS[$type];
 		}
