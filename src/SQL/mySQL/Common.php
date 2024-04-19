@@ -472,8 +472,11 @@ abstract class Common {
 		else {
 			$cols = $this->getAllTableColumns($table, $include_meta);
 		}
+
 		foreach($cols as $key => $val){
+			# The column value needs to be a string or an array
 			if(!is_string($val) && !is_array($val)){
+				// If it's not a string nor an array
 				throw new \TypeError("
 					When writing a query for mySQL, 
 					if columns are explicitly requested as an associative array,
@@ -481,6 +484,15 @@ abstract class Common {
 					For the <code>{$key}</code> column, the value was " . str::A(gettype($val)) . "."
 				);
 			}
+
+			# If all columns are to be included, you can pass a simple wildcard
+			if($val === "*"){
+				foreach($this->getAllTableColumns($table, $include_meta) as $col){
+					$columns[] = $this->getColumn($table, $key, $col);
+				}
+				continue;
+			}
+
 			$columns[] = $this->getColumn($table, $key, $val);
 		}
 
@@ -605,6 +617,17 @@ abstract class Common {
 	}
 
 	/**
+	 * The current batch of recognised JSON functions
+	 */
+	const JSON_FUNCTIONS = [
+		"JSON",
+		"JSON_ARRAY_APPEND",
+		"JSON_OVERLAPS",
+		"JSON_CONTAINS",
+		"JSON_EXTRACT",
+	];
+
+	/**
 	 * Checks to see if the given string is a mySQL JSON function.
 	 *
 	 * - `JSON_CONTAINS` should be used to search for VALUES.
@@ -622,16 +645,7 @@ abstract class Common {
 		}
 
 		# The current batch of accepted JSON functions
-		return in_array(strtoupper($function), [
-			"JSON",
-			"JSON_ARRAY_APPEND",
-			"JSON_OVERLAPS",
-			"NOT JSON_OVERLAPS",
-			"JSON_CONTAINS",
-			"NOT JSON_CONTAINS",
-			"JSON_EXTRACT",
-			"NOT JSON_EXTRACT",
-		]);
+		return in_array(strtoupper($function), self::JSON_FUNCTIONS);
 	}
 
 	protected function formatGroupConcatCol(array $table, ?string $col_alias, array $col): ?array
@@ -641,6 +655,14 @@ abstract class Common {
 		return $sql->groupConcat($table, $col_alias, $a);
 	}
 
+	/**
+	 * Is the column a group_concat column?
+	 * If it is, it should be in the form of ["GROUP_CONCAT", "column"]
+	 *
+	 * @param array|string|null $col
+	 *
+	 * @return bool
+	 */
 	protected function isGroupConcat($col): bool
 	{
 		return is_array($col) && (count($col) == 2) && (strtoupper($col[0]) == "GROUP_CONCAT");
@@ -1115,59 +1137,61 @@ abstract class Common {
 
 		}
 
-		# "col" => ["JSON_FUNCTION", ["val"]]
-		else if(is_string($col) && is_array($val) && (count($val) == 2) && $this->isJsonFunction($val[0])){
-			[$json_function, $v] = $val;
-
-			# Format function
-			$json_function = strtoupper($json_function);
-
-			# Is col a JSON column?
-			if(!$this->isColumnJson($table, $col)){
-				//if $col is NOT a JSON column
-				return NULL;
-			}
-
-			if(is_array($v)){
-				$val = "'" . str::i(json_encode($v)) . "'";
-			}
-
-			else if(in_array($json_function, ["JSON_EXTRACT", "NOT JSON_EXTRACT"])){
-				$val = str::i($v);
-			}
-
-			else {
-				$val = "JSON_QUOTE('" . str::i($v) . "')";
-			}
-
-			if($json_function == "JSON_EXTRACT"){
-				//Used to see if a *key* exists (instead of a value)
-				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NOT NULL";
-			}
-
-			if($json_function == "NOT JSON_EXTRACT"){
-				//Used to see if a *key* doesn't exist (instead of a value)
-				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NULL";
-			}
-
-			if($json_function == "NOT JSON_CONTAINS"){
-				return "({$json_function}(`{$table['alias']}`.`{$col}`, {$val}) OR `{$table['alias']}`.`{$col}` IS NULL)";
-				//A special concession has to be made to the not contains condition, because if the column is NULL confusingly doesn't mean it doesn't contain
-			}
-
-			# @link https://stackoverflow.com/a/62795451/429071
-			if($json_function == "JSON_OVERLAPS"){
-				return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val}) = 1";
-			}
-
-			# Same as JSON_OVERLAPS but with the expected value of zero instead of one
-			if($json_function == "NOT JSON_OVERLAPS"){
-				return "JSON_OVERLAPS(`{$table['alias']}`.`{$col}`, {$val}) = 0";
-			}
-
-			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
-
+		else if($this->getJsonWhere($table, $col, $val)){
+			return $this->getJsonWhere($table, $col, $val);
 		}
+
+//		else if(is_string($col) && is_array($val) && (count($val) == 2) && $this->isJsonFunction($val[0])){
+//			[$json_function, $v] = $val;
+//
+//			# Format function
+//			$json_function = strtoupper($json_function);
+//
+//			# Is col a JSON column?
+//			if(!$this->isColumnJson($table, $col)){
+//				//if $col is NOT a JSON column
+//				return NULL;
+//			}
+//
+//			if(is_array($v)){
+//				$val = "'" . str::i(json_encode($v)) . "'";
+//			}
+//
+//			else if(in_array($json_function, ["JSON_EXTRACT", "NOT JSON_EXTRACT"])){
+//				$val = str::i($v);
+//			}
+//
+//			else {
+//				$val = "JSON_QUOTE('" . str::i($v) . "')";
+//			}
+//
+//			if($json_function == "JSON_EXTRACT"){
+//				//Used to see if a *key* exists (instead of a value)
+//				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NOT NULL";
+//			}
+//
+//			if($json_function == "NOT JSON_EXTRACT"){
+//				//Used to see if a *key* doesn't exist (instead of a value)
+//				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NULL";
+//			}
+//
+//			if($json_function == "NOT JSON_CONTAINS"){
+//				return "({$json_function}(`{$table['alias']}`.`{$col}`, {$val}) OR `{$table['alias']}`.`{$col}` IS NULL)";
+//				//A special concession has to be made to the not contains condition, because if the column is NULL confusingly doesn't mean it doesn't contain
+//			}
+//
+//			# @link https://stackoverflow.com/a/62795451/429071
+//			if($json_function == "JSON_OVERLAPS"){
+//				return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val}) = 1";
+//			}
+//
+//			# Same as JSON_OVERLAPS but with the expected value of zero instead of one
+//			if($json_function == "NOT JSON_OVERLAPS"){
+//				return "JSON_OVERLAPS(`{$table['alias']}`.`{$col}`, {$val}) = 0";
+//			}
+//
+//			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
+//		}
 
 		# "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
@@ -1195,6 +1219,9 @@ abstract class Common {
 		# ["col", "=", "val"] or ["col", "IN", [1, 2,3]] or ["col", eq (except "IN" and "NOT IN"), ["db", "table", "col"]]
 		else if(is_numeric($col) && is_array($val) && (count($val) == 3)){
 			[$col, $eq, $val] = $val;
+
+			# Clean up the col string
+			$col = $this->getColFromColString($col);
 
 			# Ensure the join table column exists
 			if(!$this->columnExists($table, $col)){
@@ -1265,8 +1292,13 @@ abstract class Common {
 
 			# When val is NOT an array or when the eq is an array comparison operator
 			else {
+				# If the val already includes backticks or periods, keep it as is and assume the user knows what they're doing
+				if($val != $this->getColFromColString($val)){
+					// Do nothing and assume the user knows what they're doing
+				}
+
 				# Ensure the formatted value is valid
-				if(($val = $this->formatComparisonVal($val)) === NULL){
+				else if(($val = $this->formatComparisonVal($val)) === NULL){
 					//A legit value can be "0"
 					return NULL;
 				}
@@ -1414,6 +1446,162 @@ abstract class Common {
 
 			return "`{$table['alias']}`.`{$col}` {$eq} {$val}";
 		}
+	}
+
+	/**
+	 * A JSON WHERE clause is a bit different from a regular WHERE clause.
+	 * It caters for JSON columns and JSON functions.
+	 *
+	 * The following formats are all accepted:
+	 * <code>
+	 * "col" => ["JSON_EXTRACT", "key", "eq", "val"]
+	 *
+	 * "col" => ["JSON_CONTAINS", "val"]
+	 * "col" => ["JSON_CONTAINS", "val", "path"]
+	 * "col" => ["JSON_CONTAINS", "val", "path", "NOT"]
+	 *
+	 * "col" => ["JSON_OVERLAPS", "val"]
+	 * "col" => ["JSON_OVERLAPS", ["val"]]
+	 * "col" => ["JSON_OVERLAPS", "val", "NOT"]
+	 * "col" => ["JSON_OVERLAPS", ["val"], "NOT"]
+	 * </code>
+	 *
+	 *
+	 * @param array $table
+	 * @param mixed $col
+	 * @param mixed $val
+	 *
+	 * @return string|null
+	 */
+	private function getJsonWhere(array $table, $col, $val): ?string
+	{
+		# col must be the name of a column
+		if(!is_string($col)){
+			return NULL;
+		}
+
+		# col must be the name of a JSON column
+		if(!$this->isColumnJson($table, $col)){
+			//if $col is NOT a JSON column
+			return NULL;
+		}
+
+		# val must be an array
+		if(!is_array($val)){
+			return NULL;
+		}
+
+		# The first element of val must be a JSON function
+		$json_function = array_shift($val);
+		if(!$this->isJsonFunction($json_function)){
+			// If the first element of val is NOT a JSON function
+			return NULL;
+		}
+
+		switch($json_function) {
+		case "JSON_EXTRACT":
+			# The second element of the val is the key string
+			$key = array_shift($val);
+
+			# The third element is the comparison operator
+			$eq = array_shift($val);
+
+			# Ensure it's a valid comparison operator
+			if(!$this->isValidComparisonOperator($eq)){
+				return NULL;
+			}
+
+			# The fourth element is what is being compared against
+			$comparison = array_shift($val);
+
+			# Format the val and ensure it's a valid value
+			if(($comparison = $this->formatComparisonVal($comparison)) === NULL){
+				return NULL;
+			}
+
+			return "{$json_function}(`{$table['alias']}`.`{$col}`, '\$.\"{$key}\"') {$eq} {$comparison}";
+
+		case "JSON_CONTAINS":
+			# The second element is what is being compared against
+			$comparison = array_shift($val);
+
+			# Format the val and ensure it's a valid value
+			if(($comparison = $this->formatComparisonVal($comparison)) === NULL){
+				return NULL;
+			}
+
+			# Wrap the comparison in JSON_QUOTE
+			$comparison = "JSON_QUOTE({$comparison})";
+			// Not 100% sure if this is necessary
+
+			# The optional third element is the path
+			if($val){
+				$path = array_shift($val);
+				$where = "{$json_function}(`{$table['alias']}`.`{$col}`, {$comparison}, '\$.\"{$path}\"')";
+			}
+			else {
+				$where = "{$json_function}(`{$table['alias']}`.`{$col}`, {$comparison})";
+			}
+
+			# If the (optional) fourth element is set, assume it's a negation
+			if($val){
+				return "({$where} = 0 OR `{$table['alias']}`.`{$col}` IS NULL)";
+			}
+
+			return "{$where} = 1";
+
+		case "JSON_OVERLAPS":
+			# The second element is what is being compared against
+			$comparison = array_shift($val);
+
+			# Ensure it's an array
+			$comparison = is_array($comparison) ? $comparison : [$comparison];
+
+			# JSON encode it
+			$comparison = "'" . str::i(json_encode($comparison)) . "'";
+
+			$where = "{$json_function}(`{$table['alias']}`.`{$col}`, {$comparison})";
+
+			# If the optional third element is set, assume it's a negation
+			if($val){
+				return "{$where} = 0";
+			}
+
+			return "{$where} = 1";
+
+		case "JSON":
+		case "JSON_ARRAY_APPEND":
+		default:
+			throw new \Exception("The {$json_function} function is not yet supported in a WHERE clause.");
+		}
+	}
+
+	/**
+	 * Retrieves col from the following patterns:
+	 * - `table`.`col`
+	 * - `db::table`.`col`
+	 *
+	 * @param string|null $col
+	 *
+	 * @return string|array|null
+	 */
+	private function getColFromColString($col)
+	{
+		# If by mistake, an array is passed
+		if(is_array($col)){
+			return $col;
+		}
+
+		# If the column name uses backticks and is using pairs of backticks
+		if(strpos($col, "`") !== false && substr_count($col, "`") % 2 == 0){
+			# Separate the different elements each wrapped in `
+			$col_array = array_filter(explode("`", $col));
+			# We're only interested in the last element, which should be the column name
+			return array_pop($col_array);
+		}
+
+		# Otherwise, just return col as is
+		return $col;
 	}
 
 	/**
@@ -2582,7 +2770,7 @@ abstract class Common {
 
 				# Both values have to exist
 				if(!$tbl_alias || !$tbl_col){
-					NULL;
+					continue;
 				}
 
 				# Ensure table alias exists
@@ -2733,7 +2921,7 @@ abstract class Common {
 		from
 		  `information_schema`.`tables`
 		where
-		  `TABLE_TYPE` = 'BASE TABLE'
+		  `TABLE_TYPE` IN ('BASE TABLE', 'VIEW')
 		  and `TABLE_SCHEMA` not in (
 			'information_schema',
 			'mysql',
