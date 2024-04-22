@@ -5,6 +5,7 @@ namespace App\Common;
 
 
 use App\Common\FastImage\FastImage;
+use App\UI\Tooltip;
 use enshrined\svgSanitize\Sanitizer;
 
 class Img {
@@ -95,6 +96,7 @@ class Img {
 			return NULL;
 		}
 
+		Tooltip::generate($a);
 		extract($a);
 
 		$id = str::getAttrTag("id", $id);
