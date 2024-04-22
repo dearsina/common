@@ -803,7 +803,7 @@ class Email extends Prototype {
 			// If the email was sent successfully on a second/third try, notify admins
 
 			# But take a break first
-			$sleep($tries);
+			sleep($tries);
 
 			\App\Email\Email::notifyAdmins([
 				"subject" => "Email sent successfully on try {$tries}",
