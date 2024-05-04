@@ -32,7 +32,6 @@ class Navigation {
 	/**
 	 * Static method to update the navigation
 	 * and feed the update to the `$this->output` array.
-	 * Doesn't take any variables.
 	 *
 	 * Expects there to be a \App\Home\Role class
 	 *
@@ -40,10 +39,13 @@ class Navigation {
 	 * Navigation::update();
 	 * </code>
 	 *
-	 * @return bool
+	 * @param array|null $a
+	 *
+	 * @return true
 	 * @throws \Exception
 	 */
-	public static function update(?array $a = NULL){
+	public static function update(?array $a = NULL): bool
+	{
 		$user = new User();
 		$output = Output::getInstance();
 
@@ -94,7 +96,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getAppLevels(&$levels, ?array $a = NULL) : bool
+	private static function getAppLevels(&$levels, ?array $a = NULL): bool
 	{
 		if(is_array($a)){
 			extract($a);
@@ -119,7 +121,7 @@ class Navigation {
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
-			"vars" => $vars
+			"vars" => $vars,
 		]);
 
 		return true;
@@ -131,7 +133,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getRoleLevels(&$levels, ?array $a = NULL) : bool
+	private static function getRoleLevels(&$levels, ?array $a = NULL): bool
 	{
 		global $role;
 
@@ -175,7 +177,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getAppFooters(&$footers) : bool
+	private static function getAppFooters(&$footers): bool
 	{
 		# Uses the Common class if it cannot find the App class
 		$classPath = str::findClass("App", "Navigation");
@@ -195,7 +197,7 @@ class Navigation {
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
-			"vars" => $vars
+			"vars" => $vars,
 		]);
 
 		return true;
@@ -207,7 +209,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getRoleFooters(&$footers) : bool
+	private static function getRoleFooters(&$footers): bool
 	{
 		global $role;
 
@@ -235,12 +237,12 @@ class Navigation {
 			"action" => $method,
 			"rel_table" => $rel_table,
 			"rel_id" => $rel_id,
-			"vars" => $vars
+			"vars" => $vars,
 		]);
 
 		# Merge role footers into app footers
-		$footers[1] = array_merge_recursive($footers[1] ?:[], $role_footers[1] ?:[]);
-		$footers[2] = array_merge_recursive($footers[2] ?:[], $role_footers[2] ?:[]);
+		$footers[1] = array_merge_recursive($footers[1] ?: [], $role_footers[1] ?: []);
+		$footers[2] = array_merge_recursive($footers[2] ?: [], $role_footers[2] ?: []);
 
 		return true;
 	}
@@ -252,7 +254,8 @@ class Navigation {
 	 * @param array $parent
 	 * @param array $child
 	 */
-	private static function mergeLevels(array &$parent, array $child){
+	private static function mergeLevels(array &$parent, array $child)
+	{
 		foreach($parent as $level => $a){
 			foreach($a as $key => $val){
 				if(!$child[$level][$key]){
@@ -262,7 +265,8 @@ class Navigation {
 				if($key == "items"){
 					//If they're items, merge them
 					$parent[$level][$key] = array_merge($parent[$level][$key], $child[$level][$key]);
-				} else {
+				}
+				else {
 					//Otherwise, override
 					$parent[$level][$key] = $child[$level][$key];
 				}
