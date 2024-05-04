@@ -605,7 +605,7 @@ class User extends Prototype {
 	}
 
 	/**
-	 * Closes verified accounts,
+	 * Closes verified accounts
 	 * if they don't have any active subscriptions
 	 * or seats.
 	 *
@@ -643,7 +643,7 @@ class User extends Prototype {
 			return false;
 		}
 
-		# Seats
+		# Check to see if there are any seats to remove also
 		if($seats_count = $this->sql->select([
 			"count" => true,
 			"table" => "subscription_seat",
@@ -651,14 +651,16 @@ class User extends Prototype {
 				"user_id" => $user['user_id'],
 			],
 		])){
-			//if the user has active seats
-			$this->log->error([
-				"title" => "Active " . str::pluralise_if($subscriptions_count, "seat", false),
-				"message" => "You have " .
-					str::pluralise_if($subscriptions_count, "seat", true) .
-					" that " . str::isAre($subscriptions_count) . " still active. You cannot close your account until you've resigned from all your seats.",
-			]);
-			return false;
+			# Remove all relevant seats
+			if(!$this->sql->remove([
+				"table" => "subscription_seat",
+				"where" => [
+					"user_id" => $user['user_id'],
+				],
+			])){
+				return false;
+			}
+			$narrative[] = str::were($seats_count, "seat", true) . " removed.";
 		}
 
 		# Log user out (so that all cookies are removed)
@@ -667,14 +669,69 @@ class User extends Prototype {
 		# Remove user from the database
 		$this->removeUser($user['user_id']);
 
+		$narrative[] = "Your account has been closed.";
+
 		$this->log->info([
 			"icon" => "power-off",
 			'title' => 'Good bye!',
-			'message' => 'You have been logged out.',
+			'message' => implode(" ", $narrative),
 		]);
 
 		# Set the hash to the front page
 		$this->hash->set("https://{$_ENV['domain']}");
+
+		return true;
+	}
+
+	public function disconnectSso(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "D")){
+			return $this->accessDenied($a);
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		$this->sql->update([
+			"table" => "user",
+			"set" => [
+				"sso_id" => NULL,
+				"oauth_token_id" => NULL,
+			],
+			"id" => $rel_id,
+		]);
+
+		# Log user out (so that all cookies are removed)
+		$this->logout($a, true);
+
+		# If the user has a password, they can now revert back to using that to log in
+		if($user['password']){
+			$this->log->info([
+				"icon" => "power-off",
+				'title' => 'Single sign-on disconnected',
+				'message' => 'You have been disconnected from your single sign-on provider. Please log in again using your username and password.',
+			]);
+		}
+
+		else {
+			# As the user doesn't have a password, they need to set one
+			$this->sendResetPasswordEmail(["vars" => ["email" => $user['email']]]);
+
+			$this->log->info([
+				"icon" => "power-off",
+				'title' => 'Single sign-on disconnected',
+				'message' => "You have been disconnected from your single sign-on provider.
+				As you hadn't set a password, a password reset link has been sent to your email address.
+				Please follow the link to set a password and log in again.",
+			]);
+		}
+
+		# Go back to the log-in page
+		$this->hash->set([
+			"rel_table" => "user",
+			"action" => "login",
+		]);
 
 		return true;
 	}
@@ -829,6 +886,10 @@ class User extends Prototype {
 					'message' => "You are already logged off and don't need to do it again.",
 				]);
 			}
+
+			# Update the navigation
+			Navigation::update();
+
 			return true;
 		}
 
@@ -1033,9 +1094,12 @@ class User extends Prototype {
 	{
 		extract($a);
 
-		if(!$this->permission()->get("user")){
-			return $this->accessDenied($a);
+		if(!$silent){
+			if(!$this->permission()->get("user")){
+				return $this->accessDenied($a);
+			}
 		}
+		// We're going to skip authentication if we're silent
 
 		# Check to see if the user has already registered (based on email alone)
 		if($user = $this->getUserFromEmail($vars['email'])){
@@ -2197,11 +2261,16 @@ class User extends Prototype {
 			return $this->prepare2FACode($a, $user);
 		}
 
-		$this->hash->set($vars['callback'] ? $vars['callback'] : "home");
+		$this->hash->set($vars['callback'] ?: "home");
 		//This prevents callback loops by forcing callback to home if none is set
 
 		# Log the verified user in
-		return $this->logUserIn($user, $vars['remember']);
+		$this->logUserIn($user, $vars['remember']);
+
+		# Update navigation
+		Navigation::update($a);
+
+		return true;
 	}
 
 	private function addOneMoreFailedLoginAttempt(array &$user): void
@@ -2420,20 +2489,29 @@ class User extends Prototype {
 		//This prevents callback loops by forcing callback to home if none is set
 
 		# Log the verified user in
-		return $this->logUserIn($user, $vars['remember']);
+		$this->logUserIn($user, $vars['remember']);
+
+		# Update navigation
+		Navigation::update($a);
+
+		return true;
 	}
 
 	/**
-	 * After the credentials of a user has been verified,
-	 * alert the user in.
+	 * After the credentials of a user have been verified,
+	 * logs the user in.
 	 *
-	 * @param $user
-	 * @param $remember
+	 * 1. This means setting the global user_id variable,
+	 * 2. storing cookies if the user has asked for it,
+	 * 3. and assigning a role to the user.
 	 *
-	 * @return bool
+	 * @param array     $user
+	 * @param bool|null $remember
+	 *
+	 * @return void
 	 * @throws Exception
 	 */
-	protected function logUserIn($user, $remember)
+	protected function logUserIn(array $user, ?bool $remember = NULL): void
 	{
 		# Store the user_id both globally and locally
 		$_SESSION['user_id'] = $user['user_id'];
@@ -2450,11 +2528,6 @@ class User extends Prototype {
 
 		# Assign role
 		$this->assignRole($user);
-
-		# Update navigation
-		Navigation::update();
-
-		return true;
 	}
 
 	/**
@@ -3173,7 +3246,7 @@ class User extends Prototype {
 	 *
 	 * @return bool Returns FALSE to ensure the JS recipients understand what's going on.
 	 */
-	public function accessDenied(?array $a = NULL): bool
+	public function accessDenied(?array $a = NULL, ?string $message = NULL): bool
 	{
 		global $user_id;
 
@@ -3182,6 +3255,7 @@ class User extends Prototype {
 			$this->log->error([
 				"title" => 'Access violation',
 				"message" => "{$message} If you believe you should have access, please notify the administrators.",
+				"trace" => str::isDev() ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : NULL,
 			]);
 
 			return false;

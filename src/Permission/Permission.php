@@ -152,7 +152,8 @@ class Permission extends Prototype {
 		 * and NULL.
 		 */
 		if($rel_id){
-			$where['rel_id'] = [$rel_id, NULL];
+			$or['rel_id'] = $rel_id;
+			$or[] = ["rel_id", "IS", NULL];
 		}
 
 		# Create a simple key from the where clauses
@@ -181,6 +182,7 @@ class Permission extends Prototype {
 				]
 			]],
 			"where" => $where,
+			"or" => $or,
 			"limit" => 1
 		]);
 
@@ -207,7 +209,7 @@ class Permission extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function set (string $rel_table, ?string $rel_id, ?string $crud = NULL, ?string $user_id = NULL): bool
+	public function set(string $rel_table, ?string $rel_id, ?string $crud = NULL, ?string $user_id = NULL): bool
 	{
 		# If not CRUD = ALL access
 		if (strlen($curd)) {
