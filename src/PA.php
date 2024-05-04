@@ -180,17 +180,23 @@ class PA {
 		global $session_id;
 
 		# Ensure there is a recipient
-		if(!$user_id && !$session_id){
-			//if no requester data is found
-			return;
-			//Pencils down
+		if($session_id){
+			$recipients['session_id'] = $session_id;
 		}
 
-		# Send the output to the requester if found
-		$recipients = [
-			"user_id" => $user_id,
-			"session_id" => $session_id,
-		];
+		else if($user_id){
+			$recipients['user_id'] = $user_id;
+		}
+
+		else {
+			return;
+		}
+		/**
+		 * Session ID takes precedence over user ID because
+		 * in the event that both are passed, the
+		 * session ID is a more reliable way to identify
+		 * the user, especially during the login process.
+		 */
 
 		# Force to true
 		$output['success'] = true;

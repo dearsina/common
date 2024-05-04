@@ -67,6 +67,12 @@ class OAuth2Handler extends \App\Common\Prototype {
 			 */
 		}
 
+		if(!$session_id){
+			// If there is still no session ID, go nuclear and close all windows
+			$this->output->function("closeAllWindows", NULL, $recipients);
+			return;
+		}
+
 		$this->output->function("closeWindow", [
 			"id" => $session_id,
 		], $recipients);
@@ -129,8 +135,10 @@ class OAuth2Handler extends \App\Common\Prototype {
 
 		# Store the session key acting as our faux $a as a local variable
 		if(!$a = $_SESSION['OAuth2']){
-			//if there is no session variable stored
-			return;
+			//if there is no session variable stored (because the session has expired)
+
+			# Force close the window
+			echo "<script>window.close();</script>";exit;
 		}
 
 		# Clear it for future use
@@ -187,6 +195,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		// If there was an error with our auth request
 		switch($_GET['error']) {
 		case 'access_denied':
+		case 'consent_required':
 			# The user did not grant the access requested
 			$this->log->error([
 				"title" => "Access not granted",
@@ -241,6 +250,14 @@ class OAuth2Handler extends \App\Common\Prototype {
 		]);
 	}
 
+	/**
+	 * Will return the relevant provider class.
+	 *
+	 * @param string|null $provider
+	 *
+	 * @return string|null
+	 * @throws BadRequest
+	 */
 	public static function getProviderClass(?string $provider): ?string
 	{
 		if(!$provider){
@@ -255,6 +272,40 @@ class OAuth2Handler extends \App\Common\Prototype {
 		}
 
 		return $class;
+	}
+
+	/**
+	 * Will return the relevant provider object, fed with the OAuth2 token.
+	 *
+	 * @param string $provider
+	 * @param array  $oauth_token
+	 *
+	 * @return object|mixed
+	 * @throws BadRequest
+	 */
+	public static function getProviderObject(string $provider, array $oauth_token): object
+	{
+		if(!$class = self::getProviderClass($provider)){
+			throw new \Exception("Could not find the provider class for {$provider}.");
+		}
+		return new $class($oauth_token);
+	}
+
+	/**
+	 * Will return the relevant single sign on provider object, fed with the OAuth2 token.
+	 *
+	 * @param string $provider
+	 * @param array  $oauth_token
+	 *
+	 * @return object|mixed
+	 * @throws BadRequest
+	 */
+	public static function getSingleSignOnProviderObject(string $provider, array $oauth_token): SingleSignOnProviderInterface
+	{
+		if(!$class = self::getProviderClass($provider)){
+			throw new \Exception("Could not find the provider class for {$provider}.");
+		}
+		return new $class($oauth_token);
 	}
 
 	/**

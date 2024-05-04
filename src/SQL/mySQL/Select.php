@@ -464,7 +464,7 @@ class Select extends Common {
 		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
 
 		# If there are no columns, and the table is a CTE, load the CTE columns
-		if(!$columns && $this->table['is_cte']){
+		if($this->table['is_cte']){
 			foreach($this->table['is_cte']['columns'] as $column){
 				$column['table_alias'] = $this->table['name'];
 				$columns[] = $column;
@@ -591,7 +591,15 @@ class Select extends Common {
 
 			# You can feed a complete custom string
 			if($column['string']){
-				$strings[$id] = $column['string'];
+				if($column['table_alias'] != $this->table['alias']){
+					// We're only interested in the string itself if it's not the main table
+					$strings[$id] = $column['string'];
+				}
+
+				else {
+					$strings[$id] .= "`{$column['alias']}`";
+					// Otherwise, we'll just feed it the alias, and that should be good enough
+				}
 			}
 
 			$strings[$id] .= $column['alias'] ? " '{$column['alias']}'" : NULL;

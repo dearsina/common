@@ -179,7 +179,7 @@ abstract class Prototype {
 
 	/**
 	 * Get and set permissions for users.
-	 * @return Permission
+	 * @return \App\Permission\Permission|Permission
 	 */
 	protected function permission()
 	{
@@ -200,9 +200,9 @@ abstract class Prototype {
 	 *
 	 * @return bool
 	 */
-	function accessDenied(?array $a = NULL): bool
+	function accessDenied(?array $a = NULL, ?string $message = NULL): bool
 	{
-		return $this->user->accessDenied($a);
+		return $this->user->accessDenied($a, $message);
 	}
 
 	/**

@@ -125,7 +125,7 @@ class Buttons {
 			"hash" => [
 				"rel_table" => "user",
 				"rel_id" => $user['user_id'],
-				"action" => "remove",
+				"action" => "close",
 				"variables" => [
 					"callback" => "logout",
 				],
@@ -136,6 +136,27 @@ class Buttons {
 				"colour" => "red",
 				"title" => "Close your account",
 				"message" => "Are you sure you want to close your account? All your data will be removed immediately. This cannot be undone.",
+			],
+		];
+	}
+
+	public static function disconnectSso(array $user): array
+	{
+		return [
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "disconnect_sso",
+				"variables" => [
+					"callback" => "logout",
+				],
+			],
+			"title" => "Disconnect single sign-on...",
+			"icon" => "times",
+			"approve" => [
+				"colour" => "red",
+				"title" => "Disconnect single sign-on",
+				"message" => "Are you sure you want to disconnect single sign-on?",
 			],
 		];
 	}

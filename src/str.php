@@ -929,6 +929,41 @@ class str {
 	}
 
 	/**
+	 * Using the ">" character as the delimiter, this regex will match
+	 * any valid email address, including emails inside Outlook style strings.
+	 *
+	 * @link https://stackoverflow.com/a/201378/429071
+	 * @link https://emailregex.com/
+	 */
+	const EMAIL_REGEX = <<<EOF
+>(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])>
+EOF;
+
+
+	/**
+	 * Given a string, potentially containing multiple email addresses,
+	 * will return an array of valid email addresses.
+	 *
+	 * @param string|null $string
+	 *
+	 * @return array|null
+	 */
+	public static function getEmailArrayFromString(?string $string): ?array
+	{
+		if(!$string){
+			return NULL;
+		}
+
+		// Array to hold the matches
+		$matches = [];
+
+		// Execute the regex
+		preg_match_all(self::EMAIL_REGEX, $string, $matches);
+
+		return array_unique($matches[0]);
+	}
+
+	/**
 	 * Checks to see whether an email is NOT a known spam email (or not, meaning it is).
 	 * Should be used after the `isValidEmail()` method for double safety.
 	 *
@@ -3362,7 +3397,7 @@ EOF;
 
 		# If the elapsed time includes days, we need to split it up
 		if(strpos($pid_info['ELAPSED'], "-")){
-			list($days, $time) = explode('-', $pid_info['ELAPSED']);
+			[$days, $time] = explode('-', $pid_info['ELAPSED']);
 		}
 
 		# If the elapsed time only includes one :, then it's hours and minutes
@@ -3378,7 +3413,7 @@ EOF;
 		}
 
 		# Break up the time into hours, minutes, and seconds
-		list($hours, $minutes, $seconds) = explode(':', $time);
+		[$hours, $minutes, $seconds] = explode(':', $time);
 
 		# Create a DateInterval object for the elapsed time
 		$interval = new \DateInterval("P{$days}DT{$hours}H{$minutes}M{$seconds}S");

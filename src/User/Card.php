@@ -3,6 +3,8 @@
 
 namespace App\Common\User;
 
+use App\Common\OAuth2\OAuth2Handler;
+use App\Common\OAuth2\SingleSignOnTrait;
 use App\Common\Prototype;
 use App\Common\fields;
 use App\Common\str;
@@ -18,6 +20,11 @@ use App\UI\Table;
  * @package App\Common\User
  */
 class Card extends Prototype {
+	/**
+	 * For use handling user single sign-on.
+	 */
+	use SingleSignOnTrait;
+
 	public function all(array $a): string
 	{
 		extract($a);
@@ -298,7 +305,6 @@ class Card extends Prototype {
 			"post" => [
 				"class" => "text-center smaller",
 				"html" => "Don't have an account yet? <a href=\"/user//register\">Sign up here</a>!",
-				//				"html" => str::pre(print_r($_COOKIE, true))
 			],
 		]);
 
@@ -525,6 +531,75 @@ class Card extends Prototype {
 				"rows" => $rows,
 			],
 		]);
+
+		return $card->getHTML();
+	}
+
+	/**
+	 * SSO card in the account settings page for a user.
+	 *
+	 * @param array $user
+	 *
+	 * @return string
+	 * @throws \App\Common\Exception\BadRequest
+	 */
+	public function sso(array $user): string
+	{
+		if($user['sso_id']){
+			$oauth_token = $this->info("oauth_token", $user['oauth_token_id']);
+			$provider = OAuth2Handler::getSingleSignOnProviderObject($oauth_token['provider'], $oauth_token);
+			$org = $provider->getOrganization($oauth_token);
+			$me = $provider->getUser($user['sso_id']);
+
+			$rows['First name'] = $me['first_name'];
+			$rows['Last name'] = $me['last_name'];
+			$rows['Phone'] = $me['phone'];
+			$rows['Email'] = $me['email'];
+			$rows["Organization"] = $org['name'];
+
+			switch($oauth_token['provider']) {
+			case "entra":
+				$rows['Provider'] = "Entra ID (Azure Active Directory)";
+				$icon = [
+					"svg" => "/img/EntraLogoColour.svg",
+					"style" => [
+						"margin-right" => "0.5rem"
+					],
+					"tooltip" => $rows['Provider'],
+				];
+				break;
+			}
+
+			$card = new \App\UI\Card\Card([
+				"header" => [
+					"icon" => $icon,
+					"title" => "Single sign-on",
+					"buttons" => [
+						Buttons::disconnectSso($user)
+					]
+				],
+				"rows" => [
+					"sm" => 3,
+					"rows" => $rows,
+				],
+			]);
+		}
+
+		else {
+			$card = new \App\UI\Card\Card([
+				"header" => [
+					"title" => "Single sign-on",
+				],
+				"body" => [
+					"style" => [
+						"text-align" => "center",
+					],
+					"html" => Card::getSignOnButton("entra", NULL, $user['user_id']),
+				]
+			]);
+		}
+
+
 
 		return $card->getHTML();
 	}

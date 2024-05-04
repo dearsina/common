@@ -2376,13 +2376,13 @@ abstract class Common {
 
 		# Otherwise, load the whole database
 		else {
-			$this->loadDatabaseMetadata($table['db'], $refresh);
+			$this->loadDatabaseMetadata($table['db'], $table['name'], $refresh);
 
 			# Ensure newly created tables are captured
 			if(!$this->meta[$table['db']][$table['name']]){
 				//If the table isn't found, because maybe it was just created
 				# Rerun the loading, just in case
-				$this->loadDatabaseMetadata($table['db'], true);
+				$this->loadDatabaseMetadata($table['db'], $table['name'], true);
 			}
 		}
 
@@ -2414,13 +2414,14 @@ abstract class Common {
 	 * times the DB call from this method is required to one per
 	 * PHP script.
 	 *
-	 * @param string    $db
-	 * @param bool|null $refresh
-	 * @param bool|null $retrying
+	 * @param string      $db
+	 * @param string|null $table
+	 * @param bool|null   $refresh
+	 * @param bool|null   $retrying
 	 *
 	 * @throws \Swoole\ExitException|BadRequest
 	 */
-	private function loadDatabaseMetadata(string $db, ?bool $refresh = NULL, ?bool $retrying = NULL): void
+	private function loadDatabaseMetadata(string $db, ?string $table = NULL, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
 		# Not sure why this would go missing, but it has (at times)
 		if(@!$this->mysqli->thread_id){
@@ -2451,8 +2452,14 @@ abstract class Common {
 			unset($this->meta[$db]);
 		}
 
-		# We're only doing this once per DB call
-		if($this->meta[$db]){
+		# We're only doing this once per DB call, unless that DB is "cache"
+		if($db == "cache"){
+			if($this->meta[$db][$table]){
+				return;
+			}
+		}
+
+		else if($this->meta[$db]){
 			return;
 		}
 
@@ -2479,6 +2486,9 @@ abstract class Common {
 		if(is_array($result['rows'])){
 			# Save each result row
 			foreach($result['rows'] as $row){
+				if($db == "cache" && $table && $row['TABLE_NAME'] != $table){
+					continue;
+				}
 				# The meta array contains DB > Table > Column data
 				$this->meta[$row['TABLE_SCHEMA']][$row['TABLE_NAME']][$row['COLUMN_NAME']] = $row;
 			}
@@ -2877,7 +2887,7 @@ abstract class Common {
 		}
 
 		# Ensure the database exists
-		if($table["db"] && !$this->dbExists($table["db"])){
+		if($table["db"] && !$this->dbExists($table["db"], $table['name'])){
 			throw new mysqli_sql_exception("The database <code>{$table["db"]}</code> doesn't seem to exists or the current user does not have access to it.");
 		}
 
@@ -2946,7 +2956,7 @@ abstract class Common {
 	 *
 	 * @return bool
 	 */
-	protected function dbExists(string $db): bool
+	protected function dbExists(string $db, ?string $table = NULL): bool
 	{
 		# Account for meta tables that are not in the INFORMATION_SCHEMA database
 		if(in_array($db, ["INFORMATION_SCHEMA"])){
@@ -2955,7 +2965,7 @@ abstract class Common {
 
 		$db = str::i($db);
 
-		$this->loadDatabaseMetadata($db);
+		$this->loadDatabaseMetadata($db, $table);
 		return (bool)$this->meta[$db];
 	}
 
@@ -2983,7 +2993,7 @@ abstract class Common {
 		# Clean the database name
 		$db = str::i($db);
 
-		$this->loadDatabaseMetadata($db);
+		$this->loadDatabaseMetadata($db, $table);
 		return (bool)$this->meta[$db][$table];
 	}
 
@@ -3040,7 +3050,7 @@ abstract class Common {
 		# If none is supplied, assume the generic db
 		$table['db'] = $table['db'] ?: $_ENV['db_database'];
 
-		$this->loadDatabaseMetadata($table['db']);
+		$this->loadDatabaseMetadata($table['db'], $table['name']);
 		return (bool)$this->meta[$table['db']][$table['name']][$col];
 	}
 
