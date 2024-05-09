@@ -258,6 +258,12 @@ class Info {
 		else if($a['rel_table']){
 			$a['table'] = $a['rel_table'];
 		}
+		if($a['db']){
+			$a['rel_db'] = $a['db'];
+		}
+		else if($a['rel_db']){
+			$a['db'] = $a['rel_db'];
+		}
 		# We need to force a numerical array result even if only one row is expected
 		if($a['rel_id']){
 			$a['where']["{$a['table']}_id"] = $a['where']["{$a['table']}_id"] ?: $a['rel_id'];

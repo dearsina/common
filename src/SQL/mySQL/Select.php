@@ -486,7 +486,7 @@ class Select extends Common {
 					}
 					else {
 						# As the table _is_ found (but in a different database), inform them so that they can correct it
-						throw new \mysqli_sql_exception("The <code>{$table["name"]}</code> table can be found in the <code>".str::oxfordImplode($dbs)."</code> ".str::pluralise_if($dbs, "database").", not the <code>{$table["db"]}</code> database. Please address.");
+						throw new \mysqli_sql_exception("The <code>{$this->table["name"]}</code> table can be found in the <code>".str::oxfordImplode($dbs)."</code> ".str::pluralise_if($dbs, "database").", not the <code>{$this->table["db"]}</code> database. Please address.");
 					}
 				}
 
