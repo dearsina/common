@@ -401,21 +401,15 @@ class Request {
 		}
 
 		# Ensure token belongs to this IP address
-		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
-			// If the token IP and the connecting IP are not the same
-			$this->log->error([
-				"display" => false,
-				"log" => true,
-				"title" => "Expired connection",
-				"message" => "Your connection has expired ({$connection['ip']} != {$_SERVER['REMOTE_ADDR']}).
-				It will now be refreshed. [The connection was not closed.]",
-			]);
-
-			/**
-			 * Because this caused so much grief for people that were on connections that kept
-			 * changing IP addresses, I've decided to just log the error and let the request through.
-			 */
-
+//		if($_SERVER['REMOTE_ADDR'] && $connection['ip'] != $_SERVER['REMOTE_ADDR']){
+//			// If the token IP and the connecting IP are not the same
+//			$this->log->error([
+//				"display" => false,
+//				"log" => true,
+//				"title" => "Expired connection",
+//				"message" => "Your connection has expired ({$connection['ip']} != {$_SERVER['REMOTE_ADDR']}).
+//				It will now be refreshed. [The connection was not closed.]",
+//			]);
 //			if(!in_array($connection['geolocation.asn.domain'], self::WHITELISTED_ASN_DOMAINS)
 //				&& !in_array($connection['geolocation.asn.name'], self::WHITELISTED_ASN_NAMES)
 //				&& !in_array($connection['ip'], self::WHITELISTED_IPS)){
@@ -427,7 +421,11 @@ class Request {
 //				$this->hash->set("reload");
 //				return false;
 //			}
-		}
+//		}
+		/**
+		 * This happens too often to good actors that it's not worth having as a control,
+		 * or even log.
+		 */
 
 		return true;
 	}
