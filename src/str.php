@@ -1342,7 +1342,7 @@ EOF;
 	 * @param string|null $grandparent_class The optional grandparent class, if the info class is a level deeper. Only
 	 *                                       applies to API info classes
 	 *
-	 * @return bool|string Returns the class with path or FALSE if it can't find it
+	 * @return null|string Returns the class with path or NULL if it can't find it
 	 */
 	public static function findClass(?string $rel_table, ?string $parent_class = NULL, ?string $grandparent_class = NULL): ?string
 	{
