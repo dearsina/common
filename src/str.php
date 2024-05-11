@@ -299,6 +299,7 @@ class str {
 		"VAT",
 		"ID",
 		"AI",
+		"URL"
 	];
 
 	const NAME_PREFIXES = [
@@ -2042,7 +2043,7 @@ EOF;
 	 * @return string
 	 * @throws \Exception
 	 */
-	static function ago($dt, ?bool $future = NULL): ?string
+	static function ago($dt, ?bool $future = NULL, ?bool $ignore_suffix = NULL): ?string
 	{
 		# Empty
 		if(!$dt){
@@ -2063,7 +2064,11 @@ EOF;
 		# The datetime attribute, as required by the timeAgo jQuery plugin
 		$datetime = str::getAttrTag("datetime", $dt->format('c'));
 
-		return "<time{$id}{$class}{$datetime}>{$dt->format("Y-m-d H:i:s")}</time> [{$dt->format('j M Y')}]";
+		if(!$ignore_suffix){
+			$suffix = " [{$dt->format('j M Y')}]";
+		}
+
+		return "<time{$id}{$class}{$datetime}>{$dt->format("Y-m-d H:i:s")}</time>{$suffix}";
 	}
 
 	/**
