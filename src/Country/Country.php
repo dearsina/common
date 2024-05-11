@@ -91,6 +91,27 @@ class Country extends Prototype {
 		return $currency['geolocation'][0]['country'][0]['currency_code'];
 	}
 
+	public static function getIconFromISOAlpha2(?string $iso2): ?array
+	{
+		if(!$iso2){
+			return NULL;
+		}
+
+		$iso2 = strtoupper($iso2);
+
+		foreach(Info::getInstance()->getInfo("country") as $country){
+			if($country['country_code'] == $iso2){
+				break;
+			}
+		}
+
+		return [
+			"type" => "flag",
+			"name" => $iso2,
+			"alt" => $country['name'],
+		];
+	}
+
 	/**
 	 * Returns an array with the alpha-2 country code as the key,
 	 * and the English country name as the value.
@@ -112,10 +133,7 @@ class Country extends Prototype {
 			if($formatted){
 				$country_options[$country['country_code']] = [
 					"title" => $country['name'],
-					"icon" => [
-						"type" => "flag",
-						"name" => $country['country_code'],
-					]
+					"icon" => self::getIconFromISOAlpha2($country['country_code'])
 				];
 			}
 
