@@ -16,10 +16,18 @@ class App extends Prototype implements NavigationInterface {
 	 * @inheritDoc
 	 */
 	public function update (): array {
+		# All users see the generic brand title if no subdomain is used
 		$this->allUsers();
+
+		# If the user is logged in, show the user-specific menu items
 		if($this->user->isLoggedIn()){
+			// This will also set the global $role and user_id variables
+
+			# Augments the menu as the user is logged in
 			$this->loggedInUsers();
 		}
+
+		# Returns the levels populated so far
 		return $this->levels;
 	}
 
