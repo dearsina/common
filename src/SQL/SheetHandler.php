@@ -509,6 +509,11 @@ class SheetHandler extends \App\Common\Prototype {
 					"indistinct" => ["COUNT(`{$column}`)"],
 					"distinct" => ["COUNT(DISTINCT `{$column}`)"],
 				],
+				"group_by" => "`{$column}`",
+				/**
+				 * Because the columns are not explicitly defined as aggregates,
+				 * we need to group by the column manually to avoid a mySQL error.
+				 */
 				"limit" => 1
 			]);
 
