@@ -621,7 +621,7 @@ class Request {
 		if($top){
 			$queries = array_slice($queries, 0, $top);
 		}
-		print_r(array_slice($queries, 0, 10));
+
 		print_r($queries);
 		exit;
 	}
