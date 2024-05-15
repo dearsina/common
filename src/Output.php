@@ -543,7 +543,7 @@ EOF;
 	 */
 	public function setData(string $type, ?string $id, $data, ?array $recipients = NULL, $first = NULL)
 	{
-		if(in_array($type, ["modal", "function", "remove", "replace", "update", "prepend", "append"])){
+		if(in_array($type, ["modal", "function", "remove", "replace", "update", "prepend", "append", "after"])){
 			$this->setAction($type, $id, $data, $recipients, $first);
 			return true;
 		}
