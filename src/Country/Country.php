@@ -744,7 +744,7 @@ EOF;
 		$val = preg_replace("/\s*\[.*?\]\s*$/", "", $val);
 
 		# Move any suffixed text in parentheses to the front
-		$val = preg_replace("/(.*?)\s*\((.*?)\)\s*$/", "$2 $1", $val);
+		$val = preg_replace("/(.*?)\s*\(([^\)]+)\)\s*$/", "$2 $1", $val);
 
 		# Strip "the" from the beginning
 		$val = preg_replace("/^the\s+/i", "", $val);
