@@ -197,6 +197,21 @@ EOF;
 	}
 
 	/**
+	 * Will insert an element after the given div.
+	 *
+	 * @param string        $id
+	 * @param               $data
+	 * @param array|null    $recipients If set, will send the after-request asynchronously to all relevant recipients
+	 * @param bool|int|null $first
+	 *
+	 * @return bool
+	 */
+	public function after(string $id, $data, ?array $recipients = NULL, $first = NULL): bool
+	{
+		return $this->setData("after", $id, $data, $recipients, $first);
+	}
+
+	/**
 	 * Will replace a given div, including the div tag itself.
 	 *
 	 * @param string        $id
