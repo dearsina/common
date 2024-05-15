@@ -919,18 +919,6 @@ class User extends Prototype {
 		# Update the navigation
 		Navigation::update();
 
-		# Close all connections
-		$this->sql->update([
-			"table" => "connection",
-			"set" => [
-				"closed" => "NOW()",
-			],
-			"where" => [
-				"user_id" => $user_id,
-			],
-			"user_id" => $user_id,
-		]);
-
 		if(!$silent){
 			$this->log->info([
 				"icon" => "power-off",
@@ -938,6 +926,7 @@ class User extends Prototype {
 				'message' => 'You have been logged out.',
 			]);
 		}
+
 		return true;
 	}
 
