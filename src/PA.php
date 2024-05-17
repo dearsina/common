@@ -262,7 +262,7 @@ class PA {
 				["server_id", "IS NOT", NULL],
 			],
 			"order_by" => [
-				"created" => "DESC",
+				"connection_id" => "DESC",
 			],
 			"limit" => 1,
 		]);
@@ -303,7 +303,7 @@ class PA {
 			# And it should be with a server ID, the newest first
 			$order_by = [
 				"server_id" => "DESC",
-				"created" => "DESC"
+				"connection_id" => "DESC"
 			];
 
 			$this->or[] = ["server_id", "IS", NULL];
