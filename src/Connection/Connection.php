@@ -211,7 +211,7 @@ class Connection extends Prototype {
 			"table" => "connection",
 			"where" => $where,
 			"order_by" => [
-				"created" => "DESC"
+				"connection_id" => "DESC"
 			],
 			"limit" => 1
 		]);
