@@ -81,7 +81,7 @@ class Country extends Prototype {
 				"user_id" => $user_id,
 			],
 			"order_by" => [
-				"created" => "DESC"
+				"connection_id" => "DESC"
 			],
 			"limit" => 1,
 		])){
@@ -341,7 +341,7 @@ class Country extends Prototype {
 				"user_id" => $user_id,
 			],
 			"order_by" => [
-				"created" => "DESC",
+				"connection_id" => "DESC",
 			],
 			"limit" => 1,
 		])){
