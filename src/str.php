@@ -4897,4 +4897,47 @@ EOF;
 	{
 		return preg_replace('/^[\p{Z}\s\x{2000}-\x{200F}\x{2028}\x{2029}\x{00A0}\x{3000}\x{FEFF}]+|[\p{Z}\s\x{2000}-\x{200F}\x{2028}\x{2029}\x{00A0}\x{3000}\x{FEFF}]+$/u', '', $string);
 	}
+
+	const WORDS_TO_IGNORE_FOR_INITIALS = [
+		"van",
+		"von",
+		"de",
+		"der",
+		"la",
+		"le",
+		"del",
+		"di",
+		"da",
+		"el",
+		"los",
+		"las",
+		"al",
+		"il",
+		"lo",
+	];
+
+	/**
+	 * Given a name string, returns the initials.
+	 *
+	 * @param string|null $name
+	 *
+	 * @return string|null
+	 */
+	public static function getInitialsFromNameString(?string $name): ?string
+	{
+		if(!$name){
+			return NULL;
+		}
+
+		$words = explode(" ", $name);
+		$initials = "";
+		foreach($words as $word){
+			if(in_array(mb_strtolower($word), self::WORDS_TO_IGNORE_FOR_INITIALS)){
+				continue;
+			}
+			$initials .= mb_substr($word, 0, 1);
+		}
+
+		return mb_strtoupper($initials);
+	}
 }
