@@ -216,12 +216,21 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 		return $user;
 	}
 
-	public function getGroups(): ?array
+	public function getGroups(?string $q = NULL): ?array
 	{
 		try {
-			$response = $this->graph->createRequest("GET", "/groups")
-				->setReturnType(\Microsoft\Graph\Model\Group::class)
-				->execute();
+			if($q){
+				$q = urlencode($q);
+				$response = $this->graph->createRequest("GET", '/groups?$search="displayName:'.$q.'"')
+					->addHeaders(["ConsistencyLevel" => "eventual"])
+					->setReturnType(\Microsoft\Graph\Model\Group::class)
+					->execute();
+			}
+			else {
+				$response = $this->graph->createRequest("GET", "/groups{$search}")
+					->setReturnType(\Microsoft\Graph\Model\Group::class)
+					->execute();
+			}
 
 			$groups = array_map(function($group){
 				return $group->getProperties();

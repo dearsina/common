@@ -30,9 +30,11 @@ interface SingleSignOnProviderInterface extends ProviderInterface {
 	 * Get an array of groups the tenant has access to.
 	 *
 	 *
+	 * @param string|null $q Search query
+	 *
 	 * @return array|null
 	 */
-	public function getGroups(): ?array;
+	public function getGroups(?string $q = NULL): ?array;
 
 	/**
 	 * Get an array containing the group's properties.
