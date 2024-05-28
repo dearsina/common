@@ -12,8 +12,16 @@ class Export extends Common {
 	 * Different mime types for the export.
 	 */
 	public const MIME_TYPES = [
-		"xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-		"csv" => "text/csv"
+		"xlsx" => [
+			"icon" => "file-excel",
+			"title" => "Excel",
+			"content_type" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		],
+		"csv" => [
+			"icon" => "file-csv",
+			"title" => "CSV",
+			"content_type" => "text/csv",
+		],
 	];
 
 	/**
