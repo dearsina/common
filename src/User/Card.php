@@ -70,21 +70,23 @@ class Card extends Prototype {
 	/**
 	 * Publicly available card.
 	 *
-	 * @param null $a
+	 * @param array|null $a
 	 *
 	 * @return string
 	 * @throws \Exception
 	 */
-	public function register($a = NULL)
+	public function register(?array $a = NULL)
 	{
 		extract($a);
 
-		$buttons = ["cancel", [
+		$buttons[] = [
 			"colour" => "green",
 			"icon" => "save",
 			"title" => "Register",
 			"type" => "submit",
-		]];
+		];
+
+		$buttons[] = "cancel";
 
 		$form = new Form([
 			"action" => "create",

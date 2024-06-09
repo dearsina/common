@@ -1234,7 +1234,7 @@ class User extends Prototype {
 		}
 
 		# Ensure form is complete
-		if(!$this->formComplete(["first_name", "last_name", "email", "phone"], $vars)){
+		if(!$this->formComplete(["first_name", "last_name", "email"], $vars)){
 			return false;
 		}
 
