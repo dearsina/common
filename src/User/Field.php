@@ -174,7 +174,6 @@ class Field extends FieldPrototype {
 			],
 			"label" => false,
 			"value" => $phone,
-			"required" => true,
 		], [
 			"type" => "recaptcha",
 			"action" => "insert_user",
