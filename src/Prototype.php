@@ -727,14 +727,22 @@ abstract class Prototype {
 	 *
 	 * @return array|null
 	 */
-	public function getRemoved(string $rel_table, string $rel_id): ?array
+	public function getRemoved(string $rel_table, string $rel_id, ?string $rel_db = NULL): ?array
 	{
+		if($rel_db){
+			$user_id = [$rel_db, $rel_table, "removed_by"];
+		}
+		else {
+			$user_id = [$rel_table, "removed_by"];
+		}
+
 		if(!$removed = $this->info([
+			"rel_db" => $rel_db,
 			"rel_table" => $rel_table,
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => [$rel_table, "removed_by"],
+					"user_id" => $user_id,
 				],
 				"include_removed" => true,
 			]],
@@ -779,7 +787,7 @@ abstract class Prototype {
 	{
 		extract($a);
 
-		if(!$row = $this->getRemoved($rel_table, $rel_id)){
+		if(!$row = $this->getRemoved($rel_table, $rel_id, $rel_db)){
 			return NULL;
 		}
 
