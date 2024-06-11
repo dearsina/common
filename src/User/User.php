@@ -1782,6 +1782,7 @@ class User extends Prototype {
 				"email" => $vars['new_email'],
 				"verified" => "NOW()",
 			],
+			"user_id" => $rel_id,
 		]);
 
 		$this->log->success([
