@@ -181,13 +181,16 @@ class Process {
 			$global_vars['role'] = $role;
 		}
 
-		# Collected the PHPSESSID and any other cookies
-		$global_vars['session_id'] = $_COOKIE['PHPSESSID'];
+		# Collect all the cookies
 		foreach($_COOKIE as $key => $val){
 			if(!is_array($val) && !is_object($val)){
 				$global_vars[$key] = $val;
 			}
 		}
+
+		# Collect the session ID
+		$global_vars['session_id'] = session_id();
+		// This one is important as it will be used to identify the recipient of the output of the thread
 
 		# IP
 		$global_vars['ip'] = $_SERVER['REMOTE_ADDR'];
