@@ -1247,7 +1247,7 @@ class User extends Prototype {
 		}
 
 		# Ensure the email address is valid
-		if(!str::isValidEmail($vars['email'])){
+		if(!filter_var($vars['email'], FILTER_VALIDATE_EMAIL)){
 			$this->log->error([
 				"title" => 'Invalid E-mail Address',
 				"message" => "This email address [<code>{$vars['email']}</code>] is invalid. Please ensure you've written the correct address.",
@@ -1565,7 +1565,7 @@ class User extends Prototype {
 		$user = $this->info($rel_table, $rel_id);
 
 		# Ensure the new email is valid
-		if(!str::isValidEmail($vars['new_email'])){
+		if(!filter_var($vars['new_email'], FILTER_VALIDATE_EMAIL)){
 			$this->log->error([
 				"container" => ".modal-body",
 				"reset" => true,
