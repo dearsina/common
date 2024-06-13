@@ -80,7 +80,7 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 			return false;
 		}
 
-		if($response_array['mail'] && str::isValidEmail($response_array['mail'])){
+		if($response_array['mail'] && filter_var($response_array['mail'], FILTER_VALIDATE_EMAIL)){
 			return $response_array['mail'];
 		}
 

@@ -20,7 +20,7 @@ use App\Common\str;
  * local_cert="/etc/letsencrypt/live/DOMAIN/cert.pem"     # Local SSL Certificate path
  * local_pk="/etc/letsencrypt/live/DOMAIN/privkey.pem"    # Local SSL Private Key path
  * websocket_external_ip="0.0.0.0"                        # Should always be set to 0.0.0.0
- * websocket_external_port="4043"                         # The port used for WSS, can be anything, but must match in JS
+ * websocket_external_port="8080"                         # The port used for WSS, can be anything, but must match in JS
  * websocket_internal_ip="127.0.0.1"                      # Should always be set to 127.0.0.1
  * websocket_internal_port="8080"                         # The internal port, can be anything
  */
@@ -273,7 +273,7 @@ class WebSocketServer extends Prototype {
 	 *    'request_time' => 1673443811,
 	 *    'request_time_float' => 1673443811.507008,
 	 *    'server_protocol' => 'HTTP/1.1',
-	 *    'server_port' => 4043,
+	 *    'server_port' => 8080,
 	 *    'remote_port' => 51574,
 	 *    'remote_addr' => '169.0.137.120', // Will always be an IPv4 address
 	 *    'master_time' => 1673443811,
@@ -383,7 +383,7 @@ class WebSocketServer extends Prototype {
  * ["header"]=>
  * array(12) {
  * ["host"]=>
- * string(28) "registerofmembers.co.uk:4043"
+ * string(28) "registerofmembers.co.uk:443"
  * ["connection"]=>
  * string(7) "Upgrade"
  * ["pragma"]=>
@@ -423,7 +423,7 @@ class WebSocketServer extends Prototype {
  * ["server_protocol"]=>
  * string(8) "HTTP/1.1"
  * ["server_port"]=>
- * int(4043)
+ * int(443)
  * ["remote_port"]=>
  * int(55358)
  * ["remote_addr"]=>

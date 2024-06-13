@@ -911,6 +911,11 @@ class str {
 	}
 
 	/**
+	 * DEPRECATED
+	 *
+	 * Has been prone to failing valid email addresses.
+	 * Replaced with filter_var($email, FILTER_VALIDATE_EMAIL)
+	 *
 	 * Checks to see if an email address is valid
 	 *    <code>str::isValidEmail($email);<code>
 	 *
@@ -3849,8 +3854,8 @@ EOF;
 	 * </code>
 	 * //Returns "apples, oranges, bananas and pears"
 	 *
-	 * @param             $array
-	 * @param string|null $tag
+	 * @param array|null  $array
+	 * @param string|null $tag Should not include the brackets, just the tag name.
 	 * @param string|null $and_or
 	 * @param string|null $glue
 	 *
