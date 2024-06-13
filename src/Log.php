@@ -421,6 +421,9 @@ EOF;
 			$alert = ["message" => $a];
 		}
 
+		# Ensure the alert message is a string
+		$alert['message'] = is_array($alert['message']) ? str::json_encode($alert['message']) : $alert['message'];
+
 		if(str::isBinary($alert['message'])){
 			# Strip the message from binary data
 			$alert['message'] = preg_replace("/[^\x20-\x7E]/", "", $alert['message']);
