@@ -422,7 +422,14 @@ EOF;
 		}
 
 		# Ensure the alert message is a string
-		$alert['message'] = is_array($alert['message']) ? str::json_encode($alert['message']) : $alert['message'];
+		if(is_array($alert['message'])){
+			if(str::isNumericArray($alert['message'])){
+				$alert['message'] = implode("\r\n", $alert['message']);
+			}
+			else {
+				$alert['message'] = json_encode($alert['message']);
+			}
+		}
 
 		if(str::isBinary($alert['message'])){
 			# Strip the message from binary data
