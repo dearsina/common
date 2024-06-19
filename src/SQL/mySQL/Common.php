@@ -946,7 +946,8 @@ abstract class Common {
 
 		# Ensure the alias exists
 		if(!$tbl = $this->tableAliasExists($parent_alias)){
-			throw new mysqli_sql_exception("The <code>{$parent_alias}</code> table alias cannot be found. This is either because you're referencing a table that doesn't exist or doesn't exist yet. Order matters in the join array.");
+			throw new Exception("The <code>{$parent_alias}</code> table alias cannot be found. This is either because you're referencing a table that doesn't exist or doesn't exist yet. Order matters in the join array.");
+			// more useful than a mysql exception because it includes a backtrace
 		}
 
 		# Update the $parent_alias because at times a prefix may have been added
@@ -2495,7 +2496,11 @@ abstract class Common {
 		}
 
 		else {
-			throw new MySqlException("Cannot find the <code>{$db}</code> database: " . var_export($result, true));
+			$query = "SHOW DATABASES LIKE '{$db}';";
+			$result = $this->mysqli->query($query);
+			if(!$result->num_rows){
+				throw new MySqlException("Cannot find the <code>{$db}</code> database: " . var_export($result, true));
+			}
 		}
 
 		# Log the added-to schema as a session schema cache
