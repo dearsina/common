@@ -787,6 +787,10 @@ abstract class Prototype {
 	{
 		extract($a);
 
+		if(!$rel_db){
+			$rel_db = $this->db;
+		}
+
 		if(!$row = $this->getRemoved($rel_table, $rel_id, $rel_db)){
 			return NULL;
 		}
