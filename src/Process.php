@@ -189,7 +189,9 @@ class Process {
 		}
 
 		# Collect the session ID
-		$global_vars['session_id'] = session_id();
+		global $session_id;
+		// If a global session ID is not set, set it to the current session ID
+		$global_vars['session_id'] = $session_id ?: session_id();
 		// This one is important as it will be used to identify the recipient of the output of the thread
 
 		# IP

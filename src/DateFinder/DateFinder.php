@@ -111,7 +111,6 @@ class DateFinder extends \App\Common\Prototype {
 		}
 
 		# Split words up
-		//		$words = preg_split('/[^\w]/i', $input_string);
 		$words = preg_split("/([^\w])/", $input_string, -1, PREG_SPLIT_DELIM_CAPTURE);
 
 		if(count($words) >= 5){
