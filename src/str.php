@@ -1853,7 +1853,6 @@ EOF;
 	 */
 	static function getAttrTag($attr, $val, $if_null = NULL)
 	{
-
 		if(is_array($val)){
 			$val_array = $val;
 			unset($val);
@@ -1868,7 +1867,6 @@ EOF;
 			}
 			else {
 				//if keys do matter
-
 				foreach($val_array as $k => $v){
 					if(is_numeric($k) && is_array($v)){
 						foreach($v as $vk => $vv){
@@ -3155,6 +3153,73 @@ EOF;
 			$matches = array_merge($matches, array_keys(array_column($array, $col), $value));
 		}
 		return $matches;
+	}
+
+	/**
+	 * Returns the difference between two multidimensional arrays.
+	 * Useful to ascertain what has changed between two versions of a hit.
+	 *
+	 * @param array $array1
+	 * @param array $array2
+	 *
+	 * @return array
+	 */
+	public static function array_diff_multidimensional(array $array1, array $array2): array
+	{
+		$difference = [];
+
+		foreach($array1 as $key => $value){
+			/**
+			 * For values that are numerical arrays, we replace the numerical keys with hashes.
+			 * This is to ensure that the comparison is accurate, and not affected by the order
+			 * of the array.
+			 */
+			if(str::isNumericArray($value)){
+				$value_hashes = array_map(function($v){
+					return str::getHash($v);
+				}, $value);
+
+				# Replace the numerical keys with the hashes
+				$value = array_combine($value_hashes, $value);
+
+				if(!isset($array2[$key]) || !is_array($array2[$key])){
+					$difference[$key] = $value;
+					continue;
+				}
+				$array2_hashes = array_map(function($v){
+					return str::getHash($v);
+				}, $array2[$key]);
+
+				# Replace the numerical keys with the hashes
+				$array2[$key] = array_combine($array2_hashes, $array2[$key]);
+			}
+
+			# If the value is an array, go deeper and compare the arrays
+			if(is_array($value)){
+				# Unless the value key isn't set, in which case, we don't need to compare
+				if(!isset($array2[$key]) || !is_array($array2[$key])){
+					$difference[$key] = $value;
+					continue;
+				}
+
+				# Get and differences in the values arrays
+				$new_diff = self::array_diff_multidimensional($value, $array2[$key]);
+
+				# If there are differences, add them to the difference array
+				if(!empty($new_diff)){
+					$difference[$key] = $new_diff;
+				}
+
+				continue;
+			}
+
+			# If the value is not an array, compare the values
+			if(!array_key_exists($key, $array2) || $array2[$key] !== $value){
+				$difference[$key] = $value;
+			}
+		}
+
+		return $difference;
 	}
 
 	/**
