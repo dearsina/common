@@ -469,8 +469,9 @@ EOF;
 				# If even the value is an array of data
 				if(is_array($row)){
 					# Load the option
-					$select_option = new SelectOption($id, $row, false);
-					$option = $select_option->getOption();
+					$row['value'] = $id;
+					$row['selected'] = false;
+					$option = SelectOption::getFormattedOption($row);
 
 					# And the text is replaced with the title, unless a text has been provided
 					$option['text'] = $option['text'] ?: $row['title'];
@@ -502,8 +503,9 @@ EOF;
 				# If even the value is an array of data
 				if(is_array($text)){
 					# Load the option
-					$select_option = new SelectOption($id, $text, false);
-					$option = $select_option->getOption();
+					$text['value'] = $id;
+					$text['selected'] = false;
+					$option = SelectOption::getFormattedOption($text);
 
 					# And the text is replaced with the title, unless a text has been provided
 					$option['text'] = $option['text'] ?: $option['title'];
