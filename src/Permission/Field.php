@@ -30,15 +30,10 @@ class Field {
 		  `information_schema`.`tables`
 		WHERE
 		  table_type = 'BASE TABLE'
-		  AND table_schema NOT IN (
-			'information_schema',
-			'mysql',
-			'performance_schema',
-			'sys',
-		    'address',
-			'cache',
-			'public_list',
-			'bulk_insert'
+		  AND table_schema IN (
+			'app',
+			'user_data',
+			'third_party'
 		  )
 		ORDER BY
 		  `db`,
@@ -52,6 +47,36 @@ class Field {
 			if($table['db'] != $_ENV['db_database']){
 				$row["Table"] .= " <span class=\"text-silent small\">".strtoupper($table['db'])."</span>";
 			}
+
+			$script = /** @lang JavaScript */
+				<<<EOF
+$(function() {
+    // Listen to change events on checkboxes
+    $("input[name='table[{$table['Name']}][toggle]']").change(function() {
+        console.log("Toggle all");
+        // Assuming this is the master checkbox that toggles all others
+        var masterChecked = this.checked;
+        
+        // Use a selector that fits your specific needs, this is a general example
+        $("input[name^='table[{$table['Name']}]']").each(function() {
+            this.checked = masterChecked;
+        });
+    });
+});
+EOF;
+
+			$row['toggle'] = [
+				"type" => "checkbox",
+				"name" => "table[{$table['Name']}][toggle]",
+				"script" => $script,
+				"label" => [
+					"title" => "CRUD",
+					"class" => "text-muted",
+					"alt" => "Toggle all permissions"
+				],
+				"sm" => "auto"
+			];
+
 			$crud = [
 				"c" => "Create, this includes upload",
 				"r" => "Read, this includes download",
@@ -98,6 +123,7 @@ class Field {
 					"disabled" => $disabled
 				];
 			}
+
 			$row["IDs"] = $permissions[$table['Name']]['count_rel_id'] ?: "None";
 			$fields[] = [
 				"row_style" => [

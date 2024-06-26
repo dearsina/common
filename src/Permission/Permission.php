@@ -280,6 +280,47 @@ class Permission extends Prototype {
 	}
 
 	/**
+	 * Because the update method is used by user_permission and role_permission,
+	 * we need to separate them out.
+	 *
+	 * @param array $a
+	 *
+	 * @return array
+	 * @throws \Exception
+	 */
+	private function separateOutRoleAndUserPermissions(array $a): array
+	{
+		extract($a);
+
+		if ($vars['role_id']) {
+			if (!$item = $this->sql->select([
+				"table" => "role",
+				"id" => $vars['role_id'],
+			])) {
+				// If the role cannot be found
+				throw new \Exception("The requested role cannot be found.");
+			}
+			$role_or_user_id = $item["role_id"];
+			$role_or_user_col = "role_id";
+		}
+
+		else if($vars['user_id']){
+			if(!$item = $this->info("user", $vars['user_id'])){
+				// If the user cannot be found
+				throw new \Exception("The requested user cannot be found.");
+			}
+			$role_or_user_id = $item["user_id"];
+			$role_or_user_col = "user_id";
+		}
+
+		else {
+			throw new \Exception("You must provide either a role or a user to see their permissions.");
+		}
+
+		return [$role_or_user_col, $role_or_user_id];
+	}
+
+	/**
 	 * Updates permissions or role permissions,
 	 * depending on which class is using the method.
 	 *
@@ -298,24 +339,7 @@ class Permission extends Prototype {
 			return $this->accessDenied($a);
 		}
 
-		if ($vars['role_id']) {
-			if (!$item = $this->sql->select([
-				"table" => "role",
-				"id" => $vars['role_id'],
-			])) {
-				// If the role cannot be found
-				throw new \Exception("The requested role cannot be found.");
-			}
-			$rel = "role";
-		} else if ($vars['user_id']) {
-			if (!$item = $this->info("user", $vars['user_id'])) {
-				// If the user cannot be found
-				throw new \Exception("The requested user cannot be found.");
-			}
-			$rel = "user";
-		} else {
-			throw new \Exception("You must provide either a role or a user to see their permissions.");
-		}
+		[$role_or_user_col, $role_or_user_id] = $this->separateOutRoleAndUserPermissions($a);
 
 		# Get existing permissions
 		if ($results = $this->sql->select([
@@ -330,7 +354,7 @@ class Permission extends Prototype {
 			],
 			"table" => $rel_table,
 			"where" => [
-				"{$rel}_id" => $item["{$rel}_id"],
+				$role_or_user_col => $role_or_user_id,
 			],
 		])) {
 			foreach ($results as $table) {
@@ -358,7 +382,7 @@ class Permission extends Prototype {
 				$this->sql->insert([
 					"table" => $rel_table,
 					"set" => [
-						"{$rel}_id" => $item["{$rel}_id"],
+						$role_or_user_col => $role_or_user_id,
 						"rel_table" => $table,
 						"c" => $crud['c'],
 						"r" => $crud['r'],
@@ -397,7 +421,7 @@ class Permission extends Prototype {
 						$key => $val,
 					],
 					"where" => [
-						$rel => $item["{$rel}_id"],
+						$role_or_user_col => $role_or_user_id,
 						"rel_table" => $table,
 					],
 				]);
@@ -408,6 +432,7 @@ class Permission extends Prototype {
 			$narrative[] = str::were($counts['added'], "permission", true) . " added";
 			$narrative[] = str::were($counts['same'], "permission", true) . " kept the same";
 			$narrative[] = str::were($counts['removed'], "permission", true) . " removed";
+
 			$this->log->success([
 				"alert" => Icon::get("permission"),
 				"title" => str::title("{$rel} permissions updated"),
