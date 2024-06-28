@@ -391,6 +391,11 @@ class Request {
 
 		# Ensure token is still valid
 		if($connection['closed']){
+			# If the connection is closed, but the IP address is the same, reopen the connection
+			if($this->requestIsFromTheSameIp($connection)){
+				return true;
+			}
+
 			# Refresh the connection
 			$this->hash->set("reload");
 			$this->log->warning([
@@ -423,9 +428,42 @@ class Request {
 //			}
 //		}
 		/**
-		 * This happens too often to good actors that it's not worth having as a control,
-		 * or even log.
+		 * We ignore checking for changes in IP because too often the IP address changes.
 		 */
+
+		return true;
+	}
+
+	/**
+	 * Reopens a closed connection if it's coming from the same IP.
+	 * This is very helpful for iPhones, which are aggressive in
+	 * closing connections.
+	 *
+	 * @param array $connection
+	 *
+	 * @return bool
+	 */
+	private function requestIsFromTheSameIp(array $connection): bool
+	{
+		# Ensure the IP address is sent
+		if(!$_SERVER['REMOTE_ADDR']){
+			return false;
+		}
+
+		# Ensure the IP address is the same
+		if($connection['ip'] != $_SERVER['REMOTE_ADDR']){
+			return false;
+		}
+
+		# Reopen the connection
+		$this->sql->update([
+			"table" => "connection",
+			"set" => [
+				"closed" => NULL,
+			],
+			"id" => $_SERVER['HTTP_CSRF_TOKEN'],
+			"user_id" => $_SERVER['HTTP_CSRF_TOKEN']
+		]);
 
 		return true;
 	}
