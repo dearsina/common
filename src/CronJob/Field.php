@@ -12,7 +12,6 @@ use App\Common\str;
  */
 class Field {
 
-
 	public static function cronJob(?array $a = NULL): array
 	{
 		if (is_array($a))
@@ -106,18 +105,7 @@ class Field {
 			], [
 				"type" => "select",
 				"required" => true,
-				"options" => [
-					'@yearly' => 'Yearly',
-					'@monthly' => 'Monthly',
-					'@weekly' => 'Weekly',
-					'@daily' => 'Daily, at midnight GMT',
-					'0 2 * * *' => 'Daily, at 2am GMT',
-					'0 4 * * *' => 'Daily, at 4am GMT',
-					'@hourly' => 'Hourly',
-					'0,30 * * * *' => "Every 30 minutes",
-					'0/15 * * * *' => "Every 15 minutes",
-					'* * * * *' => "Every minute",
-				],
+				"options" => CronJob::INTERVALS,
 				"name" => "interval",
 				"value" => $interval,
 				"title" => "Interval",

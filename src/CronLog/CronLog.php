@@ -261,7 +261,7 @@ class CronLog extends \App\Common\Prototype {
 		$row['Job'] = [
 			"accordion" => [
 				"header" => $item['cron_job'][0]['title'],
-				"body" => $item['output']
+				"body" => nl2br($item['output'])
 			]
 		];
 
