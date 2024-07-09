@@ -17,6 +17,20 @@ use App\UI\Table;
  * @package App\Common\CronJob
  */
 class CronJob extends Prototype {
+	public const INTERVALS = [
+		'@yearly' => 'Yearly',
+		'@monthly' => 'Monthly',
+		'@weekly' => 'Weekly',
+		'@daily' => 'Daily, at midnight UTC',
+		'0 2 * * *' => 'Daily, at 2am UTC',
+		'0 4 * * *' => 'Daily, at 4am UTC',
+		'@hourly' => 'Hourly',
+		'0,30 * * * *' => "Every 30 minutes",
+		'0/15 * * * *' => "Every 15 minutes",
+		'*/5 * * * *' => "Every 5 minutes",
+		'* * * * *' => "Every minute",
+	];
+
 	/**
 	 * @return Card
 	 */
@@ -423,7 +437,8 @@ EOF;
 		} else {
 			$badges[] = [
 				"title" => $job['interval'],
-				"colour" => "red"
+				"colour" => "red",
+				"alt" => str::title("This cron job runs ".self::INTERVALS[$job['interval']])
 			];
 		}
 		if($job['silent']){
