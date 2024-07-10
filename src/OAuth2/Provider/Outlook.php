@@ -151,6 +151,12 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 		# Attachments
 		if($attachments = $email->getAttachments()){
 			foreach($attachments as $attachment){
+				# Ensure the file exists
+				if(!file_exists($attachment['path'])){
+					continue;
+				}
+				// Avoids the "failed to open stream: No such file or directory" warning
+
 				$message['attachments'][] = [
 					"@odata.type" => "#microsoft.graph.fileAttachment",
 					"name" => $attachment['filename'],
