@@ -541,6 +541,11 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		else {
+			# Ensure there *is* one or more tmp files
+			if(!$_FILES[$key]['tmp_name']){
+				return NULL;
+			}
+
 			if(in_array(finfo_file(finfo_open(FILEINFO_MIME_TYPE), $_FILES[$key]['tmp_name']), $mime_type)){
 				return $_FILES[$key]['name'];
 			}
