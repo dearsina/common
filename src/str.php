@@ -3340,11 +3340,13 @@ EOF;
 	 * Same as exec(), except it will terminate the process
 	 * if it takes longer than the timeout.
 	 *
+	 * Will notify admins if there is an error with the command.
+	 *
 	 * @param string     $command
 	 * @param array|null $output
 	 * @param int|null   $timeout
 	 *
-	 * @return bool
+	 * @return bool Returns TRUE on success or FALSE on failure.
 	 */
 	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30): bool
 	{
@@ -3398,7 +3400,9 @@ EOF;
 			fclose($pipes[0]);
 			fclose($pipes[1]);
 			fclose($pipes[2]);
-			proc_close($process);
+
+			# Get the return value
+			$return_value = proc_close($process);
 		}
 
 		if($stdout){
@@ -3407,6 +3411,17 @@ EOF;
 
 		if($stderr){
 			$output = explode(PHP_EOL, $stderr);
+		}
+
+		# If there is an error, notify admins
+		if ($return_value !== 0) {
+			Email::notifyAdmins([
+				"subject" => "Command failed",
+				"body" => "<p>Command: <pre>{$command}</pre></p>
+				<p>Output: <pre>" . implode("\n", $output) . "</pre></p>",
+				"backtrace" => str::backtrace(true, false),
+			]);
+			return false;
 		}
 
 		return true;
