@@ -3354,9 +3354,11 @@ EOF;
 			0 => ["pipe", "r"],  // stdin
 			1 => ["pipe", "w"],  // stdout
 			2 => ["pipe", "w"],   // stderr
+			3 => ["pipe", "w"],   // stderr (for the return value)
 		];
 
-		$process = proc_open($command, $descriptorspec, $pipes);
+		$process = proc_open("{$command};echo $? >&3", $descriptorspec, $pipes);
+		// We're adding the echo $? >&3 to get the return value of the command
 
 		if(is_resource($process)){
 			// Wait for the process to terminate or the timeout to expire
@@ -3394,15 +3396,18 @@ EOF;
 
 				$stdout = stream_get_contents($pipes[1]);
 				$stderr = stream_get_contents($pipes[2]);
+
+				# Get the return value of the command
+				$return_value = (int) rtrim(fgets($pipes[3],5),"\n");
 			}
 
 			// Close all pipes and terminate the process
 			fclose($pipes[0]);
 			fclose($pipes[1]);
 			fclose($pipes[2]);
+			fclose($pipes[3]);
 
-			# Get the return value
-			$return_value = proc_close($process);
+			proc_close($process);
 		}
 
 		if($stdout){
