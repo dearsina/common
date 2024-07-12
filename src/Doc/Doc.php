@@ -29,7 +29,7 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Confusingly, will return 2 if there is NO password, and 0, if there IS one
-		$output = (int) trim(shell_exec("qpdf --requires-password \"{$file['tmp_name']}\" ; echo \$?"));
+		$output = (int)trim(shell_exec("qpdf --requires-password \"{$file['tmp_name']}\" ; echo \$?"));
 
 		return $output === 0;
 		// Returns TRUE if the file is password protected
@@ -895,6 +895,17 @@ class Doc extends \App\Common\Prototype {
 		}
 	}
 
+	/**
+	 * @param array     $file
+	 * @param int|null  $max_width
+	 * @param int|null  $max_height
+	 * @param int|null  $quality
+	 * @param bool|null $base64_encode
+	 * @param bool|null $return_array
+	 *
+	 * @return array|string|null
+	 * @throws \ImagickException
+	 */
 	public static function getResizedImage(array $file, ?int $max_width = 0, ?int $max_height = 0, ?int $quality = 50, ?bool $base64_encode = NULL, ?bool $return_array = NULL)
 	{
 		# Open ImageMagik
@@ -920,6 +931,9 @@ class Doc extends \App\Common\Prototype {
 			# Load the image data
 			try {
 				$im->readImage($file['tmp_name']);
+
+				# Resize the image (if required)
+				self::resizeImage($im, $max_width, $max_height);
 			}
 
 				# If there is an error
@@ -964,6 +978,41 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		return $data;
+	}
+
+	private static function resizeImage(\Imagick &$im, ?int $max_width = 0, ?int $max_height = 0): void
+	{
+		if(!$max_width && !$max_height){
+			//if no max width or height is set
+			return;
+		}
+
+		# Get the current image width and height
+		$width = $im->getImageWidth();
+		$height = $im->getImageHeight();
+
+		if($width < $max_width && $height < $max_height){
+			//if the image is already smaller than the max width/height
+			return;
+		}
+
+		# Get the aspect ratio
+		$aspect_ratio = $width / $height;
+
+		# If the width is larger than the height
+		if($width > $height){
+			$new_width = $max_width;
+			$new_height = $max_width / $aspect_ratio;
+		}
+
+		# If the height is larger than the width
+		else {
+			$new_height = $max_height;
+			$new_width = $max_height * $aspect_ratio;
+		}
+
+		# Set the max width / height
+		$im->resizeImage($new_width, $new_height, \Imagick::FILTER_LANCZOS, 1);
 	}
 
 	/**

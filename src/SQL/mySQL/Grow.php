@@ -380,7 +380,7 @@ class Grow extends Common {
 		}
 
 		# If the current type is TEXT
-		if($tableMetadata[$key]['DATA_TYPE'] == "text"){
+		if(in_array($tableMetadata[$key]['DATA_TYPE'], ["text", "mediumtext", "longtext"])){
 			//once text, doesn't matter what new rows are, they will always remain text
 			return NULL;
 		}
@@ -417,7 +417,7 @@ class Grow extends Common {
 	 */
 	private function getGrowColumnQuery(array $table, string $col, $val, string $type, array $tableMetadata): ?string
 	{
-		if(in_array($type, ["int", "bigint", "text", "datetime", "json"])){
+		if(in_array($type, ["int", "bigint", "text", "mediumtext", "longtext", "datetime", "json"])){
 			//If the column data type is any of these, no need to change their lengths
 			return NULL;
 		}
