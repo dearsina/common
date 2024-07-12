@@ -3420,10 +3420,23 @@ EOF;
 
 		# If there is an error, notify admins
 		if ($return_value !== 0) {
+			# Write the message
+			$title = "Command failed";
+			$message = "<p>Command: <pre>{$command}</pre></p>
+			<p>Output: <pre>" . implode("\n", $output) . "</pre></p>
+			<p>Return value: {$return_value}</p>";
+
+			# Log it
+			Log::getInstance()->error([
+				"display" => false,
+				"title" => $title,
+				"message" => $message,
+			]);
+
+			# Email admins
 			Email::notifyAdmins([
-				"subject" => "Command failed",
-				"body" => "<p>Command: <pre>{$command}</pre></p>
-				<p>Output: <pre>" . implode("\n", $output) . "</pre></p>",
+				"subject" => $title,
+				"body" => $message,
 				"backtrace" => str::backtrace(true, false),
 			]);
 			return false;
