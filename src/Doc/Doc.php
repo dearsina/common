@@ -739,9 +739,12 @@ class Doc extends \App\Common\Prototype {
 		# Use GhostScript to resize the PDF
 		$cmd = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile={$file['tmp_name']} -g{$new_width}x{$new_height} -r72x72 -c \"<</BeginPage{{$scale_factor} {$scale_factor} scale}>> setpagedevice\" -f {$file['tmp_name']}";
 
+		$output = [];
+		str::exec($cmd, $output);
+
 		# Log and execute the command
 		$file['cmd'][] = $cmd;
-		$file['output'][] = shell_exec($cmd);
+		$file['output'][] = $output;
 	}
 
 	/**
@@ -767,30 +770,31 @@ class Doc extends \App\Common\Prototype {
 		# Write command to convert the PDF to JPG using pdftoppm
 		$cmd = "pdftoppm -f {$page_number} -l {$page_number} -jpeg -r {$resolution} -jpegopt quality={$quality} {$file['tmp_name']} {$file['tmp_name']} 2>&1";
 
-		# Log and execute the command
-		$file['cmd'][] = $cmd;
-		$file['output'][] = shell_exec($cmd);
+		$output = [];
 
-		if(end($file['output']) !== NULL){
+		# Execute the command
+		if(!str::exec($cmd, $output)){
 			// If there is an issue
 
 			# Rescale the PDF, that will probably solve it
 			self::rescalePdfWidthAndHeight($file);
 
 			# Try again
-			$file['cmd'][] = $cmd;
-			$file['output'][] = shell_exec($cmd);
+			if(!str::exec($cmd, $output)){
+				// If there is still an issue
 
-			if(end($file['output']) !== NULL){
-				// If there is still an issue, inform admin, return
-				Email::notifyAdmins([
-					"subject" => "PDF resizing issue",
-					"body" => "Tried to resize a PDF, didn't work. See PDF info below.<br><pre>" . json_encode($file, JSON_PRETTY_PRINT) . "</pre>",
-					"backtrace" => str::backtrace(true),
-				]);
+				# Log the command and output
+				$file['cmd'][] = $cmd;
+				$file['output'][] = $output;
+
+				# Pencils down
 				return;
 			}
 		}
+
+		# Log the command and output
+		$file['cmd'][] = $cmd;
+		$file['output'][] = $output;
 
 		# Remove the PDF copy
 		unlink($file['tmp_name']);
@@ -803,8 +807,9 @@ class Doc extends \App\Common\Prototype {
 		// This is only a problem if you're dealing with unique PDFs with very high DPIs
 
 		# Log and execute the command
+		str::exec($cmd, $output);
 		$file['cmd'][] = $cmd;
-		$file['output'][] = shell_exec($cmd);
+		$file['output'][] = $output;
 
 		# Update the metadata
 		$file['md5'] = md5_file($file['tmp_name']);
