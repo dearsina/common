@@ -8,9 +8,10 @@ use App\Common\Exception\BadRequest;
 use App\Common\Log;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\Prototype;
-use App\Common\SQL\Factory;
+use App\Common\SQL\Info\Info;
 use App\Common\str;
 use App\Subscription\SubscriptionHandler;
+use App\SubscriptionEmail\SubscriptionEmail;
 
 /**
  * Class Email
@@ -92,9 +93,11 @@ class Email extends Prototype {
 	/**
 	 * Email constructor.
 	 *
-	 * @param null $a
+	 * @param array|null $subscription_email
+	 *
+	 * @throws \Exception
 	 */
-	public function __construct(?string $oauth_token_id = NULL)
+	public function __construct(?array $subscription_email = NULL)
 	{
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
@@ -104,15 +107,25 @@ class Email extends Prototype {
 		$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
 		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 
-
 		# If an OAuth2 token has been passed and can be loaded, load it
-		if($oauth_token_id){
-			$this->oauth_token = $this->info("oauth_token", $oauth_token_id);
+		if($subscription_email['oauth_token_id']){
+			$this->oauth_token = $this->info("oauth_token", $subscription_email['oauth_token_id']);
 			// We're still going to load the SwiftMessage as a fallback
 		}
 
+		# If we have custom SMTP settings, set them
+		else if($subscription_email['smtp_host']){
+			$this->setSmtpTransportSettings([
+				"email_smtp_encryption" => $subscription_email['smtp_encryption'],
+				"email_smtp_host" => $subscription_email['smtp_host'],
+				"email_smtp_port" => $subscription_email['smtp_port'],
+				"email_username" => $subscription_email['smtp_username'] ?: $subscription_email['email'],
+				"email_password" => SubscriptionEmail::decryptPassword($subscription_email['smtp_password']),
+			]);
+		}
+
 		# Set the From address
-		$this->setFrom();
+		$this->setFrom($subscription_email);
 		// Will vary if there is an oAuth token
 
 		# Set the default email format (include the OAuth token if one is set)
@@ -121,32 +134,59 @@ class Email extends Prototype {
 			["oauth_token" => $this->oauth_token]);
 	}
 
-	private function setFrom(): void
+	/**
+	 * @param array|null $subscription_email
+	 *
+	 * @return array Returns an array of email and name
+	 * @throws BadRequest
+	 */
+	public static function getFrom(?array $subscription_email): array
 	{
-		# If an OAuth2 token has been passed and can be loaded, load it
-		if($this->oauth_token){
-			$subscription_email = Factory::getInstance()->select([
-				"table" => "subscription_email",
-				"where" => [
-					"oauth_token_id" => $this->oauth_token['oauth_token_id'],
-				],
-				"limit" => 1
-			]);
+		# If no subscription email has been passed
+		if(!$subscription_email){
+			# Return the system email and name
+			return[$_ENV['email_username'], $_ENV['email_name']];
+		}
 
-			$subscription = new SubscriptionHandler($subscription_email['subscription_id']);
+		# Otherwise, load the subscription
+		$subscription = new SubscriptionHandler($subscription_email['subscription_id']);
 
-			# Load the email sending provider
-			$class = OAuth2Handler::getProviderClass($this->oauth_token['provider']);
-			$provider = new $class($this->oauth_token);
+		if($subscription_email['oauth_token_id']){
+			if($oauth_token = Info::getInstance()->getInfo("oauth_token", $subscription_email['oauth_token_id'])){
+				# Load the email sending provider
+				$class = OAuth2Handler::getProviderClass($oauth_token['provider']);
+				$provider = new $class($oauth_token);
+
+				try {
+					$from_email = $provider->getEmailAddress();
+				}
+				catch (\Exception $e){
+					// If the email address can't be loaded, use the subscription email address
+				}
+			}
+
+			$from_email = $from_email ?: $subscription_email['email'];
 
 			# Set the From address to be the provider email address + the company name
-			$this->envelope->setFrom([$provider->getEmailAddress() => $subscription->getCompany("name")]);
+			return [$from_email, $subscription->getCompany("name")];
 		}
 
-		else {
-			# Set the From address with an associative array
-			$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
+		else if($subscription_email['smtp_from']){
+			# Set the From address to be the custom SMTP from address
+			return [$subscription_email['email'], $subscription_email['smtp_from']];
 		}
+
+		# Otherwise, if it's a regular email
+		else {
+			# Set the From address to be the subscription email address + the company name
+			return [$subscription_email['email'], $subscription->getCompany("name")];
+		}
+	}
+
+	private function setFrom(?array $subscription_email = NULL): void
+	{
+		[$from_email, $from_name] = Email::getFrom($subscription_email);
+		$this->envelope->setFrom([$from_email => $from_name]);
 	}
 
 	/**
@@ -891,7 +931,7 @@ class Email extends Prototype {
 		$transport = new \Swift_SmtpTransport();
 		$transport->setHost($this->smtp_transport_settings['email_smtp_host']);
 		$transport->setPort($this->smtp_transport_settings['email_smtp_port']);
-		$transport->setEncryption($this->smtp_transport_settings['email_smtp_encryption']);
+		$transport->setEncryption($this->smtp_transport_settings['email_smtp_encryption'] ?: "TLS");
 		$transport->setUsername($this->smtp_transport_settings['email_username']);
 		$transport->setPassword($this->smtp_transport_settings['email_password']);
 
