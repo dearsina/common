@@ -57,8 +57,8 @@ class Navigation {
 		 */
 		if(!$user->isLoggedIn(true)){
 			// If the user is NOT logged in
-			# And we're viewing this through an iframe
-			if($a['subdomain'] == "iframe"){
+			# And we're viewing this through an iframe or via flutter
+			if(in_array($a['subdomain'], ["iframe", "flutter"])){
 				# No navigation is required
 				return true;
 			}
