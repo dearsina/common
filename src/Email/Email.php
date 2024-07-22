@@ -140,7 +140,7 @@ class Email extends Prototype {
 	 * @return array Returns an array of email and name
 	 * @throws BadRequest
 	 */
-	public static function getFrom(?array $subscription_email): array
+	public static function getFrom(?array $subscription_email, ?bool $include_provider_error = NULL): array
 	{
 		# If no subscription email has been passed
 		if(!$subscription_email){
@@ -156,16 +156,18 @@ class Email extends Prototype {
 				# Load the email sending provider
 				$class = OAuth2Handler::getProviderClass($oauth_token['provider']);
 				$provider = new $class($oauth_token);
-
-				try {
-					$from_email = $provider->getEmailAddress();
-				}
-				catch (\Exception $e){
-					// If the email address can't be loaded, use the subscription email address
+				if(!$from_email = $provider->getEmailAddress()){
+					// If we can't get the email, it's most probably because there was an OAuth error
+					$provider_error = "There was an issue authenticating with ".SubscriptionEmail::PROVIDERS[$oauth_token['provider']]['title']." for the <code>{$subscription_email['email']}</code> address. This will impede the sending of the email from that address. Please address immediately.";
 				}
 			}
 
 			$from_email = $from_email ?: $subscription_email['email'];
+			// If the email address can't be loaded, use the subscription email address
+
+			if($include_provider_error){
+				return [$from_email, $subscription->getCompany("name"), $provider_error];
+			}
 
 			# Set the From address to be the provider email address + the company name
 			return [$from_email, $subscription->getCompany("name")];
@@ -215,7 +217,7 @@ class Email extends Prototype {
 	public function from(string $from): object
 	{
 		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
-		
+
 		return $this;
 	}
 
@@ -748,7 +750,7 @@ class Email extends Prototype {
 
 		catch(\Exception $e) {
 			# Expected response code 250 but got code "554", with message "554 5.2.270 MapiExceptionMaxSubmissionExceeded; Message size exceeds maximum size limit.
-			if($e->getCode() == 554){
+			if($e->getCode() == 554 && strpos($e->getMessage(), "554 5.2.270") !== false){
 				# Collect recipients
 				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
 
