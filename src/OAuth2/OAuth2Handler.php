@@ -8,6 +8,7 @@ use App\Common\Process;
 use App\Common\Request;
 use App\Common\SQL\Factory;
 use App\Common\str;
+use App\SubscriptionEmail\SubscriptionEmail;
 use App\Webhook\Webhook;
 use League\OAuth2\Client\Grant\RefreshToken;
 
@@ -342,7 +343,17 @@ class OAuth2Handler extends \App\Common\Prototype {
 			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
 		}
 		catch(\Exception $e) {
-			$title = "Could not connect to " . Webhook::PROVIDERS[$oauth_token['provider']]['title'];
+			if(Webhook::PROVIDERS[$oauth_token['provider']]){
+				$provider_title = Webhook::PROVIDERS[$oauth_token['provider']]['title'];
+			}
+			else if(SubscriptionEmail::PROVIDERS[$oauth_token['provider']]){
+				$provider_title = SubscriptionEmail::PROVIDERS[$oauth_token['provider']]['title'];
+			}
+			else {
+				$provider_title = str::title($oauth_token['provider']);
+			}
+
+			$title = "Could not connect to {$provider_title}";
 			$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
 			Log::getInstance()->error([
 				"title" => $title,
