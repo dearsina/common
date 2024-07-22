@@ -522,7 +522,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		$this->ensureTokenIsFresh();
 
 		try {
-			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/root/children?select=id,name,sharepointIds")
+//			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/root/children?select=id,name,sharepointIds")
+			// This doesn't seem to work as well as the below
+			$response = $this->graph->createCollectionRequest("GET", "/drives/{$drive_id}/root/children?\$filter=folder ne null")
 				->setReturnType(\Microsoft\Graph\Model\ItemReference::class);
 
 			# Get the first list
