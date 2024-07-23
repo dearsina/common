@@ -805,15 +805,27 @@ class Email extends Prototype {
 
 			else {
 				# Collect recipients
-				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
-				if(is_array($recipients)){
-					$recipients = implode(", ", $recipients);
+				if($to_recipients  = $this->envelope->getTo()){
+					$to_recipients = implode(", ", $to_recipients);
+					$recipients[] = "to {$to_recipients}";
 				}
+				if($cc_recipients  = $this->envelope->getCc()){
+					$cc_recipients = implode(", ", $cc_recipients);
+					$recipients[] = "CC {$cc_recipients}";
+				}
+				if($bcc_recipients = $this->envelope->getBcc()){
+					$bcc_recipients = implode(", ", $bcc_recipients);
+					$recipients = "BCC {$bcc_recipients}";
+				}
+				$recipients = str::oxfordImplode($recipients);
 
 				# Notify the admins of any unknown errors
 				\App\Email\Email::notifyAdmins([
-					"subject" => "Unknown email error",
-					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . " to send the email to {$recipients}: {$e->getMessage()}",
+					"subject" => "{$e->getCode()} email error",
+					"body" => "Got the following {$e->getCode()} error,
+					after trying " . str::pluralise_if($tries, "time", true) . " to send the email {$recipients}:
+					<br>
+					<code>{$e->getMessage()}</code>",
 					"backtrace" => str::backtrace(true, false),
 				]);
 
