@@ -5,7 +5,6 @@ namespace App\Common\Doc;
 use App\Common\Exception\BadRequest;
 use App\Common\Log;
 use App\Common\str;
-use App\Email\Email;
 use Pelago\Emogrifier\CssInliner;
 
 /**
@@ -616,8 +615,33 @@ class Doc extends \App\Common\Prototype {
 	 * @return bool
 	 * @throws BadRequest
 	 */
-	public static function fileIsFont(array $file, ?bool $throw_error = NULL): bool
+	public static function fileIsFont(array &$file, ?bool $throw_error = NULL): bool
 	{
+		# If a WOFF file is passed, convert it and work on the TTF instead
+		switch(strtolower($file['ext'])){
+		case 'woff':
+		case 'woff2':
+			if($ttf = Convert::convertWoffToTtf($file['tmp_name'])){
+				# Remove the woff file
+				unlink($file['tmp_name']);
+
+				# Update the file array
+				$file = [
+					"ext" => "ttf",
+					"mime_type" => "application/x-font-ttf",
+					"tmp_name" => $ttf,
+					"name" => pathinfo($file['name'], PATHINFO_FILENAME) . ".ttf",
+					"type" => "application/x-font-ttf",
+					"md5" => md5_file($ttf),
+				];
+				return true;
+			}
+			if($throw_error){
+				throw new BadRequest("The <code>{$file['name']}</code> WOFF file could not be converted.");
+			}
+			return false;
+		}
+
 		$cmd = "otfinfo -a {$file['tmp_name']}";
 		exec($cmd, $output, $return_var);
 		switch($return_var) {
