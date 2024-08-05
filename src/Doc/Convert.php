@@ -775,4 +775,33 @@ class Convert {
 
 		return false;
 	}
+
+	/**
+	 * Converts a WOFF2 file to TTF so that it can be read by the fc-list command.
+	 * Isn't a document in the colloquial sense, but it's a file that needs to be
+	 * converted to be read by the fc-list command.
+	 *
+	 * @param string $path
+	 *
+	 * @return string|null
+	 */
+	public static function convertWoffToTtf(string $path): ?string
+	{
+		# Convert the WOFF2 file to TTF so that it can be read by the fc-list command
+		$cmd = "woff2_decompress {$path} 2>&1";
+		if(shell_exec($cmd)){
+			return NULL;
+		}
+
+		# Rename the woff2 file to ttf
+		$path = str_replace(".woff2", ".ttf", $path);
+
+		# Ensure the .ttf suffix is on the path
+		if(substr($path, -4) != ".ttf"){
+			$path .= ".ttf";
+		}
+
+		# Return the new path
+		return $path;
+	}
 }
