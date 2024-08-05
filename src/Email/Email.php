@@ -102,11 +102,6 @@ class Email extends Prototype {
 		# Create the envelope that will contain the email metadata and message
 		$this->envelope = new \Swift_Message();
 
-		# Set a unique message ID
-		$headers = $this->envelope->getHeaders();
-		$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
-		// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
-
 		# If an OAuth2 token has been passed and can be loaded, load it
 		if($subscription_email['oauth_token_id']){
 			$this->oauth_token = $this->info("oauth_token", $subscription_email['oauth_token_id']);
@@ -122,6 +117,13 @@ class Email extends Prototype {
 				"email_username" => $subscription_email['smtp_username'] ?: $subscription_email['email'],
 				"email_password" => SubscriptionEmail::decryptPassword($subscription_email['smtp_password']),
 			]);
+		}
+
+		else {
+			# Set a unique message ID (this only applies if *we* are sending the email)
+			$headers = $this->envelope->getHeaders();
+			$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
+			// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 		}
 
 		# Set the From address
