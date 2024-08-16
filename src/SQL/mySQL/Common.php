@@ -1050,6 +1050,14 @@ abstract class Common {
 				array_pop($sections);
 			}
 		}
+
+		# CTEs are treated as tables with a WHERE clause
+		if($this->ctes){
+			foreach($this->ctes as $alias => $cte){
+				$tables[$alias] = $alias;
+			}
+		}
+
 		return $tables;
 	}
 
