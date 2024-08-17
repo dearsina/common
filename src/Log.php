@@ -280,6 +280,7 @@ EOF;
 			"message" => $message,
 			"icon" => "{$icon['type']} fa-{$icon['name']}",
 			"seconds" => $alert['seconds'],
+			"subdomain" => $_REQUEST['subdomain'],
 			"action" => $_REQUEST['action'],
 			"rel_table" => $_REQUEST['rel_table'],
 			"rel_id" => $_REQUEST['rel_id'],
@@ -290,7 +291,7 @@ EOF;
 		# Insert the error in the DB
 		try {
 			$sql->insert([
-				"table" => 'error_log',
+				"table" => "error_log",
 				"set" => $alert_array,
 				"reconnect" => true // Reconnects in case the error was caused by a long running script
 			]);
@@ -344,7 +345,7 @@ EOF;
 
 		foreach($_REQUEST as $key => $val){
 			# We're only interested in a limited set of keys
-			if(!in_array($key, ["rel_table", "rel_id", "action", "vars", "title", "message"])){
+			if(!in_array($key, ["subdomain", "rel_table", "rel_id", "action", "vars", "title", "message"])){
 				continue;
 			}
 			# If the val is marked as "false", treat it as a FALSE
@@ -361,7 +362,7 @@ EOF;
 
 		# Insert the error in the DB
 		if(!$sql->insert([
-			"table" => 'error_log',
+			"table" => "error_log",
 			"set" => $set,
 		])){
 			echo "There was a problem logging your error.";

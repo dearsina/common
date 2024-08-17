@@ -27,6 +27,7 @@ abstract class Common extends \Exception {
 			"title" => $exception_type,
 			"code" => $code,
 			"message" => $message,
+			"subdomain" => $_REQUEST['subdomain'],
 			"action" => $_REQUEST['action'],
 			"rel_table" => $_REQUEST['rel_table'],
 			"rel_id" => $_REQUEST['rel_id'],
@@ -37,7 +38,7 @@ abstract class Common extends \Exception {
 		# Insert the error in the DB
 		$sql->insert([
 			"log" => false,
-			"table" => 'error_log',
+			"table" => "error_log",
 			"set" => $alert_array,
 			"reconnect" => true // Reconnects in case the error was caused by a long running script
 		]);
