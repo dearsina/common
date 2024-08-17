@@ -21,7 +21,7 @@ class Card extends \App\Common\Prototype {
 	 *
 	 * @param $output_to_email
 	 */
-	public function __construct ($output_to_email)
+	public function __construct($output_to_email)
 	{
 		parent::__construct();
 		$this->output_to_email = $output_to_email;
@@ -32,7 +32,8 @@ class Card extends \App\Common\Prototype {
 	 *
 	 * @return string
 	 */
-	public function errorsByType($a){
+	public function errorsByType($a)
+	{
 		# Replace "NULL" with NULL values
 		str::replaceNullStrings($a);
 
@@ -44,13 +45,13 @@ class Card extends \App\Common\Prototype {
 				"Errors" => ["count", "error_log_id"],
 			],
 			"table" => $rel_table,
-			"where" => array_merge($a['vars']?:[], [
-				["resolved", "=",  $a['action'] == 'unresolved' ? NULL : false],
-				["resolved", "<>", $a['action'] == 'resolved'   ? NULL : false]
+			"where" => array_merge($a['vars'] ?: [], [
+				["resolved", "=", $a['action'] == 'unresolved' ? NULL : false],
+				["resolved", "<>", $a['action'] == 'resolved' ? NULL : false],
 			]),
 			"order_by" => [
-				"Errors" => "DESC"
-			]
+				"Errors" => "DESC",
+			],
 		]);
 
 		if($results){
@@ -58,19 +59,19 @@ class Card extends \App\Common\Prototype {
 				$hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
-					"vars" => array_merge($a['vars']?:[], [
-						"title" => $row['Type'] ? urlencode($row['Type']) : "NULL"
-					])
+					"vars" => array_merge($a['vars'] ?: [], [
+						"title" => $row['Type'] ? urlencode($row['Type']) : "NULL",
+					]),
 				];
 				$errors[] = [
 					"Type" => [
 						"hash" => $hash,
-						"html" => $row['Type'] ?: "(None)"
+						"html" => $row['Type'] ?: "(None)",
 					],
 					"Errors" => [
 						"hash" => $hash,
-						"html" => $row['Errors']
-					]
+						"html" => $row['Errors'],
+					],
 				];
 			}
 		}
@@ -82,7 +83,8 @@ class Card extends \App\Common\Prototype {
 	 *
 	 * @return string
 	 */
-	public function errorsByUser($a){
+	public function errorsByUser($a)
+	{
 		# Replace "NULL" with NULL values
 		str::replaceNullStrings($a);
 
@@ -97,20 +99,20 @@ class Card extends \App\Common\Prototype {
 				"columns" => [
 					"user_id",
 					"first_name",
-					"last_name"
+					"last_name",
 				],
 				"table" => "user",
 				"on" => [
-					"user_id" => ["error_log", "created_by"]
-				]
+					"user_id" => ["error_log", "created_by"],
+				],
 			]],
-			"where" => array_merge($a['vars']?:[], [
-				["resolved", "=",  $a['action'] == 'unresolved' ? NULL : false],
-				["resolved", "<>", $a['action'] == 'resolved'   ? NULL : false]
+			"where" => array_merge($a['vars'] ?: [], [
+				["resolved", "=", $a['action'] == 'unresolved' ? NULL : false],
+				["resolved", "<>", $a['action'] == 'resolved' ? NULL : false],
 			]),
 			"order_by" => [
-				"error_log_id_count" => "DESC"
-			]
+				"error_log_id_count" => "DESC",
+			],
 		]);
 
 		if($results){
@@ -118,9 +120,9 @@ class Card extends \App\Common\Prototype {
 				$hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
-					"vars" => array_merge($a['vars']?:[],[
-						"created_by" => urlencode($row['user.user_id']) ?: "NULL"
-					])
+					"vars" => array_merge($a['vars'] ?: [], [
+						"created_by" => urlencode($row['user.user_id']) ?: "NULL",
+					]),
 				];
 				$errors[] = [
 					"Type" => [
@@ -129,8 +131,8 @@ class Card extends \App\Common\Prototype {
 					],
 					"Errors" => [
 						"hash" => $hash,
-						"html" => $row['Errors']
-					]
+						"html" => $row['Errors'],
+					],
 				];
 			}
 		}
@@ -142,7 +144,8 @@ class Card extends \App\Common\Prototype {
 	 *
 	 * @return string
 	 */
-	public function errorsByReltable($a){
+	public function errorsByReltable($a)
+	{
 		# Replace "NULL" with NULL values
 		str::replaceNullStrings($a);
 
@@ -154,62 +157,66 @@ class Card extends \App\Common\Prototype {
 				"Errors" => ["count", "error_log_id"],
 			],
 			"table" => "error_log",
-			"where" => array_merge($a['vars']?:[], [
-				["resolved", "=",  $a['action'] == 'unresolved' ? NULL : false],
-				["resolved", "<>", $a['action'] == 'resolved'   ? NULL : false]
+			"where" => array_merge($a['vars'] ?: [], [
+				["resolved", "=", $a['action'] == 'unresolved' ? NULL : false],
+				["resolved", "<>", $a['action'] == 'resolved' ? NULL : false],
 			]),
 			"order_by" => [
-				"Errors" => "DESC"
-			]
+				"Errors" => "DESC",
+			],
 		]);
 
 		if($results){
 			foreach($results as $row){
+
 				$rel_table_hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
-					"vars" => array_merge($a['vars']?:[], [
-						"rel_table" => $row['rel_table'] ?:"NULL"
-					])
+					"vars" => array_merge($a['vars'] ?: [], [
+						"rel_table" => $row['rel_table'] ? rawurlencode($row['rel_table']) : "NULL",
+					]),
 				];
+
 				$action_hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
-					"vars" => array_merge($a['vars']?:[], [
-						"action" => $row['action'] ?:"NULL"
-					])
+					"vars" => array_merge($a['vars'] ?: [], [
+						"action" => $row['action'] ? rawurlencode($row['action']) : "NULL",
+					]),
 				];
+
 				$hash = [
 					"rel_table" => $rel_table,
 					"action" => $action,
-					"vars" => array_merge($a['vars']?:[], [
-						"rel_table" => $row['rel_table'] ?:"NULL",
-						"action" => $row['action'] ?:"NULL"
-					])
+					"vars" => array_merge($a['vars'] ?: [], [
+						"rel_table" => $row['rel_table'] ? rawurlencode($row['rel_table']) : "NULL",
+						"action" => $row['action'] ? rawurlencode($row['action']) : "NULL",
+					]),
 				];
+
 				$errors[] = [
 					"Table" => [
 						"hash" => $rel_table_hash,
 						"html" => $row['rel_table'] ?: "(None)",
 						"class" => "text-flat",
-						"sm" => 4
+						"sm" => 4,
 					],
 					"Action" => [
 						"hash" => $action_hash,
 						"html" => $row['action'] ?: "(None)",
 						"class" => "text-flat",
-						"sm" => 6
+						"sm" => 6,
 					],
 					"Errors" => [
 						"hash" => $hash,
 						"html" => $row['Errors'],
 						"class" => "text-flat",
-						"sm" => 2
-					]
+						"sm" => 2,
+					],
 				];
 			}
 		}
-		return $this->errorBreakdown($a, ["rel_table","action"], $errors, "Unresolved errors by rel_table//action", "table");
+		return $this->errorBreakdown($a, ["rel_table", "action"], $errors, "Unresolved errors by rel_table//action", "table");
 	}
 
 	/**
@@ -223,7 +230,8 @@ class Card extends \App\Common\Prototype {
 	 *
 	 * @return string
 	 */
-	private function errorBreakdown(array $a, $var, ?array $errors, string $title, string $icon){
+	private function errorBreakdown(array $a, $var, ?array $errors, string $title, string $icon)
+	{
 		extract($a);
 
 		if(!is_array($vars)){
@@ -232,7 +240,8 @@ class Card extends \App\Common\Prototype {
 
 		if($errors){
 			$body = Table::generate($errors);
-		} else {
+		}
+		else {
 			$body = "<div class=\"text-silent align-text-center\">No errors logged</div>";
 		}
 
@@ -248,8 +257,8 @@ class Card extends \App\Common\Prototype {
 				"hash" => [
 					"rel_table" => $rel_table,
 					"action" => $action,
-					"vars" => array_merge($vars,$var_array)
-				]
+					"vars" => array_merge($vars, $var_array),
+				],
 			];
 		}
 
@@ -257,15 +266,15 @@ class Card extends \App\Common\Prototype {
 			"header" => [
 				"icon" => $icon,
 				"title" => $title,
-				"button" => $button
+				"button" => $button,
 			],
 			"body" => [
 				"style" => [
 					"max-height" => "50vh",
-					"overflow" => "auto"
+					"overflow" => "auto",
 				],
-				"html" => $body
-			]
+				"html" => $body,
+			],
 		]);
 
 		return $card->getHTML();
@@ -277,14 +286,15 @@ class Card extends \App\Common\Prototype {
 	 * @return string
 	 * @throws \Exception
 	 */
-	public function errors($a){
+	public function errors($a)
+	{
 		extract($a);
 
 		if($action == "unresolved"){
 			//if you're currently seeing the unresolved
 			$icon = [
 				"type" => "thick",
-				"name" => "virus"
+				"name" => "virus",
 			];
 			$button[] = [
 				"basic" => true,
@@ -292,21 +302,22 @@ class Card extends \App\Common\Prototype {
 				"alt" => "View resolved errors",
 				"icon" => [
 					"type" => "light",
-					"name" => "virus"
+					"name" => "virus",
 				],
 				"hash" => [
 					"rel_table" => $rel_table,
 					"action" => "resolved",
-					"vars" => $vars
+					"vars" => $vars,
 				],
 				"size" => "s",
-				"class" => "float-right"
+				"class" => "float-right",
 			];
-		} else {
+		}
+		else {
 			//if you're currently seeing the resolved
 			$icon = [
 				"type" => "light",
-				"name" => "virus"
+				"name" => "virus",
 			];
 			$button[] = [
 				"basic" => true,
@@ -314,15 +325,15 @@ class Card extends \App\Common\Prototype {
 				"alt" => "View unresolved errors",
 				"icon" => [
 					"type" => "thick",
-					"name" => "virus"
+					"name" => "virus",
 				],
 				"hash" => [
 					"rel_table" => $rel_table,
 					"action" => "unresolved",
-					"vars" => $vars
+					"vars" => $vars,
 				],
 				"size" => "s",
-				"class" => "float-right"
+				"class" => "float-right",
 			];
 		}
 
@@ -335,13 +346,13 @@ class Card extends \App\Common\Prototype {
 			"hash" => [
 				"rel_table" => $rel_table,
 				"action" => "resolve_all",
-				"vars" => $vars
+				"vars" => $vars,
 			],
 			"approve" => [
 				"title" => "Batch resolve errors?",
-				"message" => "Do you want to batch mark all the errors in this list as resolved?"
+				"message" => "Do you want to batch mark all the errors in this list as resolved?",
 			],
-			"class" => "float-right"
+			"class" => "float-right",
 		];
 
 		$id = str::id("on_demand_table");
@@ -360,9 +371,9 @@ class Card extends \App\Common\Prototype {
 			"hash" => [
 				"rel_table" => $rel_table,
 				"action" => "get_errors",
-				"vars" => $vars
+				"vars" => $vars,
 			],
-			"length" => 10
+			"length" => 10,
 		]);
 
 		$countdown = Countdown::generate([
@@ -372,22 +383,22 @@ class Card extends \App\Common\Prototype {
 			"callback" => "onDemandReset", //The name of a function to call at zero
 			"vars" => $id, //Variables to send to the callback function,
 			"restart" => [
-				"minutes" => 5
-			]
+				"minutes" => 5,
+			],
 		]);
 
 		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
 				"title" => "Errors",
-				"button" => $button
+				"button" => $button,
 			],
 			"body" => $body,
 			"footer" => true,
 			"post" => [
 				"class" => "text-center text-muted smaller",
-				"html" => $countdown
-			]
+				"html" => $countdown,
+			],
 		]);
 
 		return $card->getHTML();

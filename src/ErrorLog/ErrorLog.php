@@ -25,14 +25,16 @@ class ErrorLog extends Prototype {
 	 *
 	 * @return Card
 	 */
-	public function card(?bool $output_to_email = NULL){
+	public function card(?bool $output_to_email = NULL)
+	{
 		return new Card($output_to_email);
 	}
 
 	/**
 	 * @return Modal
 	 */
-	public function modal(){
+	public function modal()
+	{
 		return new Modal();
 	}
 
@@ -42,7 +44,8 @@ class ErrorLog extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function unresolved($a){
+	public function unresolved($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -54,30 +57,30 @@ class ErrorLog extends Prototype {
 			"title" => "Unresolved errors",
 			"icon" => [
 				"type" => "thick",
-				"name" => Icon::get("error")
+				"name" => Icon::get("error"),
 			],
 		]);
 
-		# UrlDEcode the variables
+		# URL decode the variables
 		if($a['vars']){
 			foreach($a['vars'] as $key => $val){
-				$a['vars'][$key] = urldecode($val);
+				$a['vars'][$key] = rawurldecode($val);
 			}
 		}
 
 		$page->setGrid([[
 			"sm" => 4,
-			"html" => $this->card()->errorsByType($a)
-		],[
+			"html" => $this->card()->errorsByType($a),
+		], [
 			"sm" => 4,
-			"html" => $this->card()->errorsByUser($a)
-		],[
+			"html" => $this->card()->errorsByUser($a),
+		], [
 			"sm" => 4,
-			"html" => $this->card()->errorsByReltable($a)
+			"html" => $this->card()->errorsByReltable($a),
 		]]);
 
 		$page->setGrid([
-			"html" => $this->card()->errors($a)
+			"html" => $this->card()->errors($a),
 		]);
 
 		$this->output->html($page->getHTML());
@@ -91,7 +94,8 @@ class ErrorLog extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function resolved($a){
+	public function resolved($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -103,7 +107,7 @@ class ErrorLog extends Prototype {
 			"title" => "Resolved errors",
 			"icon" => [
 				"type" => "light",
-				"name" => Icon::get("error")
+				"name" => Icon::get("error"),
 			],
 		]);
 
@@ -115,15 +119,15 @@ class ErrorLog extends Prototype {
 		}
 
 		$page->setGrid([[
-			"html" => $this->card()->errorsByType($a)
-		],[
-			"html" => $this->card()->errorsByUser($a)
-		],[
-			"html" => $this->card()->errorsByReltable($a)
+			"html" => $this->card()->errorsByType($a),
+		], [
+			"html" => $this->card()->errorsByUser($a),
+		], [
+			"html" => $this->card()->errorsByReltable($a),
 		]]);
 
 		$page->setGrid([
-			"html" => $this->card()->errors($a)
+			"html" => $this->card()->errors($a),
 		]);
 
 		$this->output->html($page->getHTML());
@@ -137,7 +141,8 @@ class ErrorLog extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function all($a){
+	public function all($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -149,7 +154,7 @@ class ErrorLog extends Prototype {
 			"title" => "All errors",
 			"icon" => [
 				"type" => "duotone",
-				"name" => Icon::get("errors")
+				"name" => Icon::get("errors"),
 			],
 		]);
 
@@ -161,15 +166,15 @@ class ErrorLog extends Prototype {
 		}
 
 		$page->setGrid([[
-			"html" => $this->card()->errorsByType($a)
-		],[
-			"html" => $this->card()->errorsByUser($a)
-		],[
-			"html" => $this->card()->errorsByReltable($a)
+			"html" => $this->card()->errorsByType($a),
+		], [
+			"html" => $this->card()->errorsByUser($a),
+		], [
+			"html" => $this->card()->errorsByReltable($a),
 		]]);
 
 		$page->setGrid([
-			"html" => $this->card()->errors($a)
+			"html" => $this->card()->errors($a),
 		]);
 
 		$this->output->html($page->getHTML());
@@ -183,7 +188,8 @@ class ErrorLog extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function linkToExistingIssue($a){
+	public function linkToExistingIssue($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -193,10 +199,10 @@ class ErrorLog extends Prototype {
 
 		$issue = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
-		$a['vars'] = array_merge($a['vars'] ?:[], $issue ?:[]);
+		$a['vars'] = array_merge($a['vars'] ?: [], $issue ?: []);
 
 		$this->output->modal($this->modal()->linkToExistingIssue($a));
 
@@ -214,7 +220,8 @@ class ErrorLog extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function getErrors($a){
+	public function getErrors($a)
+	{
 		str::replaceNullStrings($a);
 
 		extract($a);
@@ -243,16 +250,16 @@ class ErrorLog extends Prototype {
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => ["error_log", "created_by"]
-				]
+					"user_id" => ["error_log", "created_by"],
+				],
 			]],
 			"where" => [
 				["resolved", "IS", $vars['resolved'] == 'unresolved' ? NULL : false],
-				["resolved", "IS NOT", $vars['resolved'] == 'resolved'? NULL : false]
+				["resolved", "IS NOT", $vars['resolved'] == 'resolved' ? NULL : false],
 			],
 			"order_by" => [
-				"created" => "desc"
-			]
+				"created" => "desc",
+			],
 		];
 
 		/**
@@ -287,25 +294,26 @@ class ErrorLog extends Prototype {
 			"html" => str::ago($error['created']),
 			"class" => "text-flat",
 			"sm" => 1,
-//			"header_style" => [
-//				"min-width" => "100px",
-//			],
-//			"style" => [
-//				"min-width" => "100px",
-//			],
-			"col_name" => "created"
+			//			"header_style" => [
+			//				"min-width" => "100px",
+			//			],
+			//			"style" => [
+			//				"min-width" => "100px",
+			//			],
+			"col_name" => "created",
 		];
 
-		$first_line = str::explode(["\r\n","\n"], $error['message'])[0];
+		$first_line = str::explode(["\r\n", "\n"], $error['message'])[0];
 		$first_line = strip_tags($first_line);
-		$header = "<b>{$error['title']}</b> ".$first_line;
+		$header = "<b>{$error['title']}</b> " . $first_line;
 
 		$body = html_entity_decode(trim($error['message']));
 		$message_len = strlen($body);
 		if($message_len > self::MAX_ERROR_BODY_LENGTH){
 			$body = substr($body, 0, self::MAX_ERROR_BODY_LENGTH);
-			$body = str::pre($body). "<small class=\"text-muted\">(Truncated. Whole error ".str::number($message_len)." characters.)</small>";
-		} else {
+			$body = str::pre($body) . "<small class=\"text-muted\">(Truncated. Whole error " . str::number($message_len) . " characters.)</small>";
+		}
+		else {
 			$body = str::pre($body);
 		}
 
@@ -315,17 +323,17 @@ class ErrorLog extends Prototype {
 					"class" => "text-flat",
 					"title" => $header,
 				],
-				"body" => $body
+				"body" => $body,
 			],
 			"sm" => 4,
-//			"class" => "text-flat",
-			"col_name" => "title"
+			//			"class" => "text-flat",
+			"col_name" => "title",
 		];
 
 		$hash = str::generate_uri([
 			"rel_table" => $error['rel_table'],
 			"rel_id" => $error['rel_id'],
-			"action" => $error['action']
+			"action" => $error['action'],
 		]);
 
 		$error['vars'] = json_decode($error['vars'], true);
@@ -334,28 +342,29 @@ class ErrorLog extends Prototype {
 			$row['Action'] = [
 				"accordion" => [
 					"header" => $hash ?: "<span class=\"text-silent\">(None)</span>",
-					"body" => str::pre(json_encode($error['vars'], JSON_PRETTY_PRINT))
+					"body" => str::pre(json_encode($error['vars'], JSON_PRETTY_PRINT)),
 				],
 			];
-		} else {
+		}
+		else {
 			$row['Action'] = [
 				"html" => $hash,
 			];
 		}
 		$row['Action']['col_name'] = "rel_table";
 		$row['Action']['class'] = "text-flat";
-//		$row['Action']['sm'] = 3;
+		//		$row['Action']['sm'] = 3;
 
 		str::addNames($error['user']);
 		$button_id = str::id("buttons");
 		$row['User'] = [
 			"sm" => 1,
-//			"header_style" => [
-//				"min-width" => "100px",
-//			],
-//			"style" => [
-//				"min-width" => "100px",
-//			],
+			//			"header_style" => [
+			//				"min-width" => "100px",
+			//			],
+			//			"style" => [
+			//				"min-width" => "100px",
+			//			],
 			"class" => "text-flat",
 			"col_name" => "user.first_name",
 			"html" => $error['user'][0]['full_name'] ?: "(Not logged in)",
@@ -375,7 +384,7 @@ class ErrorLog extends Prototype {
 				"min-width" => "180px",
 			],
 			"id" => $button_id,
-			"button" => ErrorLog::getErrorButtons($error, $button_id)
+			"button" => ErrorLog::getErrorButtons($error, $button_id),
 		];
 
 		return $row;
@@ -408,22 +417,22 @@ class ErrorLog extends Prototype {
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => $vars,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		$error = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		$this->output->update("#{$vars['button_id']}", Button::get([
-			"button" => ErrorLog::getErrorButtons($error, $vars['button_id'])
+			"button" => ErrorLog::getErrorButtons($error, $vars['button_id']),
 		]));
 
 		$this->log->success([
 			"icon" => Icon::get("error"),
 			"title" => "Error updated",
-			"message" => "The error was updated."
+			"message" => "The error was updated.",
 		]);
 
 		# Closes the (top-most) modal
@@ -441,7 +450,8 @@ class ErrorLog extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function resolveAll($a){
+	public function resolveAll($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -462,22 +472,22 @@ class ErrorLog extends Prototype {
 		$result = $this->sql->update([
 			"table" => $rel_table,
 			"set" => [
-				"resolved" => "NOW()"
+				"resolved" => "NOW()",
 			],
-			"where" => array_merge($vars ?:[] ,[
-				"resolved" => NULL
-			])
+			"where" => array_merge($vars ?: [], [
+				"resolved" => NULL,
+			]),
 		]);
 
 		$this->log->success([
 			"icon" => Icon::get("resolve"),
-			"title" => str::pluralise_if($result['affected_rows'], "error", true)." resolved",
-			"message" => str::were($result['affected_rows'], "error", true)." marked as resolved."
+			"title" => str::pluralise_if($result['affected_rows'], "error", true) . " resolved",
+			"message" => str::were($result['affected_rows'], "error", true) . " marked as resolved.",
 		]);
 
 		$this->hash->set([
 			"rel_table" => $rel_table,
-			"action" => "unresolved"
+			"action" => "unresolved",
 		]);
 
 		return true;
@@ -491,7 +501,7 @@ class ErrorLog extends Prototype {
 	 *
 	 * @return array
 	 */
-	public static function getErrorButtons(array $error, string $button_id) : array
+	public static function getErrorButtons(array $error, string $button_id): array
 	{
 		if($error['resolved']){
 			//if this error has been resolved
@@ -500,7 +510,7 @@ class ErrorLog extends Prototype {
 				"basic" => true,
 				"disabled" => true,
 				"size" => "s",
-				"icon" => "play"
+				"icon" => "play",
 			];
 
 			$buttons[] = [
@@ -517,18 +527,19 @@ class ErrorLog extends Prototype {
 					"vars" => [
 						"button_id" => $button_id,
 						"resolved" => "NULL",
-						"silent" => true
-					]
-				]
+						"silent" => true,
+					],
+				],
 			];
-		} else {
+		}
+		else {
 			//If the error is unresolved
 			$buttons[] = [
 				"colour" => "primary",
 				"size" => "s",
 				"alt" => "Execute the request that caused the error",
 				"hash" => $error,
-				"icon" => "play"
+				"icon" => "play",
 			];
 
 			$buttons[] = [
@@ -545,8 +556,8 @@ class ErrorLog extends Prototype {
 					"vars" => [
 						"button_id" => $button_id,
 						"resolved" => "NOW()",
-						"silent" => true
-					]
+						"silent" => true,
+					],
 				],
 			];
 		}
@@ -562,12 +573,13 @@ class ErrorLog extends Prototype {
 					"action" => "link_to_existing_issue",
 					"vars" => [
 						"button_id" => $button_id,
-					]
+					],
 				],
 				"icon" => "unlink",
 				"colour" => "info",
 			];
-		} else {
+		}
+		else {
 			$buttons[] = [
 				"basic" => true,
 				"size" => "s",
@@ -578,8 +590,8 @@ class ErrorLog extends Prototype {
 					"vars" => [
 						"button_id" => $button_id,
 						"error_log_id" => $error['error_log_id'],
-						"issue_type_id" => "908b20bb-ed0e-405e-858a-83682ba4533c" //bug
-					]
+						"issue_type_id" => "908b20bb-ed0e-405e-858a-83682ba4533c", //bug
+					],
 				],
 				"icon" => "bug",
 				"colour" => "warning",
@@ -595,7 +607,7 @@ class ErrorLog extends Prototype {
 					"action" => "link_to_existing_issue",
 					"vars" => [
 						"button_id" => $button_id,
-					]
+					],
 				],
 				"icon" => "link",
 				"colour" => "info",
