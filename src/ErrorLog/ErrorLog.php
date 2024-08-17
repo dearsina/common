@@ -459,27 +459,20 @@ class ErrorLog extends Prototype {
 			}
 		}
 
-		if($errors_to_resolve = $this->sql->select([
-			"table" => "error_log",
+		$result = $this->sql->update([
+			"table" => $rel_table,
+			"set" => [
+				"resolved" => "NOW()"
+			],
 			"where" => array_merge($vars ?:[] ,[
 				"resolved" => NULL
 			])
-		])){
-			foreach($errors_to_resolve as $error){
-				$this->sql->update([
-					"table" => $rel_table,
-					"set" => [
-						"resolved" => "NOW()"
-					],
-					"id" => $error['error_log_id']
-				]);
-			}
-		}
+		]);
 
 		$this->log->success([
 			"icon" => Icon::get("resolve"),
-			"title" => str::pluralise_if($errors_to_resolve, "error", true)." resolved",
-			"message" => str::were($errors_to_resolve, "error", true)." marked as resolved."
+			"title" => str::pluralise_if($result['affected_rows'], "error", true)." resolved",
+			"message" => str::were($result['affected_rows'], "error", true)." marked as resolved."
 		]);
 
 		$this->hash->set([
