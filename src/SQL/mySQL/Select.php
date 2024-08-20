@@ -24,11 +24,12 @@ class Select extends Common {
 	 *
 	 * @return string|array
 	 */
-	public function select(array $a, $return_query = NULL)
+	public function select(array $a, $return_query = NULL, ?array $cte_table_aliases = NULL)
 	{
 		extract($a);
 
-		$this->setCTEs($cte);
+		# Set any CTEs
+		$this->setCTEs($cte, $cte_table_aliases);
 
 		# Set the (main) table (needs to be done first)
 		$this->setTable($db, $table, $id, $include_removed, $count);
@@ -173,15 +174,22 @@ class Select extends Common {
 		return $rows;
 	}
 
-	protected function setCTEs(?array $ctes): void
+	protected function setCTEs(?array $ctes, ?array $cte_table_aliases = NULL): void
 	{
+		# Set aliases of other CTEs that this CTE may be referencing
+		if($cte_table_aliases){
+			foreach($cte_table_aliases as $alias => $cte){
+				$this->ctes[$alias]['columns'] = $cte['columns'];
+			}
+		}
+
 		if(!$ctes){
 			return;
 		}
 
 		foreach($ctes as $alias => $cte){
 			$select = new Select($this->mysqli);
-			$this->ctes[$alias]['query'] = $select->select($cte, true);
+			$this->ctes[$alias]['query'] = $select->select($cte, true, $this->ctes);
 			$this->ctes[$alias]['columns'] = $select->getAllColumns();
 		}
 	}
@@ -193,11 +201,18 @@ class Select extends Common {
 		}
 
 		foreach($this->ctes as $alias => $cte){
+			if(!$cte['query']){
+				continue;
+			}
 			$cte = str_replace("\r\n", "\r\n\t", $cte['query']);
 			$ctes[] = "`{$alias}` AS (\r\n\t{$cte}\r\n)";
 		}
 
-		return "WITH ".implode(", ", $ctes);
+		if(!$ctes){
+			return NULL;
+		}
+
+		return "\r\nWITH " . implode(",\r\n", $ctes);
 	}
 
 	/**
@@ -464,8 +479,8 @@ class Select extends Common {
 		$columns = $this->getAllColumns($table_alias_only, $except_table_alias);
 
 		# If there are no columns, and the table is a CTE, load the CTE columns
-		if($this->table['is_cte']){
-			foreach($this->table['is_cte']['columns'] as $column){
+		if(!$columns && $this->table['is_cte']){
+			foreach($this->ctes[$this->table['name']]['columns'] as $column){
 				$column['table_alias'] = $this->table['name'];
 				$columns[] = $column;
 			}
@@ -486,7 +501,7 @@ class Select extends Common {
 					}
 					else {
 						# As the table _is_ found (but in a different database), inform them so that they can correct it
-						throw new \mysqli_sql_exception("The <code>{$this->table["name"]}</code> table can be found in the <code>".str::oxfordImplode($dbs)."</code> ".str::pluralise_if($dbs, "database").", not the <code>{$this->table["db"]}</code> database. Please address.");
+						throw new \mysqli_sql_exception("The <code>{$this->table["name"]}</code> table can be found in the <code>" . str::oxfordImplode($dbs) . "</code> " . str::pluralise_if($dbs, "database") . ", not the <code>{$this->table["db"]}</code> database. Please address.");
 					}
 				}
 
@@ -654,7 +669,7 @@ class Select extends Common {
 
 		# If any of the having conditions are aggregate functions
 		foreach($this->having as $condition){
-			if(preg_match("/^\b(?:".implode("|", self::SQL_AGGREGATE_FUNCTIONS).")\b/i", $condition)){
+			if(preg_match("/^\b(?:" . implode("|", self::SQL_AGGREGATE_FUNCTIONS) . ")\b/i", $condition)){
 				return true;
 			}
 		}
