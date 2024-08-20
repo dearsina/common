@@ -199,12 +199,15 @@ abstract class Common {
 	 * Given a database name (string) and a table array or string,
 	 * returns a table array. Doesn't check if any of the values are legit.
 	 * A table array contains the following child keys:
+	 *
 	 * - name, the name of the table
 	 * - alias, the table alias
 	 * - db, the database of the table
 	 * - id, the table ID column name
 	 * - include_removed, whether we should include removed columns (default is to exclude them)
 	 * - is_tmp, if the table is a tmp table, set to TRUE
+	 * - is_cte, if the table is a CTE, set to TRUE
+	 *
 	 * All the values can be given.
 	 *
 	 * @param string|null $db
@@ -241,9 +244,22 @@ abstract class Common {
 			throw new mysqli_sql_exception("No table name was given.");
 		}
 
-		if($is_tmp || $this->ctes[$name]){
+		if($this->tableExists($db, $name)){
+			$array["db"] = str::i($db);
+			//The database name can also be in the table array, will override the explicitly given db name
+		}
+
+		else if($is_tmp || $this->ctes[$name]){
 			//if the table is a tmp table or is s CTE, set the db to NULL
 			$array["db"] = NULL;
+
+			# Set if the table is a temporary table
+			$array['is_tmp'] = $is_tmp;
+
+			# Set if the table is a CTE
+			$array['is_cte'] = (bool) $this->ctes[$name];
+
+			$include_removed = true;
 		}
 
 		else {
@@ -263,17 +279,11 @@ abstract class Common {
 		$array["id"] = str::i($id);
 		//If only this one ID value is to be extracted
 
-		$array["include_removed"] = $is_tmp || $this->ctes[$name] ?: $include_removed;
+		$array["include_removed"] = $include_removed;
 		//A boolean flag that determines whether we should ignore removed ("removed IS NULL") or include them
 
 		$array["count"] = $count;
 		//A boolean flag or string column name that determines whether we should ignore all columns and just a straight COUNT(*)
-
-		# Set if the table is a temporary table
-		$array['is_tmp'] = $is_tmp;
-
-		# Set if the table is a CTE
-		$array['is_cte'] = $this->ctes[$name];
 
 		return $array;
 	}
@@ -296,16 +306,11 @@ abstract class Common {
 			return "FROM (\r\n\t{$sub_query}\r\n) AS `{$this->table['alias']}`";
 		}
 
-		# If it's a temp table, there is no DB reference.
-		if($this->table['is_tmp']){
+		# TMP tables and CTEs don't need a database name
+		if($this->table['is_tmp'] || $this->table['is_cte']){
 			return "FROM `{$this->table['name']}` AS `{$this->table['alias']}`";
 		}
-		if($this->ctes){
-			if(in_array($this->table['name'], array_keys($this->ctes))){
-				//if the table is a CTE, ignore the db name
-				return "FROM `{$this->table['name']}` AS `{$this->table['alias']}`";
-			}
-		}
+
 		return "FROM `{$this->table['db']}`.`{$this->table['name']}` AS `{$this->table['alias']}`";
 	}
 

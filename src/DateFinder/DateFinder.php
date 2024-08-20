@@ -275,9 +275,9 @@ class DateFinder extends \App\Common\Prototype {
 	/**
 	 * Identifies if a string is in fact, a date.
 	 *
-	 * @param string $string
+	 * @param string|null $string $string
 	 *
-	 * @return bool
+	 * @return \DateTime|null Returns an object or NULL if the string is not a date.
 	 */
 	public function isADate(?string $string): ?\DateTime
 	{
