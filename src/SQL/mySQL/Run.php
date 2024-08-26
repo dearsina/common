@@ -79,6 +79,7 @@ class Run extends Common {
 			# Common error messages that warrant a re-run
 			switch($message) {
 			case 'MySQL server has gone away':
+			case 'Deadlock found when trying to get lock; try restarting transaction':
 //			default:
 				# Try again if we haven't tried too many times
 				if($tries <= self::MAX_TRIES){
