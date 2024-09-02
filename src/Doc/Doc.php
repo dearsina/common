@@ -935,6 +935,11 @@ class Doc extends \App\Common\Prototype {
 		# Open ImageMagik
 		$im = new \Imagick();
 
+		# Just in case the file needs converting
+		Convert::webp($file);
+		Convert::emf($file);
+		// This should only apply for legacy files
+
 		# If the image file is actually a PDF
 		if($file['pdf_info']){
 			# Set the resolution to 50DPI (it's low, but that's OK, we're making an even smaller thumbnail)
