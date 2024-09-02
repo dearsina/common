@@ -36,6 +36,7 @@ class Convert {
 	{
 		Convert::heic($file);
 		Convert::webp($file);
+		Convert::emf($file);
 		Convert::bw($file);
 		Convert::big($file);
 		Convert::mirror($file);
@@ -298,6 +299,62 @@ class Convert {
 		# Command
 		$command = "dwebp {$file['tmp_name']} -quiet -o {$quality} {$file['tmp_name']}.png";
 		// -quiet means that it won't output anything unless there is an error
+
+		$output = shell_exec($command);
+		// If the command has an output (that's bad news)
+
+		# Return the last bit of the output, which is generally the error message
+		if($output){
+			throw new \Exception(trim($output));
+		}
+
+		# Remove the original webp file
+		unlink($file['tmp_name']);
+
+		# Add the jpg suffix to the tmp name (to reflect the conversion to PNG)
+		$file['tmp_name'] .= ".png";
+
+		/**
+		 * Data fetched by filesize() is "statcached",
+		 * we need to clear it as the same file name
+		 * has a different size now.
+		 */
+		$file['type'] = "image/png";
+		$file['mime_type'] = "image/png";
+		$file['ext'] = "png";
+		$file['name'] .= ".png";
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+
+		# Attach the original back
+		$file['original'][__FUNCTION__] = $original;
+	}
+
+	public static function emf(array &$file, ?int $quality = 50, ?string $ext = "png"): void
+	{
+		# We only need to do this once
+		if(Convert::hasAlreadyBeenProcessed($file, __FUNCTION__)){
+			return;
+		}
+
+		# Ensure file is indeed a emf file
+		if($file['ext'] != 'emf'){
+			//if the file isn't a emf file
+			return;
+		}
+
+		# Keep a copy of the original, rename the file to avoid it being overwritten
+		$original = Convert::makeCopy($file, __FUNCTION__);
+
+		# Command
+		switch(strtolower($ext)){
+		case 'jpg':
+			$command = "magick convert {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.{$ext}";
+			break;
+		default:
+			$command = "magick convert {$file['tmp_name']} {$file['tmp_name']}.{$ext}";
+			break;
+		}
 
 		$output = shell_exec($command);
 		// If the command has an output (that's bad news)
