@@ -337,24 +337,19 @@ class Convert {
 			return;
 		}
 
-		# Ensure file is indeed a emf file
+		# Ensure file is indeed an emf file
 		if($file['ext'] != 'emf'){
-			//if the file isn't a emf file
+			//if the file isn't an emf file
 			return;
 		}
 
 		# Keep a copy of the original, rename the file to avoid it being overwritten
-		$original = Convert::makeCopy($file, __FUNCTION__);
+		$original = Convert::makeCopy($file, ".emf");
+		// We by design give the copy an .emf suffix, or else inkscape struggles and thinks it's an svg file
 
 		# Command
-		switch(strtolower($ext)){
-		case 'jpg':
-			$command = "magick convert {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.{$ext}";
-			break;
-		default:
-			$command = "magick convert {$file['tmp_name']} {$file['tmp_name']}.{$ext}";
-			break;
-		}
+		$command = "inkscape {$file['tmp_name']} --export-{$ext}={$file['tmp_name']}.{$ext} --export-width=$(echo \"\$(inkscape --query-width {$file['tmp_name']}) * 6\" | bc) --export-height=$(echo \"\$(inkscape --query-height {$file['tmp_name']}) * 6\" | bc) --export-area-drawing > /dev/null";
+		// We're suppressing stdout as it's not needed, but keeping stderr in case there is an error
 
 		$output = shell_exec($command);
 		// If the command has an output (that's bad news)
@@ -368,17 +363,17 @@ class Convert {
 		unlink($file['tmp_name']);
 
 		# Add the jpg suffix to the tmp name (to reflect the conversion to PNG)
-		$file['tmp_name'] .= ".png";
+		$file['tmp_name'] .= ".{$ext}";
 
 		/**
 		 * Data fetched by filesize() is "statcached",
 		 * we need to clear it as the same file name
 		 * has a different size now.
 		 */
-		$file['type'] = "image/png";
-		$file['mime_type'] = "image/png";
-		$file['ext'] = "png";
-		$file['name'] .= ".png";
+		$file['type'] = "image/{$ext}";
+		$file['mime_type'] = "image/{$ext}";
+		$file['ext'] = "{$ext}";
+		$file['name'] .= ".{$ext}";
 		$file['md5'] = md5_file($file['tmp_name']);
 		$file['size'] = filesize($file['tmp_name']);
 
