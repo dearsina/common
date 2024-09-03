@@ -60,7 +60,7 @@ class Card extends \App\Common\Prototype {
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars'] ?: [], [
-						"title" => $row['Type'] ? urlencode($row['Type']) : "NULL",
+						"title" => $row['Type'] ? rawurlencode($row['Type']) : "NULL",
 					]),
 				];
 				$errors[] = [
@@ -121,7 +121,7 @@ class Card extends \App\Common\Prototype {
 					"rel_table" => $rel_table,
 					"action" => $action,
 					"vars" => array_merge($a['vars'] ?: [], [
-						"created_by" => urlencode($row['user.user_id']) ?: "NULL",
+						"created_by" => rawurlencode($row['user.user_id']) ?: "NULL",
 					]),
 				];
 				$errors[] = [
