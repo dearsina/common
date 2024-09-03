@@ -281,8 +281,9 @@ class Email extends Prototype {
 			throw new \Exception("No subject generated using the {$template_name} template.");
 		}
 
-		# Add the (potential) oauth_token to the format variables
+		# Add the (potential) oauth_token and SMTP transport settings to the format variables
 		$this->format['oauth_token'] = $this->oauth_token;
+		$this->format['smtp_transport_settings'] = $this->smtp_transport_settings;
 
 		# Get (and set) the message
 		if(!$this->message($template_factory->generateMessage($this->format))){
