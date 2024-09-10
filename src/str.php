@@ -299,7 +299,7 @@ class str {
 		"VAT",
 		"ID",
 		"AI",
-		"URL"
+		"URL",
 	];
 
 	const NAME_PREFIXES = [
@@ -1109,7 +1109,7 @@ EOF;
 	public static function isValidModify(?string $modify): bool
 	{
 		$dt = new \DateTime();
-		return (bool) @$dt->modify($modify);
+		return (bool)@$dt->modify($modify);
 	}
 
 	/**
@@ -3398,7 +3398,7 @@ EOF;
 				$stderr = stream_get_contents($pipes[2]);
 
 				# Get the return value of the command
-				$return_value = (int) rtrim(fgets($pipes[3],5),"\n");
+				$return_value = (int)rtrim(fgets($pipes[3], 5), "\n");
 			}
 
 			// Close all pipes and terminate the process
@@ -3419,7 +3419,7 @@ EOF;
 		}
 
 		# If there is an error, notify admins
-		if ($return_value !== 0) {
+		if($return_value !== 0){
 			# Write the message
 			$title = "Command failed";
 			$message = "<p>Command: <pre>{$command}</pre></p>
@@ -3485,7 +3485,7 @@ EOF;
 		$pid_info = [];
 
 		// Process the remaining lines
-		foreach ($output as $line) {
+		foreach($output as $line){
 			# Ignore empty lines
 			if(!$line){
 				continue;
@@ -3950,40 +3950,49 @@ EOF;
 	 * <code>
 	 * ["apples","oranges","bananas","pears"]
 	 * </code>
-	 * //Returns "apples, oranges, bananas and pears"
+	 * //Returns "apples, oranges, bananas, and pears"
 	 *
-	 * @param array|null  $array
-	 * @param string|null $tag Should not include the brackets, just the tag name.
-	 * @param string|null $and_or
-	 * @param string|null $glue
+	 * @param array|null  $array An array of items
+	 * @param string|null $tag Must not include the brackets, just the tag name.
+	 * @param string|null $and_or "and" or "or", or anything else that will come between the two last items
+	 * @param string|null $glue The glue between each item, default is ", "
 	 *
 	 * @return bool|mixed|string
 	 */
 	public static function oxfordImplode(?array $array, ?string $tag = NULL, ?string $and_or = "and", ?string $glue = ", ")
 	{
+		# Ensure the array contains at least one value
 		if(empty($array)){
 			return false;
 		}
 
+		# Encapsulate the items in a tag
 		if($tag){
+			// If the tag is set
 			$array = array_map(function($item) use ($tag){
 				return "<{$tag}>{$item}</{$tag}>";
 			}, $array);
 		}
 
+		# If there is only one item, just return it
 		if(count($array) == 1){
 			return reset($array);
+			// This will now have been encapsulated in the tag if it was set
 		}
 
+		# Add space to the and/or
 		$and_or = " {$and_or} ";
 
+		# If there are only two items, return them with the and/or
 		if(count($array) == 2){
 			return reset($array) . $and_or . end($array);
 		}
 
+		# If there are more than two items, pop the last one off
 		$last_element = array_pop($array);
 
-		return implode($glue, $array) . $and_or . $last_element;
+		# Return a glue separated string from the array, add and/or between the last two items
+		return implode($glue, $array) . $glue . $and_or . $last_element;
 	}
 
 	/**
@@ -5051,40 +5060,40 @@ EOF;
 	 * Used by the `numberAsWords()` function.
 	 */
 	const NUMERIC_DICTIONARY = [
-		0                   => 'zero',
-		1                   => 'one',
-		2                   => 'two',
-		3                   => 'three',
-		4                   => 'four',
-		5                   => 'five',
-		6                   => 'six',
-		7                   => 'seven',
-		8                   => 'eight',
-		9                   => 'nine',
-		10                  => 'ten',
-		11                  => 'eleven',
-		12                  => 'twelve',
-		13                  => 'thirteen',
-		14                  => 'fourteen',
-		15                  => 'fifteen',
-		16                  => 'sixteen',
-		17                  => 'seventeen',
-		18                  => 'eighteen',
-		19                  => 'nineteen',
-		20                  => 'twenty',
-		30                  => 'thirty',
-		40                  => 'forty',
-		50                  => 'fifty',
-		60                  => 'sixty',
-		70                  => 'seventy',
-		80                  => 'eighty',
-		90                  => 'ninety',
-		100                 => 'hundred',
-		1000                => 'thousand',
-		1000000             => 'million',
-		1000000000          => 'billion',
-		1000000000000       => 'trillion',
-		1000000000000000    => 'quadrillion',
+		0 => 'zero',
+		1 => 'one',
+		2 => 'two',
+		3 => 'three',
+		4 => 'four',
+		5 => 'five',
+		6 => 'six',
+		7 => 'seven',
+		8 => 'eight',
+		9 => 'nine',
+		10 => 'ten',
+		11 => 'eleven',
+		12 => 'twelve',
+		13 => 'thirteen',
+		14 => 'fourteen',
+		15 => 'fifteen',
+		16 => 'sixteen',
+		17 => 'seventeen',
+		18 => 'eighteen',
+		19 => 'nineteen',
+		20 => 'twenty',
+		30 => 'thirty',
+		40 => 'forty',
+		50 => 'fifty',
+		60 => 'sixty',
+		70 => 'seventy',
+		80 => 'eighty',
+		90 => 'ninety',
+		100 => 'hundred',
+		1000 => 'thousand',
+		1000000 => 'million',
+		1000000000 => 'billion',
+		1000000000000 => 'trillion',
+		1000000000000000 => 'quadrillion',
 		1000000000000000000 => 'quintillion',
 	];
 
@@ -5101,62 +5110,62 @@ EOF;
 	 */
 	public static function numberAsWords(?float $number): ?string
 	{
-		$hyphen      = '-';
+		$hyphen = '-';
 		$conjunction = ' and ';
-		$separator   = ', ';
-		$negative    = 'negative ';
-		$decimal     = ' point ';
+		$separator = ', ';
+		$negative = 'negative ';
+		$decimal = ' point ';
 
-		if (!is_numeric($number)) {
+		if(!is_numeric($number)){
 			return false;
 		}
 
-		if ($number < 0) {
+		if($number < 0){
 			return $negative . str::numberAsWords(abs($number));
 		}
 
-		$string = $fraction = null;
+		$string = $fraction = NULL;
 
-		if (strpos($number, '.') !== false) {
+		if(strpos($number, '.') !== false){
 			[$number, $fraction] = explode('.', $number);
 		}
 
-		switch (true) {
+		switch(true) {
 		case $number < 21:
 			$string = self::NUMERIC_DICTIONARY[$number];
 			break;
 		case $number < 100:
-			$tens   = ((int) ($number / 10)) * 10;
-			$units  = $number % 10;
+			$tens = ((int)($number / 10)) * 10;
+			$units = $number % 10;
 			$string = self::NUMERIC_DICTIONARY[$tens];
-			if ($units) {
+			if($units){
 				$string .= $hyphen . self::NUMERIC_DICTIONARY[$units];
 			}
 			break;
 		case $number < 1000:
-			$hundreds  = $number / 100;
+			$hundreds = $number / 100;
 			$remainder = $number % 100;
 			$string = self::NUMERIC_DICTIONARY[$hundreds] . ' ' . self::NUMERIC_DICTIONARY[100];
-			if ($remainder) {
+			if($remainder){
 				$string .= $conjunction . str::numberAsWords($remainder);
 			}
 			break;
 		default:
 			$baseUnit = pow(1000, floor(log($number, 1000)));
-			$numBaseUnits = (int) ($number / $baseUnit);
+			$numBaseUnits = (int)($number / $baseUnit);
 			$remainder = $number % $baseUnit;
 			$string = str::numberAsWords($numBaseUnits) . ' ' . self::NUMERIC_DICTIONARY[$baseUnit];
-			if ($remainder) {
+			if($remainder){
 				$string .= $remainder < 100 ? $conjunction : $separator;
 				$string .= str::numberAsWords($remainder);
 			}
 			break;
 		}
 
-		if (null !== $fraction && is_numeric($fraction)) {
+		if(NULL !== $fraction && is_numeric($fraction)){
 			$string .= $decimal;
 			$words = [];
-			foreach (str_split((string) $fraction) as $number) {
+			foreach(str_split((string)$fraction) as $number){
 				$words[] = self::NUMERIC_DICTIONARY[$number];
 			}
 			$string .= implode(' ', $words);
