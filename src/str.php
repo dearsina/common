@@ -4974,7 +4974,7 @@ EOF;
 	}
 
 	/**
-	 * Simple shortcut to wrap a string in a span with the ellipsis class.
+	 * Simple shortcut to suffix a string with the ellipsis class.
 	 *
 	 * @param string|null $string
 	 * @param string|null $tag
@@ -4983,7 +4983,7 @@ EOF;
 	 */
 	public static function ellipsis(?string $string, ?string $tag = "span"): string
 	{
-		return "<{$tag} class=\"ellipsis\">{$string}</{$tag}>";
+		return "{$string}<{$tag} class=\"ellipsis\"></{$tag}>";
 	}
 
 	/**
