@@ -111,11 +111,12 @@ class Process {
 	 * This is to avoid hitting shell_exec max string
 	 * length limits.
 	 *
-	 * @param array $a
+	 * @param array    $a
+	 * @param int|null $max_execution_time Set a different max execution time for the process (default is 30 seconds), set to 0 for no limit
 	 *
 	 * @return int The process ID
 	 */
-	public static function request(array $a): int
+	public static function request(array $a, ?int $max_execution_time = NULL): int
 	{
 		# Get the requester params
 		$requester = self::getGlobalVariables();
@@ -126,6 +127,12 @@ class Process {
 		# Build the command that executes the execute method
 		$cmd = "go(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
+
+		# Set the max execution time if required
+		if($max_execution_time !== NULL){
+			$cmd .= "ini_set('max_execution_time', {$max_execution_time});";
+		}
+
 		$cmd .= "\$request = new App\\Common\\Request({$requester});";
 
 		# Long exec scripts
