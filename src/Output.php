@@ -664,7 +664,7 @@ EOF;
 		# Data is *appended* to the array, NOT replaced
 		if($id){
 			if(!is_array($data) && !is_null($data)){
-				// Arrays and nulls are not appended
+				// Arrays and nulls are not appended as strings
 				$this->output['actions'][$order][$type][$id] .= $data;
 			}
 
@@ -674,6 +674,7 @@ EOF;
 
 			# Some types ("remove") don't have any data attached to the ID
 			else {
+				// This is also where NULL values go, and essentially clear the data
 				$this->output['actions'][$order][$type][$id] = $data;
 			}
 		}
