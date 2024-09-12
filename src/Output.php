@@ -663,7 +663,8 @@ EOF;
 
 		# Data is *appended* to the array, NOT replaced
 		if($id){
-			if(!is_array($data)){
+			if(!is_array($data) && !is_null($data)){
+				// Arrays and nulls are not appended
 				$this->output['actions'][$order][$type][$id] .= $data;
 			}
 
