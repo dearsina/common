@@ -22,6 +22,7 @@ trait SingleSignOnTrait {
 		if($user['first_name'] || $user['last_name']){
 			$user['name'] = trim($user['first_name'] . " " . $user['last_name']);
 		}
+
 		else if($user['displayName']){
 			$user['name'] = $user['displayName'];
 		}
@@ -30,6 +31,13 @@ trait SingleSignOnTrait {
 		}
 		else {
 			$user['name'] = $user['email'];
+		}
+
+		if($user['officeLocation']){
+			$user['office_location'] = $user['officeLocation'];
+		}
+		if($user['jobTitle']){
+			$user['job_title'] = $user['jobTitle'];
 		}
 	}
 
