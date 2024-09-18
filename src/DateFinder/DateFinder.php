@@ -19,6 +19,19 @@ use App\Common\str;
  */
 class DateFinder extends \App\Common\Prototype {
 
+	const ARABIC_NUMERALS = [
+		'٠' => '0',
+		'١' => '1',
+		'٢' => '2',
+		'٣' => '3',
+		'٤' => '4',
+		'٥' => '5',
+		'٦' => '6',
+		'٧' => '7',
+		'٨' => '8',
+		'٩' => '9',
+	];
+
 	/**
 	 * An array of month names
 	 * in different languages.
@@ -47,7 +60,7 @@ class DateFinder extends \App\Common\Prototype {
 	{
 		if(!$rows = $this->sql->select([
 			"table" => "month",
-			"include_removed" => true
+			"include_removed" => true,
 		])){
 			return;
 		}
@@ -64,8 +77,9 @@ class DateFinder extends \App\Common\Prototype {
 	 * Includes the Republic of China calendar.
 	 *
 	 * @param string $input_string
-	 * @link https://en.wikipedia.org/wiki/Republic_of_China_calendar
+	 *
 	 * @return void
+	 * @link https://en.wikipedia.org/wiki/Republic_of_China_calendar
 	 */
 	private function translateChineseDate(string &$input_string): void
 	{
@@ -78,7 +92,7 @@ class DateFinder extends \App\Common\Prototype {
 			$matches[2] = str_pad($matches[2], 2, "0", STR_PAD_LEFT);
 			$matches[3] = str_pad($matches[3], 2, "0", STR_PAD_LEFT);
 
-			switch(strlen($matches[1])){
+			switch(strlen($matches[1])) {
 			case 2:
 				# If only two numbers (very uncharacteristic), let PHP handle it
 				$input_string = $matches[3] . "-" . $matches[2] . "-" . $matches[1];
@@ -92,6 +106,55 @@ class DateFinder extends \App\Common\Prototype {
 				break;
 			}
 		}
+	}
+
+	private function translateHijriDateToGregorian(string &$date): void
+	{
+		if(!$dt = str::newDateTimeDateOnly($date)){
+			return;
+		}
+		// Not a perfect way for those dates that couldn't be in the Gregorian calendar
+		// Like 30 Feb
+
+		# If the date is in the Hijri calendar
+		if($dt->format("Y") > 1600){
+			// Basically, the year in the Hijri calendar needs to boe less than 1600
+			return;
+		}
+
+		$year = (int) $dt->format("Y");
+		$month = (int)$dt->format("m");
+		$day = (int)$dt->format("d");
+
+		$jd = floor((11 * $year + 3) / 30) + floor(354 * $year) + floor(30 * $month)
+			- floor(($month - 1) / 2) + $day + 1948440 - 386;
+
+		$julian = $jd - 1721119;
+		$calc1 = 4 * $julian - 1;
+		$year = floor($calc1 / 146097);
+		$julian = floor($calc1 - 146097 * $year);
+		$day = floor($julian / 4);
+		$calc2 = 4 * $day + 3;
+		$julian = floor($calc2 / 1461);
+		$day = $calc2 - 1461 * $julian;
+		$day = floor(($day + 4) / 4);
+		$calc3 = 5 * $day - 3;
+		$month = floor($calc3 / 153);
+		$day = $calc3 - 153 * $month;
+		$day = floor(($day + 5) / 5);
+		$year = 100 * $year + $julian;
+
+		if ($month < 10) {
+			$month = $month + 3;
+		}
+
+		else {
+			$month = $month - 9;
+			$year = $year + 1;
+		}
+
+		$gdt = str::newDateTimeDateOnly("{$year}-{$month}-{$day}");
+		$date = $gdt->format("Y-m-d");
 	}
 
 	/**
@@ -206,7 +269,7 @@ class DateFinder extends \App\Common\Prototype {
 
 		# Changing DD.MM.YY and DD-MM-YY and DD/MM/YY to YYYY-MM-DD (ignoring US dates)
 		if(preg_match("/^(\d{2})(?:\.|\-|\/)(\d{2})(?:\.|\-|\/)(\d{2})$/", $string, $matches)){
-			$year = ($matches[3] > date("y") ? "19" : "20").$matches[3];
+			$year = ($matches[3] > date("y") ? "19" : "20") . $matches[3];
 			$month = $matches[2];
 			$date = $matches[1];
 			$string = "{$year}-{$month}-{$date}";
@@ -287,6 +350,9 @@ class DateFinder extends \App\Common\Prototype {
 			return NULL;
 		}
 
+		# Convert Arabic numerals to English numerals
+		$this->convertArabicNumeralsToLatin($string);
+
 		# A date must have at least one number
 		if(!preg_match("/\d/", $string)){
 			return NULL;
@@ -294,6 +360,8 @@ class DateFinder extends \App\Common\Prototype {
 
 		# Translate Chinese dates to Y-m-d
 		$this->translateChineseDate($string);
+
+		$this->translateHijriDateToGregorian($string);
 
 		# Translate the date to English (if it's in a non-English language)
 		$this->translateDate($string);
@@ -323,5 +391,10 @@ class DateFinder extends \App\Common\Prototype {
 
 		# If the string has NO letters
 		return $this->handleStringWithoutAlpha($string);
+	}
+
+	private function convertArabicNumeralsToLatin(string &$string): void
+	{
+		$string = strtr($string, self::ARABIC_NUMERALS);
 	}
 }
