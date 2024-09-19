@@ -2247,7 +2247,8 @@ class User extends Prototype {
 		}
 
 		# 2FA (if enabled)
-		if($user['2fa_enabled']){
+		if($user['2fa_enabled'] && $user['password'] && !$user['sso_id']){
+			// Users logging in via SSO, do not have to go thru 2FA
 			return $this->prepare2FACode($a, $user);
 		}
 
