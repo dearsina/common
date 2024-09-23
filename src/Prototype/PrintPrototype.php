@@ -27,14 +27,28 @@ abstract class PrintPrototype extends Prototype {
 	 *
 	 * @return array
 	 */
-	protected static function getHeader(string $title): array
+	protected static function getHeader(string $title, ?string $currency_code = "ZAR", ?string $logo_id = NULL): array
 	{
-		$grid[] = [[
-			"html" => Img::generate([
+		if($currency_code == "ZAR"){
+			$entity = "KYC DD (Pty) Ltd, 135 Rivonia Road, Johannesburg, 2196, South Africa<br>Incorporated in South Africa, 2020/181847/07. VAT: 4910305954";
+		}
+		else {
+			$entity = "KYCetc L.L.C-FZ, Business Center 1, M Floor, The Meydan Hotel, Nad Al Sheba, Dubai, UAE<br>Registered in Meydan FZ, UAE, licence number 2313602.01";
+		}
+
+		if($logo_id){
+
+		}
+		else {
+			$logo = [
 				"src" => "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/img/kycdd_logo_v4_black.svg",
 				"width" => "200",
 				"height" => "60",
-			]),
+			];
+		}
+
+		$grid[] = [[
+			"html" => Img::generate($logo),
 			"sm" => "auto"
 		], [
 			"html" => $title,
@@ -51,7 +65,7 @@ abstract class PrintPrototype extends Prototype {
 		]];
 
 		$grid[] = [[
-			"html" => "KYC DD (Pty) Ltd, 135 Rivonia Road, Johannesburg, 2196, South Africa<br>Incorporated in South Africa, 2020/181847/07. VAT: 4910305954",
+			"html" => $entity,
 			"style" => [
 				"margin-top" => "0.5rem",
 				"margin-bottom" => "0.5rem",
