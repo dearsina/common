@@ -130,7 +130,7 @@ class Process {
 
 		# Set the max execution time if required
 		if($max_execution_time !== NULL){
-			$cmd .= "ini_set('max_execution_time', {$max_execution_time});";
+			$cmd .= "ini_set(\"max_execution_time\", {$max_execution_time});";
 		}
 
 		$cmd .= "\$request = new App\\Common\\Request({$requester});";
