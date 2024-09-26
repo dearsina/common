@@ -11,7 +11,7 @@ use App\Common\str;
 
 class Entra extends Prototype implements SingleSignOnProviderInterface {
 	use SingleSignOnTrait;
-	private \Microsoft\Graph\Graph $graph;
+	private ?\Microsoft\Graph\Graph $graph = NULL;
 
 	const SCOPES = [
 		"openid",
@@ -25,7 +25,9 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 
 	public function __construct(array $oauth_token)
 	{
-		OAuth2Handler::ensureTokenIsFresh($oauth_token);
+		if(!OAuth2Handler::ensureTokenIsFresh($oauth_token)){
+			return;
+		}
 		$this->graph = new \Microsoft\Graph\Graph();
 		$this->graph->setAccessToken($oauth_token['token']);
 	}
@@ -65,6 +67,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 			return NULL;
 		}
 
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$organization = $this->graph->createRequest("GET", "/organization/{$jwt['payload']['tid']}")
 				->setReturnType(\Microsoft\Graph\Model\Organization::class)
@@ -80,9 +86,8 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 			$org['id'] = $org['id'] ?: $jwt['payload']['tid'];
 
 			return $org;
-
-
 		}
+
 		catch(\Exception $e) {
 			$this->throwError($e, "%s error attempting to get organization: %s");
 		}
@@ -136,6 +141,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	 */
 	public function getGroup(string $group_id): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("GET", "/groups/{$group_id}")
 				->setReturnType(\Microsoft\Graph\Model\Group::class)
@@ -153,6 +162,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 
 	public function getUser(string $user_id): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("GET", "/users/{$user_id}")
 				->setReturnType(\Microsoft\Graph\Model\User::class)
@@ -198,6 +211,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	 */
 	public function getMe(): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("GET", "/me")
 				->setReturnType(\Microsoft\Graph\Model\User::class)
@@ -218,6 +235,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 
 	public function getGroups(?string $q = NULL): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			if($q){
 				$q = urlencode($q);
@@ -246,6 +267,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 
 	public function getGroupMembers(string $group_id): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("GET", "/groups/{$group_id}/members")
 				->setReturnType(\Microsoft\Graph\Model\DirectoryObject::class)
@@ -295,6 +320,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	 */
 	public function subscribeToGroupChanges(string $group_id, string $client_state): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("POST", "/subscriptions")
 				->attachBody([
@@ -323,6 +352,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 
 	public function subscribeToUserChanges(string $user_id, string $client_state): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("POST", "/subscriptions")
 				->attachBody([
@@ -378,6 +411,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 
 	public function unsubscribeFromNotifications(string $subscription_id): ?bool
 	{
+		if(!$this->graph){
+			return false;
+		}
+
 		try {
 			$this->graph->createRequest("DELETE", "/subscriptions/{$subscription_id}")
 				->execute();
@@ -399,6 +436,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	 */
 	public function reauthorizeSubscription(string $subscription_id): ?array
 	{
+		if(!$this->graph){
+			return NULL;
+		}
+
 		try {
 			$response = $this->graph->createRequest("PATCH", "/subscriptions/{$subscription_id}")
 				->attachBody([

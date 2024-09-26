@@ -558,6 +558,8 @@ class Card extends Prototype {
 			$rows['Phone'] = $me['phone'];
 			$rows['Email'] = $me['email'];
 			$rows["Organization"] = $org['name'];
+			$rows["Job title"] = $org['job_title'];
+			$rows["Office location"] = $org['office_location'];
 
 			switch($oauth_token['provider']) {
 			case "entra":
