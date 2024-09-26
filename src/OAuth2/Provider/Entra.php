@@ -160,14 +160,63 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 		return $group;
 	}
 
-	public function getUser(string $user_id): ?array
+	const DEFAULT_PROPERTIES = [
+		"businessPhones",
+		"displayName",
+		"givenName",
+		"id",
+		"jobTitle",
+		"mail",
+		"mobilePhone",
+		"officeLocation",
+		"preferredLanguage",
+		"surname",
+		"userPrincipalName",
+	];
+
+	/**
+	 * The default User object:
+	 *
+	 * <code>
+	 * {
+	 * 	"@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+	 * 	"businessPhones": [
+	 * 		"+2*********9"
+	 * 	],
+	 * 	"displayName": "M**********************",
+	 * 	"givenName": "G*****a",
+	 * 	"id": "0071f4da-9257-4466-879a-ae306a5ec327",
+	 * 	"jobTitle": "B**************r",
+	 * 	"mail": "g*****n@m*******c.com",
+	 * 	"mobilePhone": null,
+	 * 	"officeLocation": null,
+	 * 	"preferredLanguage": null,
+	 * 	"surname": "M****N",
+	 * 	"userPrincipalName": "g*****n@m*******c.com"
+	 * }
+	 * </code>
+	 *
+	 * A lot more information can be retrieved by using the $select query parameter:
+	 * https://learn.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0
+ 	 *
+	 *
+	 * @param string     $user_id
+	 * @param array|null $additional_properties
+	 *
+* @return array|null
+	 * @throws \GuzzleHttp\Exception\GuzzleException
+	 */
+	public function getUser(string $user_id, ?array $additional_properties = []): ?array
 	{
 		if(!$this->graph){
 			return NULL;
 		}
 
+		$properties = array_merge(self::DEFAULT_PROPERTIES, $additional_properties);
+
 		try {
-			$response = $this->graph->createRequest("GET", "/users/{$user_id}")
+			$select = implode(",", $properties);
+			$response = $this->graph->createRequest("GET", "/users/{$user_id}?\$select={$select}")
 				->setReturnType(\Microsoft\Graph\Model\User::class)
 				->execute();
 

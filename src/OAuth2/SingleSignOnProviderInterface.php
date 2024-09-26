@@ -46,11 +46,12 @@ interface SingleSignOnProviderInterface extends ProviderInterface {
 	public function getGroup(string $group_id): ?array;
 
 	/**
-	 * @param string $user_id
+	 * @param string     $user_id
+	 * @param array|null $additional_properties
 	 *
 	 * @return array|null
 	 */
-	public function getUser(string $user_id): ?array;
+	public function getUser(string $user_id, ?array $additional_properties = []): ?array;
 
 	/**
 	 * Get an array of members of a group.
