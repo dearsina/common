@@ -33,6 +33,7 @@ class Field {
 		  AND table_schema IN (
 			'app',
 			'user_data',
+		    'client_match',
 			'third_party'
 		  )
 		ORDER BY
