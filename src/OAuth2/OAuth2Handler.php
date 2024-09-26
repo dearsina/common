@@ -316,18 +316,19 @@ class OAuth2Handler extends \App\Common\Prototype {
 	 *
 	 * @param array $oauth_token
 	 *
+	 * @return bool
 	 * @throws BadRequest
 	 */
-	public static function ensureTokenIsFresh(array &$oauth_token): void
+	public static function ensureTokenIsFresh(array &$oauth_token): bool
 	{
 		# If the token has yet to expire, we're good
 		if($oauth_token['expires'] > strtotime("now")){
-			return;
+			return true;
 		}
 
 		# Ensure we have a refresh token in case the token has expired
 		if(!$oauth_token['refresh_token']){
-			return;
+			return true;
 		}
 
 		# Get the provider (class)
@@ -359,7 +360,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 				"title" => $title,
 				"message" => $message,
 			]);
-			return;
+			return false;
 		}
 
 		# Store the new token for current use
@@ -380,6 +381,8 @@ class OAuth2Handler extends \App\Common\Prototype {
 			],
 			"user_id" => false,
 		]);
+
+		return true;
 	}
 
 	/**
