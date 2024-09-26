@@ -193,7 +193,12 @@ class mySQL extends Common {
 
 	public function update(array $a, ?bool $return_query = NULL)
 	{
-		return $this->call($a, $return_query, __FUNCTION__);
+		# Reconnect (for long running scripts)
+		if($a['reconnect']){
+			$this->reconnect();
+		}
+		$sql = new Update($this->mysqli);
+		return $sql->update($a, $return_query);
 	}
 
 	public function remove(array $a, ?bool $return_query = NULL)
