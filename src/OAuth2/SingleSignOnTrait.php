@@ -33,9 +33,10 @@ trait SingleSignOnTrait {
 			$user['name'] = $user['email'];
 		}
 
-		if($user['officeLocation']){
-			$user['office_location'] = $user['officeLocation'];
+		if($user['officeLocation'] || $user['streetAddress']){
+			$user['office_location'] = $user['officeLocation'] ?: $user['streetAddress'];
 		}
+
 		if($user['jobTitle']){
 			$user['job_title'] = $user['jobTitle'];
 		}
