@@ -181,7 +181,7 @@ class CronLog extends \App\Common\Prototype {
 		 */
 		$base_query = [
 			"include_meta" => true,
-			"table" => $rel_table,
+			"table" => "cron_log",
 			"join" => [[
 				"table" => "cron_job",
 				"on" => "cron_job_id"
@@ -189,11 +189,11 @@ class CronLog extends \App\Common\Prototype {
 			"left_join" => [[
 				"table" => "user",
 				"on" => [
-					"user_id" => [$rel_table, "created_by"]
+					"user_id" => ["cron_log", "created_by"]
 				]
 			]],
 			"order_by" => [
-				"created" => "desc"
+				"cron_log_id" => "desc"
 			]
 		];
 
