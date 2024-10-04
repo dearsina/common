@@ -17,6 +17,76 @@ use League\OAuth2\Client\Grant\RefreshToken;
  *
  */
 class OAuth2Handler extends \App\Common\Prototype {
+	const PROVIDERS = [
+		"entra" => [
+			"type" => "sso",
+			"title" => "Entra ID (Azure Active Directory)",
+			"icon" => [
+				"svg" => "/img/EntraLogoColour.svg",
+				"style" => [
+					"margin-right" => "0.5rem",
+				],
+				"tooltip" => "Entra ID (Azure Active Directory)",
+			],
+		],
+		"google_drive" => [
+			"type" => "cloud",
+			"title" => "Google Drive",
+			"desc" => "Send your client files to your Google Drive.
+			<br><img
+			style=\"margin-top: 5px;margin-left: -5px; height: 46px;\"
+			src=\"/img/btn_google_signin_light_normal_web@2x.png\">",
+			"icon" => [
+				"type" => "brand",
+				"name" => "google-drive",
+			],
+		],
+		"one_drive" => [
+			"type" => "cloud",
+			"title" => "Microsoft OneDrive",
+			"desc" => "Send your client files to your OneDrive.",
+			"icon" => [
+				"type" => "brand",
+				"name" => "microsoft",
+			],
+		],
+		"share_point" => [
+			"type" => "cloud",
+			"title" => "SharePoint",
+			"desc" => "Send your client files to your SharePoint.",
+			"icon" => "circle-nodes",
+		],
+		"gmail" => [
+			"type" => "email",
+			"title" => "Google Mail",
+			"desc" => "Send emails from your Gmail email address.",
+			"icon" => [
+				"type" => "brand",
+				"name" => "google",
+				"tooltip" => "Gmail",
+			],
+		],
+		"outlook" => [
+			"type" => "email",
+			"title" => "Microsoft Exchange",
+			"desc" => "Send emails from your Outlook email address.",
+			"icon" => [
+				"type" => "brand",
+				"name" => "microsoft",
+				"tooltip" => "Outlook",
+			],
+		],
+		"smtp" => [
+			"type" => "email",
+			"title" => "SMTP",
+			"desc" => "Send emails from your own mail server.",
+			"icon" => [
+				"name" => "inbox",
+				"tooltip" => "SMTP",
+			],
+		],
+	];
+
 	/**
 	 * The method that is called to start the process
 	 * of getting an OAuth2 token. This method will
@@ -344,16 +414,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
 		}
 		catch(\Exception $e) {
-			if(Webhook::PROVIDERS[$oauth_token['provider']]){
-				$provider_title = Webhook::PROVIDERS[$oauth_token['provider']]['title'];
-			}
-			else if(SubscriptionEmail::PROVIDERS[$oauth_token['provider']]){
-				$provider_title = SubscriptionEmail::PROVIDERS[$oauth_token['provider']]['title'];
-			}
-			else {
-				$provider_title = str::title($oauth_token['provider']);
-			}
-
+			$provider_title = OAuth2Handler::getProviderTitle($oauth_token['provider']);
 			$title = "Could not connect to {$provider_title}";
 			$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
 			Log::getInstance()->error([
@@ -414,5 +475,13 @@ class OAuth2Handler extends \App\Common\Prototype {
 			"payload" => $decodedPayload,
 			"signature" => $decodedSignature,
 		];
+	}
+
+	public static function getProviderTitle(string $provider): string
+	{
+		if(OAuth2Handler::PROVIDERS[$provider]){
+			return OAuth2Handler::PROVIDERS[$provider]['title'];
+		}
+		return str::title($provider);
 	}
 }

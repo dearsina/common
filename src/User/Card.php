@@ -561,18 +561,8 @@ class Card extends Prototype {
 			$rows["Job title"] = $me['job_title'];
 			$rows["Office location"] = $me['office_location'];
 
-			switch($oauth_token['provider']) {
-			case "entra":
-				$rows['Provider'] = "Entra ID (Azure Active Directory)";
-				$icon = [
-					"svg" => "/img/EntraLogoColour.svg",
-					"style" => [
-						"margin-right" => "0.5rem"
-					],
-					"tooltip" => $rows['Provider'],
-				];
-				break;
-			}
+			$rows['Provider'] = OAuth2Handler::getProviderTitle($oauth_token['provider']);
+			$icon = OAuth2Handler::PROVIDERS[$oauth_token['provider']]['icon'];
 
 			$card = new \App\UI\Card\Card([
 				"header" => [
