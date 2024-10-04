@@ -161,12 +161,12 @@ class Email extends Prototype {
 					$provider = new $class($oauth_token);
 					if(!$from_email = $provider->getEmailAddress()){
 						// If we can't get the email, it's most probably because there was an OAuth error
-						$provider_error = "There was an issue authenticating with ".SubscriptionEmail::PROVIDERS[$oauth_token['provider']]['title']." for the <code>{$subscription_email['email']}</code> address. This will impede the sending of the email from that address. Please address immediately.";
+						$provider_error = "There was an issue authenticating with ".OAuth2Handler::getProviderTitle($oauth_token['provider'])." for the <code>{$subscription_email['email']}</code> address. This will impede the sending of the email from that address. Please address immediately.";
 					}
 				}
 
 				catch(\Exception $e){
-					$provider_error = "There was an issue authenticating with ".SubscriptionEmail::PROVIDERS[$oauth_token['provider']]['title']." for the <code>{$subscription_email['email']}</code> address. This will impede the sending of the email from that address. Please address immediately.";
+					$provider_error = "There was an issue authenticating with ".OAuth2Handler::getProviderTitle($oauth_token['provider'])." for the <code>{$subscription_email['email']}</code> address. This will impede the sending of the email from that address. Please address immediately.";
 					if($error_message = $e->getMessage()){
 						$provider_error .= "<br><br><code class=\"smallest\">{$error_message}</code>";
 					}

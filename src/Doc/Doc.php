@@ -1655,4 +1655,21 @@ class Doc extends \App\Common\Prototype {
 
 		return true;
 	}
+
+	public static function svgHasContent(?string $xml): bool
+	{
+		# Ensure the SVG tag isn't empty
+		$dom = new \DOMDocument();
+		$dom->loadXML($xml);
+		$svg = $dom->getElementsByTagName('svg')->item(0);
+
+		// Iterate over the child nodes and check if any of them are element nodes
+		foreach ($svg->childNodes as $child) {
+			if ($child->nodeType === XML_ELEMENT_NODE) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
