@@ -477,11 +477,16 @@ class OAuth2Handler extends \App\Common\Prototype {
 		];
 	}
 
-	public static function getProviderTitle(string $provider): string
+	public static function getProviderTitle(?string $provider): ?string
 	{
+		if(!$provider){
+			return NULL;
+		}
+
 		if(OAuth2Handler::PROVIDERS[$provider]){
 			return OAuth2Handler::PROVIDERS[$provider]['title'];
 		}
+		
 		return str::title($provider);
 	}
 }
