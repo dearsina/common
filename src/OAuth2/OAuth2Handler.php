@@ -486,7 +486,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		if(OAuth2Handler::PROVIDERS[$provider]){
 			return OAuth2Handler::PROVIDERS[$provider]['title'];
 		}
-		
+
 		return str::title($provider);
 	}
 }
