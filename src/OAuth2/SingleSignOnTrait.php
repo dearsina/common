@@ -60,7 +60,7 @@ trait SingleSignOnTrait {
 				"action" => "oauth2",
 				"vars" => [
 					"provider" => $provider,
-					"callback" => $$callback,
+					"callback" => $callback,
 				],
 			],
 		]);
