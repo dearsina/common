@@ -42,21 +42,30 @@ class FieldType extends ModalPrototype {
 			"icon" => $cols['icon'],
 		];
 
-		if($cols['display_only']){
+		if($cols['settings']['display_only']){
 			$badges[] = [
 				"icon" => "eye",
-				"colour" => "primary",
+				"colour" => "secondary",
 				"basic" => true,
 				"alt" => "Display only",
 			];
 		}
 
-		if($cols['form_value']){
+		if($cols['settings']['form_field']){
+			$badges[] = [
+				"icon" => Icon::get("form_field"),
+				"colour" => "primary",
+				"basic" => true,
+				"alt" => "Can be used as a form field type",
+			];
+		}
+
+		if($cols['settings']['form_value']){
 			$badges[] = [
 				"icon" => Icon::get("form_value"),
 				"colour" => "green",
 				"basic" => true,
-				"alt" => "Can be used as a field value type",
+				"alt" => "Can be used as a form value type",
 			];
 		}
 
@@ -109,8 +118,8 @@ class FieldType extends ModalPrototype {
 		}
 
 		# Get all the display only fields
-		$display_only_fields = FieldType::getFieldTypesOptions([
-			"display" => true,
+		$display_only_fields = FieldType::getFieldTypeOptions([
+			"display_only" => true,
 		]);
 
 		# If the field is not display only
@@ -127,44 +136,10 @@ class FieldType extends ModalPrototype {
 		return true;
 	}
 
-	/**
-	 * Get a list of fields that are marked as display only.
-	 * The key is the field_type_id, and the value is the field
-	 * type name.
-	 *
-	 * @return array
-	 * @throws \Exception
-	 */
-	public static function getDisplayOnlyFieldTypes(): array
-	{
-		foreach((Info::getInstance())->getInfo([
-			"columns" => [
-				"field_type_id",
-				"name",
-			],
-			"rel_table" => "field_type",
-			"where" => [
-				"display_only" => 1,
-			],
-		]) ?: [] as $field_type){
-			$display_only[$field_type['field_type_id']] = $field_type['name'];
-		}
-
-		return $display_only ?: [];
-	}
-
 	public static function getFieldTypeIcon(string $name): ?string
 	{
-		return (Info::getInstance())->getInfo([
-			"columns" => [
-				"icon",
-			],
-			"rel_table" => "field_type",
-			"where" => [
-				"name" => $name,
-			],
-			"limit" => 1
-		])['icon'];
+		$field_types = self::get();
+		return $field_types[$name]['icon'];
 	}
 
 	/**
@@ -177,45 +152,35 @@ class FieldType extends ModalPrototype {
 	 */
 	public static function getFieldTypeIdFromName(string $name): ?string
 	{
-		return (Info::getInstance())->getInfo([
-			"columns" => [
-				"field_type_id",
-			],
-			"rel_table" => "field_type",
-			"where" => [
-				"name" => $name,
-			],
-			"limit" => 1
-		])['field_type_id'];
+		$field_types = self::get();
+		return $field_types[$name]['field_type_id'];
 	}
 
 	public static function getFieldTypeNameFromId(?string $field_type_id): ?string
 	{
-		if(!$field_type_id){
-			return NULL;
+		$field_types = self::get();
+
+		foreach($field_types as $name => $field_type){
+			if($field_type['field_type_id'] == $field_type_id){
+				return $name;
+			}
 		}
 
-		return (Info::getInstance())->getInfo([
-			"columns" => [
-				"name",
-			],
-			"rel_table" => "field_type",
-			"where" => [
-				"field_type_id" => $field_type_id,
-			],
-			"limit" => 1
-		])['name'];
+		return NULL;
 	}
 
 	/**
-	 * Returns field types.
+	 * Returns field types as options for a dropdown list.
+	 *
 	 * If filters are provided, they will be applied.
 	 * The key is the field_type_id, and the value is an array.
 	 *
 	 * Accepted filters:
-	 * - `exclude` (array) - field types to exclude by name or title
-	 * - `include` (array) - field types to include by name or title
-	 * - `display` (bool) - `true`, will only have display, `false`, will exclude display
+	 *  - `form_field` (bool) - `true`, will only have form field, `false`, will exclude form field
+	 *  - `form_value` (bool) - `true`, will only have form value, `false`, will exclude form value
+	 *  - `display_only` (bool) - `true`, will only have display, `false`, will exclude display
+	 *  - `exclude` (array) - field types to exclude by name or title
+	 *  - `include` (array) - field types to include by name or title
 	 *
 	 *
 	 * @param array|null $filters
@@ -223,30 +188,80 @@ class FieldType extends ModalPrototype {
 	 * @return array|null
 	 * @throws \Exception
 	 */
-	public static function getFieldTypesOptions(?array $filters = []): ?array
+	public static function getFieldTypeOptions(?array $filters = []): ?array
+	{
+		foreach(self::get($filters) as $field_type){
+			$field_type['tooltip'] = $field_type['desc'];
+			$field_type['alt'] = $field_type['desc'];
+
+			$options[$field_type['field_type_id']] = $field_type;
+		}
+
+		return $options;
+	}
+
+
+	/**
+	 * Returns field types.
+	 * If filters are provided, they will be applied.
+	 * The key is the name, and the value is an array.
+	 *
+	 * Accepted filters:
+	 *  - `form_field` (bool) - `true`, will only have form field, `false`, will exclude form field
+	 *  - `form_value` (bool) - `true`, will only have form value, `false`, will exclude form value
+	 *  - `display_only` (bool) - `true`, will only have display, `false`, will exclude display
+	 *  - `exclude` (array) - field types to exclude by name or title
+	 *  - `include` (array) - field types to include by name or title
+	 *
+	 *
+	 * @param array|null $filters
+	 *
+	 * @return array The key is the name, and the value is an array. The array will be empty if the filters are too aggressive.
+	 * @throws \Exception
+	 */
+	public static function get(?array $filters = []): array
 	{
 		if(is_array($filters)){
 			extract($filters);
 		}
 
-		if($display === true){
-			$where = [
-				"display_only" => 1,
-			];
-		}
+		$field_types = [];
 
-		if($display === false){
-			$where = [
-				"display_only" => NULL,
-			];
-		}
+		foreach(Info::getInstance()->getInfo("field_type") as $field_type){
+			# Filter by display only
+			if(key_exists("display_only", $filters)){
+				if($display_only && !$field_type['settings']['display_only']){
+					continue;
+				}
 
-		$field_types = Info::getInstance()->getInfo([
-			"rel_table" => "field_type",
-			"where" => $where,
-		]);
+				if(!$display_only && $field_type['settings']['display_only']){
+					continue;
+				}
+			}
 
-		foreach($field_types as $field_type){
+			# Filter by form fields
+			if(key_exists("form_field", $filters)){
+				if($form_field && !$field_type['settings']['form_field']){
+					continue;
+				}
+
+				if(!$form_field && $field_type['settings']['form_field']){
+					continue;
+				}
+			}
+
+			# Filter by form values
+			if(key_exists("form_value", $filters)){
+				if($form_value && !$field_type['settings']['form_value']){
+					continue;
+				}
+
+				if(!$form_value && $field_type['settings']['form_value']){
+					continue;
+				}
+			}
+
+			# Exclude some
 			if(is_array($exclude)){
 				if(str::in_array_ci($field_type['title'], $exclude)
 					|| str::in_array_ci($field_type['name'], $exclude)){
@@ -254,6 +269,7 @@ class FieldType extends ModalPrototype {
 				}
 			}
 
+			# Include some
 			if(is_array($include)){
 				if(!str::in_array_ci($field_type['title'], $include)
 					&& !str::in_array_ci($field_type['name'], $include)){
@@ -261,14 +277,11 @@ class FieldType extends ModalPrototype {
 				}
 			}
 
-			$field_type['tooltip'] = $field_type['desc'];
-			$field_type['alt'] = $field_type['desc'];
-
-			$field_type_options[$field_type['field_type_id']] = $field_type;
+			$field_types[$field_type['name']] = $field_type;
 		}
 
-		str::multidimensionalOrderBy($field_type_options, "order");
+		str::multidimensionalOrderBy($field_types, "order");
 
-		return $field_type_options;
+		return $field_types;
 	}
 }

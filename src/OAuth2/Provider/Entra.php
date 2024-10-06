@@ -160,18 +160,81 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 		return $group;
 	}
 
+	/**
+	 * The key is the property name in the user table sso-data object.
+	 */
 	const DEFAULT_PROPERTIES = [
-		"businessPhones",
-		"displayName",
-		"givenName",
-		"id",
-		"jobTitle",
-		"mail",
-		"mobilePhone",
-		"officeLocation",
-		"preferredLanguage",
-		"surname",
-		"userPrincipalName",
+		"businessPhones" => [
+			"field_type" => [
+				"name" => "phone"
+			],
+			"key" => "business_phone",
+			"icon" => "phone-office",
+			"title" => "Business phone",
+		],
+		"displayName" => [
+			"key" => "name",
+			"icon" => "id-badge",
+			"title" => "Display name",
+		],
+		"givenName" => [
+			"key" => "first_name",
+			"icon" => "input-text",
+			"title" => "First name",
+		],
+		"id" => [
+			"key" => "id",
+			"icon" => "fingerprint",
+			"title" => "ID",
+		],
+		"jobTitle" => [
+			"key" => "job_title",
+			"icon" => "id-card",
+			"title" => "Job title",
+		],
+		"mail" => [
+			"field_type" => [
+				"name" => "email"
+			],
+			"key" => "email",
+			"icon" => "at",
+			"title" => "Email address",
+		],
+		"mobilePhone" => [
+			"field_type" => [
+				"name" => "phone"
+			],
+			"key" => "phone",
+			"icon" => "mobile",
+			"title" => "Mobile phone",
+		],
+		"officeLocation" => [
+			"key" => "office_location",
+			"icon" => "building",
+			"title" => "Office location",
+		],
+		"preferredLanguage" => [
+			"key" => "language",
+			"icon" => "language",
+			"title" => "Preferred language",
+		],
+		"surname" => [
+			"key" => "last_name",
+			"icon" => "input-text",
+			"title" => "Last name",
+		],
+
+		// Additional properties
+		"department" => [
+			"key" => "department",
+			"icon" => "people-group",
+			"title" => "Department",
+		],
+		"streetAddress" => [
+			"key" => "street_address",
+			"icon" => "road",
+			"title" => "Street address",
+		],
 	];
 
 	/**
@@ -212,10 +275,10 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 			return NULL;
 		}
 
-		$properties = array_merge(self::DEFAULT_PROPERTIES, $additional_properties);
+		$properties = array_merge(array_keys(self::DEFAULT_PROPERTIES), $additional_properties);
+		$select = implode(",", $properties);
 
 		try {
-			$select = implode(",", $properties);
 			$response = $this->graph->createRequest("GET", "/users/{$user_id}?\$select={$select}")
 				->setReturnType(\Microsoft\Graph\Model\User::class)
 				->execute();
@@ -258,14 +321,17 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	 * @return array|null
 	 * @throws \GuzzleHttp\Exception\GuzzleException
 	 */
-	public function getMe(): ?array
+	public function getMe(?array $additional_properties = []): ?array
 	{
 		if(!$this->graph){
 			return NULL;
 		}
 
+		$properties = array_merge(array_keys(self::DEFAULT_PROPERTIES), $additional_properties);
+		$select = implode(",", $properties);
+
 		try {
-			$response = $this->graph->createRequest("GET", "/me")
+			$response = $this->graph->createRequest("GET", "/me?\$select={$select}")
 				->setReturnType(\Microsoft\Graph\Model\User::class)
 				->execute();
 
