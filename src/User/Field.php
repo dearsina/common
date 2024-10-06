@@ -4,6 +4,7 @@
 namespace App\Common\User;
 
 
+use API\Microsoft\Azure\Azure;
 use App\Common\href;
 use App\Common\Prototype\FieldPrototype;
 use App\UI\Countdown;
@@ -377,6 +378,59 @@ class Field extends FieldPrototype {
 			"required" => "For added security, please enter your current password.",
 			"autocomplete" => "new-password",
 		]];
+	}
+
+	public static function editSignature($a = NULL): array
+	{
+		if(is_array($a))
+			extract($a);
+
+		if($signature_id){
+			$azure = new Azure();
+			if($azure->fileExists($user_id, $signature_id)){
+				$signature = $azure->getData($user_id, $signature_id);
+			}
+		}
+
+		$fields[] = [
+			"type" => "html",
+			"html" => "<p>
+			By adding your signature it can
+			be used in workflows in lieu
+			of you siging yourself. 
+			Please consult with your
+			subscription owner if you
+			are unsure if this is right for you.
+			</p>",
+		];
+
+		$fields[] = [
+			"type" => "signature",
+			"name" => "signature",
+			"value" => $signature,
+			"label" => false,
+			"required" => "Ensure you've added your signature.",
+		];
+
+		# If the user has a password, ask them to repeat it
+		if($password){
+			// SSO users don't have passwords
+			$fields[] = [
+				"icon" => "key",
+				"type" => "password",
+				"name" => "password",
+				"placeholder" => "Current password",
+				"label" => false,
+				"required" => "For added security, please enter your current password.",
+				"autocomplete" => "new-password",
+				"parent_style" => [
+					"margin-top" => "1rem"
+				]
+			];
+		}
+
+
+		return $fields;
 	}
 
 	/**

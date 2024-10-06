@@ -3,6 +3,7 @@
 
 namespace App\Common\User;
 
+use API\Microsoft\Azure\Azure;
 use App\Common\Geolocation\Geolocation;
 use App\Common\Prototype;
 use App\Common\Connection\Connection;
@@ -12,7 +13,6 @@ use App\Common\Navigation\Navigation;
 use App\Common\Process;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
-use App\Subscription\Subscription;
 use App\UI\Form\Form;
 use App\UI\Icon;
 use App\UI\Page;
@@ -417,6 +417,22 @@ class User extends Prototype {
 		}
 
 		$this->output->modal($this->modal()->editEmail($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	public function editSignature(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->output->modal($this->modal()->editSignature($a));
 
 		$this->hash->set(-1);
 		$this->hash->silent();
@@ -1550,6 +1566,96 @@ class User extends Prototype {
 		]);
 
 		$this->hash->set(-1);
+
+		return true;
+	}
+
+	public function updateSignature(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$user = $this->info($rel_table, $rel_id);
+
+		# If the user has a password, check it
+		if($user['password']){
+			# Decrypt the (password) vars
+			\App\UI\Form\Form::decryptVars($vars);
+
+			# Check to see if the password is correct, compared to the password on file
+			if(!$this->validatePassword($vars['password'], $user['password'])){
+				$this->log->error([
+					"container" => ".modal-body",
+					"title" => 'Incorrect password',
+					"message" => 'Please ensure you have written the correct password.',
+				]);
+				return false;
+			}
+		}
+
+		# Use an existing signature ID or create a new one
+		$signature_id = $user['signature_id'] ?: str::uuid();
+
+		# Update the user's signature
+		$azure = new Azure();
+		$azure->setData($user['user_id'], $signature_id, $vars['signature'], [
+			"content_type" => "image/svg",
+			"filename" => "signature.svg",
+		]);
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => [
+				"signature_id" => $signature_id,
+			],
+			"id" => $rel_id,
+		]);
+
+		$this->log->success([
+			"title" => "Signature saved",
+			"message" => "Your signature has been saved.",
+		]);
+
+		$this->output->closeModal();
+
+		$this->hash->set([
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+		]);
+
+		return true;
+	}
+
+	public function removeSignature(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"id" => $rel_id,
+			"set" => [
+				"signature_id" => NULL,
+			],
+		]);
+
+		$this->log->success([
+			"title" => "Signature removed",
+			"message" => "Your signature has been removed.",
+		]);
+
+		$this->output->closeModal();
+
+		$this->hash->set([
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+		]);
 
 		return true;
 	}
