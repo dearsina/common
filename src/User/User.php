@@ -2221,7 +2221,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	function verifyCredentials($a)
+	function verifyCredentials(array $a): bool
 	{
 		extract($a);
 
@@ -2338,7 +2338,7 @@ class User extends Prototype {
 		# Reset failed login attempts number as the user has successfully logged in
 		$this->resetFailedLoginAttempts($user);
 
-		# If password has expired
+		# If the password has expired
 		if(User::passwordHasExpired($user)){
 			$this->output->modal($this->modal()->editPassword([
 				"rel_table" => $rel_table,
@@ -2370,7 +2370,7 @@ class User extends Prototype {
 		return true;
 	}
 
-	private function addOneMoreFailedLoginAttempt(array &$user): void
+	protected function addOneMoreFailedLoginAttempt(array &$user): void
 	{
 		$user['failed_login_attempts']++;
 
@@ -2425,7 +2425,7 @@ class User extends Prototype {
 	 *
 	 * @param array $user
 	 */
-	private function warnUserAboutFailedLoginAttempt(array $user): void
+	protected function warnUserAboutFailedLoginAttempt(array $user): void
 	{
 		$email = new Email();
 
@@ -2470,7 +2470,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @throws Exception
 	 */
-	private function prepare2FACode($a, $user): bool
+	protected function prepare2FACode($a, $user): bool
 	{
 		extract($a);
 
@@ -2706,12 +2706,12 @@ class User extends Prototype {
 	/**
 	 * Used for first time registrations and when users change address.
 	 *
-	 * @param $a
+	 * @param array $a
 	 *
 	 * @return bool
 	 * @throws Exception
 	 */
-	function verifyEmail($a)
+	function verifyEmail(array $a): bool
 	{
 		extract($a);
 
@@ -3139,7 +3139,7 @@ class User extends Prototype {
 	 * @return bool
 	 * @link https://www.php.net/manual/en/function.crypt.php#114060
 	 */
-	private function validatePassword(string $password, string $hash)
+	protected function validatePassword(string $password, string $hash)
 	{
 		/* Regenerating the with an available hash as the options parameter should
 		 * produce the same hash if the same password is passed.
