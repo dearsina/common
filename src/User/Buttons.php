@@ -38,6 +38,25 @@ class Buttons {
 		];
 	}
 
+	public static function editSignature(array $user): array
+	{
+		if($user['signature_id']){
+			$title = "Edit signature...";
+		}
+		else {
+			$title = "Add signature...";
+		}
+		return  [
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user['user_id'],
+				"action" => "edit_signature",
+			],
+			"title" => $title,
+			"icon" => Icon::get("signature"),
+		];
+	}
+
 	public static function updatePassword(array $user): array
 	{
 		return  [

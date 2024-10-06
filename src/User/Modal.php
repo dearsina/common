@@ -138,6 +138,65 @@ class Modal extends Prototype {
 		return $modal->getHTML();
 	}
 
+	public function editSignature(array $a): string
+	{
+		extract($a);
+
+		$user = $this->info($rel_table, $rel_id);
+
+		if($user['signature_id']){
+			$buttons[] = [
+				"type" => "submit",
+				"title" => "Update",
+				"icon" => Icon::get("save"),
+				"colour" => "primary",
+			];
+			$buttons[] = [
+				"title" => "Remove...",
+				"icon" => Icon::get("remove"),
+				"colour" => "danger",
+				"approve" => true,
+				"hash" => [
+					"rel_table" => "user",
+					"rel_id" => $rel_id,
+					"action" => "remove_signature",
+				]
+			];
+		}
+		else {
+			$buttons[] = [
+				"type" => "submit",
+				"title" => "Save",
+				"icon" => Icon::get("save"),
+				"colour" => "primary",
+			];
+		}
+
+		$buttons[] = "cancel_md";
+
+		$form = new Form([
+			"action" => "update_signature",
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"callback" => $vars['callback'],
+			"fields" => Field::editSignature($user),
+			"buttons" => $buttons,
+			"modal" => true,
+			"encrypt" => ["password"]
+		]);
+
+		$modal = new \App\UI\Modal\Modal([
+			"size" => "s",
+			"icon" => Icon::get("edit"),
+			"header" => str::title("User signature"),
+			"body" => $form->getHTML(),
+			"draggable" => true,
+			"resizable" => true,
+		]);
+
+		return $modal->getHTML();
+	}
+
 	public function editPassword(array $a, ?string $size = "m"): string
 	{
 		extract($a);
