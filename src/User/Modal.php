@@ -109,12 +109,8 @@ class Modal extends Prototype {
 
 		$$rel_table = $this->info($rel_table, $rel_id);
 
-		$buttons = [[
-			"type" => "submit",
-			"title" => "Update",
-			"icon" => Icon::get("save"),
-			"colour" => "primary",
-		],"cancel_md"];
+		$buttons[] = Buttons::updateButton();
+		$buttons[] = "cancel_md";
 
 		$form = new Form([
 			"action" => "send_email_update_email",
@@ -145,33 +141,12 @@ class Modal extends Prototype {
 		$user = $this->info($rel_table, $rel_id);
 
 		if($user['signature_id']){
-			$buttons[] = [
-				"type" => "submit",
-				"title" => "Update",
-				"icon" => Icon::get("save"),
-				"colour" => "primary",
-			];
-			$buttons[] = [
-				"title" => "Remove...",
-				"icon" => Icon::get("remove"),
-				"colour" => "danger",
-				"approve" => true,
-				"hash" => [
-					"rel_table" => "user",
-					"rel_id" => $rel_id,
-					"action" => "remove_signature",
-				]
-			];
+			$buttons[] = Buttons::updateButton();
+			$buttons[] = Buttons::removeButton($rel_id);
 		}
 		else {
-			$buttons[] = [
-				"type" => "submit",
-				"title" => "Save",
-				"icon" => Icon::get("save"),
-				"colour" => "primary",
-			];
+			$buttons[] = Buttons::saveButton();
 		}
-
 		$buttons[] = "cancel_md";
 
 		$form = new Form([
@@ -186,7 +161,7 @@ class Modal extends Prototype {
 		]);
 
 		$modal = new \App\UI\Modal\Modal([
-			"size" => "s",
+			"size" => "m",
 			"icon" => Icon::get("edit"),
 			"header" => str::title("User signature"),
 			"body" => $form->getHTML(),
