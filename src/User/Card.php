@@ -551,15 +551,25 @@ class Card extends Prototype {
 			$oauth_token = $this->info("oauth_token", $user['oauth_token_id']);
 			$provider = OAuth2Handler::getSingleSignOnProviderObject($oauth_token['provider'], $oauth_token);
 			$org = $provider->getOrganization($oauth_token);
-			$me = $provider->getUser($user['sso_id']);
 
-			$rows['First name'] = $me['first_name'];
-			$rows['Last name'] = $me['last_name'];
-			$rows['Phone'] = $me['phone'];
-			$rows['Email'] = $me['email'];
+			if($sso_data = $provider->getUser($user['sso_id'])){
+				# Store a copy of the SSO data in the user table
+				$this->sql->update([
+					"table" => "user",
+					"id" => $user['user_id'],
+					"set" => [
+						"sso_data" => $sso_data,
+					],
+				]);
+			}
+
+			$rows['First name'] = $sso_data['first_name'];
+			$rows['Last name'] = $sso_data['last_name'];
+			$rows['Phone'] = $sso_data['phone'];
+			$rows['Email'] = $sso_data['email'];
 			$rows["Organization"] = $org['name'];
-			$rows["Job title"] = $me['job_title'];
-			$rows["Office location"] = $me['office_location'];
+			$rows["Job title"] = $sso_data['job_title'];
+			$rows["Office location"] = $sso_data['office_location'];
 
 			$rows['Provider'] = OAuth2Handler::getProviderTitle($oauth_token['provider']);
 			$icon = OAuth2Handler::PROVIDERS[$oauth_token['provider']]['icon'];
