@@ -179,4 +179,39 @@ class Buttons {
 			],
 		];
 	}
+
+	public static function updateButton(): array
+	{
+	    return [
+			"type" => "submit",
+			"title" => "Update",
+			"icon" => Icon::get("save"),
+			"colour" => "primary",
+	    ];
+	}
+
+	public static function saveButton(): array
+	{
+	    return [
+			"type" => "submit",
+			"title" => "Save",
+			"icon" => Icon::get("save"),
+			"colour" => "primary",
+	    ];
+	}
+
+	public static function removeButton(string $user_id): array
+	{
+	    return [
+			"title" => "Remove...",
+			"icon" => Icon::get("remove"),
+			"colour" => "danger",
+			"approve" => true,
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $user_id,
+				"action" => "remove_signature",
+			]
+	    ];
+	}
 }
