@@ -30,18 +30,18 @@ class Field {
 		]];
 
 	    $size = [[
-			"name" => "min_width",
+			"name" => "settings[min_width]",
 			"title" => "Minimum width",
 			"placeholder" => false,
 			"desc" => "Whole number larger than 0.",
-			"value" => $min_width,
+			"value" => $settings['min_width'],
 			"required" => true
 		],[
-			"name" => "min_height",
+			"name" => "settings[min_height]",
 			"title" => "Minimum height",
 			"placeholder" => false,
 			"desc" => "Whole number larger than 0.",
-			"value" => $min_height,
+			"value" => $settings['min_height'],
 			"required" => true
 		],[
 			"name" => "name",
@@ -53,8 +53,16 @@ class Field {
 
 	    $checkboxes = [[
 			"type" => "checkbox",
-			"name" => "display_only",
-			"checked" => $display_only,
+			"name" => "settings[form_field]",
+			"checked" => $settings['form_field'],
+			"label" => [
+				"title" => "Form field",
+			],
+			"desc" => "This field type is a form field field type."
+		],[
+			"type" => "checkbox",
+			"name" => "settings[display_only]",
+			"checked" => $settings['display_only'],
 			"label" => [
 				"title" => "Display only",
 			],
@@ -63,12 +71,12 @@ class Field {
 			out the fields that someone can populate for the sake of form completion, and those they cannot."
 		],[
 			"type" => "checkbox",
-			"name" => "form_value",
-			"checked" => $form_value,
+			"name" => "settings[form_value]",
+			"checked" => $settings['form_value'],
 			"label" => [
 				"title" => "Form value",
 			],
-			"desc" => "This field type can also be a form value field type."
+			"desc" => "This field type is a form value field type."
 		]];
 
 	    return [[[

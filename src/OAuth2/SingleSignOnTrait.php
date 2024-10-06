@@ -11,6 +11,14 @@ trait SingleSignOnTrait {
 		$member['email'] = $member['email'] ?: $member['mail'];
 	}
 
+	/**
+	 * Creates a simplified user array for the most important keys
+	 * that will be the same across all SSO providers.
+	 *
+	 * @param array $user
+	 *
+	 * @return void
+	 */
 	public static function unifyUser(array &$user): void
 	{
 		$user['email'] = $user['email'] ?: $user['mail'];
@@ -39,6 +47,20 @@ trait SingleSignOnTrait {
 
 		if($user['jobTitle']){
 			$user['job_title'] = $user['jobTitle'];
+		}
+
+		if($user['preferredLanguage']){
+			$user['language'] = $user['preferredLanguage'];
+		}
+
+		if($user['businessPhones']){
+			if(is_array($user['businessPhones'])){
+				$business_phones = array_filter($user['businessPhones']);
+				$user['business_phone'] = reset($business_phones);
+			}
+			else {
+				$user['business_phone'] = $user['businessPhones'];
+			}
 		}
 	}
 

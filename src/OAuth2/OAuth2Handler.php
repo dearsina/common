@@ -447,7 +447,71 @@ class OAuth2Handler extends \App\Common\Prototype {
 	}
 
 	/**
-	 * Parses a JWT token into its three parts.
+	 * Parses a JWT token into its three parts:
+	 * header, payload and signature.
+	 *
+	 * Header:
+	 * {
+	 * "typ": "JWT",
+	 * "nonce": "HkIDnF0tjQQcj2wUMvriMN0meqk-CO3AMfuq2ForZ6A",
+	 * "alg": "RS256",
+	 * "x5t": "Mc7l3Iz93g7uwgNeEmmw_WYGPko",
+	 * "kid": "Mc7l3Iz93g7uwgNeEmmw_WYGPko"
+	 * }
+	 *
+	 * Payload:
+	 * {
+	 * "aud": "00000003-0000-0000-c000-000000000000",
+	 * "iss": "https://sts.windows.net/94b3f1b2-8b3a-49e3-ba33-8b8fb6d18361/",
+	 * "iat": 1728099239,
+	 * "nbf": 1728099239,
+	 * "exp": 1728103603,
+	 * "acct": 0,
+	 * "acr": "1",
+	 * "aio": "AVQAq***iBpkxpFs=",
+	 * "amr": [
+	 * "pwd",
+	 * "rsa"
+	 * ],
+	 * "app_displayname": "KYCDD",
+	 * "appid": "7b47653b-***-fff16020d913",
+	 * "appidacr": "1",
+	 * "deviceid": "772fa84d-***-c4d8272be052",
+	 * "family_name": "AL H******I",
+	 * "given_name": "E**d",
+	 * "idtyp": "user",
+	 * "ipaddr": "2.49.168.167",
+	 * "name": "AL H******I E***",
+	 * "oid": "ca211be3-***-043cb49afaf2", # The user's ID
+	 * "onprem_sid": "S-1-5-21-2256439942-1328414369-864950462-645343",
+	 * "platf": "2",
+	 * "puid": "100320004768EF87",
+	 * "rh": "0.AQIAsvGzlDqL40m6M4uPttGDYQMAAAAAAAAAwAAAAAAAAADcAKI.",
+	 * "scp": "GroupMember.Read.All openid User.Read User.ReadBasic.All profile email",
+	 * "signin_state": [
+	 * "kmsi"
+	 * ],
+	 * "sub": "4DZyxoBPsRhmtPPra3Ax-1A-eLJm0JoEvVdVUFfGA1E",
+	 * "tenant_region_scope": "EU",
+	 * "tid": "94b3f1b2-8b3a-49e3-ba33-8b8fb6d18361",
+	 * "unique_name": "e***i@c***r.com",
+	 * "upn": "e***i@c***r.com",
+	 * "uti": "8svcpjktgECfKJrFf0UWAA",
+	 * "ver": "1.0",
+	 * "wids": [
+	 * "b79fbf4d-***-76b194e85509"
+	 * ],
+	 * "xms_idrel": "1 10",
+	 * "xms_st": {
+	 * "sub": "ICdiZMPZmM27M8oYWSVxOqSb_M-w-Vg_x2N-zTKFXoo"
+	 * },
+	 * "xms_tcdt": 1329796979,
+	 * "xms_tdbr": "EU"
+	 * }
+	 *
+	 * Signature:
+	 * (Can be used to verify the token)
+	 *
 	 *
 	 * @param string|null $token
 	 *
