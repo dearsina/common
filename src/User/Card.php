@@ -584,8 +584,8 @@ class Card extends Prototype {
 			$rows['Last name'] = $sso_data['last_name'];
 			$rows['Phone'] = $sso_data['phone'];
 			$rows['Email'] = $sso_data['email'];
-			$rows["Organization"] = $org['name'];
 			$rows["Job title"] = $sso_data['job_title'];
+			$rows["Department"] = $sso_data['department'];
 			$rows["Office location"] = $sso_data['office_location'];
 
 			$rows['Provider'] = OAuth2Handler::getProviderTitle($oauth_token['provider']);
