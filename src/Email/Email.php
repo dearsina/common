@@ -708,6 +708,25 @@ class Email extends Prototype {
 				"title" => "Email not sent",
 				"message" => "Emails will not be sent from the development environment [{$_SERVER['SERVER_ADDR']}].",
 			]);
+			if($to = $this->envelope->getTo()){
+				Log::getInstance()->info([
+					"title" => "TO",
+					"message" => "<pre>".json_encode($to, JSON_PRETTY_PRINT)."</pre>",
+				]);
+			}
+			if($cc = $this->envelope->getCc()){
+				Log::getInstance()->info([
+					"title" => "CC",
+					"message" => "<pre>".json_encode($cc, JSON_PRETTY_PRINT)."</pre>",
+				]);
+			}
+			if($bcc = $this->envelope->getBcc()){
+				Log::getInstance()->info([
+					"title" => "BCC",
+					"message" => "<pre>".json_encode($bcc, JSON_PRETTY_PRINT)."</pre>",
+				]);
+			}
+
 			Log::getInstance()->info([
 				"icon" => "email",
 				"title" => $this->envelope->getSubject(),
