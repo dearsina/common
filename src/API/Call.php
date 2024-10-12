@@ -176,12 +176,22 @@ class Call {
 			# Log the error for closer examination
 			ExceptionHandler::logException("API", $e);
 
-			# Send a generic message to the API requester
-			$output = [
-				"status" => "Error",
-//				"error" => $e->getMessage(),
-				"error" => "An unexpected error has occurred. Our engineers have been notified. Please try again shortly.",
-			];
+
+			# DEV: Send a detailed message to the API requester
+			if(str::isDev()){
+				$output = [
+					"status" => "Error",
+					"error" => $e->getMessage(),
+				];
+			}
+
+			# PROD: Send a generic message to the API requester
+			else {
+				$output = [
+					"status" => "Error",
+					"error" => "An unexpected error has occurred. Our engineers have been notified. Please try again shortly.",
+				];
+			}
 		}
 
 		# Echo the output to the user
