@@ -2510,18 +2510,19 @@ EOF;
 					continue;
 				}
 				$k = (mb_strtolower($value) === 'asc') ? 1 : -1;
-				if($case_sensitive || is_array($a[$key]) || is_array($b[$key])){
-					//If either side is an array, we can't use strtolower()
-					$r = ($a[$key] < $b[$key]);
+
+				$a_value = self::getNestedValue($a, $key);
+				$b_value = self::getNestedValue($b, $key);
+
+				if($case_sensitive || is_array($a_value) || is_array($b_value)){
+					$r = ($a_value < $b_value);
 				}
 				else {
-					$r = (strtolower($a[$key]) < strtolower($b[$key]));
-
+					$r = (strtolower($a_value) < strtolower($b_value));
 				}
-				if($a[$key] !== $b[$key]){
+				if($a_value !== $b_value){
 					return $t[$r] * $k;
 				}
-
 			}
 			return $t[$r] * $k;
 		});
@@ -2530,6 +2531,30 @@ EOF;
 			$array = array_values($array);
 		}
 	}
+
+	/**
+	 * @param array $array
+	 * @param       $keyPath
+	 *
+	 * @return array|mixed|null
+	 */
+	private static function getNestedValue(array $array, $keyPath)
+	{
+		if(is_array($keyPath)){
+			$keys = $keyPath;
+		}
+		else {
+			$keys = explode('.', $keyPath);
+		}
+		foreach($keys as $key){
+			if(!isset($array[$key])){
+				return NULL;
+			}
+			$array = $array[$key];
+		}
+		return $array;
+	}
+
 
 	/**
 	 * Returns FALSE is array is numeric (sequential, 0 to n row keys), TRUE otherwise.
@@ -3952,10 +3977,10 @@ EOF;
 	 * </code>
 	 * //Returns "apples, oranges, bananas, and pears"
 	 *
-	 * @param array|null  $array An array of items
-	 * @param string|null $tag Must not include the brackets, just the tag name.
+	 * @param array|null  $array  An array of items
+	 * @param string|null $tag    Must not include the brackets, just the tag name.
 	 * @param string|null $and_or "and" or "or", or anything else that will come between the two last items
-	 * @param string|null $glue The glue between each item, default is ", "
+	 * @param string|null $glue   The glue between each item, default is ", "
 	 *
 	 * @return bool|mixed|string
 	 */
