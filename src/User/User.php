@@ -2551,7 +2551,6 @@ class User extends Prototype {
 			"id" => $rel_id,
 			"where" => [
 				"key" => $vars['code'],
-				"session_id" => session_id(),
 			],
 			"include_meta" => true,
 		])){
@@ -2560,6 +2559,14 @@ class User extends Prototype {
 				"message" => "The two-factor authentication key you provided was incorrect. Please ensure you have entered the right key.",
 			]);
 			return false;
+		}
+
+		if($user['session_id'] != session_id()){
+			$this->log->error([
+				"display" => false,
+				"title" => 'Session mismatch',
+				"message" => "The two-factor authentication key provided by {$user['user_id']} was correct, but the session ID changed from {$user['session_id']} to ".session_id().".",
+			]);
 		}
 
 		if(str::moreThanMinutesSince(15, $user['updated'])){
