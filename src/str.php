@@ -2222,10 +2222,11 @@ EOF;
 	 * @param string|null $currency
 	 * @param int|null    $padding
 	 * @param int|null    $decimals
+	 * @param string|null $thousands_separator
 	 *
 	 * @return string|null
 	 */
-	static function number(?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2, ?bool $monospace = true): ?string
+	static function number(?float $amount, ?string $currency = NULL, ?int $padding = NULL, ?int $decimals = 2, ?string $thousands_separator = ",", ?bool $monospace = true): ?string
 	{
 		# A number (even if it's "0") is required
 		if(!strlen($amount)){
@@ -2233,7 +2234,7 @@ EOF;
 		}
 
 		# include thousand-separators, decimals and a decimal point
-		$amount = number_format($amount, $decimals, '.', ',');
+		$amount = number_format($amount, $decimals, '.', $thousands_separator);
 
 		# Pad if required
 		if($padding){
