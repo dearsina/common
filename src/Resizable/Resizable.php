@@ -27,15 +27,19 @@ class Resizable extends Prototype {
 			return true;
 		}
 
+		if($vars['rel_table']){
+			return $this->logRelTableChange($a);
+		}
+
 		# If the user has already resized this modal, update the record
 		if($resizable = $this->sql->select([
 			"db" => "ui",
 			"table" => "resizable",
 			"where" => [
 				"user_id" => $this->user->getId(),
-				"modal_id" => $vars['modal_id']
+				"modal_id" => $vars['modal_id'],
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			$this->sql->update([
 				"db" => "ui",
@@ -61,7 +65,59 @@ class Resizable extends Prototype {
 			],
 		]);
 
-	    return true;
+		return true;
+	}
+
+	private function logRelTableChange(array $a): bool
+	{
+		extract($a);
+
+		if(!$vars['columns']){
+			$this->sql->delete([
+				"db" => "ui",
+				"table" => "resizable",
+				"where" => [
+					"user_id" => $this->user->getId(),
+					"rel_id" => $vars['rel_id'],
+				],
+			]);
+			return true;
+		}
+
+		# If the user already has a record for this dashboard tile, update it
+		if($resizable = $this->sql->select([
+			"db" => "ui",
+			"table" => "resizable",
+			"where" => [
+				"user_id" => $this->user->getId(),
+				"rel_id" => $vars['rel_id'],
+			],
+			"limit" => 1,
+		])){
+			$this->sql->update([
+				"db" => "ui",
+				"table" => "resizable",
+				"set" => [
+					"columns" => $vars['columns']
+				],
+				"id" => $resizable['resizable_id'],
+			]);
+			return true;
+		}
+
+		# Otherwise, insert a new record
+		$this->sql->insert([
+			"db" => "ui",
+			"table" => "resizable",
+			"set" => [
+				"user_id" => $this->user->getId(),
+				"rel_table" => $vars['rel_table'],
+				"rel_id" => $vars['rel_id'],
+				"columns" => $vars['columns']
+			],
+		]);
+
+		return true;
 	}
 
 	public static function setDimensions(?array &$data = [], ?string $modal_id = NULL): void
@@ -80,9 +136,9 @@ class Resizable extends Prototype {
 			"table" => "resizable",
 			"where" => [
 				"user_id" => $user->getId(),
-				"modal_id" => $modal_id
+				"modal_id" => $modal_id,
 			],
-			"limit" => 1
+			"limit" => 1,
 		])){
 			return;
 		}
@@ -91,6 +147,40 @@ class Resizable extends Prototype {
 			"width" => $resizable['width'],
 			"height" => $resizable['height'],
 		];
+	}
+
+	public static function getColumnData(?string $rel_id = NULL): ?array
+	{
+		if(!$rel_id){
+			return NULL;
+		}
+
+		$user = new User();
+		if(!$user->isLoggedIn()){
+			return NULL;
+		}
+
+		if(!$resizable = mySQL::getInstance()->select([
+			"db" => "ui",
+			"table" => "resizable",
+			"where" => [
+				"user_id" => $user->getId(),
+				"rel_id" => $rel_id,
+			],
+			"limit" => 1,
+		])){
+			return NULL;
+		}
+
+		if(!$resizable['columns']){
+			return NULL;
+		}
+
+		foreach($resizable['columns'] as $column){
+			$columns[$column['column']] = $column;
+		}
+
+		return $columns;
 	}
 
 
