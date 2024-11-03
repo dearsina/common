@@ -87,6 +87,103 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 	];
 
+	const USER_SSO_DATA_FIELDS = [
+		"email" => [
+			"title" => "Email address",
+			"icon" => "envelope",
+			"provider" => [
+				"entra" => "mail",
+			],
+			"field_type" => [
+				"name" => "email",
+			],
+		],
+		"phone" => [
+			"title" => "Phone number",
+			"icon" => "phone",
+			"provider" => [
+				"entra" => ["number", "mobilePhone"],
+			],
+			"field_type" => [
+				"name" => "tel",
+			],
+		],
+		"first_name" => [
+			"title" => "First name",
+			"icon" => "user",
+			"provider" => [
+				"entra" => ["givenName"],
+			],
+			"field_type" => [
+				"name" => "input",
+			],
+		],
+		"last_name" => [
+			"title" => "Last name",
+			"icon" => "user",
+			"provider" => [
+				"entra" => ["surname"],
+			],
+			"field_type" => [
+				"name" => "input",
+			],
+		],
+		"name" => [
+			"title" => "Full name",
+			"icon" => "user",
+			"provider" => [
+				"entra" => ["displayName", "userPrincipalName"],
+			],
+			"field_type" => [
+				"name" => "input",
+			],
+		],
+		"office_location" => [
+			"title" => "Office location",
+			"icon" => "building",
+			"provider" => [
+				"entra" => ["officeLocation", "streetAddress"],
+			],
+			"sso_only" => true,
+			"field_type" => [
+				"name" => "input",
+			],
+		],
+		"job_title" => [
+			"title" => "Job title",
+			"icon" => "briefcase",
+			"provider" => [
+				"entra" => "jobTitle",
+			],
+			"sso_only" => true,
+			"field_type" => [
+				"name" => "input",
+			],
+		],
+		"language" => [
+			"title" => "Language",
+			"icon" => "globe",
+			"provider" => [
+				"entra" => "preferredLanguage",
+			],
+			"sso_only" => true,
+			"field_type" => [
+				"name" => "input",
+			],
+		],
+		"business_phone" => [
+			"title" => "Business phone",
+			"icon" => "phone",
+			"provider" => [
+				"entra" => "businessPhones",
+			],
+			"sso_only" => true,
+			"field_type" => [
+				"name" => "tel",
+			],
+		],
+	];
+
 	/**
 	 * The method that is called to start the process
 	 * of getting an OAuth2 token. This method will
@@ -209,7 +306,8 @@ class OAuth2Handler extends \App\Common\Prototype {
 			//if there is no session variable stored (because the session has expired)
 
 			# Force close the window
-			echo "<script>window.close();</script>";exit;
+			echo "<script>window.close();</script>";
+			exit;
 		}
 
 		# Clear it for future use

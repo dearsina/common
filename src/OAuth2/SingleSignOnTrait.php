@@ -21,47 +21,38 @@ trait SingleSignOnTrait {
 	 */
 	public static function unifyUser(array &$user): void
 	{
-		$user['email'] = $user['email'] ?: $user['mail'];
-		$user['phone'] = $user['number'] ?: $user['mobilePhone'];
-
-		$user['first_name'] = $user['first_name'] ?: $user['givenName'];
-		$user['last_name'] = $user['last_name'] ?: $user['surname'];
-
-		if($user['first_name'] || $user['last_name']){
-			$user['name'] = trim($user['first_name'] . " " . $user['last_name']);
-		}
-
-		else if($user['displayName']){
-			$user['name'] = $user['displayName'];
-		}
-		else if($user['userPrincipalName']){
-			$user['name'] = $user['userPrincipalName'];
-		}
-		else {
-			$user['name'] = $user['email'];
-		}
-
-		if($user['officeLocation'] || $user['streetAddress']){
-			$user['office_location'] = $user['officeLocation'] ?: $user['streetAddress'];
-		}
-
-		if($user['jobTitle']){
-			$user['job_title'] = $user['jobTitle'];
-		}
-
-		if($user['preferredLanguage']){
-			$user['language'] = $user['preferredLanguage'];
-		}
-
-		if($user['businessPhones']){
-			if(is_array($user['businessPhones'])){
-				$business_phones = array_filter($user['businessPhones']);
-				$user['business_phone'] = reset($business_phones);
+		foreach(OAuth2Handler::USER_SSO_DATA_FIELDS as $key => $field){
+			# If the provider already has a value for this field, skip it
+			if($user[$key]){
+				continue;
 			}
-			else {
-				$user['business_phone'] = $user['businessPhones'];
+
+			# Go thru each provider and their alternative provider field names
+			foreach($field['provider'] as $provider => $provider_fields){
+				# If the provider field names is not an array, make it one
+				if(!is_array($provider_fields)){
+					$provider_fields = [$provider_fields];
+				}
+
+				# Go thru each provider field name and if the user has a value for it, use that value instead
+				foreach($provider_fields as $provider_field){
+					# If the user has a value for this field, use it
+					if(key_exists($provider_field, $user) && strlen($user[$provider_field])){
+						# If the value is an array, use the first value
+						if(is_array($user[$provider_field])){
+							$user[$key] = reset($user[$provider_field]);
+							continue 3;
+						}
+						# Use the value and continue to the next field
+						$user[$key] = $user[$provider_field];
+						continue 3;
+					}
+				}
 			}
 		}
+
+		# If the user has a first name and/or a last name, create a full name
+		$user['full_name'] = implode(" ", array_filter([$user['first_name'], $user['last_name']]));
 	}
 
 	public static function getSignOnButton(string $provider, ?string $callback = NULL, ?string $user_id = NULL): string
