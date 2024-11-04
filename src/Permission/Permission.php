@@ -105,7 +105,7 @@ class Permission extends Prototype {
 			return $this->userPermissions[$key] ?: [];
 		}
 
-		$permission = $this->sql->select([
+		$permission = $this->info([
 			"columns" => [
 				"c",
 				"r",
@@ -164,7 +164,7 @@ class Permission extends Prototype {
 			return $this->rolePermissions[$key] ?: [];
 		}
 
-		$permission = $this->sql->select([
+		$permission = $this->info([
 			"columns" => [
 				"role_id",
 				"c",
