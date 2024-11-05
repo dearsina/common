@@ -138,6 +138,17 @@ class OAuth2Handler extends \App\Common\Prototype {
 				"name" => "input",
 			],
 		],
+		"department" => [
+			"title" => "Department",
+			"icon" => "building",
+			"provider" => [
+				"entra" => ["department"],
+			],
+			"sso_only" => true,
+			"field_type" => [
+				"name" => "input",
+			],
+		],
 		"office_location" => [
 			"title" => "Office location",
 			"icon" => "building",
