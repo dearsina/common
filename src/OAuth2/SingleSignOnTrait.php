@@ -37,7 +37,7 @@ trait SingleSignOnTrait {
 				# Go thru each provider field name and if the user has a value for it, use that value instead
 				foreach($provider_fields as $provider_field){
 					# If the user has a value for this field, use it
-					if(key_exists($provider_field, $user) && strlen($user[$provider_field])){
+					if(key_exists($provider_field, $user)){
 						# If the value is an array, use the first value
 						if(is_array($user[$provider_field])){
 							$user[$key] = reset($user[$provider_field]);
