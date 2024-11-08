@@ -88,9 +88,19 @@ class OAuth2Handler extends \App\Common\Prototype {
 	];
 
 	const USER_SSO_DATA_FIELDS = [
+		"id" => [
+			"title" => "ID",
+			"icon" => "fingerprint",
+			"provider" => [
+				"entra" => "id",
+			],
+			"field_type" => [
+				"name" => "input",
+			],
+		],
 		"email" => [
 			"title" => "Email address",
-			"icon" => "envelope",
+			"icon" => "at",
 			"provider" => [
 				"entra" => "mail",
 			],
@@ -100,7 +110,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"phone" => [
 			"title" => "Phone number",
-			"icon" => "phone",
+			"icon" => "mobile",
 			"provider" => [
 				"entra" => ["number", "mobilePhone"],
 			],
@@ -110,7 +120,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"first_name" => [
 			"title" => "First name",
-			"icon" => "user",
+			"icon" => "input-text",
 			"provider" => [
 				"entra" => ["givenName"],
 			],
@@ -120,7 +130,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"last_name" => [
 			"title" => "Last name",
-			"icon" => "user",
+			"icon" => "input-text",
 			"provider" => [
 				"entra" => ["surname"],
 			],
@@ -130,7 +140,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"name" => [
 			"title" => "Full name",
-			"icon" => "user",
+			"icon" => "id-badge",
 			"provider" => [
 				"entra" => ["displayName", "userPrincipalName"],
 			],
@@ -140,7 +150,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"department" => [
 			"title" => "Department",
-			"icon" => "building",
+			"icon" => "people-group",
 			"provider" => [
 				"entra" => ["department"],
 			],
@@ -173,7 +183,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"language" => [
 			"title" => "Language",
-			"icon" => "globe",
+			"icon" => "language",
 			"provider" => [
 				"entra" => "preferredLanguage",
 			],
@@ -184,13 +194,24 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 		"business_phone" => [
 			"title" => "Business phone",
-			"icon" => "phone",
+			"icon" => "phone-office",
 			"provider" => [
 				"entra" => "businessPhones",
 			],
 			"sso_only" => true,
 			"field_type" => [
 				"name" => "tel",
+			],
+		],
+		"street_address" => [
+			"title" => "Street address",
+			"icon" => "road",
+			"provider" => [
+				"entra" => "streetAddress",
+			],
+			"sso_only" => true,
+			"field_type" => [
+				"name" => "input",
 			],
 		],
 	];

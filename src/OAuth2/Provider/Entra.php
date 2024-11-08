@@ -263,7 +263,7 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	 * https://learn.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0
  	 *
 	 *
-	 * @param string     $user_id
+	 * @param string     $user_id Referred to as the sso_id in the user table
 	 * @param array|null $additional_properties
 	 *
 * @return array|null

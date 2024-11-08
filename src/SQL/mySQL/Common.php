@@ -189,7 +189,19 @@ abstract class Common {
 	 */
 	protected function setTable(?string $db, $table, ?string $id = NULL, ?bool $include_removed = NULL, $count = NULL): void
 	{
-		$this->table = $this->getTable($db, $table, $id, $include_removed, $count);
+		# If the main table is a sub-query, handle it slightly differently
+		if(is_array($table) && $table['sub_query']){
+			$this->table = $this->getTable($table['db'], $table['table'], $id, true, $count);
+			$select = new Select($this->mysqli);
+			$this->table['sub_query'] = $select->select($table, true);
+			$this->table['include_removed'] = true;
+			$this->table['columns'] = $select->getAllColumns();
+		}
+
+		# If the main table is NOT a sub-query (most common)
+		else {
+			$this->table = $this->getTable($db, $table, $id, $include_removed, $count);
+		}
 
 		# Add the main table to the alias list
 		$this->table_aliases_in_use[$this->table['alias']] += 1;
@@ -257,7 +269,7 @@ abstract class Common {
 			$array['is_tmp'] = $is_tmp;
 
 			# Set if the table is a CTE
-			$array['is_cte'] = (bool) $this->ctes[$name];
+			$array['is_cte'] = (bool)$this->ctes[$name];
 
 			$include_removed = true;
 		}
@@ -300,8 +312,14 @@ abstract class Common {
 	 */
 	protected function getTableSQL(?string $sub_query = NULL): string
 	{
+		#If the main table is a sub-query
+		if($this->table['sub_query']){
+			$this->table['sub_query'] = str_replace("\r\n", "\r\n\t", $this->table['sub_query']);
+			return "FROM (\r\n\t{$this->table['sub_query']}\r\n) AS `{$this->table['alias']}`";
+		}
+
+		# If the main table is a sub-query in the given context
 		if($sub_query){
-			//if the main table is a sub_query
 			$sub_query = str_replace("\r\n", "\r\n\t", $sub_query);
 			return "FROM (\r\n\t{$sub_query}\r\n) AS `{$this->table['alias']}`";
 		}
@@ -412,6 +430,14 @@ abstract class Common {
 			throw new mysqli_sql_exception("An incomprehensible join was passed: " . print_r($a, true));
 		}
 
+		# If the joined table is a sub-query
+		if($sub_query){
+			$select = new Select($this->mysqli);
+			$sub_query = $select->select($a, true);
+			$include_removed = true;
+			$order_by = NULL;
+		}
+
 		# Generate the table array (needs to be done first, as the array is used by everyone else)
 		$table = $this->getTable($db, $table, $id, $include_removed, $count);
 
@@ -434,10 +460,11 @@ abstract class Common {
 		$order_by_conditions = $this->getOrderBy($table, $columns, $order_by);
 
 		$this->join[$type][] = [
+			"sub_query" => $sub_query,
 			"table" => $table,
 			"columns" => $columns,
 			"on" => $on_conditions,
-			"where" => $where_conditions,
+			"where" => $sub_query ? NULL : $where_conditions,
 			"order_by" => $order_by_conditions,
 		];
 	}
@@ -1155,58 +1182,6 @@ abstract class Common {
 			return $this->getJsonWhere($table, $col, $val);
 		}
 
-//		else if(is_string($col) && is_array($val) && (count($val) == 2) && $this->isJsonFunction($val[0])){
-//			[$json_function, $v] = $val;
-//
-//			# Format function
-//			$json_function = strtoupper($json_function);
-//
-//			# Is col a JSON column?
-//			if(!$this->isColumnJson($table, $col)){
-//				//if $col is NOT a JSON column
-//				return NULL;
-//			}
-//
-//			if(is_array($v)){
-//				$val = "'" . str::i(json_encode($v)) . "'";
-//			}
-//
-//			else if(in_array($json_function, ["JSON_EXTRACT", "NOT JSON_EXTRACT"])){
-//				$val = str::i($v);
-//			}
-//
-//			else {
-//				$val = "JSON_QUOTE('" . str::i($v) . "')";
-//			}
-//
-//			if($json_function == "JSON_EXTRACT"){
-//				//Used to see if a *key* exists (instead of a value)
-//				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NOT NULL";
-//			}
-//
-//			if($json_function == "NOT JSON_EXTRACT"){
-//				//Used to see if a *key* doesn't exist (instead of a value)
-//				return "{$json_function}(`{$table['alias']}`.`{$col}`,'\$**.\"{$val}\"') IS NULL";
-//			}
-//
-//			if($json_function == "NOT JSON_CONTAINS"){
-//				return "({$json_function}(`{$table['alias']}`.`{$col}`, {$val}) OR `{$table['alias']}`.`{$col}` IS NULL)";
-//				//A special concession has to be made to the not contains condition, because if the column is NULL confusingly doesn't mean it doesn't contain
-//			}
-//
-//			# @link https://stackoverflow.com/a/62795451/429071
-//			if($json_function == "JSON_OVERLAPS"){
-//				return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val}) = 1";
-//			}
-//
-//			# Same as JSON_OVERLAPS but with the expected value of zero instead of one
-//			if($json_function == "NOT JSON_OVERLAPS"){
-//				return "JSON_OVERLAPS(`{$table['alias']}`.`{$col}`, {$val}) = 0";
-//			}
-//
-//			return "{$json_function}(`{$table['alias']}`.`{$col}`, {$val})";
-//		}
-
 		# "col" => ["tbl_alias", "tbl_col"]
 		else if(is_string($col) && is_array($val) && (count($val) == 2)){
 			$counterparty_table = [
@@ -1786,6 +1761,12 @@ abstract class Common {
 
 		foreach($this->join as $type => $joins){
 			foreach($joins as $join){
+				# Handle joins that are sub-queries
+				if($join['sub_query']){
+					$tables[] = $this->getSubQueryJoinSQL($type, $join);
+					$tables[] = $this->getConditionsSQL("ON", $join['on'], $table_alias_with_where, NULL);
+					continue;
+				}
 
 				# If we ONLY want those tables that HAVE a where/order clause
 				if($with_where && !$without_where){
@@ -1972,6 +1953,13 @@ abstract class Common {
 		}
 
 		return "{$type} JOIN `{$table['db']}`.`{$table['name']}` AS `{$table['alias']}`";
+	}
+
+	protected function getSubQueryJoinSQL(string $type, array $join): string
+	{
+		# Append a tab before every line
+		$join['sub_query'] = str_replace("\n", "\n\t", $join['sub_query']);
+		return "{$type} JOIN (\n{$join['sub_query']}\n) AS `{$join['table']['alias']}`";
 	}
 
 	/**
@@ -3060,6 +3048,18 @@ abstract class Common {
 		if($table['is_tmp']){
 			$this->loadTmpTableMetadata($table['name']);
 			return (bool)$this->meta["tmp"][$table['name']][$col];
+		}
+
+		# Sub-queries have to be treated differently
+		if($table['sub_query']){
+			if($table['columns']){
+				foreach($table['columns'] as $column){
+					if(in_array($col, [$column['name'], $column['alias']])){
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		# Clean the database name
