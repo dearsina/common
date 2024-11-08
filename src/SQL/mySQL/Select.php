@@ -515,7 +515,7 @@ class Select extends Common {
 		return implode(",\r\n", $formatted_columns);
 	}
 
-	private function getAllColumns(?array $alias_only = NULL, ?array $except_alias = NULL): ?array
+	protected function getAllColumns(?array $alias_only = NULL, ?array $except_alias = NULL): ?array
 	{
 		$alias_columns = [];
 		$columns = [];
