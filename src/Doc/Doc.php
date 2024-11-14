@@ -831,9 +831,14 @@ class Doc extends \App\Common\Prototype {
 		// This is only a problem if you're dealing with unique PDFs with very high DPIs
 
 		# Log and execute the command
-		str::exec($cmd, $output);
+		$response = str::exec($cmd, $output);
 		$file['cmd'][] = $cmd;
 		$file['output'][] = $output;
+
+		if(!$response){
+			// If there is an issue
+			return;
+		}
 
 		# Update the metadata
 		$file['md5'] = md5_file($file['tmp_name']);
