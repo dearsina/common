@@ -15,6 +15,15 @@ use App\UI\Icon;
  * @package App\Common
  */
 class Permission extends Prototype {
+	/**
+	 * The tables where permissions can be set
+	 * on a per-user or role basis. Override in the
+	 * extending class.
+	 *
+	 */
+	const TABLE_SCHEMAS = [
+		"app",
+	];
 
 	public array $userPermissions = [];
 	private array $rolePermissions = [];

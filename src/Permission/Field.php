@@ -21,6 +21,13 @@ class Field {
 	static function Permission(?array $permissions, ?array $override_permissions = []){
 		$sql = Factory::getInstance();
 
+		if(class_exists("App\Permission\Permission")){
+			$table_schemas = implode("','",\App\Permission\Permission::TABLE_SCHEMAS);
+		}
+		else {
+			$table_schemas = implode("','",Permission::TABLE_SCHEMAS);
+		}
+
 		# Get all tables (from _all_ databases)
 		$results = $sql->run("
 		SELECT
@@ -30,12 +37,7 @@ class Field {
 		  `information_schema`.`tables`
 		WHERE
 		  table_type = 'BASE TABLE'
-		  AND table_schema IN (
-			'app',
-			'user_data',
-		    'client_match',
-			'third_party'
-		  )
+		  AND table_schema IN ('{$table_schemas}')
 		ORDER BY
 		  `db`,
 		  `Name`;		
