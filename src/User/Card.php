@@ -3,11 +3,11 @@
 
 namespace App\Common\User;
 
-use API\Microsoft\Azure\Azure;
 use App\Common\Img;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\OAuth2\SingleSignOnTrait;
 use App\Common\Prototype;
+use App\Common\RemoteStorage\RemoteStorage;
 use App\Common\str;
 use App\UI\Countdown;
 use App\UI\Form\Form;
@@ -526,11 +526,11 @@ class Card extends Prototype {
 
 		# User signature
 		if($user['signature_id']){
-			$azure = new Azure();
-			if($azure->fileExists($user['user_id'], $user['signature_id'])){
+			$storage = RemoteStorage::create();
+			if($storage->fileExists($user['user_id'], $user['signature_id'])){
 				$rows['Signature'] = [
 					"html" => Img::generate([
-						"src" => $azure->getData($user['user_id'], $user['signature_id']),
+						"src" => $storage->getData($user['user_id'], $user['signature_id']),
 						"style" => [
 							"max-width" => "100px",
 							"max-height" => "100px",

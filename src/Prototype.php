@@ -3,9 +3,9 @@
 
 namespace App\Common;
 
-use API\Microsoft\Azure\Azure;
 use App\Common\Exception\BadRequest;
 use App\Common\Permission\Permission;
+use App\Common\RemoteStorage\RemoteStorage;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 use App\Common\User\User;
@@ -605,8 +605,8 @@ abstract class Prototype {
 		}
 
 		# Delete all files belonging to this rel ID
-		$azure = new Azure();
-		$blob_count = $azure->deleteContainer($rel_id);
+		$storage = RemoteStorage::create();
+		$blob_count = $storage->deleteContainer($rel_id);
 
 		# If the user has elevated permissions, show them the detailed narrative
 		if($this->permission()->get($rel_table)){
@@ -692,8 +692,8 @@ abstract class Prototype {
 		$table_counts[$rel_table] = 1;
 
 		# Delete all files belonging to this rel ID
-		$azure = new Azure();
-		$blob_count = $azure->deleteContainer($rel_id);
+		$storage = RemoteStorage::create();
+		$blob_count = $storage->deleteContainer($rel_id);
 
 		foreach($table_counts as $table => $count){
 			$table_narratives[] = str::title(str::pluralise_if($count, "row", true) . " from the <b>{$table}</b> table");
