@@ -299,7 +299,7 @@ class DateFinder extends \App\Common\Prototype {
 		}
 
 		# Finally, if the format is acceptable, use strtotime to get the unix time
-		if($unixtime = strtotime($string)){
+		if(($unixtime = strtotime($string)) !== false){
 			//if the unix time is valid
 
 			# Generate the DateTime object
@@ -343,7 +343,7 @@ class DateFinder extends \App\Common\Prototype {
 	 * @return \DateTime|null Returns an object or NULL if the string is not a date.
 	 */
 	public function isADate(?string $string): ?\DateTime
-	{
+	{$original_string = $string;
 		# Ensure string is long enough to be a date
 		if(strlen($string) < 6){
 			//Date string needs to be at least 6 characters (YYMMDD), all in
