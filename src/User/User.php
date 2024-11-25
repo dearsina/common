@@ -3,7 +3,6 @@
 
 namespace App\Common\User;
 
-use API\Microsoft\Azure\Azure;
 use App\Common\Geolocation\Geolocation;
 use App\Common\Prototype;
 use App\Common\Connection\Connection;
@@ -11,6 +10,7 @@ use App\Common\Email\Email;
 use App\Common\href;
 use App\Common\Navigation\Navigation;
 use App\Common\Process;
+use App\Common\RemoteStorage\RemoteStorage;
 use App\Common\str;
 use App\Common\UserRole\UserRole;
 use App\UI\Form\Form;
@@ -1600,8 +1600,8 @@ class User extends Prototype {
 		$signature_id = $user['signature_id'] ?: str::uuid();
 
 		# Update the user's signature
-		$azure = new Azure();
-		$azure->setData($user['user_id'], $signature_id, $vars['signature'], [
+		$storage = RemoteStorage::create();
+		$storage->setData($user['user_id'], $signature_id, $vars['signature'], [
 			"content_type" => "image/svg",
 			"filename" => "signature.svg",
 		]);

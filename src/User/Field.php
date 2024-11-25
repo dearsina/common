@@ -4,9 +4,9 @@
 namespace App\Common\User;
 
 
-use API\Microsoft\Azure\Azure;
 use App\Common\href;
 use App\Common\Prototype\FieldPrototype;
+use App\Common\RemoteStorage\RemoteStorage;
 use App\UI\Countdown;
 
 /**
@@ -386,9 +386,9 @@ class Field extends FieldPrototype {
 			extract($a);
 
 		if($signature_id){
-			$azure = new Azure();
-			if($azure->fileExists($user_id, $signature_id)){
-				$signature = $azure->getData($user_id, $signature_id);
+			$storage = RemoteStorage::create();
+			if($storage->fileExists($user_id, $signature_id)){
+				$signature = $storage->getData($user_id, $signature_id);
 			}
 		}
 
