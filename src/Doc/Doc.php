@@ -451,6 +451,20 @@ class Doc extends \App\Common\Prototype {
 			$files[$i]['name'] = $file['name'][$i];
 			$files[$i]['type'] = $file['type'][$i];
 
+			# Get the EXIF data
+			if($files[$i]['type'] == "image/jpeg"){
+				// If it's a JPG
+				if($exif = \exif_read_data($tmp_name)){
+					// If the exif data is available
+					$files[$i]['exif'] = $exif;
+
+					# If the exif says the image is rotated, rotate it
+					if($exif['Orientation'] && in_array($exif['Orientation'], [3, 6, 8])){
+						$cmd = "convert {$tmp_name} -auto-orient {$tmp_name}";
+						exec($cmd);
+					}
+				}
+			}
 
 			# Record the MD5 hash of the file
 			$files[$i]['md5'] = md5_file($tmp_name);
