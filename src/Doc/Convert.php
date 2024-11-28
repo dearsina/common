@@ -34,6 +34,7 @@ class Convert {
 	 */
 	public function all(array &$file): void
 	{
+		Convert::rotate($file);
 		Convert::heic($file);
 		Convert::webp($file);
 		Convert::emf($file);
@@ -255,6 +256,8 @@ class Convert {
 			$file['tmp_name'] .= ".jpg";
 		}
 
+		# Set the new metadata
+		clearstatcache();
 		/**
 		 * Data fetched by filesize() is "statcached",
 		 * we need to clear it as the same file name
@@ -264,6 +267,50 @@ class Convert {
 		$file['mime_type'] = "image/jpeg";
 		$file['ext'] = "jpg";
 		$file['name'] .= ".jpg";
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+
+		# Attach the original back
+		$file['original'][__FUNCTION__] = $original;
+	}
+
+	public static function rotate(array &$file): void
+	{
+		# We only need to do this once
+		if(Convert::hasAlreadyBeenProcessed($file, __FUNCTION__)){
+			return;
+		}
+
+		# Ensure file is JPG
+		if($file['type'] != "image/jpeg"){
+			// If the file isn't a JPG file
+			return;
+		}
+
+		# See if the exif data is available
+		if(!$exif = \exif_read_data($file['tmp_name'])){
+			return;
+		}
+
+		# Keep a copy of the original, rename the file to avoid it being overwritten
+		$original = Convert::makeCopy($file, __FUNCTION__);
+
+		# Store the exif data
+		$file['exif'] = $exif;
+
+		# If the exif says the image is rotated, rotate it
+		if($exif['Orientation'] && in_array($exif['Orientation'], [3, 6, 8])){
+			$cmd = "convert {$file['tmp_name']} -auto-orient {$file['tmp_name']}";
+			exec($cmd);
+		}
+
+		# Set the new metadata
+		clearstatcache();
+		/**
+		 * Data fetched by filesize() is "statcached",
+		 * we need to clear it as the same file name
+		 * has a different size now.
+		 */
 		$file['md5'] = md5_file($file['tmp_name']);
 		$file['size'] = filesize($file['tmp_name']);
 
