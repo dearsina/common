@@ -191,6 +191,7 @@ class Request {
 				"icon" => "database",
 				"title" => "Connection error",
 				"message" => $e->getMessage(),
+				"trace" => $this->getExceptionTraceAsString($e),
 			]);
 
 			# Only show the query itself in the dev environment
@@ -631,6 +632,9 @@ class Request {
 	 */
 	private function printQueries(?bool $keep_backtrace = true, ?int $top = 10, ?string $order_by = "time", ?bool $output_to_file = NULL): void
 	{
+		# The flag to remove to return the queries
+		return;
+
 		foreach($_SESSION['queries'] as &$query){
 			if(!$keep_backtrace){
 				unset($query['backtrace']);
@@ -660,7 +664,7 @@ class Request {
 			$queries = array_slice($queries, 0, $top);
 		}
 
-		print_r($queries);
+		print_r(array_values($queries));
 		exit;
 	}
 
@@ -673,14 +677,17 @@ class Request {
 	 */
 	private function output(?bool $success): ?string
 	{
-		if($_SESSION['database_calls']){
-			if($_SESSION['database_calls'] > 50){
-				$this->log->info("{$_SESSION['database_calls']} database calls.");
+		if(str::isDev()){
+			if($_SESSION['database_calls']){
+				if($_SESSION['database_calls'] > 50){
+					$this->log->info("{$_SESSION['database_calls']} database calls.");
+				}
 			}
 		}
 
-		# Enable to print queries
-//		$this->printQueries();
+		# Print queries for bug fixing
+		$this->printQueries();
+		// Will not run unless manually triggered inside the method
 
 		$output = $this->output->get();
 

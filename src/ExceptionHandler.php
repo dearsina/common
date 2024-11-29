@@ -55,6 +55,7 @@ class ExceptionHandler {
 		if(!method_exists($e, "getRequest")){
 			return false;
 		}
+
 		$request = \GuzzleHttp\Psr7\str($e->getRequest());
 		return $request;
 	}
