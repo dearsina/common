@@ -121,8 +121,15 @@ class Info {
 			$_SESSION['no_cache_found'][$fingerprint]++;
 		}
 
+		if(is_array($a['rel_table'])){
+			$rel_table_name = $a['rel_table']['name'];
+		}
+		else {
+			$rel_table_name = $a['rel_table'];
+		}
+
 		# Run either a custom or generic process to get the rows
-		if($class_path = str::findClass("Info", $a['rel_table'], $a['grandparent_class'])){
+		if($class_path = str::findClass("Info", $rel_table_name, $a['grandparent_class'])){
 			$rows = $this->customProcess($class_path, $a, $joins, $return_query);
 		}
 		else {
