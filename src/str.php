@@ -724,29 +724,55 @@ class str {
 	}
 
 	/**
-	 * Checks to see if this is the DEV environment.
+	 * Returns true if we're NOT in a production environment.
+	 *
 	 * When this method is called by a cron job, the $_SERVER
-	 * array is not set, thus we have to resort to using `ifconfig`.
+	 * array is not set, and even when it is set, it's not the
+	 * most reliable way to determine the environment.
+	 *
+	 * Thus we will only rely on it if the value of the SERVER_ADDR
+	 * is one of the expected IP addresses. Otherwise we will
+	 * use the `ip a` results.
 	 *
 	 * @return bool
 	 */
 	public static function isDev(): bool
 	{
-		$prod_ips = explode(",", $_ENV['pro_ip']);
+		# Get all the production IP addresses
+		$prod_ips = array_map(function($ip){
+			return trim($ip);
+		}, explode(",", $_ENV['pro_ip']));
 
+		# Get all the development IP addresses
+		$dev_ips = array_map(function($ip){
+			return trim($ip);
+		}, explode(",", $_ENV['dev_ip']));
+
+		# Use the SERVER_ADDR if it's set
 		if($_SERVER['SERVER_ADDR']){
-			//if the $_SERVER array is set
-			return !in_array($_SERVER['SERVER_ADDR'], $prod_ips);
+			# But only if it's one of the expected DEV or PROD IPs
+			if(in_array($_SERVER['SERVER_ADDR'], array_merge(
+				$prod_ips,
+				$dev_ips
+			))){
+				# Finally, we check if the server address is in the production IPs
+				return !in_array($_SERVER['SERVER_ADDR'], $prod_ips);
+				// If it's not, we're in DEV
+			}
+			// Otherwise, we're going to use the `ip a` results
 		}
 
-		# Check if there is an overlap between the arrays
-		return !count(array_intersect($prod_ips, str::getLocalServerIPs()));
+		# Otherwise, check the `ip a` results for a match
+		return !array_intersect($prod_ips, str::getLocalServerIPs());
 		// If there is no overlap between the two arrays, then we're in dev
 	}
 
 	/**
 	 * Returns an array with all the local server addresses displayed
-	 * when running the *NIX command `ifconfig`.
+	 * when running the *NIX command `ip a`.
+	 *
+	 * Running "ip a" because it's more reliable than `ifconfig`, which sometimes
+	 * throws a `sh: 1: ifconfig: not found` error message
 	 *
 	 * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
 	 *
@@ -754,9 +780,7 @@ class str {
 	 */
 	public static function getLocalServerIPs(?bool $withV6 = true): array
 	{
-		//		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ ]+)/', `ifconfig`, $ips);
 		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ \/]+)/', `ip a`, $ips);
-		// Trying `ip a` to prevent `sh: 1: ifconfig: not found` error message
 		return $ips[1];
 	}
 
