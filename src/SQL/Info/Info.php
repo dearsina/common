@@ -287,6 +287,7 @@ class Info {
 	public function clearCache()
 	{
 		$this->info = [];
+		$_SESSION['cached_queries'] = [];
 		return true;
 	}
 
