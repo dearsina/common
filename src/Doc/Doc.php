@@ -934,7 +934,7 @@ class Doc extends \App\Common\Prototype {
 	 * @return array|string|null
 	 * @throws \ImagickException
 	 */
-	public static function getResizedImage(array $file, ?int $max_width = 0, ?int $max_height = 0, ?int $quality = 50, ?bool $base64_encode = NULL, ?bool $return_array = NULL)
+	public static function getResizedImage(array &$file, ?int $max_width = 0, ?int $max_height = 0, ?int $quality = 50, ?bool $base64_encode = NULL, ?bool $return_array = NULL)
 	{
 		# Open ImageMagik
 		$im = new \Imagick();
@@ -966,7 +966,8 @@ class Doc extends \App\Common\Prototype {
 				$im->readImage($file['tmp_name']);
 
 				# Resize the image (if required)
-				self::resizeImage($im, $max_width, $max_height);
+				$file['scale_ratio'] = self::resizeImage($im, $max_width, $max_height);
+				//This will return 1 if the image is not resized
 			}
 
 				# If there is an error
@@ -1013,11 +1014,23 @@ class Doc extends \App\Common\Prototype {
 		return $data;
 	}
 
-	private static function resizeImage(\Imagick &$im, ?int $max_width = 0, ?int $max_height = 0): void
+	/**
+	 * Resizes the image. Returns the scale ratio.
+	 * If the image is already smaller than the max width/height,
+	 * it will return 1, meaning the image was not resized.
+	 *
+	 * @param \Imagick $im
+	 * @param int|null $max_width
+	 * @param int|null $max_height
+	 *
+	 * @return float
+	 * @throws \ImagickException
+	 */
+	private static function resizeImage(\Imagick &$im, ?int $max_width = 0, ?int $max_height = 0): float
 	{
 		if(!$max_width && !$max_height){
 			//if no max width or height is set
-			return;
+			return 1;
 		}
 
 		# Get the current image width and height
@@ -1026,7 +1039,7 @@ class Doc extends \App\Common\Prototype {
 
 		if($width < $max_width && $height < $max_height){
 			//if the image is already smaller than the max width/height
-			return;
+			return 1;
 		}
 
 		# Get the aspect ratio
@@ -1046,6 +1059,9 @@ class Doc extends \App\Common\Prototype {
 
 		# Set the max width / height
 		$im->resizeImage($new_width, $new_height, \Imagick::FILTER_LANCZOS, 1);
+
+		# Return the scale ratio
+		return $new_width / $width;
 	}
 
 	/**
@@ -1200,7 +1216,7 @@ class Doc extends \App\Common\Prototype {
 		# Make transparent
 		$cmd = "convert {$file['tmp_name']} -fuzz 2% -transparent white {$file['tmp_name']}.transparent && mv {$file['tmp_name']}.transparent {$file['tmp_name']}";
 		exec($cmd, $output, $return_var);
-		if($return_var){
+		if($output){
 			throw new \Exception("Unable to add transparency to file {$file['tmp_name']}: " . implode("<br>", $output) . "<br> Please try again.");
 		}
 	}
@@ -1285,8 +1301,16 @@ class Doc extends \App\Common\Prototype {
 			$im->rotateimage("white", $angle);
 		}
 
+		# Get the scale ratio (if one has been passed)
+		$ratio = $file['scale_ratio'] ?: 1;
+
+		$x = $x / $ratio;
+		$y = $y / $ratio;
+		$width = $width / $ratio;
+		$height = $height / $ratio;
+
 		# Crop the image
-		$im->cropImage(round($width), round($height), round($x), round($y));
+		$im->cropImage($width, $height, $x, $y);
 
 		self::setFile($file, $im, "png");
 
