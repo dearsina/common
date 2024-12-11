@@ -288,7 +288,7 @@ class Convert {
 		}
 
 		# See if the exif data is available
-		if(!$exif = \exif_read_data($file['tmp_name'])){
+		if(!$exif = @\exif_read_data($file['tmp_name'])){
 			return;
 		}
 
