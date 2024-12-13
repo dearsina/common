@@ -2,6 +2,7 @@
 
 namespace App\Common\RemoteStorage;
 
+use API\Aws\S3\S3;
 use API\Microsoft\Azure\Azure;
 use App\Common\Prototype;
 
@@ -9,6 +10,14 @@ use App\Common\Prototype;
  * The middleware for remote storage.
  */
 class RemoteStorage extends Prototype {
+
+    //The value is based the region value pulled from Cloudian
+    private const S3_LOCATIONS = [
+        'tr'
+    ];
+
+    private RemoteStorage $storage;
+
 	/**
 	 * Creates a remote storage instance.
 	 *
@@ -24,7 +33,7 @@ class RemoteStorage extends Prototype {
 	 * @param string|null $location ISO 3166-1 alpha-2 country code
 	 * @param object|null $storage An existing storage instance
 	 *
-	 * @return Azure|mixed
+	 * @return Azure|S3|RemoteStorage|object
 	 */
 	public static function create(?string $location = NULL, $storage = NULL)
 	{
@@ -56,10 +65,15 @@ class RemoteStorage extends Prototype {
 	 *
 	 * @param string|null $location
 	 *
-	 * @return Azure
+	 * @return Azure|S3
 	 */
 	private static function getProviderObject(?string $location)
 	{
+        // Checks location against the array key because the value stored is the region code as per AWS and Cloudian
+        if (in_array($location, self::S3_LOCATIONS)) {
+            return new S3($location);
+        }
+
 		return new Azure($location);
 	}
 }
