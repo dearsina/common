@@ -74,7 +74,7 @@ class Process {
 		}
 
 		# Build the command that executes the execute method
-		$cmd = "go(function(){";
+		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$instance = new {$class}();";
 		$cmd .= "\$instance->{$method}({$params});";
@@ -125,7 +125,7 @@ class Process {
 		$params = self::stringifyArray($a);
 
 		# Build the command that executes the execute method
-		$cmd = "go(function(){";
+		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 
 		# Set the max execution time if required

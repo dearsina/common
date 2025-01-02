@@ -1310,8 +1310,7 @@ EOF;
 	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC"): array
 	{
 		$modifier = strtoupper($modifier);
-		$cmd = "go(function(){";
-		//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
+		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
 		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
@@ -4100,7 +4099,7 @@ EOF;
 		}
 
 		// maximise filename length to 255 bytes http://serverfault.com/a/9548/44086
-		$filename = mb_strcut(pathinfo($filename, PATHINFO_FILENAME), 0, 255 - ($ext ? strlen($ext) + 1 : 0), mb_detect_encoding($filename)) . ($ext ? '.' . $ext : '');
+		$filename = \mb_strcut(pathinfo($filename, PATHINFO_FILENAME), 0, 255 - ($ext ? strlen($ext) + 1 : 0), mb_detect_encoding($filename)) . ($ext ? '.' . $ext : '');
 
 		return $filename;
 	}
