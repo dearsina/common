@@ -487,10 +487,10 @@ class PA {
 		$cmd .= "\$client->close();";
 
 		# And we're done
-		$cmd .= "});'";
+		$cmd .= "});";
 
 		# Execute the command
-		$output = shell_exec("php -r {$cmd} 2>&1");
+		$output = shell_exec("php -r '{$cmd}' 2>&1");
 
 		# If there is any output, that's bad news
 		if($output){

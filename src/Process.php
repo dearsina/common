@@ -125,7 +125,12 @@ class Process {
 		$params = self::stringifyArray($a);
 
 		# Build the command that executes the execute method
-		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
+		$cmd = "go(function(){";
+		/**
+		 * We're keeping this go(function(){}) instead of \Swoole\Coroutine\run(function(){})
+		 * because the latter gives errors when trying to email using SwiftMailer:
+		 * Fatal error: Uncaught Swoole\Error: API must be called in the coroutine
+		 */
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 
 		# Set the max execution time if required
@@ -159,7 +164,7 @@ class Process {
 			$cmd .= "\$request->handler({$params});";
 		}
 
-		$cmd .= "});";
+		$cmd .= "});\\Swoole\\Event::wait();";
 
 		# Use the Process class to execute it with a pID that can be checked
 		$process = new Process("php -r '{$cmd}'");
