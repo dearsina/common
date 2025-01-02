@@ -626,7 +626,7 @@ EOF;
 		// In addition, we're just stripping out single quotes, because they're not needed
 
 		# Build the command that executes the execute method
-		$cmd  = "go(function(){";
+		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$cron_job = new \App\Common\CronJob\CronJob();";
 		$cmd .= "\$cron_job->execute(\"{$cron_job_json}\", true);";

@@ -462,10 +462,7 @@ class PA {
 		]));
 
 		# Place the whole thing in a co-routine
-		$cmd = "'go(function(){";
-
-		# Will eventually need to change to the following in Swoole 4.6+
-		//		$cmd  = "'\\Swoole\\Coroutine\\run(function(){";
+		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
 
 		# Fire up the http client
 		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
