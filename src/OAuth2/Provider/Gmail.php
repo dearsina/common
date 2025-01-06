@@ -24,6 +24,7 @@ class Gmail extends Prototype implements EmailProviderInterface {
 		$this->client = new \Google_Client();
 		$this->client->addScope(self::SCOPES);
 		$this->client->setAccessType('offline');
+		$this->client->setPrompt('consent');
 		$this->client->setAccessToken([
 			'access_token' => $oauth_token['token'],
 			'expires_in' => $oauth_token['expires'],
@@ -38,7 +39,8 @@ class Gmail extends Prototype implements EmailProviderInterface {
 			$profile = $this->gmail->users->getProfile('me');
 			return $profile->emailAddress;
 		} catch (\Exception $e) {
-			$this->throwError($e, "%s error attempting to send an email: %s");
+			$this->throwError($e, "%s error attempting to send an email: %s", false);
+			return NULL;
 		}
 	}
 
@@ -116,7 +118,7 @@ class Gmail extends Prototype implements EmailProviderInterface {
 	 *
 	 * @throws \Exception
 	 */
-	private function throwError(\Exception $e, ?string $context = NULL): void
+	private function throwError(\Exception $e, ?string $context = NULL, ?bool $throw_exception = true): void
 	{
 		$error = $e->getMessage();
 		if(str::isJson($error)){
@@ -139,6 +141,10 @@ class Gmail extends Prototype implements EmailProviderInterface {
 			"message" => $narrative,
 			"trace" => $error
 		]);
+
+		if(!$throw_exception){
+			return;
+		}
 
 		throw new \Exception($narrative);
 	}
