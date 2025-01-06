@@ -39,7 +39,7 @@ class Gmail extends Prototype implements EmailProviderInterface {
 			$profile = $this->gmail->users->getProfile('me');
 			return $profile->emailAddress;
 		} catch (\Exception $e) {
-			$this->throwError($e, "%s error attempting to send an email: %s", false);
+			$this->throwError($e, "%s error attempting to get an email address: %s", false);
 			return NULL;
 		}
 	}
