@@ -276,7 +276,7 @@ EOF;
 
 		$alert_array = array_filter([
 			"type" => $type,
-			"title" => substr($alert['title'], 0, 255),
+			"title" => $alert['title'] ? substr($alert['title'], 0, 255) : NULL,
 			"message" => $message,
 			"icon" => "{$icon['type']} fa-{$icon['name']}",
 			"seconds" => $alert['seconds'],
