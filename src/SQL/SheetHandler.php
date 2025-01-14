@@ -326,7 +326,7 @@ class SheetHandler extends \App\Common\Prototype {
 		}
 
 		# Update the progress bar
-		$this->output->function("updateProgressBar", [
+		$this->output->function("Progress.updateProgressBar", [
 			"container" => $this->progress_bar_container,
 			"progress" => $percent,
 			"post" => $post,
