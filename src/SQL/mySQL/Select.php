@@ -105,6 +105,15 @@ class Select extends Common {
 
 		# If the output is stored in a tmp table, return how many rows were affected (created)
 		if($tmp){
+			if(str::isDev()){
+				# Add the time it took to run the query also
+				$last_query = array_pop($_SESSION['queries']);
+				$last_query['time'] = str::stopTimer($_SESSION['query_timer']);
+				$last_query['time_since_start'] = str::stopTimer();
+				$last_query['rows'] = $results['affected_rows'];
+				$_SESSION['queries'][] = $last_query;
+			}
+
 			return $results['affected_rows'];
 		}
 

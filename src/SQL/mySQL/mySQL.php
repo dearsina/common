@@ -295,12 +295,16 @@ class mySQL extends Common {
 	 * Frees up memory as the "queries" session variable is cleared.
 	 * The "queries" session variable stores every single query run.
 	 *
-	 * @return bool
+	 * @return void
 	 */
-	public function freeUpMemory()
+	public function freeUpMemory(): void
 	{
-		unset($_SESSION['queries']);
-		return true;
+		unset($_SESSION['query']);
+		unset($_SESSION['database_calls']);
+		unset($_SESSION['query_timer']);
+
+		$_SESSION['queries'] = [];
+		$_SESSION['cached_queries'] = []; // From the Info class
 	}
 
 	/**
