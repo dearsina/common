@@ -207,37 +207,43 @@ class Convert {
 		# Keep a copy of the original, rename the file to avoid it being overwritten
 		$original = Convert::makeCopy($file, __FUNCTION__);
 
-		# Try using ImageMagick first
-		try {
-			# Open ImageMagick
-			$imagick = new \Imagick();
+//		# Try using ImageMagick first
+//		try {
+//			# Open ImageMagick
+//			$imagick = new \Imagick();
+//
+//			# Read the image
+//			$imagick->readImage($original['tmp_name']);
+//
+//			# Set image quality
+//			if($quality){
+//				//if the quality variable is set
+//				$imagick->setImageCompressionQuality($quality);
+//			}
+//
+//			# Set image format
+//			$imagick->setImageFormat("jpeg");
+//
+//			# Store the HEIC as a JPG
+//			$imagick->writeImage("jpg:" . $file['tmp_name']);
+//
+//			# And we're done with ImageMagick
+//			$imagick->clear();
+//
+//			# Set the new metadata
+//			clearstatcache();
+//		}
+//
+//		# Failing that, use the old-fashioned way (command line)
+//		catch (\ImagickException $e) {
 
-			# Read the image
-			$imagick->readImage($original['tmp_name']);
+		/**
+		 * ImageMagick struggles with this and crashes the thread.
+		 * Command line works fine. ImageMagick code kept just in case.
+		 */
 
-			# Set image quality
-			if($quality){
-				//if the quality variable is set
-				$imagick->setImageCompressionQuality($quality);
-			}
-
-			# Set image format
-			$imagick->setImageFormat("jpeg");
-
-			# Store the HEIC as a JPG
-			$imagick->writeImage("jpg:" . $file['tmp_name']);
-
-			# And we're done with ImageMagick
-			$imagick->clear();
-
-			# Set the new metadata
-			clearstatcache();
-		}
-
-		# Failing that, use the old-fashioned way (command line)
-		catch (\ImagickException $e) {
 			# Command
-			$command = "magick convert {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.jpg";
+			$command = "magick {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.jpg";
 			# Execute the command
 
 			$output = shell_exec($command);
@@ -254,7 +260,7 @@ class Convert {
 
 			# Add the jpg suffix to the tmp name (to reflect the conversion to JPG)
 			$file['tmp_name'] .= ".jpg";
-		}
+//		}
 
 		# Set the new metadata
 		clearstatcache();
