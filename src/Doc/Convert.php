@@ -280,6 +280,64 @@ class Convert {
 		$file['original'][__FUNCTION__] = $original;
 	}
 
+	/**
+	 * Convert an image file to PDF.
+	 * The original is not kept because this method
+	 * is only meant to be called ad hoc on download,
+	 * on an image file that has temporarily been
+	 * copied down from a remote storage.
+	 *
+	 * @param array $file
+	 *
+	 * @return void
+	 */
+	public static function pdf(array &$file): void
+	{
+		# We only need to do this once
+		if(Convert::hasAlreadyBeenProcessed($file, __FUNCTION__)){
+			return;
+		}
+
+		# Ensure file is indeed an image file based on the type starting with "image"
+		if(strpos($file['type'], "image") !== 0){
+			//if the file isn't an image file
+			return;
+		}
+
+		# Command
+		$command = "magick {$file['tmp_name']} {$file['tmp_name']}.pdf";
+
+		$output = shell_exec($command);
+		// If the command has an output (that's bad news)
+
+		# Return the last bit of the output, which is generally the error message
+		if($output){
+			$error = explode(":", $output);
+			throw new \Exception(trim(end($error)));
+		}
+
+		# Remove the original image
+		unlink($file['tmp_name']);
+
+		# Add the pdf suffix to the tmp name (to reflect the conversion to PDF)
+		$file['tmp_name'] .= ".pdf";
+
+		# Set the new metadata
+		clearstatcache();
+		/**
+		 * Data fetched by filesize() is "statcached",
+		 * we need to clear it as the same file name
+		 * has a different size now.
+		 */
+
+		$file['type'] = "application/pdf";
+		$file['mime_type'] = "application/pdf";
+		$file['ext'] = "pdf";
+		$file['name'] .= ".pdf";
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+	}
+
 	public static function rotate(array &$file): void
 	{
 		# We only need to do this once
