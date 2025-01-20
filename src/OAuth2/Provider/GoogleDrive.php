@@ -45,7 +45,6 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 			"accessType" => "offline",
 			"prompt" => $force_refresh_token ? "consent" : NULL, # Forces consent (and a refresh token) every time
 			"scopes" => [
-				"https://www.googleapis.com/auth/drive.metadata.readonly",
 				"https://www.googleapis.com/auth/drive.file",
 			],
 		]);
