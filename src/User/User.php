@@ -617,6 +617,7 @@ class User extends Prototype {
 			"where" => [
 				"user_id" => $user_id,
 			],
+			"user_id" => $this->user->getId() ?: $user_id
 		]);
 	}
 
@@ -680,7 +681,10 @@ class User extends Prototype {
 		}
 
 		# Log user out (so that all cookies are removed)
-		$this->logout($a, true);
+		if($user['user_id'] == $this->user->getId()){
+			// But only if it's the current user
+			$this->logout($a, true);
+		}
 
 		# Remove user from the database
 		$this->removeUser($user['user_id']);
