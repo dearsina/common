@@ -8,6 +8,7 @@ use App\Common\Prototype;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 use App\Common\str;
+use App\Translation\Translator;
 
 class Country extends Prototype {
 	public ?string $db = "address";
@@ -125,11 +126,18 @@ class Country extends Prototype {
 	 * @return array
 	 * @throws \Exception#
 	 */
-	public static function getAllCountries(?bool $formatted = NULL): array
+	public static function getAllCountries(?bool $formatted = NULL, ?string $language_id = NULL): array
 	{
 		$info = Info::getInstance();
 
-		foreach($info->getInfo("country") as $country){
+		if($language_id){
+			$countries = Translator::translateCountries($language_id);
+		}
+		else {
+			$countries = $info->getInfo("country");
+		}
+
+		foreach($countries as $country){
 			if($formatted){
 				$country_options[$country['country_code']] = [
 					"title" => $country['name'],

@@ -8,7 +8,7 @@ use App\Common\Prototype;
 use App\Common\Connection\Connection;
 use App\Common\Email\Email;
 use App\Common\href;
-use App\Common\Navigation\Navigation;
+use App\Navigation\Navigation;
 use App\Common\Process;
 use App\Common\RemoteStorage\RemoteStorage;
 use App\Common\str;
@@ -199,6 +199,21 @@ class User extends Prototype {
 			return NULL;
 		}
 		return $user['email'];
+	}
+
+	/**
+	 * Returns a given (or global) user's language ID.
+	 *
+	 * @param string|null $user_id
+	 *
+	 * @return string|null
+	 */
+	public function getLanguageId(?string $user_id = NULL): ?string
+	{
+		if(!$user = $this->get($user_id)){
+			return NULL;
+		}
+		return $user['language_id'] ?: $user['sso_data']['language'];
 	}
 
 	public function rowHandler(array $cols, ?array $a = []): array
@@ -457,6 +472,30 @@ class User extends Prototype {
 		}
 
 		$this->output->modal($this->modal()->editPassword($a));
+
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	/**
+	 * Edit user language. Will open a modal.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws Exception
+	 */
+	public function editLanguage(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->output->modal($this->modal()->editLanguage($a));
 
 		$this->hash->set(-1);
 		$this->hash->silent();
@@ -1621,6 +1660,38 @@ class User extends Prototype {
 		$this->log->success([
 			"title" => "Signature saved",
 			"message" => "Your signature has been saved.",
+		]);
+
+		$this->output->closeModal();
+
+		$this->hash->set([
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+		]);
+
+		return true;
+	}
+
+	public function updateLanguage(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->permission()->get($rel_table, $rel_id, "u")){
+			return $this->accessDenied();
+		}
+
+		$this->sql->update([
+			"table" => $rel_table,
+			"set" => [
+				"language_id" => $vars['language_id'],
+			],
+			"id" => $rel_id,
+		]);
+
+		$this->log->success([
+			"title" => "Language saved",
+			"message" => "Your language preference has been saved.
+			Any workflow where translations have been enabled will default to your preferred language.",
 		]);
 
 		$this->output->closeModal();

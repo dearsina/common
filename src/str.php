@@ -662,7 +662,7 @@ class str {
 	 *
 	 * @return string
 	 */
-	static function backtrace($return = NULL, bool $keep_arguments = true)
+	static function backtrace(?bool $return = false, ?bool $keep_arguments = true)
 	{
 		$steps = [];
 		array_walk(debug_backtrace(), function($a) use (&$steps, $keep_arguments){
@@ -687,7 +687,7 @@ class str {
 		if(str::isDev()){
 			global $backtrace;
 			if($backtrace){
-				$steps = base64_decode($backtrace) . PHP_EOL . $steps;
+					$steps = base64_decode($backtrace) . PHP_EOL . $steps;
 			}
 		}
 
@@ -4694,11 +4694,9 @@ EOF;
 			extract($approve);
 		}
 
-
 		else if(is_bool($approve)){
 			$message = "Are you sure you want to do this?";
 		}
-
 
 		else if(is_string($approve)){
 			//if just the name of the thing to be removed is given
@@ -4717,6 +4715,10 @@ EOF;
 
 		return str::getDataAttr([
 			"approve" => [
+				"class" => $class,
+				"rtl" => $rtl,
+				"yes" => $yes,
+				"no" => $no,
 				"type" => $type,
 				"icon" => $icon_class,
 				"title" => $title,

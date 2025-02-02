@@ -121,8 +121,8 @@ class Geolocation extends \App\Common\Prototype {
 		}
 
 		# Most of the time, the data already exists
-		if($geolocation = $this->sql->select([
-			"table" => "geolocation",
+		if($geolocation = $this->info([
+			"rel_table" => "geolocation",
 			"where" => [
 				"ip" => $ip
 			],

@@ -315,12 +315,14 @@ EOF;
 	 * @param string        $html
 	 * @param array|null    $recipients
 	 * @param bool|int|null $first
+	 * @param string|null   $replace If modal is to replace another with the same name.
 	 */
-	public function modal(string $html, ?array $recipients = NULL, $first = true): void
+	public function modal(string $html, ?array $recipients = NULL, $first = true, ?string $replace = NULL): void
 	{
 		$data = [
 			"id" => "#ui-modal",
 			"html" => $html,
+			"replace" => $replace
 		];
 
 		$this->setData("modal", NULL, $data, $recipients, $first);
@@ -470,7 +472,6 @@ EOF;
 				if(is_array($row)){
 					# Load the option
 					$row['value'] = $id;
-					$row['selected'] = false;
 					$option = SelectOption::getFormattedOption($row);
 
 					# And the text is replaced with the title, unless a text has been provided
@@ -500,11 +501,10 @@ EOF;
 		# If the keys matter
 		else {
 			foreach($rows as $id => $text){
-				# If even the value is an array of data
+				# If even the value is an array of data (most common)
 				if(is_array($text)){
 					# Load the option
 					$text['value'] = $id;
-					$text['selected'] = false;
 					$option = SelectOption::getFormattedOption($text);
 
 					# And the text is replaced with the title, unless a text has been provided
@@ -522,7 +522,6 @@ EOF;
 						"text" => $text,
 					];
 				}
-
 			}
 		}
 

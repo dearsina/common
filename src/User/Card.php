@@ -3,12 +3,14 @@
 
 namespace App\Common\User;
 
+use App\Common\href;
 use App\Common\Img;
 use App\Common\OAuth2\OAuth2Handler;
 use App\Common\OAuth2\SingleSignOnTrait;
 use App\Common\Prototype;
 use App\Common\RemoteStorage\RemoteStorage;
 use App\Common\str;
+use App\Language\Language;
 use App\UI\Countdown;
 use App\UI\Form\Form;
 use App\UI\Form\Recaptcha;
@@ -501,6 +503,61 @@ class Card extends Prototype {
 		]);
 	}
 
+	public function userHasTranslationServiceInSubscriptions(string $user_id): bool
+	{
+		if($this->sql->select([
+			"columns" => [
+				"subscription_seat_id"
+			],
+			"table" => "subscription_seat",
+			"where" => [
+				"user_id" => $user_id
+			],
+			"join" => [[
+				"columns" => false,
+				"table" => "subscription_service",
+				"on" => [
+					"subscription_id" => ["subscription_seat", "subscription_id"]
+				]
+			],[
+				"columns" => false,
+				"table" => "service",
+				"on" => [
+					"service_id" => ["subscription_service", "service_id"]
+				],
+				"where" => [
+					"metric" => "translation"
+				]
+			]]
+		])){
+			return true;
+		}
+
+		if($this->sql->select([
+			"columns" => [
+				"subscription_seat_id"
+			],
+			"table" => "subscription_seat",
+			"where" => [
+				"user_id" => $user_id
+			],
+			"join" => [[
+				"columns" => false,
+				"table" => "subscription",
+				"on" => [
+					"subscription_id" => ["subscription_seat", "subscription_id"]
+				],
+				"where" => [
+					"status" => "trial"
+				]
+			]]
+		])){
+			return true;
+		}
+
+		return false;
+	}
+
 	/**
 	 * @param $user
 	 *
@@ -523,6 +580,25 @@ class Card extends Prototype {
 			"Two-factor authentication" => $this->getTwoFactorAuthenticationValue($user),
 			"Password expiry date" => $this->getPasswordExpiryDateValue($user),
 		];
+
+		if($this->userHasTranslationServiceInSubscriptions($user['user_id'])){
+			// If the user has a seat at a subscription that has a translation service
+			if($user['language_id']){
+				$title = Language::getTitle($user['language_id'], true, true);
+			}
+			else {
+				$title = "(Set preferred language)";
+			}
+
+			$rows["Preferred language"] = href::a([
+				"hash" => [
+					"rel_table" => "user",
+					"rel_id" => $user['user_id'],
+					"action" => "edit_language",
+				],
+				"html" => $title,
+			]);
+		}
 
 		# User signature
 		if($user['signature_id']){

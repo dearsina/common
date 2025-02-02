@@ -53,5 +53,9 @@ class Info extends Prototype implements InfoInterface {
 			}
 		}
 
+		# Use the SSO language if no language has been set for the user
+		if(!$row['language_id']){
+			$row['language_id'] = $row['sso_data']['language'];
+		}
 	}
 }
