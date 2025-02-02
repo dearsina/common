@@ -220,6 +220,41 @@ class Modal extends Prototype {
 	    return $modal->getHTML();
 	}
 
+	public function editLanguage(array $a, ?string $size = "m"): string
+	{
+		extract($a);
+
+		$user = $this->info($rel_table, $rel_id);
+
+		$buttons = [[
+			"type" => "submit",
+			"title" => "Update",
+			"icon" => Icon::get("save"),
+			"colour" => "primary",
+		],"cancel_md"];
+
+		$form = new Form([
+			"rel_table" => $rel_table,
+			"rel_id" => $rel_id,
+			"action" => "update_language",
+			"fields" => Field::editLanguage($user),
+			"buttons" => $buttons,
+			"modal" => true,
+		]);
+
+	    $modal = new \App\UI\Modal\Modal([
+			"id" => "edit-language",
+			"size" => $size,
+			"icon" => "key",
+			"header" => str::title("Update language"),
+			"body" => $form->getHTML(),
+			"draggable" => true,
+			"resizable" => true,
+		]);
+
+	    return $modal->getHTML();
+	}
+
 	public function new(array $a): string
 	{
 		extract($a);

@@ -26,7 +26,7 @@ class Navigation {
 	 */
 	public function generate(?array $a = NULL): bool
 	{
-		return Navigation::update($a);
+		return static::update($a);
 	}
 
 	/**
@@ -67,18 +67,21 @@ class Navigation {
 		$levels = [];
 
 		# Get the generic app levels
-		self::getAppLevels($levels, $a);
+		static::getAppLevels($levels, $a);
 
 		# Get any role levels
-		self::getRoleLevels($levels, $a);
+		static::getRoleLevels($levels, $a);
+
+		# Set the language toggle
+		static::setLanguageToggle($levels, $a);
 
 		$footers = [];
 
 		# Get the generic app footers
-		self::getAppFooters($footers);
+		static::getAppFooters($footers);
 
 		# Get any role footers
-		self::getRoleFooters($footers);
+		static::getRoleFooters($footers);
 
 		# Generate the navigation
 		$navigation = Factory::generate("horizontal", $levels, $footers);
@@ -91,12 +94,25 @@ class Navigation {
 	}
 
 	/**
+	 * Expand if required.
+	 *
+	 * @param array      $levels
+	 * @param array|null $a
+	 *
+	 * @return void
+	 */
+	public static function setLanguageToggle(array &$levels, ?array $a = NULL): void
+	{
+		return;
+	}
+
+	/**
 	 * @param $levels
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getAppLevels(&$levels, ?array $a = NULL): bool
+	protected static function getAppLevels(&$levels, ?array $a = NULL): bool
 	{
 		if(is_array($a)){
 			extract($a);
@@ -133,7 +149,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getRoleLevels(&$levels, ?array $a = NULL): bool
+	protected static function getRoleLevels(&$levels, ?array $a = NULL): bool
 	{
 		global $role;
 
@@ -177,7 +193,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getAppFooters(&$footers): bool
+	protected static function getAppFooters(&$footers): bool
 	{
 		# Uses the Common class if it cannot find the App class
 		$classPath = str::findClass("App", "Navigation");
@@ -209,7 +225,7 @@ class Navigation {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	private static function getRoleFooters(&$footers): bool
+	protected static function getRoleFooters(&$footers): bool
 	{
 		global $role;
 
