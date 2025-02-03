@@ -127,7 +127,7 @@ class Geolocation extends \App\Common\Prototype {
 				"ip" => $ip
 			],
 			"limit" => 1
-		])){
+		],  NULL, true)){
 			return $geolocation;
 		}
 
