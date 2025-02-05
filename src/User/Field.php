@@ -7,6 +7,7 @@ namespace App\Common\User;
 use App\Common\href;
 use App\Common\Prototype\FieldPrototype;
 use App\Common\RemoteStorage\RemoteStorage;
+use App\Language\Language;
 use App\UI\Countdown;
 
 /**
@@ -429,6 +430,21 @@ class Field extends FieldPrototype {
 			];
 		}
 
+
+		return $fields;
+	}
+
+	public static function editLanguage(?array $a = NULL): array
+	{
+		if(is_array($a))
+			extract($a);
+
+		$fields[] = [
+			"type" => "select",
+			"name" => "language_id",
+			"value" => $language_id,
+			"options" => Language::getOptionsFromLanguages(Language::getAllLanguages(), false, true, true, true)
+		];
 
 		return $fields;
 	}

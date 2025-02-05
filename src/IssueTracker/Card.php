@@ -66,8 +66,8 @@ class Card extends \App\Common\Prototype {
 			}
 		}
 
-	    # Issue prioritys
-	    if($issue_prioritys = $this->sql->select([
+	    # Issue priorities
+	    if($issue_priorities = $this->sql->select([
 	    	"distinct" => true,
 	    	"table" => "issue_priority",
 			"join" => [[
@@ -76,7 +76,7 @@ class Card extends \App\Common\Prototype {
 				"on" => "issue_priority_id"
 			]]
 		])){
-	    	foreach($issue_prioritys as $issue_priority){
+	    	foreach($issue_priorities as $issue_priority){
 				$filters['issue_priority_id']['title'] = "Priority";
 				$filters['issue_priority_id']['options'][$issue_priority['issue_priority_id']] = $issue_priority['title'];
 			}

@@ -3,6 +3,8 @@
 
 namespace App\Common;
 
+use App\Translation\Translator;
+
 /**
  * Generates the href (and optionally the onClick) attribute and value for the a tag.
  *
@@ -24,6 +26,9 @@ class href {
 		if(!$a){
 			return NULL;
 		}
+
+		Translator::set($a, $a['subscription_id'], "href", $a, $a['language_id'], NULL, $a['parent_rel_id']);
+
 		extract($a);
 
 		# ID (optional)

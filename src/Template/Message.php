@@ -39,13 +39,13 @@ class Message extends Template implements TemplateInterface {
 			"bg_colour" => "silent",
 			"copy" => [
 				"title" => [
-					"align" => "left",
+					"align" => $direction === "rtl" ? "right" : "left",
 					"title" => $subject,
 					"colour" => "primary",
 				],
 				"body" => [
 					"body" => $body,
-					"align" => "left"
+					"align" => $direction === "rtl" ? "right" : "left",
 				]
 			],
 		],[
@@ -60,7 +60,7 @@ class Message extends Template implements TemplateInterface {
 					"body" => [
 						str::newline($backtrace),
 					],
-					"align" => "left"
+					"align" => $direction === "rtl" ? "right" : "left",
 				]
 			],
 		]];
