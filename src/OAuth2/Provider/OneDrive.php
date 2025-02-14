@@ -284,7 +284,10 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 				}
 
 				# Get the parent ID
-				$id = $response_array['parentReference']['id'];
+				if(!$id = $response_array['parentReference']['id']){
+					// If there is no parent ID (we're at root), we're done
+					break;
+				}
 
 				# Add the parent to the lineage
 				$lineage[] = $id;
@@ -297,7 +300,9 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			}
 
 			# Now that we have the lineage, grab the last item (the folder on the root)
-			$id = array_pop($lineage);
+			if(!$id = array_pop($lineage)){
+				return $folders;
+			}
 
 			# Make that folder the parent
 			$parent = &$folders[$parent_id]['children'][$id];
