@@ -595,4 +595,18 @@ EOF;
 		return $this->log($a, __FUNCTION__, $immediately);
 	}
 
+	/**
+	 * Use this logger method for API responses only, where the message
+	 * passed will be set as the value to the "message" key in the response.
+	 *
+	 * @param string      $message
+	 * @param string|null $key Default is "message"
+	 *
+	 * @return void
+	 */
+	function message(string $message, ?string $key = "message"): void
+	{
+		Output::getInstance()->setVar($key, $message);
+	}
+
 }
