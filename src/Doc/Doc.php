@@ -1364,42 +1364,17 @@ class Doc extends \App\Common\Prototype {
 
 	/**
 	 * If a file is a PDF, checks to see if either width or height are bigger than the
-	 * max number of allowed inches. If so, will rescale down the image using the given
-	 * resolution, save each page using the quality JPG and the put each JPG page
-	 * back together into a single PDF, who's name will be passed back.
-	 *
-	 * This was how long it takes to resize a 5906x5906 JPEG image to 1181x1181.
-	 * This was in 2010, the speeds I'm sure have improved, but useful reference
-	 * either way.
-	 *
-	 * FILTER_POINT took: 0.334532976151 seconds
-	 * FILTER_BOX took: 0.777871131897 seconds
-	 * FILTER_TRIANGLE took: 1.3695909977 seconds
-	 * FILTER_HERMITE took: 1.35866093636 seconds
-	 * FILTER_HANNING took: 4.88722896576 seconds
-	 * FILTER_HAMMING took: 4.88665103912 seconds
-	 * FILTER_BLACKMAN took: 4.89026689529 seconds
-	 * FILTER_GAUSSIAN took: 1.93553304672 seconds
-	 * FILTER_QUADRATIC took: 1.93322920799 seconds
-	 * FILTER_CUBIC took: 2.58396601677 seconds
-	 * FILTER_CATROM took: 2.58508896828 seconds
-	 * FILTER_MITCHELL took: 2.58368492126 seconds
-	 * FILTER_LANCZOS took: 3.74232912064 seconds
-	 * FILTER_BESSEL took: 4.03305602074 seconds
-	 * FILTER_SINC took: 4.90098690987 seconds
+	 * max number of allowed inches. If so, will rescale down the page to the max inch size.
 	 *
 	 * @param array          $file
 	 * @param float|int|null $max_in     The default is set to 17 inches, the max width/height that Microsoft Cognitive
 	 *                                   Services accepts.
-	 * @param int|null       $resolution The default is set to 144, which will retain a sufficient level of quality in
-	 *                                   the photo.
-	 * @param int|null       $quality    The default is 50, which for the purposes of OCR is sufficient.
 	 *
 	 * @return string|null
-	 * @throws \ImagickException
+	 * @throws \Exception
 	 * @link https://urmaul.com/blog/imagick-filters-comparison/
 	 */
-	public static function shrinkPdf(array &$file, ?float $max_in = 17, ?int $resolution = 144, ?int $quality = 50): ?string
+	public static function shrinkPdf(array &$file, ?float $max_in = 17): ?string
 	{
 		# Ensure file is PDF
 		if(!$file['pdf_info']){
@@ -1413,86 +1388,31 @@ class Doc extends \App\Common\Prototype {
 			return NULL;
 		}
 
-		# Create a JPG for each page
-		for($i = 0; $i < $file['pdf_info']['pages']; $i++){
-			# ImageMagik pages run from zero, but PDFs run from 1
-			$page = $i + 1;
+		$max_points = $max_in * 72;
 
-			# Open ImageMagik
-			$imagick = new \Imagick();
+		$cmd = "gs ".
+		"-o {$file['tmp_name']}-{$max_points} ".
+		"-sDEVICE=pdfwrite ".
+		"-dPDFSETTINGS=/prepress ".
+		"-dCompatibilityLevel=1.4 ".
+		"-dFIXEDMEDIA ".
+		"-dPDFFitPage ".
+		"-dDEVICEWIDTHPOINTS={$max_points} ".
+		"-dDEVICEHEIGHTPOINTS={$max_points} ".
+		"-f {$file['tmp_name']}";
 
-			# Set the resolution
-			$imagick->setResolution($resolution, $resolution);
-
-			# Read a page
-			$imagick->readImage("{$file['tmp_name']}[{$i}]");
-
-			# Set the background to white
-			$imagick->setImageBackgroundColor('#FFFFFF');
-
-			# Flatten image (this will prevent pages with transparencies to go black)
-			$imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
-
-			# Resize so that it's at most the max size accepted
-			$imagick->resizeImage(
-				min($imagick->getImageWidth(), $max_in * $resolution),
-				min($imagick->getImageHeight(), $max_in * $resolution),
-				\Imagick::FILTER_UNDEFINED,
-				1,
-				true
-			);
-			/**
-			 * PDF sizes are in points (pts) which is calculated based
-			 * on the number of pixels divided by the resolution. Thus
-			 * the max width or height is the number of max inches (pts/72),
-			 * multiplied by the set DPI. This way, when the PDF is
-			 * produced, it will list the width/heights in inches, and
-			 * since the file has been shrunk (otherwise we wouldn't be here),
-			 * one of the sides will be at the max number of inches.
-			 */
-
-			# Set image quality
-			if($quality){
-				//if the quality variable is set
-				$imagick->setImageCompressionQuality($quality);
-			}
-
-			# Create a page specific file array
-			$file_page = [
-				'name' => "{$file['name']}.{$page}.jpg",
-				'type' => 'image/jpeg',
-				'tmp_name' => "{$file['tmp_name']}-{$page}",
-				'size' => $imagick->getImageLength(),
-				'page' => $page,
-			];
-
-			# Store the page as a JPG
-			$imagick->writeImage("jpg:" . $file_page['tmp_name']);
-
-			# Save the details in an array
-			$file_pages[] = $file_page;
+		if(!str::exec($cmd, $output)){
+			throw new \Exception("Unable to resize PDF file {$file['tmp_name']}: " . implode("<br>", $output) . "<br> After running <code>{$cmd}</code>. Please try again.");
 		}
 
-		# Get all the image page tmp file names as an array
-		$images = array_column($file_pages, "tmp_name");
+		# Remove the input tmp file
+		unlink($file['tmp_name']);
 
-		# Create the PDF tmp filename
-		$file['tmp_name_png'] = "{$file['tmp_name']}.pdf";
+		# Rename the output tmp file to the input tmp file
+		rename("{$file['tmp_name']}-{$max_points}", $file['tmp_name']);
 
-		# Load the page images
-		$pdf = new \Imagick($images);
-
-		# Set the format of the output to be PDF
-		$pdf->setImageFormat('pdf');
-
-		# Write all the images as individual pages in the PDF
-		$pdf->writeImages($file['tmp_name_png'], true);
-
-		# Remove all the temporary page JPGs
-		array_map("unlink", $images);
-
-		# Return the new PDF temporary file name
-		return $file['tmp_name_png'];
+		# Return the tmp file name
+		return $file['tmp_name'];
 	}
 
 	/**
