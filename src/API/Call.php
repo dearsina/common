@@ -148,18 +148,6 @@ class Call {
 			];
 		}
 
-			# API specific errors
-		catch(BadRequest $e) {
-			# The error code is the HTTP response code
-			http_response_code($e->getCode());
-
-			# The error message can be made public
-			$output = [
-				"status" => "Bad request",
-				"error" => $e->getMessage(),
-			];
-		}
-
 		catch(UnprocessableEntity $e){
 			# The error code is the HTTP response code
 			http_response_code($e->getCode());
@@ -168,19 +156,36 @@ class Call {
 			$output = json_decode($e->getMessage(), true);
 		}
 
-			# Generic errors
+		# All other exceptions are caught here
 		catch(\Exception $e) {
 			# Throw a 500 Internal Server Error
-			http_response_code(500);
+			http_response_code($e->getCode());
 
 			# Log the error for closer examination
 			ExceptionHandler::logException("API", $e);
 
+			switch($e->getCode()){
+			case 400:
+				$status = "Bad request";
+				break;
+			case 404:
+				$status = "Not found";
+				break;
+			case 410:
+				$status = "Gone";
+				break;
+			case 500:
+				$status = "Internal server error";
+				break;
+			default:
+				$status = "Error";
+				break;
+			}
 
-			# DEV: Send a detailed message to the API requester
-			if(str::isDev()){
+			# DEV or non-500 error: Send a detailed message to the API requester
+			if(str::isDev() || $e->getCode() != 500){
 				$output = [
-					"status" => "Error",
+					"status" => $status,
 					"error" => $e->getMessage(),
 				];
 			}
@@ -188,8 +193,8 @@ class Call {
 			# PROD: Send a generic message to the API requester
 			else {
 				$output = [
-					"status" => "Error",
-					"error" => "An unexpected error has occurred. Our engineers have been notified. Please try again shortly.",
+					"status" => $status,
+					"message" => "An unexpected error has occurred. Our engineers have been notified. Please try again shortly.",
 				];
 			}
 		}
