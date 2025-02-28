@@ -7,6 +7,8 @@ use App\Common\OAuth2\OAuth2Handler;
 use App\Common\OAuth2\Prototype;
 use App\Common\OAuth2\FileProviderInterface;
 use App\Common\str;
+use Google\Service\Drive;
+use League\OAuth2\Client\Provider\Google;
 
 /**
  * Common methods for the Google Drive API.
@@ -30,12 +32,13 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 		$this->drive = new \Google\Service\Drive($this->client);
 	}
 
-	/**
-	 * Needs to remain public, because it is called from the OAuth2Handler class,
-	 * when refreshing a token.
-	 *
-	 * @return \League\OAuth2\Client\Provider\Google
-	 */
+    /**
+     * Needs to remain public, because it is called from the OAuth2Handler class,
+     * when refreshing a token.
+     *
+     * @param bool|null $force_refresh_token
+     * @return Google
+     */
 	public static function getOAuth2ProviderObject(?bool $force_refresh_token = NULL): \League\OAuth2\Client\Provider\Google
 	{
 		return new \League\OAuth2\Client\Provider\Google([
@@ -45,11 +48,24 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 			"accessType" => "offline",
 			"prompt" => $force_refresh_token ? "consent" : NULL, # Forces consent (and a refresh token) every time
 			"scopes" => [
-				"https://www.googleapis.com/auth/drive.metadata.readonly",
-				"https://www.googleapis.com/auth/drive.file",
-			],
+                Drive::DRIVE_FILE,
+            ],
 		]);
 	}
+
+    /**
+     * Unique function only used for Google Drive fields
+     *
+     * @return array
+     */
+    public static function getOAuthProviderDetails(): array
+    {
+        return [
+            'client_id' => $_ENV['google_oauth_client_id'],
+            'app_id' => $_ENV['google_oauth_app_id'],
+            'api_key' => $_ENV['google_api_key'],
+        ];
+    }
 
 	/**
 	 * Given a folder name, will create a folder with that name in
@@ -220,13 +236,14 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 		return reset($matches);
 	}
 
-	/**
-	 * Given a folder ID, will return the folder name.
-	 *
-	 * @param string|null $folder_id
-	 *
-	 * @return string|null
-	 */
+    /**
+     * Given a folder ID, will return the folder name.
+     *
+     * @param string|null $folder_id
+     *
+     * @return string|null
+     * @throws \Exception
+     */
 	public function getFolderName(?string $folder_id): ?string
 	{
 		if(!$folder_id){
@@ -241,6 +258,7 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 			$response = $this->drive->files->get($folder_id, [
 				"fields" => "name",
 			]);
+            return $response->getName();
 		}
 
 		catch(\Exception $e) {
@@ -248,9 +266,8 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 				"title" => "Error getting folder name",
 				"message" => $e->getMessage(),
 			]);
-		}
-
-		return $response['name'];
+		    throw new \Exception($e->getMessage());
+        }
 	}
 
 	/**
