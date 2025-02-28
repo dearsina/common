@@ -483,10 +483,17 @@ EOF;
 		else {
 			//if no recipients have been identified
 			global $user_id;
+			global $session_id;
+			/**
+			 * We're using the global session ID to ensure
+			 * that the "parent" is notified, not the CLI
+			 * thread.
+			 */
 			$recipients = [
 				"user_id" => $user_id,
-				"session_id" => session_id(),
+				"session_id" => $session_id
 			];
+
 			/**
 			 * If no individual or group of recipients
 			 * have been explicitly identified,
