@@ -165,7 +165,8 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 			$error = json_decode($e->getMessage(), true);
 
 			# If the folder cannot be found (404 error)
-			if($error['error']['code'] == "404"){
+            # If the Auth fails (401 error)
+            if($error['error']['code'] == "404" || $error['error']['code'] === '401'){
 				return NULL;
 			}
 
@@ -216,7 +217,8 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 			$error = json_decode($e->getMessage(), true);
 
 			# If the file cannot be found (404 error)
-			if($error['error']['code'] == "404"){
+            # If the Auth fails (401 error)
+			if($error['error']['code'] == "404" || $error['error']['code'] === '401'){
 				return NULL;
 			}
 
@@ -266,7 +268,9 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 				"title" => "Error getting folder name",
 				"message" => $e->getMessage(),
 			]);
-		    throw new \Exception($e->getMessage());
+
+            # Returns root as a default in the event that there is any error
+            return 'root';
         }
 	}
 
