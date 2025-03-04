@@ -1412,13 +1412,27 @@ EOF;
 	 * Converts snake_case to ClassCase (CamelCase).
 	 * Will also convert \App\common\rel_table to \App\Common\RelTable
 	 *
-	 * @param $snake
+	 * @param string|null $snake
 	 *
-	 * @return string|string[]
+	 * @return string|null
 	 */
-	public static function getClassCase($snake)
+	public static function getClassCase(?string $snake): ?string
 	{
-		return str_replace("_", "", ucwords($snake, "_\\"));
+		# If nothing is passed, return nothing
+		if($snake === NULL){
+			return NULL;
+		}
+
+		# Capitalize the first letter of each word
+		$snake = ucwords($snake, "_\\");
+
+		# Ensure there is at least one underscore or backslash
+		if(strpos($snake, "_") === false && strpos($snake, "\\") === false){
+			// Otherwise, there is no need to convert anything
+			return $snake;
+		}
+
+		return str_replace("_", "", $snake);
 	}
 
 	/**
