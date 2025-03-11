@@ -40,6 +40,69 @@ class str {
 		$this->str = false;
 	}
 
+	/**
+	 * Given a dot notation key, this function will return the value from the array.
+	 *
+	 * @param array  $array
+	 * @param string $dot_notation_key
+	 *
+	 * @return mixed|null
+	 */
+	public static function getArrayValueByDotNotation(array $array, string $dot_notation_key)
+	{
+		// Break the dot notation key into an array of keys
+		$keys = explode('.', $dot_notation_key);
+
+		// Start at the root of the array
+		$current = &$array;
+
+		// Traverse or create sub-arrays
+		foreach($keys as $key){
+			// If the sub-key doesn't exist or isn't an array, initialize it
+			if(!isset($current[$key])){
+				return NULL;
+			}
+
+			// Move $current to the next level by reference
+			$current = &$current[$key];
+		}
+
+		// Finally, get the value
+		return $current;
+	}
+
+	/**
+	 * Recursively sets a value in an array using dot notation.
+	 *
+	 * @param array  $array  The array you want to update (passed by reference)
+	 * @param string $dotKey A string using dot notation, e.g. "foo.bar.baz"
+	 * @param mixed  $value  The value to set at that key
+	 *
+	 * @link https://chatgpt.com/share/678ccd08-2af8-8006-95da-aadcc23def31
+	 */
+	public static function setArrayValueByDotNotation(array &$array, string $dot_key, $value): void
+	{
+		// Break the dot_key into an array of keys
+		$keys = explode('.', $dot_key);
+
+		// Start at the root of the array
+		$current = &$array;
+
+		// Traverse or create sub-arrays
+		foreach($keys as $key){
+			// If the sub-key doesn't exist or isn't an array, initialize it
+			if(!isset($current[$key]) || !is_array($current[$key])){
+				$current[$key] = [];
+			}
+
+			// Move $current to the next level by reference
+			$current = &$current[$key];
+		}
+
+		// Finally, set the value
+		$current = $value;
+	}
+
 	private function __clone()
 	{
 	}
