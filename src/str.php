@@ -2495,6 +2495,32 @@ EOF;
 		return $dt;
 	}
 
+	/**
+	 * Just like the `strtotime()` function, but treats
+	 * d/m/Y as d/m/Y, not as m/d/Y.
+	 * This is useful for European dates.
+	 * <code>
+	 *     echo str::strtotime("01/02/2020"); // 1580515200
+	 * </code>
+	 * @param string|null $string
+	 * @param             $now
+	 *
+	 * @return int
+	 */
+	public static function strtotime(?string $string, $now = NULL): int
+	{
+		if(!$string){
+			return 0;
+		}
+
+		# Treat d/m/Y as d/m/Y, not as m/d/Y
+		if(preg_match("/\d{1,2}\/\d{1,2}\/\d{4}/", $string)){
+			$string = preg_replace("/(\d{1,2})\/(\d{1,2})\/(\d{4})/", "$2/$1/$3", $string);
+		}
+
+		return strtotime($string, $now);
+	}
+
 
 	/**
 	 * var_export() with square brackets and indented 4 spaces.
