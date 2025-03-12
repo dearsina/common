@@ -40,6 +40,14 @@ class str {
 		$this->str = false;
 	}
 
+	private function __clone()
+	{
+	}
+
+	private function __wakeup()
+	{
+	}
+
 	/**
 	 * Given a dot notation key, this function will return the value from the array.
 	 *
@@ -48,7 +56,7 @@ class str {
 	 *
 	 * @return mixed|null
 	 */
-	public static function getArrayValueByDotNotation(array $array, string $dot_notation_key)
+	public static function getArrayValueByDotNotation(?array $array, string $dot_notation_key)
 	{
 		// Break the dot notation key into an array of keys
 		$keys = explode('.', $dot_notation_key);
@@ -103,12 +111,32 @@ class str {
 		$current = $value;
 	}
 
-	private function __clone()
+	/**
+	 * Given a string, this function will return true if the char(s) are found in the string.
+	 * The search can be case-sensitive or case-insensitive.
+	 *
+	 * Mainly made because Copilot kept assuming it exists.
+	 *
+	 * @param string|null $string
+	 * @param string|null $chars
+	 * @param bool|null   $case_sensitive
+	 *
+	 * @return bool
+	 */
+	public static function contains(?string $string, ?string $chars, ?bool $case_sensitive = false): bool
 	{
-	}
+		# Both the string and the characters to search for must be set
+		if(!$string || !$chars){
+			return false;
+		}
 
-	private function __wakeup()
-	{
+		# If the search is case-insensitive
+		if(!$case_sensitive){
+			return stripos($string, $chars) !== false;
+		}
+
+		# If the search is case-sensitive
+		return strpos($string, $chars) !== false;
 	}
 
 	/**
