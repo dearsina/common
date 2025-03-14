@@ -5,6 +5,7 @@ namespace App\Common\RemoteStorage;
 use API\Aws\S3\S3;
 use API\Microsoft\Azure\Azure;
 use App\Common\Prototype;
+use App\Subscription\Subscription;
 
 /**
  * The middleware for remote storage.
@@ -13,8 +14,13 @@ class RemoteStorage extends Prototype {
 
     //The value is based the region value pulled from Cloudian
     private const S3_LOCATIONS = [
-        'tr'
+        'my', // Malaysia
+        'sa', // Saudi Arabia
+        'tr', // Turkey
+        'vn', // Vietnam
     ];
+
+    private string $location;
 
     private RemoteStorage $storage;
 
@@ -76,4 +82,41 @@ class RemoteStorage extends Prototype {
 
 		return new Azure($location);
 	}
+
+    /**
+     * @param string|null $location
+     * @return bool
+     */
+    public function isLocation(?string $location): bool
+    {
+        if(!$location){
+            $location = Subscription::DEFAULT_LOCATION;
+        }
+
+        return $this->location == strtoupper($location);
+    }
+
+    /**
+     * Ensures that location is always set to the correct one for the subscription
+     *
+     * @param string|null $location
+     * @return void
+     */
+    private function setLocation(?string $location): void
+    {
+        if(!$location){
+            $location = Subscription::DEFAULT_LOCATION;
+        }
+
+        $this->location = strtolower($location);
+    }
+
+    /**
+     * @return string
+     */
+    public function getLocation(): string
+    {
+        return $this->location;
+    }
+
 }
