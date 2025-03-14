@@ -32,10 +32,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		"google_drive" => [
 			"type" => "cloud",
 			"title" => "Google Drive",
-			"desc" => "Send your client files to your Google Drive.
-			<br><img
-			style=\"margin-top: 5px;margin-left: -5px; height: 46px;\"
-			src=\"/img/btn_google_signin_light_normal_web@2x.png\">",
+			"desc" => "Send your client files to your Google Drive.",
 			"icon" => [
 				"type" => "brand",
 				"name" => "google-drive",
