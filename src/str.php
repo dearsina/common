@@ -2464,6 +2464,19 @@ EOF;
 	}
 
 	/**
+	 * Display a date string in the local time of the browser.
+	 *
+	 * @param string|null $datetime_string
+	 * @param string|null $format
+	 *
+	 * @return string
+	 */
+	public static function localDateTime(?string $datetime_string, ?string $format = "H:i:s P, j F Y"): string
+	{
+		return "<span class=\"local-time\" data-datetime-format=\"{$format}\">{$datetime_string}</span>";
+	}
+
+	/**
 	 * Given a date string, returns a datetime object,
 	 * where the time is set to 00:00:00.
 	 *
