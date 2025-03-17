@@ -14,7 +14,8 @@ class Gmail extends Prototype implements EmailProviderInterface {
 	private \Google_Service_Gmail $gmail;
 
 	const SCOPES = [
-		"https://www.googleapis.com/auth/gmail.send"
+        "https://www.googleapis.com/auth/userinfo.email",
+		"https://www.googleapis.com/auth/gmail.send",
 	];
 
 	public function __construct(array $oauth_token)
@@ -35,8 +36,9 @@ class Gmail extends Prototype implements EmailProviderInterface {
 	public function getEmailAddress(): ?string
 	{
 		try {
-			$profile = $this->gmail->users->getProfile('me');
-			return $profile->emailAddress;
+            $oauth = new \Google_Service_Oauth2($this->client);
+            $userInfo = $oauth->userinfo_v2_me->get(); // Get user info
+            return $userInfo->getEmail();
 		} catch (\Exception $e) {
 			$this->throwError($e, "%s error attempting to get an email address: %s", false);
 			return NULL;

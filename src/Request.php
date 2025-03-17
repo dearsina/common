@@ -639,9 +639,22 @@ class Request {
 			if(!$keep_backtrace){
 				unset($query['backtrace']);
 			}
+
 			if($queries[$query['query_md5']]){
 				$queries[$query['query_md5']]['count']++;
 				$queries[$query['query_md5']]['time'] += $query['time'];
+
+				if(!is_array($queries[$query['query_md5']]['bt'][md5($query['backtrace'])])){
+					$queries[$query['query_md5']]['bt'][md5($query['backtrace'])] = [
+						"count" => 0,
+						"backtrace" => $query['backtrace'],
+					];
+				}
+				else {
+					$queries[$query['query_md5']]['bt'][md5($query['backtrace'])]['count']++;
+					$queries[$query['query_md5']]['bt'][md5($query['backtrace'])]['backtrace'] = $query['backtrace'];
+				}
+
 				continue;
 			}
 			$queries[$query['query_md5']] = $query;
@@ -664,7 +677,8 @@ class Request {
 			$queries = array_slice($queries, 0, $top);
 		}
 
-		print_r(array_values($queries));
+//		print_r(array_values($queries));
+		echo json_encode(array_values($queries));
 		exit;
 	}
 
@@ -679,7 +693,7 @@ class Request {
 	{
 		if(str::isDev()){
 			if($_SESSION['database_calls']){
-				if($_SESSION['database_calls'] > 50){
+				if($_SESSION['database_calls'] > 500){
 					$this->log->info("{$_SESSION['database_calls']} database calls.");
 				}
 			}

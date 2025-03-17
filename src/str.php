@@ -49,6 +49,97 @@ class str {
 	}
 
 	/**
+	 * Given a dot notation key, this function will return the value from the array.
+	 *
+	 * @param array  $array
+	 * @param string $dot_notation_key
+	 *
+	 * @return mixed|null
+	 */
+	public static function getArrayValueByDotNotation(?array $array, string $dot_notation_key)
+	{
+		// Break the dot notation key into an array of keys
+		$keys = explode('.', $dot_notation_key);
+
+		// Start at the root of the array
+		$current = &$array;
+
+		// Traverse or create sub-arrays
+		foreach($keys as $key){
+			// If the sub-key doesn't exist or isn't an array, initialize it
+			if(!isset($current[$key])){
+				return NULL;
+			}
+
+			// Move $current to the next level by reference
+			$current = &$current[$key];
+		}
+
+		// Finally, get the value
+		return $current;
+	}
+
+	/**
+	 * Recursively sets a value in an array using dot notation.
+	 *
+	 * @param array  $array  The array you want to update (passed by reference)
+	 * @param string $dotKey A string using dot notation, e.g. "foo.bar.baz"
+	 * @param mixed  $value  The value to set at that key
+	 *
+	 * @link https://chatgpt.com/share/678ccd08-2af8-8006-95da-aadcc23def31
+	 */
+	public static function setArrayValueByDotNotation(array &$array, string $dot_key, $value): void
+	{
+		// Break the dot_key into an array of keys
+		$keys = explode('.', $dot_key);
+
+		// Start at the root of the array
+		$current = &$array;
+
+		// Traverse or create sub-arrays
+		foreach($keys as $key){
+			// If the sub-key doesn't exist or isn't an array, initialize it
+			if(!isset($current[$key]) || !is_array($current[$key])){
+				$current[$key] = [];
+			}
+
+			// Move $current to the next level by reference
+			$current = &$current[$key];
+		}
+
+		// Finally, set the value
+		$current = $value;
+	}
+
+	/**
+	 * Given a string, this function will return true if the char(s) are found in the string.
+	 * The search can be case-sensitive or case-insensitive.
+	 *
+	 * Mainly made because Copilot kept assuming it exists.
+	 *
+	 * @param string|null $string
+	 * @param string|null $chars
+	 * @param bool|null   $case_sensitive
+	 *
+	 * @return bool
+	 */
+	public static function contains(?string $string, ?string $chars, ?bool $case_sensitive = false): bool
+	{
+		# Both the string and the characters to search for must be set
+		if(!$string || !$chars){
+			return false;
+		}
+
+		# If the search is case-insensitive
+		if(!$case_sensitive){
+			return stripos($string, $chars) !== false;
+		}
+
+		# If the search is case-sensitive
+		return strpos($string, $chars) !== false;
+	}
+
+	/**
 	 * @return str|null
 	 */
 	public static function getInstance()
@@ -2373,6 +2464,19 @@ EOF;
 	}
 
 	/**
+	 * Display a date string in the local time of the browser.
+	 *
+	 * @param string|null $datetime_string
+	 * @param string|null $format
+	 *
+	 * @return string
+	 */
+	public static function localDateTime(?string $datetime_string, ?string $format = "H:i:s P, j F Y"): string
+	{
+		return "<span class=\"local-time\" data-datetime-format=\"{$format}\">{$datetime_string}</span>";
+	}
+
+	/**
 	 * Given a date string, returns a datetime object,
 	 * where the time is set to 00:00:00.
 	 *
@@ -2402,6 +2506,32 @@ EOF;
 		$dt->setTime(0, 0, 0);
 
 		return $dt;
+	}
+
+	/**
+	 * Just like the `strtotime()` function, but treats
+	 * d/m/Y as d/m/Y, not as m/d/Y.
+	 * This is useful for European dates.
+	 * <code>
+	 *     echo str::strtotime("01/02/2020"); // 1580515200
+	 * </code>
+	 * @param string|null $string
+	 * @param             $now
+	 *
+	 * @return int
+	 */
+	public static function strtotime(?string $string, $now = NULL): int
+	{
+		if(!$string){
+			return 0;
+		}
+
+		# Treat d/m/Y as d/m/Y, not as m/d/Y
+		if(preg_match("/\d{1,2}\/\d{1,2}\/\d{4}/", $string)){
+			$string = preg_replace("/(\d{1,2})\/(\d{1,2})\/(\d{4})/", "$2/$1/$3", $string);
+		}
+
+		return strtotime($string, $now);
 	}
 
 

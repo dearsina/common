@@ -3,6 +3,7 @@
 namespace App\Common\Exception;
 
 use App\Common\Exception\Prototype;
+use App\Common\str;
 
 class Gone extends Prototype {
 	/**
@@ -11,9 +12,12 @@ class Gone extends Prototype {
 	 * @param                 $code
 	 * @param \Exception|NULL $previous
 	 */
-	public function __construct(string $public_message, ?string $private_message = NULL, $code = 410, \Exception $previous = NULL)
+	public function __construct(string $public_message, ?string $private_message = NULL, $code = 410, \Exception $previous = NULL, ?bool $log = true)
 	{
-		self::logException("Gone", $private_message ?: $public_message, $code);
-		parent::__construct($public_message, $code, $previous);
+		$private_message = $private_message ?: $public_message;
+		if($log){
+			self::logException("Gone", $private_message, $code);
+		}
+		parent::__construct(str::isDev() ? $private_message : $public_message, $code, $previous);
 	}
 }
