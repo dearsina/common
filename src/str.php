@@ -6,6 +6,9 @@ use App\Email\Email;
 use App\UI\Badge;
 use App\UI\Icon;
 use GuzzleHttp\Client;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Exception;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Static class related mainly to string manipulation.
@@ -2471,8 +2474,11 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function localDateTime(?string $datetime_string, ?string $format = "H:i:s P, j F Y"): string
+	public static function localDateTime(?string $datetime_string, ?string $format = "H:i:s P, j F Y"): ?string
 	{
+		if(!$datetime_string){
+			return NULL;
+		}
 		return "<span class=\"local-time\" data-datetime-format=\"{$format}\">{$datetime_string}</span>";
 	}
 
@@ -2826,6 +2832,65 @@ EOF;
 		rewind($f);
 		$csv_line = stream_get_contents($f);
 		return rtrim($csv_line);
+	}
+
+	/**
+	 * Given an array, will return a file array with information about
+	 * the outputted XLSX file that contains the arry data.
+	 *
+	 * @param array|null  $array
+	 * @param string|null $filename
+	 *
+	 * @return array|null
+	 * @throws Exception
+	 */
+	public static function saveArrayAsXlsx(?array $array, ?string $filename = NULL): ?array
+	{
+		if(!$array){
+			return NULL;
+		}
+
+		# Step 1: Collect all unique keys dynamically (ignoring UUIDs)
+		$uniqueKeys = [];
+		foreach($array as $values){
+			$uniqueKeys = array_merge($uniqueKeys, array_keys($values));
+		}
+		$uniqueKeys = array_values(array_unique($uniqueKeys)); // Remove duplicates and reindex
+
+		# Step 2: Create Spreadsheet
+		$spreadsheet = new Spreadsheet();
+		$sheet = $spreadsheet->getActiveSheet();
+
+		# Step 3: Add Headers
+		foreach($uniqueKeys as $colIndex => $header){
+			$sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
+		}
+
+		# Step 4: Write Data Rows
+		$rowIndex = 2;
+		foreach($array as $values){
+			foreach($uniqueKeys as $colIndex => $key){
+				$sheet->setCellValueByColumnAndRow($colIndex + 1, $rowIndex, $values[$key] ?? '');
+			}
+			$rowIndex++;
+		}
+
+		# Step 5: Save to file
+		$file = [
+			"tmp_file" => $_ENV['tmp_dir'] . str::id("xlsx"),
+			"name" => $filename ?: "export.xlsx",
+		];
+
+		$writer = new Xlsx($spreadsheet);
+		$writer->save($file['tmp_file']);
+
+		$file["type"] = mime_content_type($file["tmp_file"]);
+		$file["mime_type"] = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $file["tmp_file"]);
+		$file["size"] = filesize($file["tmp_file"]);
+		$file["md5"] = md5_file($file["tmp_file"]);
+
+		# Step 6: Return the file
+		return $file;
 	}
 
 	/**
