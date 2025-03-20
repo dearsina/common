@@ -617,7 +617,7 @@ class Doc extends \App\Common\Prototype {
 	public static function fileIsFont(array &$file, ?bool $throw_error = NULL): bool
 	{
 		# If a WOFF file is passed, convert it and work on the TTF instead
-		switch(strtolower($file['ext'])){
+		switch(strtolower($file['ext'])) {
 		case 'woff':
 		case 'woff2':
 			if($ttf = Convert::convertWoffToTtf($file['tmp_name'])){
@@ -1390,16 +1390,16 @@ class Doc extends \App\Common\Prototype {
 
 		$max_points = $max_in * 72;
 
-		$cmd = "gs ".
-		"-o {$file['tmp_name']}-{$max_points} ".
-		"-sDEVICE=pdfwrite ".
-		"-dPDFSETTINGS=/prepress ".
-		"-dCompatibilityLevel=1.4 ".
-		"-dFIXEDMEDIA ".
-		"-dPDFFitPage ".
-		"-dDEVICEWIDTHPOINTS={$max_points} ".
-		"-dDEVICEHEIGHTPOINTS={$max_points} ".
-		"-f {$file['tmp_name']}";
+		$cmd = "gs " .
+			"-o {$file['tmp_name']}-{$max_points} " .
+			"-sDEVICE=pdfwrite " .
+			"-dPDFSETTINGS=/prepress " .
+			"-dCompatibilityLevel=1.4 " .
+			"-dFIXEDMEDIA " .
+			"-dPDFFitPage " .
+			"-dDEVICEWIDTHPOINTS={$max_points} " .
+			"-dDEVICEHEIGHTPOINTS={$max_points} " .
+			"-f {$file['tmp_name']}";
 
 		if(!str::exec($cmd, $output)){
 			throw new \Exception("Unable to resize PDF file {$file['tmp_name']}: " . implode("<br>", $output) . "<br> After running <code>{$cmd}</code>. Please try again.");
@@ -1612,8 +1612,8 @@ class Doc extends \App\Common\Prototype {
 		$svg = $dom->getElementsByTagName('svg')->item(0);
 
 		// Iterate over the child nodes and check if any of them are element nodes
-		foreach ($svg->childNodes as $child) {
-			if ($child->nodeType === XML_ELEMENT_NODE) {
+		foreach($svg->childNodes as $child){
+			if($child->nodeType === XML_ELEMENT_NODE){
 				return true;
 			}
 		}
