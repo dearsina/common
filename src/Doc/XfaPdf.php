@@ -26,6 +26,8 @@ class XfaPdf {
 	const WINE_PREFIX = "/home/www-data/.wine32";
 
 	/**
+	 * The exact path to the Acrobat Reader executable.
+	 * This is the 32-bit version of Adobe Reader XI.
 	 * Adobe Acrobat XI needs to be copy/pasted into the Program Files directory.
 	 * Installation will fail.
 	 */
@@ -348,7 +350,8 @@ class XfaPdf {
 		}
 
 		# Set the command
-		$cmd = "{$this->getUserPrefixes()} {$this->getWinePrefix()} {$this->getDisplayPrefix()} wine \"" . self::ACROBAT_PATH . "\" {$path} {$logfile} 2>&1 &";
+		$cmd = "{$this->getWinePrefix()} {$this->getDisplayPrefix()} wine \"" . self::ACROBAT_PATH . "\" {$path} {$logfile} 2>&1 &";
+		// We're not using ruCommand, because we need to closely monitor what happened if the process fails
 
 		# Log it
 		$this->print("Running command: {$cmd}");
@@ -753,9 +756,6 @@ class XfaPdf {
 	 */
 	private function runCommand(string $cmd, ?bool $wine_prefix = NULL, ?bool $display_prefix = NULL, ?int $sleep = NULL): ?string
 	{
-		# Update HOME
-		$cmd_array[] = "HOME=/home/www-data";
-
 		# Add the WINE prefix
 		if($wine_prefix){
 			$cmd_array[] = $this->getWinePrefix();
@@ -834,9 +834,6 @@ class XfaPdf {
 
 		sleep(1);
 
-		# Add Server Interpreted access mode for local user www-data
-		$this->runCommand("xhost +SI:localuser:www-data", NULL, true);
-
 		# Test that the display is working
 		exec("xdpyinfo -display {$this->display} >/dev/null 2>&1", $output, $exitCode);
 		if($exitCode === 0){
@@ -852,9 +849,13 @@ class XfaPdf {
 	 *
 	 * @return string
 	 */
-	private function getUserPrefixes(): string
+	private function getWinePrefix(): string
 	{
 		$environmental_variables = [
+			/**
+			 * These are set to ensure that running this class from the browser
+			 * has the same results as running it directly from the command line.
+			 */
 			"LANGUAGE" => "en_US",
 			"LOGNAME" => "www-data",
 			"TERM" => "xterm",
@@ -864,16 +865,16 @@ class XfaPdf {
 			"USER" => "www-data",
 			"LANG" => "en_US.UTF-8",
 			"HOME" => "/home/www-data",
+
+			/**
+			 * The WINEPREFIX ensures that Wine is running in the correct environment.
+			 */
+			"WINEPREFIX" => self::WINE_PREFIX,
 		];
 
 		return implode(" ", array_map(function($key, $value){
 			return "{$key}={$value}";
 		}, array_keys($environmental_variables), $environmental_variables));
-	}
-
-	private function getWinePrefix(): string
-	{
-		return "WINEPREFIX=" . self::WINE_PREFIX;
 	}
 
 	private function getDisplayPrefix(): string
@@ -892,10 +893,10 @@ class XfaPdf {
 		# Get the current registry key value
 		$result = $this->runCommand("wine reg query \"" . self::REG_PATH . "\" /v bProtectedMode 2>&1", true, true);
 
-		# 0x0 Protected Mode is DISABLED
+		# 0x0 Protected Mode is DISABLED already
 		if(strpos($result, "0x0")){
-			# Enable protected mode
-			$this->runCommand("wine reg add \"" . self::REG_PATH . "\" /v bProtectedMode /t REG_DWORD /d 1 /f 2>&1", true, true);
+			// We're done
+			return;
 		}
 
 		# Launch Reader once, and get the PID
@@ -909,5 +910,6 @@ class XfaPdf {
 
 		# Disable protected mode
 		$this->runCommand("wine reg add \"" . self::REG_PATH . "\" /v bProtectedMode /t REG_DWORD /d 0 /f 2>&1", true, true);
+		// Toggle the /d value to 1 for enabled, 0 for disabled
 	}
 }
