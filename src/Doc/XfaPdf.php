@@ -105,7 +105,7 @@ class XfaPdf {
 
 		$this->print("Reading {$logfile} for {$threshold} seconds.");
 
-		while($timer < $threshold){
+		while($timer < $threshold) {
 			# Update the timer
 			$timer = str::stopTimer($time);
 
@@ -140,21 +140,8 @@ class XfaPdf {
 		$this->print("Reading of {$logfile} concluded after {$threshold} seconds.");
 	}
 
-	/**
-	 * Converts an XFA PDF to a PDF where each page is a corresponding screenshot at high resolution.
-	 *
-	 * @param string      $path
-	 * @param string|null $id
-	 *
-	 * @return string|null The output PDF filename
-	 */
-	public function convert(string $path, ?string $id = NULL): ?string
+	private function printEnvVariables(): void
 	{
-		# Set (a new) ID if provided
-		if($id){
-			$this->setId($id);
-		}
-
 		# Identify where HOME is
 		$this->print("WHOAMI: " . trim(shell_exec('whoami')));
 		$this->print("HOME: " . trim(getenv('HOME')));
@@ -176,7 +163,7 @@ class XfaPdf {
 		}, $env_file));
 
 		$envs = explode("\n", $envs);
-		$envs = array_filter($envs, function($line) use ($env_file){
+		$envs = (array)array_filter($envs, function($line) use ($env_file){
 			$key = explode("=", $line)[0];
 			if(strlen($line) > 1000){
 				return false;
@@ -185,9 +172,28 @@ class XfaPdf {
 		});
 
 		$this->print(json_encode(array_values($envs), JSON_PRETTY_PRINT));
+	}
+
+	/**
+	 * Converts an XFA PDF to a PDF where each page is a corresponding screenshot at high resolution.
+	 *
+	 * @param string      $path
+	 * @param string|null $id
+	 *
+	 * @return string|null The output PDF filename
+	 */
+	public function convert(string $path, ?string $id = NULL): ?string
+	{
+		# Set (a new) ID if provided
+		if($id){
+			$this->setId($id);
+		}
 
 		# Start the timer
 		$this->time = str::startTimer();
+
+		# Print environmental variables
+		$this->printEnvVariables();
 
 		# Set the display value
 		$this->setDisplay();
@@ -314,7 +320,7 @@ class XfaPdf {
 					"logfile" => $logfile,
 					"id" => $this->id,
 					"session_id" => $session_id,
-				]
+				],
 			]);
 		}
 
@@ -884,25 +890,24 @@ class XfaPdf {
 	private function circumventProtectedMode(): void
 	{
 		# Get the current registry key value
-		$result = $this->runCommand('wine reg query "HKCU\\Software\\Adobe\\Acrobat Reader\\11.0\\Privileged" /v bProtectedMode 2>&1', true, true);
+		$result = $this->runCommand("wine reg query \"" . self::REG_PATH . "\" /v bProtectedMode 2>&1", true, true);
 
 		# 0x0 Protected Mode is DISABLED
 		if(strpos($result, "0x0")){
 			# Enable protected mode
-			$this->runCommand("wine reg add \"" . self::REG_PATH . "\" /v bProtectedMode /t REG_DWORD /d 1 /f 2>&1");
+			$this->runCommand("wine reg add \"" . self::REG_PATH . "\" /v bProtectedMode /t REG_DWORD /d 1 /f 2>&1", true, true);
 		}
 
 		# Launch Reader once, and get the PID
-		$pid = $this->setAcrobatReader();
-		//		$pid = $this->runCommand("wine \"" . self::ACROBAT_PATH . "\" > /dev/null /dev/null 2>&1 & echo $!", true, true, 3);
+		$pid = $this->setAcrobatReader(NULL, 3);
 
 		# Press enter
-		$this->runCommand("xdotool key Return", false, false, 1);
+		$this->runCommand("xdotool key Return");
 
 		# Kill the reader
 		$this->runCommand("kill -9 {$pid} 2>&1");
 
 		# Disable protected mode
-		$this->runCommand("wine reg add \"" . self::REG_PATH . "\" /v bProtectedMode /t REG_DWORD /d 0 /f 2>&1");
+		$this->runCommand("wine reg add \"" . self::REG_PATH . "\" /v bProtectedMode /t REG_DWORD /d 0 /f 2>&1", true, true);
 	}
 }
