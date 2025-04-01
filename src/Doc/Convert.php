@@ -3,6 +3,7 @@
 namespace App\Common\Doc;
 
 use App\Common\Exception\BadRequest;
+use App\Common\Log;
 use App\Common\str;
 use App\Doc\Doc;
 
@@ -38,6 +39,7 @@ class Convert {
 	{
 		Convert::rotate($file);
 		Convert::heic($file);
+		Convert::xfa($file);
 		Convert::webp($file);
 		Convert::emf($file);
 		Convert::bw($file);
@@ -178,6 +180,53 @@ class Convert {
 
 		$file['md5'] = md5_file($file['tmp_name']);
 		$file['size'] = filesize($file['tmp_name']);
+
+		# Attach the original back
+		$file['original'][__FUNCTION__] = $original;
+	}
+
+	public static function xfa(array &$file): void
+	{
+		# We only need to do this once
+		if(Convert::hasAlreadyBeenProcessed($file, __FUNCTION__)){
+			return;
+		}
+
+		# Ensure the file was produced by Adobe LiveCycle Designer
+		if($file['pdf_info']['producer'] != 'Adobe LiveCycle Designer ES 9.0'){
+			return;
+		}
+
+		Log::getInstance()->warning([
+			"title" => "XFA Form",
+			"message" => "The document {$file['name']} is an XFA form.
+			It will now be converted to a standard PDF.
+			The conversion process may take up to 2 minutes.",
+		], true);
+
+		# Keep a copy of the original, rename the file to avoid it being overwritten
+		$original = Convert::makeCopy($file, __FUNCTION__);
+
+		# Add a suffix to the tmp name before converting
+		rename($file['tmp_name'], $file['tmp_name'] . ".pdf");
+		// Otherwise, Adobe Reader XI will struggle to open the file
+
+		# Load the converter
+		$xfa = new XfaPdf();
+
+		# Convert the file
+		$converted_tmp_name = $xfa->convert($file['tmp_name'].".pdf");
+
+		# Remove the original file
+		unlink($file['tmp_name']);
+
+		# Save the new file
+		$file['tmp_name'] = $converted_tmp_name;
+
+		# Some details have changed
+		$file['md5'] = md5_file($file['tmp_name']);
+		$file['size'] = filesize($file['tmp_name']);
+		Doc::addPDFMetadata($file);
 
 		# Attach the original back
 		$file['original'][__FUNCTION__] = $original;
