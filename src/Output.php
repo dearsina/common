@@ -455,15 +455,28 @@ EOF;
 		return $this->output[$type] = $data;
 	}
 
-	public function setOptions(?array $rows, ?string $placeholder = "", ?string $element = NULL, ?string $key = "options"): void
+	/**
+	 * This is for parent/child ajax calls,
+	 * and for async dropdown option population.
+	 *
+	 * @param array|null  $rows
+	 * @param string|null $placeholder
+	 * @param string|null $element
+	 * @param string|null $key
+	 *
+	 * @return void
+	 */
+	public function setOptions(?array $rows, ?string $placeholder = "", ?string $element = NULL, ?string $key = "results"): void
 	{
 		$this->output["placeholder"] = $placeholder;
 		$this->output["element"] = $element;
 
-		if(!$rows){
+		if($rows === NULL){
 			$this->output[$key] = NULL;
 			return;
 		}
+
+		$options = [];
 
 		# If a numeric options array is passed
 		if(str::isNumericArray($rows)){
