@@ -762,7 +762,7 @@ class Email extends Prototype {
 	 *
 	 * @return bool Whether the email was sent successfully
 	 */
-	private function sender(int $tries): bool
+	protected function sender(int $tries): bool
 	{
 		# Reuse the mailer if it has already been initiated
 		global $mailer;
