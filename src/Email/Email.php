@@ -957,7 +957,7 @@ class Email extends Prototype {
 		}
 	}
 
-	private function getSmtpMailer(): \Swift_Mailer
+	protected function getSmtpMailer(): \Swift_Mailer
 	{
 		# If custom SMTP settings haven't been set, use the default settings (from the .env file)
 		if(!$this->smtp_transport_settings){
