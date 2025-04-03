@@ -907,7 +907,7 @@ class Email extends Prototype {
 	 *
 	 * @return void
 	 */
-	private function setErrorMessage(?string $message): void
+	protected function setErrorMessage(?string $message): void
 	{
 		$this->error_message = $message;
 	}
