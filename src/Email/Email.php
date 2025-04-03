@@ -88,7 +88,7 @@ class Email extends Prototype {
 	 *
 	 * @var array|null
 	 */
-	private ?array $smtp_transport_settings = NULL;
+	protected ?array $smtp_transport_settings = NULL;
 
 	/**
 	 * Email constructor.
