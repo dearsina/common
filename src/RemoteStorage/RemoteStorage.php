@@ -36,10 +36,12 @@ class RemoteStorage extends Prototype {
 	 * only if the location passed is different from the current instance's location.
 	 * Otherwise, it will return the current instance.
 	 *
-	 * @param string|null $location ISO 3166-1 alpha-2 country code
-	 * @param object|null $storage An existing storage instance
+	 * Returns an object that implements RemoteStorageInterface.
 	 *
-	 * @return Azure|S3|RemoteStorage|object
+	 * @param string|null   $location ISO 3166-1 alpha-2 country code
+	 * @param Azure|S3|null $storage  An existing storage instance
+	 *
+	 * @return Azure|S3
 	 */
 	public static function create(?string $location = NULL, $storage = NULL)
 	{
@@ -102,7 +104,7 @@ class RemoteStorage extends Prototype {
      * @param string|null $location
      * @return void
      */
-    private function setLocation(?string $location): void
+    protected function setLocation(?string $location): void
     {
         if(!$location){
             $location = Subscription::DEFAULT_LOCATION;
@@ -118,5 +120,4 @@ class RemoteStorage extends Prototype {
     {
         return $this->location;
     }
-
 }

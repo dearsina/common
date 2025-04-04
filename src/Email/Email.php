@@ -88,7 +88,7 @@ class Email extends Prototype {
 	 *
 	 * @var array|null
 	 */
-	private ?array $smtp_transport_settings = NULL;
+	protected ?array $smtp_transport_settings = NULL;
 
 	/**
 	 * Email constructor.
@@ -196,7 +196,7 @@ class Email extends Prototype {
 		}
 	}
 
-	private function setFrom(?array $subscription_email = NULL): void
+	protected function setFrom(?array $subscription_email = NULL): void
 	{
 		[$from_email, $from_name] = Email::getFrom($subscription_email);
 		$this->envelope->setFrom([$from_email => $from_name]);
@@ -762,7 +762,7 @@ class Email extends Prototype {
 	 *
 	 * @return bool Whether the email was sent successfully
 	 */
-	private function sender(int $tries): bool
+	protected function sender(int $tries): bool
 	{
 		# Reuse the mailer if it has already been initiated
 		global $mailer;
@@ -907,7 +907,7 @@ class Email extends Prototype {
 	 *
 	 * @return void
 	 */
-	private function setErrorMessage(?string $message): void
+	protected function setErrorMessage(?string $message): void
 	{
 		$this->error_message = $message;
 	}
@@ -957,7 +957,7 @@ class Email extends Prototype {
 		}
 	}
 
-	private function getSmtpMailer(): \Swift_Mailer
+	protected function getSmtpMailer(): \Swift_Mailer
 	{
 		# If custom SMTP settings haven't been set, use the default settings (from the .env file)
 		if(!$this->smtp_transport_settings){
