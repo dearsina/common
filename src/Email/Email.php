@@ -34,7 +34,7 @@ class Email extends Prototype {
 	 * Contains the swift message envelope
 	 * @var \Swift_Message
 	 */
-	public $envelope;
+	public \Swift_Message $envelope;
 
 	/**
 	 * @var bool
@@ -196,7 +196,7 @@ class Email extends Prototype {
 		}
 	}
 
-	private function setFrom(?array $subscription_email = NULL): void
+	protected function setFrom(?array $subscription_email = NULL): void
 	{
 		[$from_email, $from_name] = Email::getFrom($subscription_email);
 		$this->envelope->setFrom([$from_email => $from_name]);
