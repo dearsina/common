@@ -34,7 +34,7 @@ class Email extends Prototype {
 	 * Contains the swift message envelope
 	 * @var \Swift_Message
 	 */
-	public \Swift_Message $envelope;
+	public $envelope;
 
 	/**
 	 * @var bool
