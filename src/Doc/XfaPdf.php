@@ -39,6 +39,12 @@ class XfaPdf {
 	const REG_PATH = "HKEY_CURRENT_USER\\Software\\Adobe\\Acrobat Reader\\11.0\\Privileged";
 
 	/**
+	 * The number of seconds to wait before polling how many Acrobat windows have opened.
+	 *
+	 */
+	const JUMP = 3;
+
+	/**
 	 * If set to true, will print debug messages.
 	 *
 	 * @var bool|null
@@ -675,6 +681,18 @@ class XfaPdf {
 		return $window_id;
 	}
 
+	private function getCurrentAcrobatWindowCount(): int
+	{
+		$count = (int)$this->runCommand('xdotool search --name "Adobe Reader" 2>/dev/null | wc -l', NULL, true);
+
+		if($count){
+			# Take a screenshot of the windows
+			$this->takeScreenshot("awaitReaderWindows-{$n}-found-{$count}-after-{$i}s");
+		}
+
+		return $count;
+	}
+
 	/**
 	 * Awaits for at least $seconds so that the $n number of Adobe Reader windows open.
 	 *
@@ -688,24 +706,34 @@ class XfaPdf {
 		# Log what's happening
 		$this->print("Awaiting $n Adobe Reader windows for $seconds seconds");
 
-		for($i = 1; $i <= $seconds; $i = $i + 3){
-			$count = (int)$this->runCommand('xdotool search --name "Adobe Reader" 2>/dev/null | wc -l', NULL, true);
+		for($i = 1; $i <= $seconds; $i = $i + self::JUMP){
+			$count = $this->getCurrentAcrobatWindowCount();
 
 			# Log the number of windows found
 			$this->print("Windows found after {$i} seconds: {$count}");
 
-			if($count){
-				# Take a screenshot of the windows
-				$this->takeScreenshot("awaitReaderWindows-{$n}-found-{$count}-after-{$i}s");
-			}
-
+			# If the count matches the expected count, we're good
 			if($count === $n){
 				return true;
 			}
 
+			# If we're at 3 windows, we're also being prompted by the licence agreement window
+			if($count === 3){
+				# Close make Acrobat default reader popup first
+				$this->closeMakeDefaultReaderPopUp();
+
+				# Then close the licence agreement window
+				$this->runKeySequence([
+					"Tab",
+					"Tab",
+					"Tab",
+					"Return",
+				]);
+			}
+
 			$this->runCommand("xdotool search --onlyvisible --name '.*' getwindowname 2>&1", NULL, true);
 
-			sleep(10);
+			sleep(self::JUMP);
 
 			# Use the Acrobat PID to see if it's still active
 			exec("ps -p {$this->acrobat_id} -o pid,ppid,user,%cpu,%mem,etime,cmd", $output, $return_var);
