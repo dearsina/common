@@ -288,8 +288,7 @@ class CronJob extends Prototype {
 		];
 
 		if(!$methods = str::getMethodsFromClass($vars['class'])){
-			$this->output->setVar("options", $options);
-			$this->output->setVar("placeholder", "No methods exist for this class.");
+			$this->output->setOptions( $options, "No methods exist for this class.");
 			return true;
 		}
 
@@ -299,9 +298,8 @@ class CronJob extends Prototype {
 				"text" => $method['name']
 			];
 		}
-
-		$this->output->setVar("options", $options);
-		$this->output->setVar("placeholder", "Select a method for the ".end(explode("\\",$vars['class']))." class.");
+		$class = explode("\\",$vars['class']);
+		$this->output->setOptions( $options, "Select a method for the ".end($class)." class.");
 		return true;
 	}
 
