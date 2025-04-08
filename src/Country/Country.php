@@ -295,14 +295,14 @@ class Country extends Prototype {
 
 	public static function getCountryFromISOAlpha2(?string $iso2): ?string
 	{
-		# Ensure the string has been passed, and is in uppercase
-		if(!$iso2 = strtoupper(trim($iso2))){
-			return NULL;
-		}
-
 		# Ensure the string is only two characters long
 		if(strlen($iso2) != 2){
 			return $iso2;
+		}
+		
+		# Ensure the string has been passed, and is in uppercase
+		if(!$iso2 = strtoupper(trim($iso2))){
+			return NULL;
 		}
 
 		$countries = Info::getInstance()->getInfo("country");
