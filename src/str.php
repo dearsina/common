@@ -1531,6 +1531,8 @@ EOF;
 
 	/**
 	 * Given a camelCase string returns snake_case.
+	 * Handles multiple uppercase letters in a row.
+	 * VATNumber becomes vat_number.
 	 * Will also replace spaces with underscore.
 	 *
 	 * @param string $string
@@ -1541,6 +1543,9 @@ EOF;
 	 */
 	public static function camelToSnakeCase(?string $string, string $us = "_"): string
 	{
+		# If there are more than 1 uppercase letters in a row, place a space between the last and the penultimate one
+		$string = preg_replace("/([A-Z]+)([A-Z])([^A-Z]+)/u", "$1 $2$3", $string);
+
 		return str_replace(" ", $us, mb_strtolower(preg_replace(
 			'/(?<=\d)(?=[A-Za-z])|(?<=[A-Za-z])(?=\d)|(?<=[a-z])(?=[A-Z])/u', $us, $string)));
 	}
