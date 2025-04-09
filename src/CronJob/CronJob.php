@@ -284,7 +284,7 @@ class CronJob extends Prototype {
 
 		$options[] = [
 			"id" => "",
-			"text" => ""
+			"title" => ""
 		];
 
 		if(!$methods = str::getMethodsFromClass($vars['class'])){
@@ -295,7 +295,7 @@ class CronJob extends Prototype {
 		foreach($methods as $method){
 			$options[] = [
 				"id" => $method['name'],
-				"text" => $method['name']
+				"title" => $method['name']
 			];
 		}
 		$class = explode("\\",$vars['class']);
