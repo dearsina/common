@@ -20,7 +20,7 @@ class RemoteStorage extends Prototype {
         'vn', // Vietnam
     ];
 
-    private string $location;
+    protected ?string $location;
 
     private RemoteStorage $storage;
 
