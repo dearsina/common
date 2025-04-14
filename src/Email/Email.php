@@ -994,4 +994,22 @@ class Email extends Prototype {
 
 		return $smtp_mailer;
 	}
+
+    public function notifyAdminsWorker(array $a): bool
+	{
+		extract($a);
+
+		$email = new Email();
+
+		# Message and body are confused sometimes
+		$vars['variables']['body'] = $vars['variables']['body'] ?: $vars['variables']['message'];
+
+		# Notify the generic email address
+		// TODO Replace with all admin emails at some point
+		$email->template("message", $vars['variables'])
+			->to($_ENV['email_username'])
+			->send();
+
+		return true;
+	}
 }
