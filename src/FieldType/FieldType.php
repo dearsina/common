@@ -136,8 +136,12 @@ class FieldType extends ModalPrototype {
 		return true;
 	}
 
-	public static function getFieldTypeIcon(string $name): ?string
+	public static function getFieldTypeIcon(?string $name): ?string
 	{
+		if(!$name){
+			return NULL;
+		}
+		
 		$field_types = self::get();
 		return $field_types[$name]['icon'];
 	}
