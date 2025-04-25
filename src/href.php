@@ -27,7 +27,14 @@ class href {
 			return NULL;
 		}
 
-		Translator::set($a, $a['subscription_id'], "href", $a, $a['language_id'], NULL, $a['parent_rel_id']);
+		if(class_exists("App\\Translation\\Translator")){
+			Translator::set($a, [
+				"subscription_id" => $a['subscription_id'],
+				"rel_table" => "href",
+				"to_language_id" => $a['language_id'],
+				"parent_rel_id" => $a['parent_rel_id']
+			]);
+		}
 
 		extract($a);
 

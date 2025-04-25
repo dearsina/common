@@ -20,6 +20,7 @@ class Language extends Prototype {
 	 * The default language that strings are translated from.
 	 */
 	const DEFAULT_FROM_LANGUAGE_ID = "en";
+	const DEFAULT_TO_LANGUAGE_ID = "en";
 
 	public static function getLanguagesWithCountryCodes(): array
 	{

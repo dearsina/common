@@ -131,7 +131,9 @@ class Country extends Prototype {
 		$info = Info::getInstance();
 
 		if($language_id){
-			$countries = Translator::translateCountries($language_id);
+			$t = new Translator();
+			$t->setToLanguageId($language_id);
+			$countries = $t->translateCountries();
 		}
 		else {
 			$countries = $info->getInfo("country");
