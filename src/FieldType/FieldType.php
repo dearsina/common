@@ -154,8 +154,12 @@ class FieldType extends ModalPrototype {
 	 * @return string|null
 	 * @throws \Exception
 	 */
-	public static function getFieldTypeIdFromName(string $name): ?string
+	public static function getFieldTypeIdFromName(?string $name): ?string
 	{
+		if(!$name){
+			return NULL;
+		}
+
 		$field_types = self::get();
 		return $field_types[$name]['field_type_id'];
 	}
