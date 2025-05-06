@@ -301,7 +301,7 @@ class Email extends Prototype {
 	 * @return $this|bool
 	 * @throws \Exception
 	 */
-	public function subject(string $subject)
+	public function subject(string $subject, ?bool $isDraft = false): object
 	{
 		if(!$subject){
 			throw new \Exception("An email was attempted sent without a subject line.");
@@ -350,8 +350,12 @@ class Email extends Prototype {
 	 * @throws \Exception
 	 * @throws \Exception
 	 */
-	public function message(string $message)
+	public function message(string $message, ?bool $isDraft = false): object
 	{
+        if ($isDraft && !$message) {
+            return $this;
+        }
+
 		if(!$message){
 			throw new \Exception("An email was attempted sent without a message body.");
 		}
