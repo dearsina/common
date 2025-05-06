@@ -242,7 +242,7 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
      * Given a folder ID, will return the folder name.
      *
      * @param string|null $folder_id
-     *
+	 *
      * @return string|null
      * @throws \Exception
      */
@@ -264,9 +264,16 @@ class GoogleDrive extends Prototype implements FileProviderInterface {
 		}
 
 		catch(\Exception $e) {
+			$message = $e->getMessage();
+			$error = json_decode($message, true);
+			$narrative = <<<EOF
+There was an error getting the folder name. The following error was returned:
+<p style="font-size: 75%; margin-top: 1rem;"><code>{$error['error']['message']}</code></p>
+EOF;
+
 			Log::getInstance()->error([
 				"title" => "Error getting folder name",
-				"message" => $e->getMessage(),
+				"message" => $narrative,
 			]);
 
             # Returns root as a default in the event that there is any error

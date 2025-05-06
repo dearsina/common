@@ -511,21 +511,39 @@ class OAuth2Handler extends \App\Common\Prototype {
 	 * the token is fresh, otherwise, gets a new token using
 	 * the refresh token.
 	 *
-	 * @param array $oauth_token
+	 * @param array     $oauth_token   <p>The OAuth token row array.</p>
+	 * @param bool|null $silent        [optional] <p>
+	 *                                 Set to ```true``` to suppress any error messages that may appear on failure to
+	 *                                 refresh an expired token.</p>
+	 * @param bool|null $return_error  [optional] <p>
+	 *                                 Set to ```true``` to return an error message string if the token has expired
+	 *                                 and the refresh token fails to refresh.</p>
 	 *
-	 * @return bool
+	 * @return bool|string|null <p>
+	 *                          Returns ```true``` if the token has yet to expire, or ```false``` if it has expired and
+	 *                          either doesn't have a refresh token, or the refresh token fails to refresh.</p><p>If
+	 *                          the ```$return_error``` variable is set, and the token has expired and the refresh
+	 *                          token fails to refresh, will return an error message string, or ```NULL``` if the token
+	 *                          is valid.</p>
 	 * @throws BadRequest
 	 */
-	public static function ensureTokenIsFresh(array &$oauth_token): bool
+	public static function ensureTokenIsFresh(array &$oauth_token, ?bool $silent = NULL, ?bool $return_error = NULL)
 	{
 		# If the token has yet to expire, we're good
 		if($oauth_token['expires'] > strtotime("now")){
+			if($return_error){
+				return NULL;
+			}
 			return true;
 		}
 
 		# Ensure we have a refresh token in case the token has expired
 		if(!$oauth_token['refresh_token']){
-			return true;
+			if($return_error){
+				return NULL;
+			}
+			return false;
+			// Since we don't have a refresh token, and it's expired, the token is no longer fresh
 		}
 
 		# Get the provider (class)
@@ -540,14 +558,25 @@ class OAuth2Handler extends \App\Common\Prototype {
 		try {
 			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
 		}
+
 		catch(\Exception $e) {
-			$provider_title = OAuth2Handler::getProviderTitle($oauth_token['provider']);
-			$title = "Could not connect to {$provider_title}";
-			$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
-			Log::getInstance()->error([
-				"title" => $title,
-				"message" => $message,
-			]);
+			# If we're NOT silent, display the error
+			if(!$silent){
+				$provider_title = OAuth2Handler::getProviderTitle($oauth_token['provider']);
+				$title = "Could not connect to {$provider_title}";
+				$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
+				Log::getInstance()->error([
+					"title" => $title,
+					"message" => $message,
+				]);
+			}
+
+			# If we are to return the error, do so
+			if($return_error){
+				return $e->getMessage();
+			}
+
+			# Otherwise, return false
 			return false;
 		}
 
@@ -570,6 +599,12 @@ class OAuth2Handler extends \App\Common\Prototype {
 			"user_id" => false,
 		]);
 
+		# If we were to return the error, and there is none, return NULL
+		if($return_error){
+			return NULL;
+		}
+
+		# Otherwise, return true
 		return true;
 	}
 
