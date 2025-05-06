@@ -511,9 +511,20 @@ class OAuth2Handler extends \App\Common\Prototype {
 	 * the token is fresh, otherwise, gets a new token using
 	 * the refresh token.
 	 *
-	 * @param array $oauth_token
+	 * @param array     $oauth_token   <p>The OAuth token row array.</p>
+	 * @param bool|null $silent        [optional] <p>
+	 *                                 Set to ```true``` to suppress any error messages that may appear on failure to
+	 *                                 refresh an expired token.</p>
+	 * @param bool|null $return_error  [optional] <p>
+	 *                                 Set to ```true``` to return an error message string if the token has expired
+	 *                                 and the refresh token fails to refresh.</p>
 	 *
-	 * @return bool|string|null
+	 * @return bool|string|null <p>
+	 *                          Returns ```true``` if the token has yet to expire, or ```false``` if it has expired and
+	 *                          either doesn't have a refresh token, or the refresh token fails to refresh.</p><p>If
+	 *                          the ```$return_error``` variable is set, and the token has expired and the refresh
+	 *                          token fails to refresh, will return an error message string, or ```NULL``` if the token
+	 *                          is valid.</p>
 	 * @throws BadRequest
 	 */
 	public static function ensureTokenIsFresh(array &$oauth_token, ?bool $silent = NULL, ?bool $return_error = NULL)
@@ -531,7 +542,8 @@ class OAuth2Handler extends \App\Common\Prototype {
 			if($return_error){
 				return NULL;
 			}
-			return true;
+			return false;
+			// Since we don't have a refresh token, and it's expired, the token is no longer fresh
 		}
 
 		# Get the provider (class)
