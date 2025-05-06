@@ -94,7 +94,7 @@ class File {
 
 		# Move the temp file to a semi-permanent location (so that we can hand over the file to a different php thread)
 		if(!move_uploaded_file($_FILES[$key]['tmp_name'], $tmp_name)){
-			throw new Exception("Unable to move uploaded file. Please try uploading again.");
+			throw new Exception("Unable to move uploaded file {$_FILES[$key]['name']}. Please try uploading again.");
 		}
 
 		# Record the MD5 hash of the file
