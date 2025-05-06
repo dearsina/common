@@ -513,18 +513,24 @@ class OAuth2Handler extends \App\Common\Prototype {
 	 *
 	 * @param array $oauth_token
 	 *
-	 * @return bool
+	 * @return bool|string|null
 	 * @throws BadRequest
 	 */
-	public static function ensureTokenIsFresh(array &$oauth_token): bool
+	public static function ensureTokenIsFresh(array &$oauth_token, ?bool $silent = NULL, ?bool $return_error = NULL)
 	{
 		# If the token has yet to expire, we're good
 		if($oauth_token['expires'] > strtotime("now")){
+			if($return_error){
+				return NULL;
+			}
 			return true;
 		}
 
 		# Ensure we have a refresh token in case the token has expired
 		if(!$oauth_token['refresh_token']){
+			if($return_error){
+				return NULL;
+			}
 			return true;
 		}
 
@@ -540,14 +546,25 @@ class OAuth2Handler extends \App\Common\Prototype {
 		try {
 			$token = $provider->getAccessToken($grant, ['refresh_token' => $oauth_token['refresh_token']]);
 		}
+
 		catch(\Exception $e) {
-			$provider_title = OAuth2Handler::getProviderTitle($oauth_token['provider']);
-			$title = "Could not connect to {$provider_title}";
-			$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
-			Log::getInstance()->error([
-				"title" => $title,
-				"message" => $message,
-			]);
+			# If we're NOT silent, display the error
+			if(!$silent){
+				$provider_title = OAuth2Handler::getProviderTitle($oauth_token['provider']);
+				$title = "Could not connect to {$provider_title}";
+				$message = "They gave the following reason:<p style=\"font-size: 75%; margin-top: 1rem;\"><code>{$e->getMessage()}</code></p>Please remove the connection and try again.";
+				Log::getInstance()->error([
+					"title" => $title,
+					"message" => $message,
+				]);
+			}
+
+			# If we are to return the error, do so
+			if($return_error){
+				return $e->getMessage();
+			}
+
+			# Otherwise, return false
 			return false;
 		}
 
@@ -570,6 +587,12 @@ class OAuth2Handler extends \App\Common\Prototype {
 			"user_id" => false,
 		]);
 
+		# If we were to return the error, and there is none, return NULL
+		if($return_error){
+			return NULL;
+		}
+
+		# Otherwise, return true
 		return true;
 	}
 
