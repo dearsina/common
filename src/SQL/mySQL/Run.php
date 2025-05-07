@@ -36,6 +36,11 @@ class Run extends Common {
 			$this->logRun($query);
 		}
 
+		global $user_id;
+		if($user_id == "90abaa4a-4163-497b-a9c2-d5250ba77152"){
+//			file_put_contents($_ENV['tmp_dir']."sql.log", str::backtrace(true).PHP_EOL.$query);
+		}
+
 		# Ensure the connection is live
 		$this->ensureConnection();
 
@@ -70,8 +75,8 @@ class Run extends Common {
 			}
 		}
 
-		# Catch either type of mySQL error
-		catch(MySqlException | \mysqli_sql_exception $e) {
+			# Catch either type of mySQL error
+		catch(MySqlException|\mysqli_sql_exception $e) {
 			# Grab the error message
 			$message = $e->getMessage();
 			// Grabbing it so that we can optionally add to it
@@ -80,7 +85,7 @@ class Run extends Common {
 			switch($message) {
 			case 'MySQL server has gone away':
 			case 'Deadlock found when trying to get lock; try restarting transaction':
-//			default:
+				//			default:
 				# Try again if we haven't tried too many times
 				if($tries <= self::MAX_TRIES){
 					# Close the connection
@@ -96,7 +101,7 @@ class Run extends Common {
 				}
 
 				# Note to the log that we tried really hard to make this work
-				$message .= ". Tried to re-run the query ".self::MAX_TRIES." times.";
+				$message .= ". Tried to re-run the query " . self::MAX_TRIES . " times.";
 				break;
 			}
 

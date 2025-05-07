@@ -440,7 +440,8 @@ class Doc extends \App\Common\Prototype {
 
 			# Move the temp file to a semi-permanent location (so that we can hand over the file to a different php thread)
 			if(!move_uploaded_file($file['tmp_name'][$i], $tmp_name)){
-				throw new \Exception("Unable to move uploaded file. Please try uploading again.");
+				$name = reset($file['name']);
+				throw new \Exception("Unable to move uploaded file {$name}. Please try uploading again.");
 			}
 
 			if(!$files[$i]['size'] = $file['size'][$i]){
@@ -540,7 +541,7 @@ class Doc extends \App\Common\Prototype {
 
 		else {
 			# Ensure there *is* one or more tmp files
-			if(!$_FILES[$key]['tmp_name']){
+			if(!file_exists($_FILES[$key]['tmp_name'])){
 				return NULL;
 			}
 
