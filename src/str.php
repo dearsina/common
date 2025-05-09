@@ -3031,10 +3031,11 @@ EOF;
 	 *
 	 * @param string|null $input
 	 * @param bool|null   $include_word
+	 * @param bool|null   $capitalise
 	 *
 	 * @return string|null
 	 */
-	public static function A(?string $input, ?bool $include_word = true): ?string
+	public static function A(?string $input, ?bool $include_word = true, ?bool $capitalise = NULL): ?string
 	{
 		if(!$input = trim(strip_tags($input))){
 			return NULL;
@@ -3058,6 +3059,10 @@ EOF;
 
 		if(!$include_word){
 			$result = trim(str_replace($word, "", $result));
+		}
+
+		if($capitalise){
+			$result = ucfirst($result);
 		}
 
 		return $pre . $result . $post;
