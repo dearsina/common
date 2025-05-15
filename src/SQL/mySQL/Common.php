@@ -506,17 +506,6 @@ abstract class Common {
 		}
 
 		foreach($cols as $key => $val){
-			# The column value needs to be a string or an array
-			if(!is_string($val) && !is_array($val)){
-				// If it's not a string nor an array
-				throw new \TypeError("
-					When writing a query for mySQL, 
-					if columns are explicitly requested as an associative array,
-					the value must either be a string or an array.
-					For the <code>{$key}</code> column, the value was " . str::A(gettype($val)) . "."
-				);
-			}
-
 			# If all columns are to be included, you can pass a simple wildcard
 			if($val === "*"){
 				foreach($this->getAllTableColumns($table, $include_meta) as $col){

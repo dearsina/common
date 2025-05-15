@@ -432,6 +432,10 @@ class Select extends Common {
 				}
 				$strings[$id] .= $column['table_alias'] ? "`{$column['table_alias']}`." : NULL;
 				$strings[$id] .= $column['name'] ? "`{$column['name']}`" : NULL;
+
+				if($column['string'] && $column['alias']){
+					$strings[$id] .= "`{$column['alias']}`";
+				}
 			}
 		}
 
