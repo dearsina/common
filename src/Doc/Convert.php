@@ -62,11 +62,7 @@ class Convert {
 				//if it's only an explanation as to why this method was NOT used, jog on
 				continue;
 			}
-			if($method_file['md5'] == $file['md5']){
-				//if the original file is the same as the current file, jog on
-				continue;
-			}
-			
+
 			if($method_file){
 				$originals[$method] = $method_file;
 			}
