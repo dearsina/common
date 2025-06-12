@@ -194,7 +194,7 @@ class Convert {
 		}
 
 		# Ensure the file was produced by Adobe LiveCycle Designer
-		if($file['pdf_info']['producer'] != 'Adobe LiveCycle Designer ES 9.0'){
+		if(!stripos($file['pdf_info']['producer'], "livecycle")){
 			return;
 		}
 
