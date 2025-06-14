@@ -69,7 +69,7 @@ interface SingleSignOnProviderInterface extends ProviderInterface {
 	 * @param string $group_id
 	 * @param string $client_state A unique, secret identifier for the client
 	 *
-	 * @return void
+	 * @return array|null
 	 */
 	public function subscribeToGroupChanges(string $group_id, string $client_state): ?array;
 
