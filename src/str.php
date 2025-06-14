@@ -2216,25 +2216,24 @@ EOF;
 	/**
 	 * Input:
 	 * <code>
-	 * echo time_elapsed_string('@1367367755'); # timestamp input
-	 * echo time_elapsed_string('2013-05-01 00:22:35', true);
+	 * echo str::timeSummary('@1367367755'); # timestamp input
+	 * echo str::timeSummary('2013-05-01 00:22:35', true);
 	 * </code>
 	 * Output:
 	 * <code>
-	 * 4 months ago
-	 * 4 months, 2 weeks, 3 days, 1 hour, 49 minutes, 15 seconds ago
+	 * 4 months
+	 * 4 months, 2 weeks, 3 days, 1 hour, 49 minutes, 15 seconds
 	 * </code>
 	 * The output is static.
 	 *
-	 * @param      $datetime
-	 * @param bool $full
+	 * @param string|null $datetime
+	 * @param bool        $full
 	 *
 	 * @return string
 	 * @throws \Exception
-	 * @throws \Exception
 	 * @link https://stackoverflow.com/a/18602474/429071
 	 */
-	static function time_elapsed_string($datetime, $full = false)
+	static function timeSummary(?string $datetime = NULL, ?bool $full = NULL)
 	{
 		$now = new \DateTime;
 		$ago = new \DateTime($datetime);
@@ -2252,18 +2251,28 @@ EOF;
 			'i' => 'minute',
 			's' => 'second',
 		];
+
 		foreach($string as $k => &$v){
-			if($diff->$k){
-				$v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
-			}
-			else {
+			# If the difference is 0, remove the item from the array
+			if(!$diff->$k){
 				unset($string[$k]);
+				continue;
 			}
+
+			# If the difference is more than 1, add an "s" to the end of the string
+			$v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
 		}
 
-		if(!$full)
+		# If there is no difference, return "just now"
+		if(!$string){
+			return "just now";
+		}
+
+		if(!$full){
 			$string = array_slice($string, 0, 1);
-		return $string ? implode(', ', $string) . ' ago' : 'just now';
+		}
+
+		return implode(', ', $string);
 	}
 
 	/**
