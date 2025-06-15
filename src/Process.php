@@ -200,6 +200,11 @@ class Process {
 			}
 		}
 
+		# Connection ID
+		global $connection_id;
+		$global_vars['connection_id'] = $connection_id ?: $_SERVER['HTTP_CSRF_TOKEN'];
+		// This is a more precise way to identify the recipient of thread output messages
+
 		# Collect the session ID
 		global $session_id;
 		// If a global session ID is not set, set it to the current session ID

@@ -125,7 +125,7 @@ class Output {
 	 * It will not touch the div tag itself.
 	 *
 	 * @param string        $id         Expects an ID that jQuery will understand (prefixed with # or . etc)
-	 * @param string        $data
+	 * @param string|bool   $data		If set to false, will remove any prior div content.
 	 * @param array|null    $recipients If set, will send the update asynchronously to all relevant recipients
 	 * @param bool|int|null $first
 	 *
@@ -322,7 +322,7 @@ EOF;
 		$data = [
 			"id" => "#ui-modal",
 			"html" => $html,
-			"replace" => $replace
+			"replace" => $replace,
 		];
 
 		$this->setData("modal", NULL, $data, $recipients, $first);
@@ -359,7 +359,7 @@ EOF;
 		$data = [
 			"id" => $modal_id,
 			"close" => true,
-//			"backtrace" => $modal_id ? NULL : debug_backtrace(),
+			//			"backtrace" => $modal_id ? NULL : debug_backtrace(),
 		];
 
 		$this->setData("modal", NULL, $data, $recipients, $first);

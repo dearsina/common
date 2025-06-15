@@ -540,6 +540,13 @@ class Request {
 		# Extract the vars
 		extract($a);
 
+		# The CSRF token is also the connection UUID
+		if($_SERVER['HTTP_CSRF_TOKEN']){
+			global $connection_id;
+			$connection_id = $_SERVER['HTTP_CSRF_TOKEN'];
+			// We can use the global to identify which connection/tab to send data back to via websockets
+		}
+
 		# Handle any errors that may be embedded into the URI
 		if(!$this->handleErrors($a)){
 			return false;
