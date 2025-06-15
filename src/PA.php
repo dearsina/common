@@ -139,8 +139,7 @@ class PA {
 				}
 
 				# Pull (Data is stored, awaiting pull from browser)
-				else {
-					//If the connection exists, but has no websocket recipient
+				else if ($connection['connection_id']){
 
 					# Store the data for pull request downloads
 					ConnectionMessage::store($connection['connection_id'], $data);
@@ -178,8 +177,13 @@ class PA {
 		# See if there is global data about the requester
 		global $user_id;
 		global $session_id;
+		global $connection_id;
 
 		# Ensure there is a recipient
+		if($connection_id){
+			$recipients['connection_id'] = $connection_id;
+		}
+
 		if($session_id){
 			$recipients['session_id'] = $session_id;
 		}
@@ -246,12 +250,16 @@ class PA {
 			return NULL;
 		}
 
-
 		extract($a);
 
 		# If a list of recipient FDs was explicitly sent
 		if($a['fd']){
 			return is_array($a['fd']) ? $a['fd'] : [$a['fd']];
+		}
+
+		# If a connection ID has been passed or can be inferred, use it to get the FD
+		if($fd = $this->getConnectionFromId($a)){
+			return [$fd];
 		}
 
 		# We're only interested in connections on the current server
@@ -279,7 +287,7 @@ class PA {
 		# User permissions based recipients
 		$this->getRecipientsBasedOnUserPermissions($a);
 
-		# Role based recipients
+		# Role-based recipients
 		$this->getRecipientsBasedOnRolePermissions($a);
 
 		# Requester based recipient (there is only one requester at any time)
@@ -296,14 +304,14 @@ class PA {
 		 * However, this only applies to when we are looking
 		 * for an explicit user or session.
 		 */
-		if($user_id || $session_id){
+		if($connection_id || $user_id || $session_id){
 			# We're only interested in one connection
 			$limit = 1;
 
 			# And it should be with a server ID, the newest first
 			$order_by = [
 				"server_id" => "DESC",
-				"connection_id" => "DESC"
+				"connection_id" => "DESC",
 			];
 
 			$this->or[] = ["server_id", "IS", NULL];
@@ -338,6 +346,57 @@ class PA {
 		return $connections;
 	}
 
+	private function getConnectionFromId(array $a): ?array
+	{
+		# The current user ID
+		global $user_id;
+
+		# The current session ID (unless one has been passed)
+		global $session_id;
+		$session_id = $session_id ?: session_id();
+
+		# The current connection ID
+		global $connection_id;
+
+		# If an / another connection ID has already been passed, use it
+		if($a['connection_id']){
+			return $this->sql->select([
+				"columns" => "fd",
+				"table" => "connection",
+				"id" => $a['connection_id'],
+			]);
+		}
+
+		# If the connection has not been set, pencils down
+		if(!$connection_id){
+			return NULL;
+		}
+
+		# If the given user ID is our own user ID, use the connection ID instead to pinpoint the tab
+		if($a['user_id'] && $user_id){
+			if($a['user_id'] == $user_id){
+				return $this->sql->select([
+					"columns" => "fd",
+					"table" => "connection",
+					"id" => $connection_id,
+				]);
+			}
+		}
+
+		# If the given session ID is our own session ID, use the connection ID instead to pinpoint the tab
+		if($a['session_id'] && $session_id){
+			if($a['session_id'] == $session_id){
+				return $this->sql->select([
+					"columns" => "fd",
+					"table" => "connection",
+					"id" => $connection_id,
+				]);
+			}
+		}
+
+		return NULL;
+	}
+
 	/**
 	 * If a `rel_table` is included, will send the message to any
 	 * user who has permissions to READ that `rel_table`.
@@ -361,7 +420,7 @@ class PA {
 			"where" => [
 				"rel_table" => $rel_table,
 				"rel_id" => $rel_id ?: false,
-				"r" => true
+				"r" => true,
 				// The user needs to at least have read access
 			],
 		];
@@ -399,6 +458,10 @@ class PA {
 	private function getRecipientsBasedOnRequester($a): void
 	{
 		extract($a);
+
+		if($connection_id){
+			$this->where['connection_id'] = $connection_id;
+		}
 
 		if($user_id){
 			$this->where['user_id'] = $user_id;
@@ -462,7 +525,7 @@ class PA {
 		]));
 
 		# Place the whole thing in a co-routine
-		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
+		$cmd = "\\Swoole\\Coroutine\\run(function(){";
 
 		# Fire up the http client
 		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
