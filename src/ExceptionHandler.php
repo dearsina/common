@@ -5,6 +5,7 @@ namespace App\Common;
 
 
 use App\Common\SQL\Factory;
+use Psr\Http\Message\RequestInterface;
 
 /**
  * Class ExceptionHandler
@@ -50,14 +51,34 @@ class ExceptionHandler {
 	 *
 	 * @return string
 	 */
-	public static function getRequest (object $e): string
+	public static function getRequest (\Exception $e): string
 	{
 		if(!method_exists($e, "getRequest")){
 			return false;
 		}
 
-		$request = \GuzzleHttp\Psr7\str($e->getRequest());
-		return $request;
+		$request = $e->getRequest();
+		if (!$request instanceof RequestInterface) {
+			return '';
+		}
+
+		$requestLine = sprintf(
+			"%s %s HTTP/%s\r\n",
+			$request->getMethod(),
+			$request->getRequestTarget(),
+			$request->getProtocolVersion()
+		);
+
+		$headers = '';
+		foreach ($request->getHeaders() as $name => $values) {
+			foreach ($values as $value) {
+				$headers .= sprintf("%s: %s\r\n", $name, $value);
+			}
+		}
+
+		$body = (string) $request->getBody();
+
+		return $requestLine . $headers . "\r\n" . $body;
 	}
 
 	/**
@@ -157,7 +178,7 @@ class ExceptionHandler {
 	 *
 	 * @return bool
 	 */
-	public static function logException (string $origin, $e): bool
+	public static function logException (string $origin, \Exception $e): bool
 	{
 		$sql = Factory::getInstance();
 		$sql->insert([
