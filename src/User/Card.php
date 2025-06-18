@@ -266,7 +266,7 @@ class Card extends Prototype {
 	 * @return string
 	 * @throws \Exception
 	 */
-	public function login($a = NULL)
+	public function login(?array $a = NULL): string
 	{
 		if(is_array($a))
 			extract($a);

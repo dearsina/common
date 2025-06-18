@@ -862,14 +862,15 @@ class User extends Prototype {
 	}
 
 	/**
-	 * Login form
+	 * Login form.
 	 * Presented to the user when wanting to log in, or when credentials have expired.
 	 *
-	 * @param null $a
+	 * @param array $a
 	 *
 	 * @return bool
+	 * @throws Exception
 	 */
-	public function login($a = NULL)
+	public function login(array $a): bool
 	{
 		extract($a);
 
@@ -890,6 +891,11 @@ class User extends Prototype {
 		$this->output->html($page->getHTML());
 
 		return true;
+	}
+
+	public function loggedOut(array $a): bool
+	{
+		return $this->login($a);
 	}
 
 	/**
@@ -931,7 +937,7 @@ class User extends Prototype {
 
 		$this->hash->set([
 			"rel_table" => "user",
-			"action" => "login",
+			"action" => "logged_out",
 		]);
 
 		//		$this->hash->set("https://kycdd.co.za");

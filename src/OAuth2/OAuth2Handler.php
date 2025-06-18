@@ -233,8 +233,16 @@ class OAuth2Handler extends \App\Common\Prototype {
 		 * continue as normal.
 		 */
 
+		$url = "https://app.{$_ENV['domain']}/oauth2.php?" . http_build_query(array_filter($a));
+
+		# Single sign-on doesn't use the popup window
+		if($a['vars']['sso']){
+			$this->hash->set($url);
+			return;
+		}
+
 		$this->output->function("openNewWindow", [
-			"url" => "https://app.{$_ENV['domain']}/oauth2.php?" . http_build_query(array_filter($a)),
+			"url" => $url,
 			"id" => session_id(),
 			"width" => 500,
 			"height" => 700,

@@ -72,6 +72,7 @@ trait SingleSignOnTrait {
 				"rel_id" => $user_id,
 				"action" => "oauth2",
 				"vars" => [
+					"sso" => true,
 					"provider" => $provider,
 					"callback" => $callback,
 				],
