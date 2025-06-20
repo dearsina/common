@@ -18,21 +18,21 @@ abstract class HandlerPrototype extends \App\Common\Prototype {
 	 * add them to this method to ensure joins are included
 	 * before the method is executed.
 	 *
-	 * @param array|string $needs_joins
+	 * @param array|string $requested_joins
 	 */
-	protected function needsJoin($needs_joins): void
+	protected function setJoin($requested_joins): void
 	{
-		if(!$needs_joins){
+		if(!$requested_joins){
 			return;
 		}
 
 		# Must be an array form, but can also be delivered as a string
-		if(!is_array($needs_joins)){
-			$needs_joins = [$needs_joins];
+		if(!is_array($requested_joins)){
+			$requested_joins = [$requested_joins];
 		}
 
 		# Handle missing joins
-		if($missingJoins = array_values(array_diff($needs_joins, $this->joins ?: []))){
+		if($missingJoins = array_values(array_diff($requested_joins, $this->joins ?: []))){
 			//If there are any missing joins
 
 			# Merge them with the existing joins
