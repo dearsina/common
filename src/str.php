@@ -3516,6 +3516,24 @@ EOF;
 	}
 
 	/**
+	 * Merges two arrays, overwriting values in the first array with non-empty values from the second array.
+	 *
+	 * @param array $array1 The first array to merge into.
+	 * @param array $array2 The second array whose values will overwrite the first array's values if they are not empty.
+	 * 
+	 * @return array The merged array.
+	 */
+	public static function mergeWithoutEmptyValues(array $array1, array $array2): array {
+		foreach ($array2 as $key => $value) {
+			// Only overwrite if the value is not empty
+			if (!empty($value) || !isset($array1[$key])) {
+				$array1[$key] = $value;
+			}
+		}
+		return $array1;
+	}
+
+	/**
 	 * Given an int number, returns the corresponding Excel-style
 	 * column name, 0 = A, 1 = B, 26 = AA, 27 = AB, etc.
 	 *
