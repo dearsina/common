@@ -315,6 +315,38 @@ class Country extends Prototype {
 		return $countries[$key]['name'];
 	}
 
+	/**
+	 * Will return the relevant ISO alpha2 country code
+	 * if it can be found.
+	 *
+	 * Will return NULL if it cannot be found. For example
+	 * "com" will return NULL, as it is not a country code.
+	 *
+	 * @param string|null $cc_tld
+	 *
+	 * @return string|null
+	 * @throws \Exception
+	 */
+	public static function getISOAlpha2FromCCTLD(?string $cc_tld): ?string
+	{
+		# Ensure the string has been passed, and is in uppercase
+		if(!$cc_tld = strtolower(trim($cc_tld))){
+			return NULL;
+		}
+
+		# Ensure the string is only two characters long
+		if(strlen($cc_tld) != 2){
+			return NULL;
+		}
+
+		$countries = Info::getInstance()->getInfo("country");
+		if(($key = array_search($cc_tld, array_column($countries, 'cc_tld'))) === false){
+			return NULL;
+		}
+
+		return $countries[$key]['country_code'];
+	}
+
 
 	/**
 	 * Given a user ID, get that user's local currency code.

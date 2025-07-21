@@ -4,6 +4,7 @@
 namespace App\Common;
 
 use App\Translation\Translator;
+use App\UI\Tooltip;
 
 /**
  * Generates the href (and optionally the onClick) attribute and value for the a tag.
@@ -27,14 +28,18 @@ class href {
 			return NULL;
 		}
 
-		if(class_exists("App\\Translation\\Translator")){
-			Translator::set($a, [
-				"subscription_id" => $a['subscription_id'],
-				"rel_table" => "href",
-				"to_language_id" => $a['language_id'],
-				"parent_rel_id" => $a['parent_rel_id']
-			]);
+		if($a['language_id']){
+			if(class_exists("App\\Translation\\Translator")){
+				Translator::set($a, [
+					"subscription_id" => $a['subscription_id'],
+					"rel_table" => "href",
+					"to_language_id" => $a['language_id'],
+					"parent_rel_id" => $a['parent_rel_id']
+				]);
+			}
 		}
+
+		Tooltip::generate($a);
 
 		extract($a);
 
@@ -54,9 +59,12 @@ class href {
 		# Alt
 		$alt = str::getAttrTag("title", $alt);
 
+		# Data
+		$data = str::getDataAttr($data);
+
 		$href = href::generate($a);
 
-		return "{$pre}<a{$id}{$class}{$style}{$href}{$target}{$alt}>{$html}</a>{$post}";
+		return "{$pre}<a{$id}{$class}{$style}{$href}{$target}{$alt}{$data}>{$html}</a>{$post}";
 	}
 
 	/**
@@ -117,6 +125,14 @@ class href {
 		if($url){
 			if(is_array($url)){
 				foreach($url as $attr => $val){
+					if($attr == "tooltip"){
+						$return[] = str::getAttrTag("class", "tooltip-trigger");
+						$return[] = str::getAttrTag("data-bs-toggle", "tooltip");
+						$return[] = str::getAttrTag("data-bs-html", "true");
+						$return[] = str::getAttrTag("data-bs-placement", "top");
+						$return[] = str::getAttrTag("data-bs-original-title", $val);
+						continue;
+					}
 					$return[] = str::getAttrTag($attr, $val);
 				}
 			}

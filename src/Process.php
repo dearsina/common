@@ -67,11 +67,7 @@ class Process {
 		}
 
 		# Format the (optional) params to feed to the method
-		if($params){
-			$params_json = str_replace(["\\", '"'], ["\\\\", '\\"'], json_encode($params));
-			$params = "\"{$params_json}\"";
-			//Both \ and " must be escaped or else the command will fail
-		}
+		$params = self::stringifyArray($params);
 
 		# Build the command that executes the execute method
 		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
@@ -247,8 +243,12 @@ class Process {
 	 * @return string
 	 * @link https://stackoverflow.com/a/65878993/429071
 	 */
-	private static function stringifyArray(array $a): string
+	private static function stringifyArray(?array $a): ?string
 	{
+		if(!$a){
+			return NULL;
+		}
+
 		$params = "[";
 		foreach($a as $key => $val){
 			# Format the key

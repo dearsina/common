@@ -122,16 +122,25 @@ class Info {
 		}
 
 		if(is_array($a['rel_table'])){
-			$rel_table_name = $a['rel_table']['name'];
+			$parent_class = $a['rel_table']['name'];
 		}
 		else {
-			$rel_table_name = $a['rel_table'];
+			$parent_class = $a['rel_table'];
 		}
 
-		# Run either a custom or generic process to get the rows
-		if($class_path = str::findClass("Info", $rel_table_name, $a['grandparent_class'])){
+		if($a['grandparent_class']){
+			$grandparent_class = $a['grandparent_class'];
+		}
+		else if($a['rel_db']){
+			$grandparent_class = $a['rel_db'];
+		}
+
+		# If a custom Info class exists for the rel_table, use it.
+		if($class_path = str::findClass("Info", $parent_class, $grandparent_class)){
 			$rows = $this->customProcess($class_path, $a, $joins, $return_query);
 		}
+
+		# If a custom Info class does not exist, use the generic process.
 		else {
 			$rows = $this->genericProcess($a, $return_query);
 		}
@@ -158,7 +167,6 @@ class Info {
 		if(($a['limit'] == 1) || $a['rel_id']){
 			return reset($rows);
 		}
-
 
 		return $rows;
 	}

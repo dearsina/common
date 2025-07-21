@@ -43,6 +43,70 @@ class str {
 		$this->str = false;
 	}
 
+	/**
+	 * Given a string, this function will wrap
+	 * Cyrillic and Arabic words in a span tag
+	 * with a class of "script-cyrillic" or "script-arabic"
+	 * respectively.
+	 * This is useful for styling purposes,
+	 * for example, to change the font
+	 * of Cyrillic and Arabic words
+	 * to a more appropriate font
+	 * for those scripts.
+	 *
+	 * @param string|null $string
+	 *
+	 * @return string|null
+	 */
+	public static function setScripts(?string $string): ?string
+	{
+		if(!$string){
+			return $string;
+		}
+
+		# Ignore strings that are HTML
+		if(strip_tags($string) !== $string){
+			return $string;
+		}
+
+		$words = explode(" ", $string);
+		$scripted_words = [];
+
+		for($i = 0; $i < count($words); $i++){
+
+			# Cyrillic
+			$cyrillic_words = [];
+			while($words[$i] && preg_match('/[\p{Cyrillic}]/u', $words[$i])) {
+				$cyrillic_words[] = $words[$i];
+				$i++;
+			}
+			if($cyrillic_words){
+				$cyrillic_words = implode(" ", $cyrillic_words);
+				$scripted_words[] = "<span class=\"script-cyrillic\">{$cyrillic_words}</span>";
+			}
+
+			# Arabic
+			$arabic_words = [];
+			while($words[$i] && preg_match('/[\p{Arabic}]/u', $words[$i])) {
+				$arabic_words[] = $words[$i];
+				$i++;
+			}
+			if($arabic_words){
+				$arabic_words = implode(" ", $arabic_words);
+				$scripted_words[] = "<span class=\"script-arabic\">{$arabic_words}</span>";
+			}
+
+			$scripted_words[] = $words[$i];
+		}
+
+		# Remove any empty words
+		$scripted_words = array_filter($scripted_words, function($word){
+			return !empty(trim($word));
+		});
+
+		return implode(" ", $scripted_words);
+	}
+
 	private function __clone()
 	{
 	}
@@ -5470,5 +5534,46 @@ EOF;
 		}
 
 		return $string;
+	}
+
+	/**
+	 * Returns a base64 encoded PNG image of the LaTeX formula.
+	 *
+	 * @param string $formula
+	 *
+	 * @return string
+	 */
+	public static function latexToPng(string $formula): string
+	{
+		$formula = str_replace('%', '\%', $formula);
+
+		$latex = <<<LATEX
+\\documentclass[preview]{standalone}
+\\usepackage{amsmath}
+\\begin{document}
+\\[
+$formula
+\\]
+\\end{document}
+LATEX;
+
+		$filename = $_ENV['tmp_dir'] . str::uuid();
+
+		// Write LaTeX file
+		file_put_contents("{$filename}.tex", $latex);
+
+		# Compile LaTeX to PDF
+		str::exec("cd /var/www/tmp && pdflatex --shell-escape {$filename}.tex 2>&1", $output);
+
+		# Convert PDF to PNG
+		str::exec("convert -density 300 -trim {$filename}.pdf {$filename}.png 2>&1", $output);
+
+		# Read PNG file
+		$png = file_get_contents("{$filename}.png");
+
+		# Clean up temporary files
+		str::exec("rm {$filename}.aux {$filename}.log {$filename}.pdf {$filename}.tex {$filename}.png");
+
+		return 'data:image/png;base64,' . base64_encode($png);
 	}
 }

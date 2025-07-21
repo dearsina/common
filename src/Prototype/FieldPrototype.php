@@ -24,9 +24,16 @@ class FieldPrototype {
 					$a[$key] = json_encode($a[substr($key, 0, -2)]);
 				}
 			}
+
 			if(!isset($a[$key])){
 				continue;
 			}
+
+			# If the value is an array, convert it to JSON
+			if(is_array($a[$key])){
+				$a[$key] = json_encode($a[$key]);
+			}
+
 			$fields[] = [
 				"type" => "hidden",
 				"name" => $key,

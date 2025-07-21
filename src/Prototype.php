@@ -299,6 +299,7 @@ abstract class Prototype {
 			$order = $original_order + $push;
 			while($this->sql->select([
 				"count" => true,
+				"db" => $rel_db,
 				"table" => $rel_table,
 				"where" => [
 					"order" => $order,
@@ -310,6 +311,7 @@ abstract class Prototype {
 				$order = $original_order + $push;
 			}
 			$this->sql->update([
+				"db" => $rel_db,
 				"table" => $rel_table,
 				"id" => $id,
 				"set" => [
