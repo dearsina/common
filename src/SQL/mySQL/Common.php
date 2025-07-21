@@ -2942,6 +2942,21 @@ abstract class Common {
 		return array_column($result['rows'] ?: [], "db");
 	}
 
+	public function getTableNamesFromSchema(string $schema): ?array
+	{
+		$query = "
+		SELECT `TABLE_NAME`
+		FROM `information_schema`.`tables`
+		WHERE `TABLE_SCHEMA` = '{$schema}'
+		AND `TABLE_TYPE` IN ('BASE TABLE', 'VIEW')
+		";
+
+		$sql = new Run($this->mysqli);
+		$result = $sql->run($query);
+
+		return array_column($result['rows'] ?: [], "TABLE_NAME");
+	}
+
 	/**
 	 * Doest $db exist (and has this user access to it)?
 	 * Can be called multiple times, will only query the
