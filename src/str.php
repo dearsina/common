@@ -3091,7 +3091,7 @@ EOF;
 
 		# Clear the temporary file if one was used
 		if($tmp_name){
-			unlink($tmp_name);
+			exec("rm {$tmp_name}");
 		}
 
 		return $rows;

@@ -501,7 +501,7 @@ class Doc extends \App\Common\Prototype {
 
 		# Remove the tmp file
 		if($delete){
-			unlink($file['tmp_name']);
+			exec("rm {$file['tmp_name']}");
 		}
 
 		# The image is all black
@@ -580,7 +580,7 @@ class Doc extends \App\Common\Prototype {
 		# Delete the local copy of the file (as it's now in the cloud)
 		if(file_exists($file['tmp_name'])){
 			//if the file exists of course
-			unlink($file['tmp_name']);
+			exec("rm {$file['tmp_name']}");
 		}
 
 		# Delete the JPG pages (if doc is a PDF)
@@ -590,7 +590,7 @@ class Doc extends \App\Common\Prototype {
 				$tmp_name = $file['tmp_name'] . "-{$page}";
 				if(file_exists($tmp_name)){
 					//we have this in place because sometimes the file doesn't exist. Not sure why.
-					unlink($tmp_name);
+					exec("rm {$tmp_name}");
 				}
 			}
 		}
@@ -600,7 +600,7 @@ class Doc extends \App\Common\Prototype {
 			foreach($originals as $method => $method_file){
 				if(file_exists($method_file['tmp_name'])){
 					//if the file exists of course
-					unlink($method_file['tmp_name']);
+					exec("rm {$method_file['tmp_name']}");
 				}
 			}
 		}
@@ -623,7 +623,7 @@ class Doc extends \App\Common\Prototype {
 		case 'woff2':
 			if($ttf = Convert::convertWoffToTtf($file['tmp_name'])){
 				# Remove the woff file
-				unlink($file['tmp_name']);
+				exec("rm {$file['tmp_name']}");
 
 				# Update the file array
 				$file = [
@@ -703,7 +703,7 @@ class Doc extends \App\Common\Prototype {
 		$im->destroy();
 
 		# Remove the SVG copy
-		unlink($svg_tmp_name);
+		exec("rm {$svg_tmp_name}");
 	}
 
 	/**
@@ -821,7 +821,7 @@ class Doc extends \App\Common\Prototype {
 		$file['output'][] = $output;
 
 		# Remove the PDF copy
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Add the pdftoppm suffix (this is added automatically from the above command)
 		$file['tmp_name'] .= "-{$page_number}.jpg";
@@ -1089,7 +1089,7 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Get rid of the raster version
-		//		unlink($file['tmp_name']);
+		//		exec("rm {$file['tmp_name']}");
 
 		# Update the tmp name
 		$file['tmp_name'] .= ".svg";
@@ -1407,7 +1407,7 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Remove the input tmp file
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Rename the output tmp file to the input tmp file
 		rename("{$file['tmp_name']}-{$max_points}", $file['tmp_name']);

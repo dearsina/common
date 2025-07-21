@@ -219,7 +219,7 @@ class Convert {
 		$converted_tmp_name = $xfa->convert($file['tmp_name'].".pdf");
 
 		# Remove the original file
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Save the new file
 		$file['tmp_name'] = $converted_tmp_name;
@@ -308,7 +308,7 @@ class Convert {
 			}
 
 			# Remove the original HEIC
-			unlink($file['tmp_name']);
+			exec("rm {$file['tmp_name']}");
 
 			# Add the jpg suffix to the tmp name (to reflect the conversion to JPG)
 			$file['tmp_name'] .= ".jpg";
@@ -369,7 +369,7 @@ class Convert {
 		}
 
 		# Remove the original image
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Add the pdf suffix to the tmp name (to reflect the conversion to PDF)
 		$file['tmp_name'] .= ".pdf";
@@ -472,7 +472,7 @@ class Convert {
 		}
 
 		# Remove the original webp file
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Add the jpg suffix to the tmp name (to reflect the conversion to PNG)
 		$file['tmp_name'] .= ".png";
@@ -523,7 +523,7 @@ class Convert {
 		}
 
 		# Remove the original webp file
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Add the jpg suffix to the tmp name (to reflect the conversion to PNG)
 		$file['tmp_name'] .= ".{$ext}";
@@ -763,7 +763,7 @@ class Convert {
 		}
 
 		# Remove the input tmp file
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Rename the output tmp file to the input tmp file
 		rename("{$file['tmp_name']}-{$max_points}", $file['tmp_name']);
@@ -825,7 +825,7 @@ class Convert {
 		shell_exec($cmd);
 
 		# Remove the original PDF
-		unlink($file['tmp_name']);
+		exec("rm {$file['tmp_name']}");
 
 		# Add the pdftoppm suffix (to reflect the conversion to JPG)
 		$file['tmp_name'] .= '-1.jpg';

@@ -513,7 +513,7 @@ class XfaPdf {
 			# If the hash is the same as the last one, we're done
 			if($hash === $last_hash){
 				# Delete the last (duplicate) page
-				unlink($filename);
+				exec("rm {$filename}");
 
 				break;
 			}

@@ -133,7 +133,7 @@ class Export extends Common {
 
 	public function deleteTmpFile(): void
 	{
-		unlink($this->tmp_file);
+		exec("rm {$this->tmp_file}");
 	}
 
 	/**

@@ -223,7 +223,7 @@ class File {
 		# Delete the local copy of the file (as it's now in the cloud)
 		if(file_exists($file['tmp_name'])){
 			//if the file exists of course
-			unlink($file['tmp_name']);
+			exec("rm {$file['tmp_name']}");
 		}
 
 		# Delete the JPG pages (if doc is a PDF)
@@ -233,7 +233,7 @@ class File {
 				$tmp_name = $file['tmp_name'] . "-{$page}";
 				if(file_exists($tmp_name)){
 					//we have this in place because sometimes the file doesn't exist. Not sure why.
-					unlink($tmp_name);
+					exec("rm {$tmp_name}");
 				}
 			}
 		}
