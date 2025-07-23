@@ -58,8 +58,8 @@ class Grow extends Common {
 					//If the column to check cannot be updated by the user, ignore it
 					continue;
 				}
-				if(!$val){
-					//If the $val has no value, ignore this column
+				if($val === null){
+					//If the $val is null, ignore this column
 					continue;
 				}
 
