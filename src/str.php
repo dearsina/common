@@ -2339,6 +2339,48 @@ EOF;
 		return implode(', ', $string);
 	}
 
+	static function daysSummary(?int $days = null, ?bool $full = null): string
+	{
+		if ($days === null || $days < 0) {
+			return 'just now';
+		}
+
+		$string = [];
+
+		$years = floor($days / 365);
+		$days %= 365;
+
+		$months = floor($days / 30);
+		$days %= 30;
+
+		$weeks = floor($days / 7);
+		$days %= 7;
+
+		$units = [
+			'y' => ['value' => $years,  'label' => 'year'],
+			'm' => ['value' => $months, 'label' => 'month'],
+			'w' => ['value' => $weeks,  'label' => 'week'],
+			'd' => ['value' => $days,   'label' => 'day'],
+		];
+
+		foreach ($units as $unit) {
+			if ($unit['value'] > 0) {
+				$label = $unit['label'] . ($unit['value'] > 1 ? 's' : '');
+				$string[] = $unit['value'] . ' ' . $label;
+			}
+		}
+
+		if (empty($string)) {
+			return 'just now';
+		}
+
+		if (!$full) {
+			$string = array_slice($string, 0, 1);
+		}
+
+		return str::oxfordImplode($string);
+	}
+
 	/**
 	 * Returns a string of how many days between then and now.
 	 *
