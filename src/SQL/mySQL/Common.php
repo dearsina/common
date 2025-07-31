@@ -1276,7 +1276,7 @@ abstract class Common {
 				}
 
 				# Ensure the formatted value is valid
-				else if(($val = $this->formatComparisonVal($val)) === NULL){
+				else if(($val = $this->formatComparisonVal($val, true)) === NULL){
 					//A legit value can be "0"
 					return NULL;
 				}
@@ -1309,12 +1309,12 @@ abstract class Common {
 			}
 
 			# Ensure the formatted FROM value is valid
-			if(($from_val = $this->formatComparisonVal($from_val)) === NULL){
+			if(($from_val = $this->formatComparisonVal($from_val, true)) === NULL){
 				return NULL;
 			}
 
 			# Ensure the formatted TO value is valid
-			if(($to_val = $this->formatComparisonVal($to_val)) === NULL){
+			if(($to_val = $this->formatComparisonVal($to_val, true)) === NULL){
 				return NULL;
 			}
 
@@ -1342,7 +1342,7 @@ abstract class Common {
 			}
 
 			# Ensure the formatted value is valid
-			if(($val = $this->formatComparisonVal($val)) === NULL){
+			if(($val = $this->formatComparisonVal($val, true)) === NULL){
 				//A legit value can be "0"
 				return NULL;
 			}
@@ -1412,7 +1412,7 @@ abstract class Common {
 			$eq = $this->correctComparisonOperatorForNullVal($val, "=");
 
 			# Ensure the formatted value is valid
-			if(($val = $this->formatComparisonVal($val)) === NULL){
+			if(($val = $this->formatComparisonVal($val, true)) === NULL){
 				//A legit value can be "0"
 				return NULL;
 			}
@@ -1493,7 +1493,7 @@ abstract class Common {
 			$comparison = array_shift($val);
 
 			# Format the val and ensure it's a valid value
-			if(($comparison = $this->formatComparisonVal($comparison)) === NULL){
+			if(($comparison = $this->formatComparisonVal($comparison, true)) === NULL){
 				return NULL;
 			}
 
@@ -1504,7 +1504,7 @@ abstract class Common {
 			$comparison = array_shift($val);
 
 			# Format the val and ensure it's a valid value
-			if(($comparison = $this->formatComparisonVal($comparison)) === NULL){
+			if(($comparison = $this->formatComparisonVal($comparison, true)) === NULL){
 				return NULL;
 			}
 
@@ -2194,8 +2194,8 @@ abstract class Common {
 		if(str::isNumericArray($val)){
 			//if the vals are an an array (belonging to the IN/NOT IN function)
 			foreach($val as $v){
-				if(($v = $this->formatComparisonVal($v)) === NULL){
-					//A legit value can be "0"
+				if(($v = $this->formatComparisonVal($v, true)) === NULL){
+					//A legit value can be "0" or HTML
 					continue;
 				}
 				$vals[] = $v;
