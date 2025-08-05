@@ -2072,6 +2072,12 @@ abstract class Common {
 				return "NULL";
 			}
 
+			$json = json_encode($val);
+			$json = str_replace("\\", "\\\\", $json);
+			$json = str_replace("'", "\'", $json);
+			return "'{$json}'";
+			// Testing how much more useful it would be to convert any value to JSON instead of giving an error
+
 			# Otherwise, arrays are not allowed and will return an error
 			throw new mysqli_sql_exception("Set values cannot be in array form. The following array was attempted set for the <b>{$col}</b> column: <pre>" . print_r($val, true) . "</pre>");
 		}
