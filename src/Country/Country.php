@@ -467,7 +467,7 @@ class Country extends Prototype {
 					// Not all countries have all columns
 					continue;
 				}
-				if($val == $country[$col]){
+				if($val == strtolower($country[$col])){
 					return $country[$return_col];
 				}
 			}
