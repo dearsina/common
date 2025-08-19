@@ -52,7 +52,8 @@ class ConnectionMessage extends \App\Common\Prototype {
 				"ip" => $_SERVER['REMOTE_ADDR']
 			]
 		])){
-			return false;
+			return true;
+			// Without an error message returning false will display an empty error, not a good UX
 		}
 
 		# Remove the FD (WebSocket recipient) number, now that the websocket has died
