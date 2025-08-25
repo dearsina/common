@@ -92,27 +92,6 @@ class Country extends Prototype {
 		return $currency['geolocation'][0]['country'][0]['currency_code'];
 	}
 
-	public static function getIconFromISOAlpha2(?string $iso2): ?array
-	{
-		if(!$iso2){
-			return NULL;
-		}
-
-		$iso2 = strtoupper($iso2);
-
-		foreach(Info::getInstance()->getInfo("country") as $country){
-			if($country['country_code'] == $iso2){
-				break;
-			}
-		}
-
-		return [
-			"type" => "flag",
-			"name" => $iso2,
-			"alt" => $country['name'],
-		];
-	}
-
 	/**
 	 * Returns an array with the alpha-2 country code as the key,
 	 * and the English country name as the value.
@@ -154,6 +133,27 @@ class Country extends Prototype {
 		}
 
 		return $country_options;
+	}
+
+	public static function getIconFromISOAlpha2(?string $iso2): ?array
+	{
+		if(!$iso2){
+			return NULL;
+		}
+
+		$iso2 = strtoupper($iso2);
+
+		foreach(Info::getInstance()->getInfo("country") as $country){
+			if($country['country_code'] == $iso2){
+				break;
+			}
+		}
+
+		return [
+			"type" => "flag",
+			"name" => $iso2,
+			"alt" => $country['name'],
+		];
 	}
 
 	public static function getAllNationalities(): array
@@ -393,34 +393,6 @@ class Country extends Prototype {
 	}
 
 	/**
-	 * Simplifies a country names for comparison.
-	 *
-	 * @param string $val
-	 *
-	 * @return string
-	 */
-	private static function simplifyCountryName(string $val): string
-	{
-		# Strip any suffixed text in square brackets
-		$val = preg_replace("/\s*\[.*?\]\s*$/", "", $val);
-
-		# Replace & with "and"
-		$val = str_replace("&", "and", $val);
-
-		# Replace "St " with "Saint "
-		$val = preg_replace("/\bSt\s+/i", "Saint ", $val);
-
-		# Strip "the" from the beginning
-		$val = preg_replace("/^the\s+/i", "", $val);
-
-		$val = trim($val);
-
-		$val = strtolower($val);
-
-		return $val;
-	}
-
-	/**
 	 * Given a country name or nationality, will return the
 	 * ISO-2 country code.
 	 * Allows for fuzzy matching.
@@ -486,12 +458,6 @@ class Country extends Prototype {
 
 					$name = self::simplifyCountryName($name);
 
-					if($fuzzy){
-						if(JaroWinkler::compare($name, $val) >= $fuzzy){
-							return $country[$return_col];
-						}
-					}
-
 					if($name == $val){
 						return $country[$return_col];
 					}
@@ -499,6 +465,57 @@ class Country extends Prototype {
 			}
 		}
 
+		# Match FUZZY on name, alternative names and nationalities
+		if($fuzzy){
+			// If fuzzy is enabled
+			foreach($countries as $country){
+				foreach($columns_to_search as $col){
+					if(!$country[$col]){
+						// Not all countries have all columns
+						continue;
+					}
+
+					foreach(explode("|", $country[$col]) as $name){
+						// The alt_name and nationality columns can contain more than one value, pipe-delimited
+
+						$name = self::simplifyCountryName($name);
+
+						if(JaroWinkler::compare($name, $val) >= $fuzzy){
+							return $country[$return_col];
+						}
+					}
+				}
+			}
+		}
+
 		return NULL;
+	}
+
+	/**
+	 * Simplifies a country names for comparison.
+	 *
+	 * @param string $val
+	 *
+	 * @return string
+	 */
+	private static function simplifyCountryName(string $val): string
+	{
+		# Strip any suffixed text in square brackets
+		$val = preg_replace("/\s*\[.*?\]\s*$/", "", $val);
+
+		# Replace & with "and"
+		$val = str_replace("&", "and", $val);
+
+		# Replace "St " with "Saint "
+		$val = preg_replace("/\bSt\s+/i", "Saint ", $val);
+
+		# Strip "the" from the beginning
+		$val = preg_replace("/^the\s+/i", "", $val);
+
+		$val = trim($val);
+
+		$val = strtolower($val);
+
+		return $val;
 	}
 }
