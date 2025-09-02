@@ -202,7 +202,7 @@ class ExceptionHandler {
 	/**
 	 * Given an exception and its origin,
 	 * will produce an error alert and display it to the user
-	 * immediately thru WebSockets.
+	 * immediately through WebSockets.
 	 *
 	 * @param string     $origin
 	 * @param            $e

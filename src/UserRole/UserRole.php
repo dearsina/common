@@ -248,7 +248,7 @@ class UserRole extends \App\Common\Prototype {
 						"colour" => "red",
 						"icon" => Icon::get("remove"),
 						"title" => "Remove this role?",
-						"message" => "Removing the {$role['role']} role from this user will remove all permissions this user has thru the role, and may have unintended consequences."
+						"message" => "Removing the {$role['role']} role from this user will remove all permissions this user has through the role, and may have unintended consequences."
 					]
 				];
 			} else {
