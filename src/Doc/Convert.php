@@ -143,7 +143,7 @@ class Convert {
 			$original = Convert::makeCopy($file, __FUNCTION__);
 
 			# For each page, flip it
-			foreach ($imagick as $page) {
+			foreach($imagick as $page){
 				$clone = clone $page;
 				$clone->flipImage();
 				$imagick->addImage($clone);
@@ -216,7 +216,7 @@ class Convert {
 		$xfa = new XfaPdf();
 
 		# Convert the file
-		$converted_tmp_name = $xfa->convert($file['tmp_name'].".pdf");
+		$converted_tmp_name = $xfa->convert($file['tmp_name'] . ".pdf");
 
 		# Remove the original file
 		exec("rm {$file['tmp_name']}");
@@ -259,60 +259,32 @@ class Convert {
 		# Keep a copy of the original, rename the file to avoid it being overwritten
 		$original = Convert::makeCopy($file, __FUNCTION__);
 
-//		# Try using ImageMagick first
-//		try {
-//			# Open ImageMagick
-//			$imagick = new \Imagick();
-//
-//			# Read the image
-//			$imagick->readImage($original['tmp_name']);
-//
-//			# Set image quality
-//			if($quality){
-//				//if the quality variable is set
-//				$imagick->setImageCompressionQuality($quality);
-//			}
-//
-//			# Set image format
-//			$imagick->setImageFormat("jpeg");
-//
-//			# Store the HEIC as a JPG
-//			$imagick->writeImage("jpg:" . $file['tmp_name']);
-//
-//			# And we're done with ImageMagick
-//			$imagick->clear();
-//
-//			# Set the new metadata
-//			clearstatcache();
-//		}
-//
-//		# Failing that, use the old-fashioned way (command line)
-//		catch (\ImagickException $e) {
+		# Command
+		$command = "magick {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.jpg";
+		# Execute the command
 
-		/**
-		 * ImageMagick struggles with this and crashes the thread.
-		 * Command line works fine. ImageMagick code kept just in case.
-		 */
+		str::exec($command, $output);
+		// If the command has an output (that's bad news)
 
-			# Command
-			$command = "magick {$file['tmp_name']} -quality {$quality} {$file['tmp_name']}.jpg";
-			# Execute the command
+		# Remove the original HEIC
+		exec("rm {$file['tmp_name']}");
 
-			$output = shell_exec($command);
-			// If the command has an output (that's bad news)
+		# Return the last bit of the output, which is generally the error message
+		if(array_filter($output)){
+			exec("rm {$original['tmp_name']}");
+			// Remove the original also
 
-			# Return the last bit of the output, which is generally the error message
-			if($output){
-				$error = explode(":", $output);
-				throw new \Exception(trim(end($error)));
-			}
+			Log::getInstance()->error([
+				"title" => "HEIC error",
+				"message" => "The document {$file['name']} you uploaded is a HEIC file. While the HEIC file format is the current default
+				file format used by Apple for storing photographs, it's not widely supported by anyone else yet. We tried to convert the
+				HEIC file to a a more useful format, but the conversion failed. Please upload the file as any other format."
+			]);
+			return;
+		}
 
-			# Remove the original HEIC
-			exec("rm {$file['tmp_name']}");
-
-			# Add the jpg suffix to the tmp name (to reflect the conversion to JPG)
-			$file['tmp_name'] .= ".jpg";
-//		}
+		# Add the jpg suffix to the tmp name (to reflect the conversion to JPG)
+		$file['tmp_name'] .= ".jpg";
 
 		# Set the new metadata
 		clearstatcache();
@@ -602,12 +574,12 @@ class Convert {
 			$filename = $file['tmp_name'];
 		}
 
-		try{
+		try {
 			# Read the first (and only) page
 			$imagick->readImage($filename);
 		}
 			# Catch errors
-		catch (\ImagickException $e){
+		catch(\ImagickException $e) {
 			// If there is an error, there isn't much we can do here
 			return;
 		}
@@ -637,7 +609,7 @@ class Convert {
 				$imagick->clear();
 
 				# Explain why we're stopping
-				$file['original'][__FUNCTION__] = "Has {$number_of_colours} colours and saturation of ".str::percent($saturation, 3).".";
+				$file['original'][__FUNCTION__] = "Has {$number_of_colours} colours and saturation of " . str::percent($saturation, 3) . ".";
 
 				# Pencils down
 				return;
@@ -747,15 +719,15 @@ class Convert {
 
 		$max_points = $max_in * 72;
 
-		$cmd = "gs ".
-			"-o {$file['tmp_name']}-{$max_points} ".
-			"-sDEVICE=pdfwrite ".
-			"-dPDFSETTINGS=/prepress ".
-			"-dCompatibilityLevel=1.4 ".
-			"-dFIXEDMEDIA ".
-			"-dPDFFitPage ".
-			"-dDEVICEWIDTHPOINTS={$max_points} ".
-			"-dDEVICEHEIGHTPOINTS={$max_points} ".
+		$cmd = "gs " .
+			"-o {$file['tmp_name']}-{$max_points} " .
+			"-sDEVICE=pdfwrite " .
+			"-dPDFSETTINGS=/prepress " .
+			"-dCompatibilityLevel=1.4 " .
+			"-dFIXEDMEDIA " .
+			"-dPDFFitPage " .
+			"-dDEVICEWIDTHPOINTS={$max_points} " .
+			"-dDEVICEHEIGHTPOINTS={$max_points} " .
 			"-f {$file['tmp_name']}";
 
 		if(!str::exec($cmd, $output)){
