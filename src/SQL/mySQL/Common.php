@@ -2976,7 +2976,7 @@ abstract class Common {
 	{
 		# Account for meta tables that are not in the INFORMATION_SCHEMA database
 		if(in_array($db, ["INFORMATION_SCHEMA"])){
-			throw new \Exception("Meta databases like the <code>INFORMATION_SCHEMA</code> can only be accessed thru the <code>run()</code> method.");
+			throw new \Exception("Meta databases like the <code>INFORMATION_SCHEMA</code> can only be accessed through the <code>run()</code> method.");
 		}
 
 		$db = str::i($db);
