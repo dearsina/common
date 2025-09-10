@@ -886,7 +886,7 @@ class Email extends Prototype {
 
 			\App\Email\Email::notifyAdmins([
 				"subject" => "Email sent successfully on try {$tries}",
-				"body" => "The email was successfully sent after {$tries} tries.",
+				"body" => "An email to ".str::oxfordImplode($this->envelope->getTo())." with the subject line {$this->envelope->getSubject()} was successfully sent after {$tries} tries.",
 			]);
 		}
 
