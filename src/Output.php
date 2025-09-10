@@ -125,7 +125,7 @@ class Output {
 	 * It will not touch the div tag itself.
 	 *
 	 * @param string        $id         Expects an ID that jQuery will understand (prefixed with # or . etc)
-	 * @param string|bool   $data		If set to false, will remove any prior div content.
+	 * @param string|bool   $data       If set to false, will remove any prior div content.
 	 * @param array|null    $recipients If set, will send the update asynchronously to all relevant recipients
 	 * @param bool|int|null $first
 	 *
@@ -137,26 +137,46 @@ class Output {
 	}
 
 	/**
+	 * Update the value of an element.
+	 * This will be done by jQuery, using the .val() method.
+	 * This is only used for form fields.
+	 *
+	 * @param string      $id
+	 * @param string|null $data
+	 * @param array|null  $recipients
+	 * @param             $first
+	 *
+	 * @return bool
+	 */
+	public function updateFieldValue(string $id, ?string $data, ?array $recipients = NULL, $first = NULL): bool
+	{
+		return $this->setData("updateFieldValue", $id, $data, $recipients, $first);
+	}
+
+	/**
 	 * If you want to update the footer buttons.
 	 *
 	 * @param string        $id
-	 * @param array         $buttons
+	 * @param string|null   $html
+	 * @param array|null    $buttons
 	 * @param array|null    $recipients
 	 * @param bool|int|null $first
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function updateFooterButtons(string $id, array $buttons, ?array $recipients = NULL, $first = NULL): bool
+	public function updateFooterButtons(string $id, ?string $html = NULL, ?array $buttons = NULL, ?array $recipients = NULL, $first = NULL): bool
 	{
-		$html = Button::generate($buttons);
+		$buttons_html = Button::generate($buttons);
 		$html = <<<EOF
 <div class="container">
 	<div class="row">
-		<div class="col-auto"></div>
+		<div class="col-auto">
+			{$html}
+		</div>
 		<div class="col">
 			<div class="btn-float-right">
-				{$html}
+				{$buttons_html}
 			</div>    		
 		</div>
 	</div>
@@ -555,9 +575,9 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public function setData(string $type, ?string $id, $data, ?array $recipients = NULL, $first = NULL)
+	public function setData(string $type, ?string $id, $data, ?array $recipients = NULL, $first = NULL): bool
 	{
-		if(in_array($type, ["modal", "function", "remove", "replace", "update", "prepend", "append", "after"])){
+		if(in_array($type, ["modal", "function", "remove", "replace", "update", "updateFieldValue", "prepend", "append", "after"])){
 			$this->setAction($type, $id, $data, $recipients, $first);
 			return true;
 		}
