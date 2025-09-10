@@ -804,40 +804,30 @@ class Email extends Prototype {
 
 			# Expected response code 354 but got code "250", with message "250 2.1.0 Sender OK"
 			else if(strpos($e->getMessage(), "250") !== false){
-//				\App\Email\Email::notifyAdmins([
-//					"subject" => "250 2.1.0 Sender OK email error",
-//					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-//					"backtrace" => str::backtrace(true, false),
-//				]);
+				// Keep re-trying, but don't send a notice to the admins
 			}
 
 			# Expected response code 250 but got code "432", with message "432 4.3.2 Concurrent connections limit exceeded. Visit https://aka.ms/concurrent_sending for more information.
 			else if(strpos($e->getMessage(), "432") !== false){
-//				\App\Email\Email::notifyAdmins([
-//					"subject" => "432 4.3.2 Concurrent connections limit exceeded email error",
-//					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-//					"backtrace" => str::backtrace(true, false),
-//				]);
+				// Keep re-trying, but don't send a notice to the admins
 			}
 
 			# Failed to authenticate on SMTP server with username "info@kycdd.co.za" using 2 possible authenticators. Authenticator LOGIN returned Connection to tcp://smtp.office365.com:587 Timed Out. Authenticator XOAUTH2 returned Connection to tcp://smtp.office365.com:587 Timed Out
 			else if(strpos($e->getMessage(), "Failed to authenticate") !== false){
-//				\App\Email\Email::notifyAdmins([
-//					"subject" => "Failed to authenticate email error",
-//					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-//					"backtrace" => str::backtrace(true, false),
-//				]);
+				// Keep re-trying, but don't send a notice to the admins
 			}
 
 			# Connection to tcp://smtp.office365.com:587 Timed Out
 			else if(strpos($e->getMessage(), "Timed Out") !== false){
-//				\App\Email\Email::notifyAdmins([
-//					"subject" => "Timed out email error",
-//					"body" => "Got the following {$e->getCode()} error, after trying " . str::pluralise_if($tries, "time", true) . ": {$e->getMessage()}. The email will be attempted re-sent now.",
-//					"backtrace" => str::backtrace(true, false),
-//				]);
+				// Keep re-trying, but don't send a notice to the admins
 			}
 
+			 # Connection could not be established with host smtp.office365.com :stream_socket_client(): php_network_getaddresses: getaddrinfo failed: Temporary failure in name resolution
+			else if(stripos($e->getMessage(), "Temporary failure in name resolution")){
+				// Keep re-trying, but don't send a notice to the admins
+			}
+
+			# For all other errors, notify the admins
 			else {
 				# Collect recipients
 				if($to_recipients  = $this->envelope->getTo()){
