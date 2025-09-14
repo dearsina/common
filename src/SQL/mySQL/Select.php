@@ -44,6 +44,7 @@ class Select extends Common {
 		$this->setColumns($columns, $include_meta);
 
 		# Set joins
+		$this->setJoins("STRAIGHT", $straight_join);
 		$this->setJoins("INNER", $join);
 		$this->setJoins("LEFT", $left_join);
 

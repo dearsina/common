@@ -376,7 +376,7 @@ abstract class Common {
 	}
 
 	/**
-	 * Sets all joins of a given type (INNER, LEFT, etc)
+	 * Sets all joins of a given type (STRAIGHT, INNER, LEFT, etc)
 	 *
 	 * @param string $type
 	 * @param        $j
@@ -1933,22 +1933,43 @@ abstract class Common {
 	 */
 	protected function getJoinTableSQL(string $type, array $table): string
 	{
+		$type = $this->getJoinType($type);
+
 		if($table['is_tmp']){
-			return "{$type} JOIN `{$table['name']}` AS `{$table['alias']}`";
+			return "{$type} `{$table['name']}` AS `{$table['alias']}`";
 		}
 
 		if($this->ctes[$table['name']]){
-			return "{$type} JOIN `{$table['name']}` AS `{$table['alias']}`";
+			return "{$type} `{$table['name']}` AS `{$table['alias']}`";
 		}
 
-		return "{$type} JOIN `{$table['db']}`.`{$table['name']}` AS `{$table['alias']}`";
+		return "{$type} `{$table['db']}`.`{$table['name']}` AS `{$table['alias']}`";
+	}
+
+	/**
+	 * Because of the unusual way STRAIGHT_JOIN joins are written,
+	 * we've had to make this method to cater for it.
+	 *
+	 * @param string $type
+	 *
+	 * @return string
+	 */
+	protected function getJoinType(string $type): string
+	{
+		switch($type) {
+		case "STRAIGHT":
+			return "STRAIGHT_JOIN";
+		default:
+			return "{$type} JOIN";
+		}
 	}
 
 	protected function getSubQueryJoinSQL(string $type, array $join): string
 	{
 		# Append a tab before every line
 		$join['sub_query'] = str_replace("\n", "\n\t", $join['sub_query']);
-		return "{$type} JOIN (\n{$join['sub_query']}\n) AS `{$join['table']['alias']}`";
+		$type = $this->getJoinType($type);
+		return "{$type} (\n{$join['sub_query']}\n) AS `{$join['table']['alias']}`";
 	}
 
 	/**
