@@ -251,7 +251,7 @@ class File {
 	 */
 	public static function correctFileSize(array &$file, ?float $max_filesize_mb = NULL): void
 	{
-		if($file['pdf_info']){
+		if($file['type'] == "application/pdf"){
 			//if the file is PDF
 			return;
 			//do nothing
