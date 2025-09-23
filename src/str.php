@@ -1393,39 +1393,67 @@ EOF;
 	 * Given a folder path, returns an array
 	 * with all the classes found.
 	 *
-	 * @param string $path
+	 * A search term can be provided to limit the results.
+	 *
+	 * @param string      $path
+	 * @param string|null $implementation
+	 * @param string|null $search
 	 *
 	 * @return array
 	 */
-	public static function getClassesFromPath(string $path, ?string $implementation = NULL): array
-	{
-		$finder = new \Symfony\Component\Finder\Finder;
-		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder->in($path));
+	public static function getClassesFromPath(
+		string $path,
+		?string $implementation = null,
+		?string $search = null
+	): array {
+		$finder = new \Symfony\Component\Finder\Finder();
 
-		if(!$classes = array_keys($iter->getClassMap())){
+		// Only scan PHP files, and ignore noise
+		$finder
+			->files()
+			->in($path)
+			->name('*.php')
+			->ignoreUnreadableDirs()
+			->ignoreVCS(true);
+
+		// If we have a search term, restrict upfront
+		if ($search !== null && $search !== '') {
+			// Case-insensitive filename match: e.g., *Controller*.php
+			$finder->name('/' . preg_quote($search, '/') . '.*\.php$/i');
+
+			// Case-insensitive path/namespace match:
+			// turns "App\Service\User" -> "App/Service/User" and matches any segment
+			$nsPart = str_replace('\\', '/', $search);
+			$finder->path('/' . preg_quote($nsPart, '/') . '/i');
+		}
+
+		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder);
+
+		// Build list without loading classes (ClassIterator parses files)
+		$classes = array_keys($iter->getClassMap());
+		if (!$classes) {
 			return [];
 		}
 
-		if($implementation){
-			$classes_with_implementation = [];
-
-			foreach($classes as $class){
-				if(!class_exists($class)){
+		// If also filtering by implementation/interface, do it now
+		if ($implementation) {
+			$withImpl = [];
+			foreach ($classes as $class) {
+				// Avoid autoload penalties if you can—ClassIterator already found the FQCN;
+				// but if you need to confirm implements, PHP must load the class.
+				if (!class_exists($class)) {
+					// If you have a PSR-4 autoloader, this will load it; otherwise skip.
 					continue;
 				}
-				if(!$implementations = class_implements($class)){
-					continue;
+				$impls = class_implements($class) ?: [];
+				if (isset($impls[$implementation])) {
+					$withImpl[] = $class;
 				}
-				if(!$implementations[$implementation]){
-					continue;
-				}
-				$classes_with_implementation[] = $class;
 			}
-
-			return $classes_with_implementation;
+			$classes = $withImpl;
 		}
 
-		return $classes;
+		return array_values($classes);
 	}
 
 	/**

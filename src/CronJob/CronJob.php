@@ -34,14 +34,16 @@ class CronJob extends Prototype {
 	/**
 	 * @return Card
 	 */
-	public function card(){
+	public function card()
+	{
 		return new Card();
 	}
 
 	/**
 	 * @return Modal
 	 */
-	public function modal(){
+	public function modal()
+	{
 		return new Modal();
 	}
 
@@ -53,7 +55,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function all(array $a) : bool
+	public function all(array $a): bool
 	{
 		extract($a);
 
@@ -64,15 +66,15 @@ class CronJob extends Prototype {
 
 		$page = new Page([
 			"title" => "Cron jobs",
-			"icon" => Icon::get("cron_job")
+			"icon" => Icon::get("cron_job"),
 		]);
 
 		$page->setGrid([
-			"html" => $this->card()->all($a)
+			"html" => $this->card()->all($a),
 		]);
 
 		$page->setGrid([
-			"html" => $this->card()->running($a)
+			"html" => $this->card()->running($a),
 		]);
 
 		$this->output->html($page->getHTML());
@@ -91,7 +93,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function edit(array $a) : bool
+	public function edit(array $a): bool
 	{
 		extract($a);
 
@@ -116,7 +118,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function new(array $a) : bool
+	public function new(array $a): bool
 	{
 		extract($a);
 
@@ -141,7 +143,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function insert (array $a) : bool
+	public function insert(array $a): bool
 	{
 		extract($a);
 
@@ -154,7 +156,7 @@ class CronJob extends Prototype {
 
 		$this->sql->insert([
 			"table" => $rel_table,
-			"set" => $vars
+			"set" => $vars,
 		]);
 
 		# Closes the (top-most) modal
@@ -174,7 +176,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function update (array $a) : bool
+	public function update(array $a): bool
 	{
 		extract($a);
 
@@ -186,7 +188,7 @@ class CronJob extends Prototype {
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => $vars,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		# Closes the (top-most) modal
@@ -206,7 +208,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function pause(array $a) : bool
+	public function pause(array $a): bool
 	{
 		extract($a);
 
@@ -218,7 +220,7 @@ class CronJob extends Prototype {
 		$this->sql->update([
 			"table" => $rel_table,
 			"set" => $vars,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		# Get the latest update of the CronJobs table
@@ -250,7 +252,7 @@ class CronJob extends Prototype {
 
 		$this->sql->remove([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		if($silent){
@@ -273,7 +275,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function getClassMethods($a) : bool
+	public function getClassMethods($a): bool
 	{
 		extract($a);
 
@@ -284,22 +286,28 @@ class CronJob extends Prototype {
 
 		$options[] = [
 			"id" => "",
-			"title" => ""
+			"title" => "",
 		];
 
 		if(!$methods = str::getMethodsFromClass($vars['class'])){
-			$this->output->setOptions( $options, "No methods exist for this class.");
+			$this->output->setOptions($options, "No methods exist for this class.");
 			return true;
 		}
 
 		foreach($methods as $method){
 			$options[] = [
 				"id" => $method['name'],
-				"title" => $method['name']
+				"title" => $method['name'],
 			];
 		}
-		$class = explode("\\",$vars['class']);
-		$this->output->setOptions( $options, "Select a method for the ".end($class)." class.");
+
+		# Order the methods by title
+		str::multidimensionalOrderBy($options, [
+			"title" => "ASC",
+		]);
+
+		$class = explode("\\", $vars['class']);
+		$this->output->setOptions($options, "Select a method for the " . end($class) . " class.");
 		return true;
 	}
 
@@ -313,7 +321,7 @@ class CronJob extends Prototype {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function reorder($a) : bool
+	public function reorder($a): bool
 	{
 		if(!$this->user->is("admin")){
 			//Only admins have access
@@ -333,7 +341,7 @@ class CronJob extends Prototype {
 	 *
 	 * @throws \Exception
 	 */
-	public function updateCronJobs(array $a) : bool
+	public function updateCronJobs(array $a): bool
 	{
 		extract($a);
 
@@ -345,8 +353,8 @@ class CronJob extends Prototype {
 		$cron_jobs = $this->sql->select([
 			"table" => $rel_table,
 			"order_by" => [
-				"order" => "ASC"
-			]
+				"order" => "ASC",
+			],
 		]);
 
 		if($cron_jobs){
@@ -354,17 +362,17 @@ class CronJob extends Prototype {
 				$buttons = [];
 
 				# Check to see if the job is still running
-				if($job['pid']) {
+				if($job['pid']){
 					$process = new Process();
 					$process->setPid($job['pid']);
-					if (!$process->status()) {
+					if(!$process->status()){
 						//if the process is no longer active
 						$this->sql->update([
 							"table" => "cron_job",
 							"id" => $job['cron_job_id'],
 							"set" => [
-								"pid" => NULL
-							]
+								"pid" => NULL,
+							],
 						]);
 					}
 					$job = $this->sql->select([
@@ -379,31 +387,32 @@ class CronJob extends Prototype {
 EOF;
 
 				$rows[] = [
-					"order" =>  $job['order'],
+					"order" => $job['order'],
 					"id" => $job['cron_job_id'],
 					"Cron jobs" => [
 						"html" => $title,
 						"hash" => [
 							"rel_table" => $rel_table,
 							"rel_id" => $job['cron_job_id'],
-							"action" => "edit"
-						]
+							"action" => "edit",
+						],
 					],
 					"Last run" => [
 						"html" => $job['last_run'] ?: "(Never)",
-						"sm" => 2
+						"sm" => 2,
 					],
 					"" => [
 						"sortable" => false,
 						"sm" => 3,
 						"header_style" => [
-							"opacity" => 0
+							"opacity" => 0,
 						],
-						"button" => $this->getCronJobTableButtons($job)
-					]
+						"button" => $this->getCronJobTableButtons($job),
+					],
 				];
 			}
-		} else {
+		}
+		else {
 			$rows[] = [
 				"id" => true,
 				"Cron jobs" => [
@@ -411,15 +420,15 @@ EOF;
 					"html" => "New cron job...",
 					"hash" => [
 						"rel_table" => $rel_table,
-						"action" => "new"
-					]
-				]
+						"action" => "new",
+					],
+				],
 			];
 		}
 
 		$this->output->update("#all_cron_job", Table::generate($rows, [
 			"rel_table" => $rel_table,
-			"order" => true
+			"order" => true,
 		]));
 
 		return true;
@@ -430,20 +439,21 @@ EOF;
 		if($job['paused']){
 			$badges[] = [
 				"title" => "PAUSED",
-				"colour" => "blue"
+				"colour" => "blue",
 			];
-		} else {
+		}
+		else {
 			$badges[] = [
 				"title" => $job['interval'],
 				"colour" => "red",
-				"alt" => str::title("This cron job runs ".self::INTERVALS[$job['interval']])
+				"alt" => str::title("This cron job runs " . self::INTERVALS[$job['interval']]),
 			];
 		}
 		if($job['silent']){
 			$badges[] = [
 				"icon" => "volume-slash",
 				"alt" => "This cron job will not be logged unless there is an error",
-				"colour" => "black"
+				"colour" => "black",
 			];
 		}
 
@@ -452,7 +462,7 @@ EOF;
 
 	private function getCronJobTableButtons(array $job): array
 	{
-		if($job['pid']) {
+		if($job['pid']){
 			$buttons[] = [
 				"alt" => "Stop this job...",
 				"colour" => "red",
@@ -461,16 +471,17 @@ EOF;
 				"hash" => [
 					"rel_table" => "cron_job",
 					"rel_id" => $job["cron_job_id"],
-					"action" => "kill"
+					"action" => "kill",
 				],
 				"approve" => [
 					"colour" => "red",
 					"icon" => "stop-circle",
 					"title" => "Kill cron job?",
-					"message" => "This may have unintended consequences."
-				]
+					"message" => "This may have unintended consequences.",
+				],
 			];
-		} else {
+		}
+		else {
 			$buttons[] = [
 				"alt" => "Execute this job...",
 				"colour" => "yellow",
@@ -480,14 +491,14 @@ EOF;
 				"hash" => [
 					"rel_table" => "cron_job",
 					"rel_id" => $job["cron_job_id"],
-					"action" => "run"
+					"action" => "run",
 				],
 				"approve" => [
 					"colour" => "yellow",
 					"icon" => "play",
 					"title" => "Execute cron job?",
-					"message" => "Start running this job? Depending on the job, this could take a while."
-				]
+					"message" => "Start running this job? Depending on the job, this could take a while.",
+				],
 			];
 		}
 
@@ -499,29 +510,30 @@ EOF;
 					"rel_id" => $job["cron_job_id"],
 					"action" => "pause",
 					"vars" => [
-						"paused" => "false"
-					]
+						"paused" => "false",
+					],
 				],
 				"alt" => "Unpause and resume running this job on schedule",
 				"icon" => "pause",
 				"colour" => "primary",
 				"size" => "s",
 			];
-		} else {
+		}
+		else {
 			$buttons[] = [
 				"hash" => [
 					"rel_table" => "cron_job",
 					"rel_id" => $job["cron_job_id"],
 					"action" => "pause",
 					"vars" => [
-						"paused" => 1
-					]
+						"paused" => 1,
+					],
 				],
 				"alt" => "Pause this job from running on schedule",
 				"icon" => "pause",
 				"colour" => "primary",
 				"size" => "s",
-				"basic" => true
+				"basic" => true,
 			];
 		}
 
@@ -531,26 +543,26 @@ EOF;
 				"action" => "all",
 				"vars" => [
 					"cron_job_id" => $job["cron_job_id"],
-				]
+				],
 			],
 			"alt" => "See alert",
 			"icon" => Icon::get("log"),
 			"colour" => "info",
 			"size" => "s",
-			"basic" => true
+			"basic" => true,
 		];
 		$buttons[] = [
 			"hash" => [
 				"rel_table" => "cron_job",
 				"rel_id" => $job["cron_job_id"],
-				"action" => "remove"
+				"action" => "remove",
 			],
 			"alt" => "Remove..",
 			"icon" => Icon::get("trash"),
 			"colour" => "danger",
 			"size" => "s",
 			"basic" => true,
-			"approve" => true
+			"approve" => true,
 		];
 
 		return $buttons;
@@ -564,7 +576,7 @@ EOF;
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function runScheduled() : bool
+	public function runScheduled(): bool
 	{
 		if(!str::runFromCLI()){
 			throw new \Exception("You can only run this method from the command line.");
@@ -579,11 +591,11 @@ EOF;
 		if(!$cron_jobs = $this->sql->select([
 			"table" => "cron_job",
 			"where" => [
-				"paused" => NULL
+				"paused" => NULL,
 			],
 			"order_by" => [
-				"order" => "ASC"
-			]
+				"order" => "ASC",
+			],
 		])){
 			//if no cron jobs are scheduled, close up shop
 			return true;
@@ -604,7 +616,8 @@ EOF;
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function run($a){
+	public function run($a)
+	{
 		extract($a);
 
 		if(!$this->user->is("admin")){
@@ -614,17 +627,17 @@ EOF;
 
 		if(!$cron_job = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		])){
 			throw new \Exception("The cron job cannot be found.");
 		}
 
 		# Both \ and " must be escaped or else the command will fail
-		$cron_job_json = str_replace(["'", "\\", '"'],["", "\\\\",'\\"'],json_encode($cron_job));
+		$cron_job_json = str_replace(["'", "\\", '"'], ["", "\\\\", '\\"'], json_encode($cron_job));
 		// In addition, we're just stripping out single quotes, because they're not needed
 
 		# Build the command that executes the execute method
-		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
+		$cmd = "\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$cron_job = new \App\Common\CronJob\CronJob();";
 		$cmd .= "\$cron_job->execute(\"{$cron_job_json}\", true);";
@@ -638,14 +651,14 @@ EOF;
 			"table" => "cron_job",
 			"id" => $cron_job['cron_job_id'],
 			"set" => [
-				"pid" => $process->getPid()
-			]
+				"pid" => $process->getPid(),
+			],
 		]);
 
 		$this->log->info([
 			"icon" => "play",
 			"title" => "Cron job started",
-			"message" => "The <b>{$cron_job['title']}</b> cron job has been started."
+			"message" => "The <b>{$cron_job['title']}</b> cron job has been started.",
 		]);
 
 		$this->hash->set(-1);
@@ -671,19 +684,19 @@ EOF;
 		$process->setPid($cron_job['pid']);
 
 		# Ensure process is still active
-		if (!$process->status()) {
+		if(!$process->status()){
 			//if the process is no longer active
 			$this->sql->update([
 				"table" => $rel_table,
 				"id" => $rel_id,
 				"set" => [
-					"pid" => NULL
-				]
+					"pid" => NULL,
+				],
 			]);
 			$this->log->warning([
 				"icon" => "tombstone",
 				"title" => "Inactive job",
-				"message" => "The <b>{$cron_job['title']}</b> job was no longer running."
+				"message" => "The <b>{$cron_job['title']}</b> job was no longer running.",
 			]);
 
 			$this->hash->set(-1);
@@ -697,7 +710,7 @@ EOF;
 			$this->log->error([
 				"icon" => "ghost",
 				"title" => "Unable to stop job",
-				"message" => "Unable to stop the <b>{$cron_job['title']}</b> job. The process ID is {$cron_job['pid']}."
+				"message" => "Unable to stop the <b>{$cron_job['title']}</b> job. The process ID is {$cron_job['pid']}.",
 			]);
 			return false;
 		}
@@ -707,14 +720,14 @@ EOF;
 			"table" => $rel_table,
 			"id" => $rel_id,
 			"set" => [
-				"pid" => NULL
-			]
+				"pid" => NULL,
+			],
 		]);
 
 		$this->log->success([
 			"icon" => "dizzy",
 			"title" => "Job killed",
-			"message" => "The <b>{$cron_job['title']}</b> job was successfully killed."
+			"message" => "The <b>{$cron_job['title']}</b> job was successfully killed.",
 		]);
 
 		$this->hash->set(-1);
@@ -745,10 +758,12 @@ EOF;
 		if(is_string($a)){
 			//If a single, ad hoc job is sent to run
 			$cron_jobs[] = json_decode($a, true);
-		} else if(str::isNumericArray($a)){
+		}
+		else if(str::isNumericArray($a)){
 			//If scheduled jobs are sent to run
 			$cron_jobs = $a;
-		} else {
+		}
+		else {
 			die("No cron job sent to execute.");
 		}
 
@@ -756,7 +771,7 @@ EOF;
 		$scheduler = new \GO\Scheduler();
 
 		# For each job (even if only one is supplied)
-		foreach($cron_jobs as $cron_job) {
+		foreach($cron_jobs as $cron_job){
 
 			# Function to run
 			$func = function($a){
@@ -771,13 +786,13 @@ EOF;
 				$SESSION = [];
 
 				# Run the method
-				try{
+				try {
 					# Create a new instance of the class
 					$classInstance = new $cron_job['class']($this);
 
 					# Ensure the method is available
 					if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
-						throw new \Exception("The <code>".$cron_job['method']."</code> method doesn't exist or is not protected or public.");
+						throw new \Exception("The <code>" . $cron_job['method'] . "</code> method doesn't exist or is not protected or public.");
 					}
 
 					# Run the cron job method
@@ -785,37 +800,37 @@ EOF;
 					// If the cron job method exits, this script stops here. No logs will be saved.
 				}
 
-				# Catch SQL errors
-				catch(\mysqli_sql_exception $e){
+					# Catch SQL errors
+				catch(\mysqli_sql_exception $e) {
 					$last_query = $SESSION['query'];
 					//If this variable isn't moved over to a local one, it is overwritten
 					$this->log->error([
 						"icon" => "database",
 						"title" => "mySQL error",
-						"message" => $e->getMessage()
+						"message" => $e->getMessage(),
 					], ["role" => "admin"]);
 					$this->log->error([
 						"icon" => "code",
 						"title" => "Query",
-						"message" => $last_query
+						"message" => $last_query,
 					], ["role" => "admin"]);
 				}
 
-				# Catch type errors
-				catch(\TypeError $e){
+					# Catch type errors
+				catch(\TypeError $e) {
 					$this->log->error([
 						"icon" => "code",
 						"title" => "Type error",
-						"message" => $e->getMessage()
+						"message" => $e->getMessage(),
 					], ["role" => "admin"]);
 				}
 
-				# Catch all other exceptions
-				catch(\Exception $e){
+					# Catch all other exceptions
+				catch(\Exception $e) {
 					$this->log->error([
 						"icon" => "ethernet",
 						"title" => "System error",
-						"message" => $e->getMessage()
+						"message" => $e->getMessage(),
 					], ["role" => "admin"]);
 				}
 
@@ -839,9 +854,9 @@ EOF;
 					"id" => $cron_job['cron_job_id'],
 					"set" => [
 						"last_run" => "NOW()",
-						"pid" => NULL
+						"pid" => NULL,
 					],
-					"user_id" => NULL
+					"user_id" => NULL,
 				]);
 
 				/**
@@ -860,13 +875,13 @@ EOF;
 						"cron_job_id" => $cron_job['cron_job_id'],
 						"status" => $this->log->getStatus(),
 						"duration" => $this->log->getDuration(),
-						"output" => $this->log->getAlertMessages().str::pre($output)
-					]
+						"output" => $this->log->getAlertMessages() . str::pre($output),
+					],
 				]);
 			};
 
 			$args = [[
-				"cron_job" => $cron_job
+				"cron_job" => $cron_job,
 			]];
 
 			if($ignore_interval){
@@ -888,5 +903,52 @@ EOF;
 		}
 
 		$scheduler->run();
+	}
+
+	public function getClassOptions(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->user->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		# The common path
+		$common_path = __DIR__ . "/../../";
+
+		# The core path
+		$core_path = $_SERVER['DOCUMENT_ROOT'] . "/../app/";
+		if(!file_exists($core_path)){
+			//if the core path doesn't exist, tell the user to make it
+			$command = "mkdir -m 0755 $core_path";
+			throw new \Exception("Run the following command to create a core path: <code>{$command}</code>");
+		}
+
+		# The API path
+		$api_path = $_SERVER['DOCUMENT_ROOT'] . "/../api/";
+		if(!file_exists($api_path)){
+			//if the API path doesn't exist, tell the user to make it
+			$command = "mkdir -m 0755 $api_path";
+			throw new \Exception("Run the following command to create an API path: <code>{$command}</code>");
+		}
+
+		# Get classes from both
+		$classes = array_merge(
+			str::getClassesFromPath($common_path, NULL, $vars['term']) ?: [],
+			str::getClassesFromPath($core_path, NULL, $vars['term']) ?: [],
+			str::getClassesFromPath($api_path, NULL, $vars['term']) ?: [],
+		);
+
+		# Sort them alphabetically
+		sort($classes);
+
+		# Load them in an options array
+		foreach($classes as $m){
+			$class_options[$m] = $m;
+		}
+
+		# Return them to the caller
+		$this->output->setOptions($class_options, "Select a class");
 	}
 }

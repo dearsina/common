@@ -17,45 +17,15 @@ class Field {
 		if (is_array($a))
 			extract($a);
 
-		# The common path
-		$common_path = __DIR__ . "/../../";
-
-		# The core path
-		$core_path = $_SERVER['DOCUMENT_ROOT'] . "/../app/";
-		if (!file_exists($core_path)){
-			//if the core path doesn't exist, tell the user to make it
-			$command = "mkdir -m 0755 $core_path";
-			throw new \Exception("Run the following command to create a core path: <code>{$command}</code>");
-		}
-
-		# The API path
-		$api_path = $_SERVER['DOCUMENT_ROOT'] . "/../api/";
-		if (!file_exists($api_path)){
-			//if the API path doesn't exist, tell the user to make it
-			$command = "mkdir -m 0755 $api_path";
-			throw new \Exception("Run the following command to create an API path: <code>{$command}</code>");
-		}
-
-		# Get classes from both
-		$classes = array_merge(
-			str::getClassesFromPath($common_path) ?: [],
-			str::getClassesFromPath($core_path) ?: [],
-			str::getClassesFromPath($api_path) ?: [],
-		);
-
-		# Sort them alphabetically
-		sort($classes);
-
-		# Load them in an options array
-		foreach ($classes as $m){
-			$class_options[$m] = $m;
-		}
-
 		# If the class has already been identified, load up the methods
 		if ($class){
+			// If we're editing an existing cron job
 			foreach (str::getMethodsFromClass($class) as $m){
 				$method_options[$m['name']] = $m['name'];
 			}
+
+			# Order the methods by title
+			asort($method_options);
 		}
 
 		$title_fields = [
@@ -80,7 +50,7 @@ class Field {
 			[
 				"type" => "select",
 				"required" => true,
-				"options" => $class_options,
+				"options" => [$class],
 				"name" => "class",
 				"value" => $class,
 				"title" => "Class",
@@ -92,6 +62,10 @@ class Field {
 						"rel_table" => "cron_job",
 						"action" => "get_class_methods",
 					],
+				],
+				"ajax" => [
+					"rel_table" => "cron_job",
+					"action" => "get_class_options",
 				],
 			], [
 				"id" => "class-method",
