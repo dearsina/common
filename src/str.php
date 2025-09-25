@@ -2794,7 +2794,7 @@ EOF;
 
 	/**
 	 * Orders a multidimensional array by one or many
-	 * key values.
+	 * key values. Use dot notation for nested keys.
 	 *
 	 * Maintains the key values, unless told otherwise.
 	 *

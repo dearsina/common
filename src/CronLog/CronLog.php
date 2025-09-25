@@ -102,7 +102,8 @@ class CronLog extends \App\Common\Prototype {
 			"where" => $vars
 		]);
 
-		$this->sql->remove([
+		# Outright delete the rows, we don't need to keep them
+		$this->sql->delete([
 			"table" => $rel_table,
 			"where" => $vars
 		]);
