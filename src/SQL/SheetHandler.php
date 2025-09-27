@@ -51,7 +51,7 @@ class SheetHandler extends \App\Common\Prototype {
 	 *
 	 * @var int
 	 */
-	private array $inserted_sheet_rows_count = [];
+	private array $import_counts = [];
 
 	/**
 	 * If set, will update the progress bar and
@@ -80,6 +80,7 @@ class SheetHandler extends \App\Common\Prototype {
 		$this->meta_db = $meta_db;
 		$this->meta_table = $meta_table;
 		$this->meta_id = $meta_id;
+		// form_list
 
 		# Set the data table details
 		$this->data_db = $data_db;
@@ -235,6 +236,9 @@ class SheetHandler extends \App\Common\Prototype {
 
 				# Update the progress bar
 				$this->updateSheetProgressBar($sheet_name);
+
+				# Reset and go again
+				$rows = [];
 			}
 		}
 
@@ -258,6 +262,15 @@ class SheetHandler extends \App\Common\Prototype {
 
 		# And we're done, so set the progress bar to 100%
 		$this->updateSheetProgressBar($sheet_name, true);
+
+		# Inform the user if there were duplicate rows that weren't imported
+		if($this->import_counts[$sheet_name]['duplicates']){
+			$this->log->warning([
+				"title" => "Duplicate rows",
+				"message" => str::pluralise_if($this->import_counts[$sheet_name]['duplicates'], "row", true).
+					" already existed in the table and were not imported."
+			]);
+		}
 
 		return true;
 	}
@@ -299,38 +312,46 @@ class SheetHandler extends \App\Common\Prototype {
 		else {
 			//otherwise, calculate the progress made
 
+			# Prepare a count of handled rows (imported + ignored because they were duplicates)
+			$handled_rows = $this->import_counts[$sheet_name]['inserted'] + $this->import_counts[$sheet_name]['duplicates'];
+
 			# Calculate the progress made
 			if(!$this->sheet_metadata[$sheet_name]['row_count']){
 				$fraction = 0;
 			}
 			else {
-				$fraction = $this->inserted_sheet_rows_count[$sheet_name] / $this->sheet_metadata[$sheet_name]['row_count'];
+				$fraction = $handled_rows / $this->sheet_metadata[$sheet_name]['row_count'];
 			}
 
 			# Calculate remaining seconds
-			$rows_left = $this->sheet_metadata[$sheet_name]['row_count'] - $this->inserted_sheet_rows_count[$sheet_name];
+			$rows_left = $this->sheet_metadata[$sheet_name]['row_count'] - $handled_rows;
 
 			# Ensure the clock has started
 			if(!$read_the_clock = $this->readTheClock()){
 				return;
 			}
 
-			$rows_per_second = $this->inserted_sheet_rows_count[$sheet_name] / $read_the_clock;
+			$rows_per_second = $handled_rows / $read_the_clock;
 
 			$seconds_remaining = (int)round($rows_left / $rows_per_second);
 
 			# Prepare the post
-			$post = str::getHisFromS($seconds_remaining);
+			$post = str::getHisFromS($seconds_remaining). " remaining";
 
 			$percent = round(100 * ($fraction));
 		}
 
 		# Update the progress bar
-		$this->output->function("Progress.updateProgressBar", [
-			"container" => $this->progress_bar_container,
+		$this->output->function("updateProgressBarContainer", [
+			"container" => ".{$this->getProgressBarContainerClass($sheet_name)}",
 			"progress" => $percent,
 			"post" => $post,
 		], ["user_id" => $this->user->getId()]);
+	}
+
+	private function getProgressBarContainerClass(string $string): string
+	{
+		return "progress-" . md5($string);
 	}
 
 	/**
@@ -345,14 +366,33 @@ class SheetHandler extends \App\Common\Prototype {
 	 */
 	private function insertDataRows(string $sheet_name, array $rows): void
 	{
+		if($form_list_cols = $this->info([
+			"rel_table" => "form_list_col",
+			"where" => [
+				"form_list_id" => $this->data_table
+			]
+		])){
+			$existing_column_names = array_column($form_list_cols, "col");
+		}
+
+		$sets = [];
+
 		# Last minute clean-up of the rows
 		foreach($rows as $row){
 			# Start with a clean set
 			$set = [];
 
+			# For each cell
 			foreach($row as $key => $val){
 				# Ensure key is in the Excel style
 				$key = !is_int($key) ? $key : str::excelKey($key);
+
+				# If we're refreshing a table, only import the relevant columns
+				if($existing_column_names){
+					if(!in_array($key, $existing_column_names)){
+						continue;
+					}
+				}
 
 				# Ensure Datetime objects are converted to strings
 				if($val instanceof \DateTime){
@@ -365,26 +405,52 @@ class SheetHandler extends \App\Common\Prototype {
 				$set[$key] = $val;
 			}
 
+			$where = [];
+			foreach($set as $key => $val){
+				if($val === NULL || !strlen($val)){
+					$where[] = [$key, "IS", NULL];
+				}
+				else {
+					$where[$key] = $val;
+				}
+			}
+
+			# If the set already exists, don't insert it again
+			if($this->sql->select([
+				"db" => $this->data_db,
+				"table" => $this->data_table,
+				"where" => $where
+			])){
+				$this->import_counts[$sheet_name]['duplicates']++;
+				continue;
+			}
+
 			# Move the set to the sets
 			$sets[] = $set;
 		}
 
+		# If no new rows are found
+		if(!$sets){
+			return;
+		}
+
+		# Insert all the rows in one go
 		$this->sql->insert([
 			"db" => $this->data_db,
 			"table" => $this->data_table,
 			"set" => $sets,
 			"html" => array_keys(reset($sets)),
-			"include_meta" => false,
-			"include_id" => true,
 		]);
 
-		$this->inserted_sheet_rows_count['$sheet_name'] += count($rows);
+		$this->import_counts[$sheet_name]['inserted'] += count($sets);
 	}
 
 	private function createDataTable(string $sheet_name): void
 	{
 		# Ensure table doesn't already exist
 		if($this->sql->tableExists($this->data_db, $this->data_table)){
+			return;
+
 			// If the table already exists, drop it
 			$this->sql->run("DROP TABLE `{$this->data_db}`.`{$this->data_table}`;");
 		}
@@ -401,6 +467,19 @@ class SheetHandler extends \App\Common\Prototype {
 		for($i = 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
 			$cols[] = "`" . str::excelKey($i) . "` TEXT COLLATE utf8mb4_0900_ai_ci DEFAULT NULL";
 		}
+
+		# Add the meta-columns
+		$cols[] = "`created` DATETIME NULL DEFAULT NULL";
+		$cols[] = "`created_by` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL";
+		$cols[] = "`updated` DATETIME NULL DEFAULT NULL";
+		$cols[] = "`updated_by` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL";
+		$cols[] = "`removed` DATETIME NULL DEFAULT NULL";
+		$cols[] = "`removed_by` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL";
+		/**
+		 * We're adding these so that we can keep
+		 * track of the removed columns, in case
+		 * they were used a form field option value.
+		 */
 
 		# Add an index to the ID column
 		$cols[] = "PRIMARY KEY (`{$this->data_table}_id`)";
@@ -681,8 +760,16 @@ class SheetHandler extends \App\Common\Prototype {
 			"name" => $data_table,
 		])));
 
+		# Check to see if the table has a "removed" column
+		if($sql->columnExists([
+			"db" => $data_db,
+			"name" => $data_table,
+		], "removed")){
+			$where = "WHERE `removed` IS NULL";
+		}
+
 		# Write the query to find duplicate rows
-		$query = "SELECT {$columns}, COUNT(*) FROM `{$data_db}`.`{$data_table}` GROUP BY {$columns} HAVING COUNT(*) > 1;";
+		$query = "SELECT {$columns}, COUNT(*) FROM `{$data_db}`.`{$data_table}` {$where} GROUP BY {$columns} HAVING COUNT(*) > 1;";
 
 		# Execute the query and get the number of duplicate rows
 		$duplicate_rows_count = $sql->run($query)['num_rows'];

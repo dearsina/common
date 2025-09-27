@@ -3046,7 +3046,7 @@ abstract class Common {
 	 * @return bool
 	 * @throws BadRequest
 	 */
-	protected function columnExists(array $table, ?string $col): bool
+	public function columnExists(array $table, ?string $col): bool
 	{
 		# Ensure there is a column
 		if(!$col){

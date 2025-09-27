@@ -3121,6 +3121,12 @@ EOF;
 			| \SplFileObject::READ_AHEAD
 			| \SplFileObject::DROP_NEW_LINE
 		);
+
+		$separator = $separator ?: ",";
+		$enclosure = $enclosure ?: "\"";
+		$escape = $escape ?: "\\";
+		// So that the setCsvControl method doesn't freak out when NULLs are passed
+
 		$f->setCsvControl($separator, $enclosure, $escape);
 
 		foreach($f as $row_number => $row){
