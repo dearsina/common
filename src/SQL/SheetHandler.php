@@ -196,7 +196,7 @@ class SheetHandler extends \App\Common\Prototype {
 	 *
 	 * @return bool
 	 */
-	public function importSheet(?string $sheet_name): bool
+	public function importSheet(?string $sheet_name, ?string $import_type, ?array $update_columns = NULL): bool
 	{
 		# Ensure the sheet exists
 		if(!$sheet = $this->getSheet($sheet_name)){
@@ -212,7 +212,7 @@ class SheetHandler extends \App\Common\Prototype {
 		$this->createMetadataTable($sheet_name);
 
 		# Ensure the data table has been created for the sheet
-		$this->createDataTable($sheet_name);
+		$this->createDataTable($sheet_name, $import_type);
 
 		# Start the clock
 		$this->startTheClock();
@@ -232,7 +232,7 @@ class SheetHandler extends \App\Common\Prototype {
 				// if the chunk is full
 
 				# Insert the rows in bulk (will clear the rows afterwards)
-				$this->insertDataRows($sheet_name, $rows);
+				$this->insertDataRows($sheet_name, $rows, $update_columns);
 
 				# Update the progress bar
 				$this->updateSheetProgressBar($sheet_name);
@@ -245,7 +245,7 @@ class SheetHandler extends \App\Common\Prototype {
 		# All the remaining rows that don't quite make up a chunk
 		if($rows){
 			// If there are any straggler rows, insert them also
-			$this->insertDataRows($sheet_name, $rows);
+			$this->insertDataRows($sheet_name, $rows, $update_columns);
 		}
 
 		# Create the columns table
@@ -267,8 +267,17 @@ class SheetHandler extends \App\Common\Prototype {
 		if($this->import_counts[$sheet_name]['duplicates']){
 			$this->log->warning([
 				"title" => "Duplicate rows",
-				"message" => str::pluralise_if($this->import_counts[$sheet_name]['duplicates'], "row", true).
-					" already existed in the table and were not imported."
+				"message" => str::pluralise_if($this->import_counts[$sheet_name]['duplicates'], "row", true) .
+					" already existed in the table and were not imported.",
+			]);
+		}
+
+		# Inform the user if there were updated rows
+		if($this->import_counts[$sheet_name]['updated']){
+			$this->log->info([
+				"title" => "Updated rows",
+				"message" => str::pluralise_if($this->import_counts[$sheet_name]['updated'], "row", true) .
+					" were updated in the table.",
 			]);
 		}
 
@@ -313,7 +322,9 @@ class SheetHandler extends \App\Common\Prototype {
 			//otherwise, calculate the progress made
 
 			# Prepare a count of handled rows (imported + ignored because they were duplicates)
-			$handled_rows = $this->import_counts[$sheet_name]['inserted'] + $this->import_counts[$sheet_name]['duplicates'];
+			$handled_rows = $this->import_counts[$sheet_name]['inserted'];
+			$handled_rows += $this->import_counts[$sheet_name]['duplicates'];
+			$handled_rows += $this->import_counts[$sheet_name]['updated'];
 
 			# Calculate the progress made
 			if(!$this->sheet_metadata[$sheet_name]['row_count']){
@@ -336,7 +347,7 @@ class SheetHandler extends \App\Common\Prototype {
 			$seconds_remaining = (int)round($rows_left / $rows_per_second);
 
 			# Prepare the post
-			$post = str::getHisFromS($seconds_remaining). " remaining";
+			$post = str::getHisFromS($seconds_remaining) . " remaining";
 
 			$percent = round(100 * ($fraction));
 		}
@@ -355,6 +366,68 @@ class SheetHandler extends \App\Common\Prototype {
 	}
 
 	/**
+	 * Will update or ignore existing data rows,
+	 * depending on whether or not the row exists,
+	 * and whether or not we're updating existing rows.
+	 *
+	 * If the row exists, and we're updating existing rows,
+	 * it will be updated. If the row exists, and we're
+	 * not updating existing rows, it will be ignored.
+	 *
+	 * @param array      $set
+	 * @param array|null $update_columns
+	 *
+	 * @return bool Returns true if the row exists and we either updated it or ignored it.
+	 */
+	private function updateOrIgnoreExistingDataRow(array $set, ?array $update_columns = NULL): bool
+	{
+		$where = [];
+		foreach($set as $key => $val){
+			# If we're only basing a unique row on a subset of columns
+			if($update_columns && !in_array($key, $update_columns)){
+				continue;
+			}
+
+			if($val === NULL || !strlen($val)){
+				$where[] = [$key, "IS", NULL];
+			}
+
+			else {
+				$where[$key] = $val;
+			}
+		}
+
+		# If the set doesn't exist
+		if(!$this->sql->select([
+			"db" => $this->data_db,
+			"table" => $this->data_table,
+			"where" => $where,
+		])){
+			return false;
+		}
+
+		# If the row exists, and we're updating rows, update it now
+		if($update_columns){
+			// If we're updating existing rows
+			$this->sql->update([
+				"db" => $this->data_db,
+				"table" => $this->data_table,
+				"where" => $where,
+				"set" => $set,
+			]);
+
+			$this->import_counts[$sheet_name]['updated']++;
+		}
+
+		else {
+			// If we're just ignoring duplicates
+			$this->import_counts[$sheet_name]['duplicates']++;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Given a cluster of data rows, insert them into the data table.
 	 * The data table is the table that contains the actual data being
 	 * imported.
@@ -364,13 +437,13 @@ class SheetHandler extends \App\Common\Prototype {
 	 *
 	 * @return void
 	 */
-	private function insertDataRows(string $sheet_name, array $rows): void
+	private function insertDataRows(string $sheet_name, array $rows, ?array $update_columns = NULL): void
 	{
 		if($form_list_cols = $this->info([
 			"rel_table" => "form_list_col",
 			"where" => [
-				"form_list_id" => $this->data_table
-			]
+				"form_list_id" => $this->data_table,
+			],
 		])){
 			$existing_column_names = array_column($form_list_cols, "col");
 		}
@@ -405,23 +478,7 @@ class SheetHandler extends \App\Common\Prototype {
 				$set[$key] = $val;
 			}
 
-			$where = [];
-			foreach($set as $key => $val){
-				if($val === NULL || !strlen($val)){
-					$where[] = [$key, "IS", NULL];
-				}
-				else {
-					$where[$key] = $val;
-				}
-			}
-
-			# If the set already exists, don't insert it again
-			if($this->sql->select([
-				"db" => $this->data_db,
-				"table" => $this->data_table,
-				"where" => $where
-			])){
-				$this->import_counts[$sheet_name]['duplicates']++;
+			if($this->updateOrIgnoreExistingDataRow($set, $update_columns)){
 				continue;
 			}
 
@@ -445,14 +502,67 @@ class SheetHandler extends \App\Common\Prototype {
 		$this->import_counts[$sheet_name]['inserted'] += count($sets);
 	}
 
-	private function createDataTable(string $sheet_name): void
+	/**
+	 * Depending on the import type, decides whether or not the existing
+	 * data table should be deleted, and then deletes it if necessary.
+	 *
+	 * @param string|null $import_type
+	 *
+	 * @return bool Will return true if the table was deleted
+	 */
+	private function deleteDataTable(?string $import_type): bool
+	{
+		# Handle the existing table based on the import type
+		switch($import_type) {
+		case "update":
+			# If we're updating the rows, leave the existing ones
+			return false;
+		case "append":
+			# If we're appending the rows, leave the existing ones
+			return false;
+		case "replace":
+			# If we're replacing the rows, remove all rows or the table
+		default:
+			// This is also the default import type
+			if($this->sql->select([
+				"table" => "form_field",
+				"where" => [
+					"source_id" => $this->data_table,
+				],
+			])){
+				/**
+				 * If this data table is being used as a source for a form field, we can't drop the table,
+				 * because we need to keep a record of all the existing rows, even if they're marked as removed,
+				 * in case a user selected one of those rows as a value in a form field.
+				 */
+				$this->sql->remove([
+					"db" => $this->data_db,
+					"table" => $this->data_table,
+					"where" => [
+						["removed", "IS", NULL],
+					],
+				]);
+				return false;
+			}
+
+			else {
+				// But if the table isn't being used as a source, we can drop it and create a new one
+				$this->sql->run("DROP TABLE `{$this->data_db}`.`{$this->data_table}`;");
+				// And create a brand new table
+				return true;
+			}
+		}
+	}
+
+	private function createDataTable(string $sheet_name, ?string $import_type): void
 	{
 		# Ensure table doesn't already exist
 		if($this->sql->tableExists($this->data_db, $this->data_table)){
-			return;
-
-			// If the table already exists, drop it
-			$this->sql->run("DROP TABLE `{$this->data_db}`.`{$this->data_table}`;");
+			// If the table already exists
+			if(!$this->deleteDataTable($import_type)){
+				// If we don't need to delete the table, just return
+				return;
+			}
 		}
 
 		# Set the table ID column
@@ -502,7 +612,7 @@ class SheetHandler extends \App\Common\Prototype {
 				"{$this->meta_table}_id" => $this->meta_id,
 			],
 		])){
-			if (count($form_list_cols) >= $this->sheet_metadata[$sheet_name]['col_count']){
+			if(count($form_list_cols) >= $this->sheet_metadata[$sheet_name]['col_count']){
 				// And the number of columns matches the number of columns in the sheet
 				$this->form_list_cols = $form_list_cols;
 				return;
@@ -566,7 +676,7 @@ class SheetHandler extends \App\Common\Prototype {
 			],
 			"db" => $meta_db,
 			"table" => $meta_table,
-			"id" => $meta_id
+			"id" => $meta_id,
 		]);
 
 		foreach($data_table_columns as $column => $column_data){
@@ -580,8 +690,8 @@ class SheetHandler extends \App\Common\Prototype {
 							"{$column} IS NOT NULL",
 						],
 						"include_removed" => true,
-						"limit" => [$metadata['header_row'], $metadata['row_count'] - $metadata['header_row']]
-					]
+						"limit" => [$metadata['header_row'], $metadata['row_count'] - $metadata['header_row']],
+					],
 				],
 				"table" => "limited",
 				"columns" => [
@@ -593,7 +703,7 @@ class SheetHandler extends \App\Common\Prototype {
 				 * Because the columns are not explicitly defined as aggregates,
 				 * we need to group by the column manually to avoid a mySQL error.
 				 */
-				"limit" => 1
+				"limit" => 1,
 			]);
 
 			$sql->update([
@@ -628,7 +738,7 @@ class SheetHandler extends \App\Common\Prototype {
 				"{$meta_table}_id" => $meta_id,
 			],
 			"set" => [
-				"row_count" => $row_count
+				"row_count" => $row_count,
 			],
 		]);
 	}
@@ -649,11 +759,11 @@ class SheetHandler extends \App\Common\Prototype {
 				"{$meta_table}_id" => $meta_id,
 			],
 			"set" => [
-				"col_count" => count($data_table_columns)
+				"col_count" => count($data_table_columns),
 			],
 		]);
 	}
-	
+
 	public static function refreshMetaData(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): void
 	{
 		# Identify unique columns
@@ -715,15 +825,15 @@ class SheetHandler extends \App\Common\Prototype {
 								"table" => $data_table,
 								"columns" => $column,
 								"include_removed" => true,
-								"limit" => [$meta_data['header_row'], $meta_data['row_count'] - $meta_data['header_row']]
-							]
+								"limit" => [$meta_data['header_row'], $meta_data['row_count'] - $meta_data['header_row']],
+							],
 						],
 						"table" => "limited",
 						"where" => [
 							"{$column} IS NOT NULL",
 						],
-						"limit" => 1
-					])
+						"limit" => 1,
+					]),
 					/**
 					 * In this context, data means a value that is not NULL.
 					 * We also take into consideration where the data starts,
@@ -875,7 +985,7 @@ class SheetHandler extends \App\Common\Prototype {
 				"db" => $this->meta_db,
 				"table" => $this->meta_table,
 				"id" => $this->meta_id,
-				"set" => $set
+				"set" => $set,
 			]);
 
 			return;
