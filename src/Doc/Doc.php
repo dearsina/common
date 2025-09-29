@@ -980,7 +980,7 @@ class Doc extends \App\Common\Prototype {
 					//No need to show this to the end user at this point
 					"title" => "Unable to shrink image: " . json_encode($file),
 					"message" => $e->getMessage(),
-					"trace" => str::backtrace(true),
+					"trace" => str::backtrace(true, false),
 				]);
 
 				return NULL;
@@ -1174,7 +1174,7 @@ class Doc extends \App\Common\Prototype {
 				//No need to show this to the end user at this point
 				"title" => "Unable to read image to then crop: " . json_encode($file),
 				"message" => $e->getMessage(),
-				"trace" => str::backtrace(true),
+				"trace" => str::backtrace(true, false),
 			]);
 
 			return;
@@ -1287,7 +1287,7 @@ class Doc extends \App\Common\Prototype {
 					//No need to show this to the end user at this point
 					"title" => "Unable to read image to then crop: " . json_encode($file),
 					"message" => $e->getMessage(),
-					"trace" => str::backtrace(true),
+					"trace" => str::backtrace(true, false),
 				]);
 
 				return;
