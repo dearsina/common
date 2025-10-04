@@ -316,6 +316,58 @@ class Country extends Prototype {
 	}
 
 	/**
+	 * Given an ISO alpha-2 country code,
+	 * will return an array of all known names
+	 * for that country, including:
+	 * - ISO alpha-2 code
+	 * - ISO alpha-3 code
+	 * - Alternative ISO alpha-3 code
+	 * - Country name
+	 * - Alternative country names
+	 * - ccTLD
+	 *
+	 * For example, for "GB", it will return:
+	 * ["GB", "GBR", "UK", "uk", "United Kingdom", "Britain", "Great Britain"]
+	 *
+	 * If the country code cannot be found, will return NULL.
+	 *
+	 * @param string|null $iso2
+	 *
+	 * @return array|null
+	 * @throws \Exception
+	 */
+	public static function getAllCountryNamesFromIsoAlpha2(?string $iso2): ?array
+	{
+		# Ensure the string is only two characters long
+		if(strlen($iso2) != 2){
+			return NULL;
+		}
+
+		# Ensure the string has been passed, and is in uppercase
+		if(!$iso2 = strtoupper(trim($iso2))){
+			return NULL;
+		}
+
+		$countries = Info::getInstance()->getInfo("country");
+		if(($key = array_search($iso2, array_column($countries, 'country_code'))) === false){
+			return NULL;
+		}
+
+		$country = $countries[$key];
+
+		$names[] = $country['country_code'];
+		$names[] = $country['iso_alpha-3'];
+		$names[] = $country['alt_iso_alpha-3'];
+		$names[] = $country['cc_tld'];
+		$names[] = $country['name'];
+		if($country['alt_name']){
+			$names = array_merge($names, explode("|", $country['alt_name']));
+		}
+
+		return array_filter(array_unique($names));
+	}
+
+	/**
 	 * Will return the relevant ISO alpha2 country code
 	 * if it can be found.
 	 *
