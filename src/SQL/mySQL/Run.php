@@ -82,9 +82,10 @@ class Run extends Common {
 			// Grabbing it so that we can optionally add to it
 
 			# Common error messages that warrant a re-run
-			switch($message) {
-			case 'MySQL server has gone away':
-			case 'Deadlock found when trying to get lock; try restarting transaction':
+			switch(true) {
+			case $message == 'MySQL server has gone away':
+			case $message == 'Deadlock found when trying to get lock; try restarting transaction':
+			case stripos($message, 'OS errno 24 - Too many open files') !== false:
 				//			default:
 				# Try again if we haven't tried too many times
 				if($tries <= self::MAX_TRIES){
