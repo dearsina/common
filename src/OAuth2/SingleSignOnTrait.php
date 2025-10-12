@@ -53,6 +53,9 @@ trait SingleSignOnTrait {
 
 		# If the user has a first name and/or a last name, create a full name
 		$user['full_name'] = implode(" ", array_filter([$user['first_name'], $user['last_name']]));
+
+		# Set the user's email domain as a separate field
+		$user['email_domain'] = strtolower(substr(strrchr($user['email'], "@"), 1));
 	}
 
 	public static function getSignOnButton(string $provider, ?string $callback = NULL, ?string $user_id = NULL): string

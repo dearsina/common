@@ -42,6 +42,9 @@ class Info extends Prototype implements InfoInterface {
 		//email addresses must be parsed as lowercase
 		//because they're used in string comparisons
 
+		# Add email domain as a separate field
+		$row['email_domain'] = strtolower(substr(strrchr($row['email'], "@"), 1));
+
 		# If no role hs been allocated, assume user
 		$row['last_role'] = $row['last_role'] ?: "user";
 

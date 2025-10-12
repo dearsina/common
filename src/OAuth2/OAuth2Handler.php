@@ -211,6 +211,16 @@ class OAuth2Handler extends \App\Common\Prototype {
 				"name" => "input",
 			],
 		],
+		"email_domain" => [
+			"title" => "Email domain",
+			"icon" => "globe-pointer",
+			"provider" => [
+				"entra" => "mail",
+			],
+			"field_type" => [
+				"name" => "input",
+			],
+		]
 	];
 
 	/**
