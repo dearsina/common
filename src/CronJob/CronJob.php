@@ -914,6 +914,11 @@ EOF;
 			return $this->accessDenied();
 		}
 
+		# If no term is passed, don't search
+		if(!$vars['term']){
+			return true;
+		}
+
 		# The common path
 		$common_path = __DIR__ . "/../../";
 
