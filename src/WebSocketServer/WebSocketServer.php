@@ -25,6 +25,17 @@ use App\Common\str;
  * websocket_internal_port="8080"                         # The internal port, can be anything
  */
 class WebSocketServer extends Prototype {
+
+	/**
+	 * Grace period (in seconds) before cert expiry to trigger a restart.
+	 */
+	const GRACE_SECONDS = 86400; // 24 hours
+
+	/**
+	 * Path to the PID file.
+	 */
+	const PID_FILE_PATH = '/var/run/swoole-ws.pid';
+
 	/**
 	 * Holds the actual server object.
 	 *
@@ -114,6 +125,13 @@ class WebSocketServer extends Prototype {
 
 			# Raise the message size limit from the default 2mb to 32mb
 			"package_max_length" => 32 * 1024 * 1024,
+
+			# PID file
+			"pid_file" => self::PID_FILE_PATH,
+			/**
+			 * Will create a PID file so that the server can be
+			 * easily stopped later.
+			 */
 		]);
 
 		# Generate the server ID
@@ -152,8 +170,26 @@ class WebSocketServer extends Prototype {
 	 */
 	private function serverAlreadyRunning(): bool
 	{
-		@stream_socket_client("tcp://{$_ENV['websocket_external_ip']}:{$_ENV['websocket_external_port']}", $errno, $errstr, 5);
-		return !$errstr;
+		# Check if the server is already running by attempting to connect to the external port
+		if (!$this->portAcceptsConnections($_ENV['websocket_external_ip'], (int)$_ENV['websocket_external_port'])) {
+			// If not running, the WebSocket server is not running
+			return false;
+		}
+
+		# Check if the cert is expired or within the grace period
+		if ($this->certIsExpired($_ENV['local_cert'], self::GRACE_SECONDS)) {
+			$this->alert("Certificate at {$_ENV['local_cert']} has or is about to expire. Restarting WebSocket server.");
+			if ($this->terminateExistingServer(self::PID_FILE_PATH)) {
+				// Tell caller "not running" so start() will spin up a fresh daemon
+				return false;
+			}
+			// Couldn't terminate cleanly; still report running to avoid a failed bind loop
+			$this->alert("Failed to terminate existing server; keeping current process.");
+			return true;
+		}
+
+		// Server is healthy, and cert is valid → keep running
+		return true;
 	}
 
 	/**
@@ -372,6 +408,123 @@ class WebSocketServer extends Prototype {
 		$this->alert("External connection [{$fd}] closed.");
 
 		return true;
+	}
+
+	/**
+	 * Get the certificate's "not after" timestamp.
+	 *
+	 * @param string $certPath
+	 *
+	 * @return int|null
+	 */
+	private function certNotAfter(string $certPath): ?int
+	{
+		// Read the first cert in the PEM (fullchain.pem starts with leaf cert)
+		$pem = @file_get_contents($certPath);
+		if($pem === false){
+			return NULL;
+		}
+
+		$x509 = @openssl_x509_read($pem);
+		if($x509 === false){
+			return NULL;
+		}
+
+		$data = @openssl_x509_parse($x509);
+		if(!is_array($data) || !isset($data['validTo_time_t'])){
+			return NULL;
+		}
+
+		return (int)$data['validTo_time_t']; // Unix timestamp (UTC)
+	}
+
+	/**
+	 * Check whether the cert is expired or within the grace period.
+	 *
+	 * @param string $certPath
+	 * @param int    $graceSeconds
+	 *
+	 * @return bool
+	 */
+	private function certIsExpired(string $certPath, int $graceSeconds = 0): bool
+	{
+		$notAfter = $this->certNotAfter($certPath);
+		if($notAfter === NULL){
+			// If we can’t read/parse, treat as expired so we restart safely
+			$this->alert("Unable to parse certificate at {$certPath}; treating as expired.");
+			return true;
+		}
+		return (time() + $graceSeconds) >= $notAfter;
+	}
+
+	/**
+	 * Terminate an existing server process.
+	 *
+	 * @return bool
+	 */
+	private function terminateExistingServer(string $pid_file_path): bool
+	{
+		# Ensure the PID file exists
+		if(!is_file($pid_file_path)){
+			$this->alert("PID file not found at {$pid_file_path}; cannot signal existing server.");
+			return false;
+		}
+
+		# Read the PID
+		$pid = (int)trim(@file_get_contents($pid_file_path));
+
+		# Ensure the PID is valid
+		if($pid <= 0){
+			$this->alert("Invalid PID read from {$pid_file_path}.");
+			return false;
+		}
+
+		# Try graceful stop
+		if(!@posix_kill($pid, SIGTERM)){
+			$this->alert("Failed to SIGTERM PID {$pid}; it may have already exited.");
+		}
+		else {
+			$this->alert("Sent SIGTERM to Swoole master PID {$pid}.");
+		}
+
+		# Wait until port is freed (max ~10s)
+		$deadline = time() + 10;
+		while(time() < $deadline) {
+			if(!$this->portAcceptsConnections($_ENV['websocket_external_ip'], (int)$_ENV['websocket_external_port'])){
+				return true;
+			}
+			usleep(200_000);
+		}
+
+		# Fallback to SIGKILL if still alive
+		if(@posix_kill($pid, 0)){
+			$this->alert("Swoole master PID {$pid} still alive; sending SIGKILL.");
+			@posix_kill($pid, SIGKILL);
+			usleep(300_000);
+		}
+
+		return !$this->portAcceptsConnections($_ENV['websocket_external_ip'], (int)$_ENV['websocket_external_port']);
+	}
+
+	/**
+	 * Check whether a given port accepts connections.
+	 * Is used to determine whether the server is already running.
+	 *
+	 * @param string $ip
+	 * @param int    $port
+	 *
+	 * @return bool
+	 */
+	private function portAcceptsConnections(string $ip, int $port): bool
+	{
+		$errno = 0;
+		$errstr = '';
+		$s = @stream_socket_client("tcp://{$ip}:{$port}", $errno, $errstr, 2);
+		if($s){
+			fclose($s);
+			return true;
+		}
+		return false;
 	}
 }
 
