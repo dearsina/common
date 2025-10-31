@@ -177,6 +177,11 @@ class Resizable extends Prototype {
 		}
 
 		foreach($resizable['columns'] as $column){
+			# The column number stored is 1-based, so we need to subtract 1 to make it 0-based
+			if(is_numeric($column['column'])){
+				// But only if it's a column number and not "button"
+				$column['column'] -= 1;
+			}
 			$columns[$column['column']] = $column;
 		}
 
