@@ -5652,4 +5652,30 @@ LATEX;
 
 		return 'data:image/png;base64,' . base64_encode($png);
 	}
+
+    public static function distanceBetweenCoordinates(float $latitude_1, float $longitude_1, float $latitude_2, float $longitude_2): int
+    {
+        return self::haversine($latitude_1, $longitude_1, $latitude_2, $longitude_2);
+    }
+
+    public static function haversine(float $latitude_1, float $longitude_1, float $latitude_2, float $longitude_2): int
+    {
+        $earth_radius = 6371000; # Earth's approximate radius in metres
+
+        # Convert the degrees to radians
+        $latitude_1 = deg2rad($latitude_1);
+        $longitude_1 = deg2rad($longitude_1);
+        $latitude_difference = deg2rad($latitude_2 - $latitude_1);
+        $longitude_difference = deg2rad($longitude_2 - $longitude_1);
+
+        # Formula for getting the distance before its converted to metres
+        $a = sin($latitude_difference / 2) ** 2 +
+            cos($latitude_1) * cos($latitude_2) *
+            sin($longitude_difference / 2) ** 2;
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earth_radius * $c;
+
+    }
 }
