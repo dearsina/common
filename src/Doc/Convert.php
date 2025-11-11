@@ -193,17 +193,33 @@ class Convert {
 			return;
 		}
 
-		# Ensure the file was produced by Adobe LiveCycle Designer
-		if(!stripos($file['pdf_info']['producer'], "livecycle")){
-			return;
-		}
+		# Replace /n with space
+		$file['pdf_info']['text'] = str_replace("\n", " ", $file['pdf_info']['text']);
 
-		Log::getInstance()->warning([
-			"title" => "XFA Form",
-			"message" => "The document {$file['name']} is an XFA form.
+		# Ensure the file was produced by Adobe LiveCycle Designer
+		if(stripos($file['pdf_info']['producer'], "livecycle")){
+			Log::getInstance()->warning([
+				"title" => "XFA Form",
+				"message" => "The document {$file['name']} is an XFA form.
 			It will now be converted to a standard PDF.
 			The conversion process may take up to 2 minutes.",
-		], true);
+			], true);
+		}
+
+		# And other platform that "secure" PDFs like Ansarada
+		else if(stripos($file['pdf_info']['text'], "secured document")){
+			Log::getInstance()->warning([
+				"title" => "Secured document",
+				"message" => "The document {$file['name']} is a secured PDF document.
+			It will now be converted to a standard PDF.
+			The conversion process may take up to 2 minutes.",
+			]);
+		}
+
+		# For all other types, we ignore the conversion
+		else {
+			return;
+		}
 
 		# Keep a copy of the original, rename the file to avoid it being overwritten
 		$original = Convert::makeCopy($file, __FUNCTION__);
