@@ -28,6 +28,9 @@ class CronJob extends Prototype {
 		'0,30 * * * *' => "Every 30 minutes",
 		'0/15 * * * *' => "Every 15 minutes",
 		'*/5 * * * *' => "Every 5 minutes",
+		'*/4 * * * *' => "Every 4 minutes",
+		'*/3 * * * *' => "Every 3 minutes",
+		'*/2 * * * *' => "Every 2 minutes",
 		'* * * * *' => "Every minute",
 	];
 
