@@ -350,7 +350,12 @@ class CronJob extends Prototype {
 
 		if(!$this->user->is("admin")){
 			//Only admins have access
-			return $this->accessDenied();
+			return true;
+			/**
+			 * We don't show access denied, because if there is a tab opened
+			 * with the cron jobs, and the user changes permissions meanwhile,
+			 * we don't want to spam them with access denied messages.
+			 */
 		}
 
 		$cron_jobs = $this->sql->select([
