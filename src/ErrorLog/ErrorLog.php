@@ -258,7 +258,7 @@ class ErrorLog extends Prototype {
 				["resolved", "IS NOT", $vars['resolved'] == 'resolved' ? NULL : false],
 			],
 			"order_by" => [
-				"created" => "desc",
+				"error_log_id" => "desc",
 			],
 		];
 
