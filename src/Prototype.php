@@ -14,6 +14,7 @@ use App\UI\Icon;
 use App\UI\Table;
 use Exception;
 use ReflectionClass;
+use Swoole\ExitException;
 
 /**
  * Class Common
@@ -232,15 +233,14 @@ abstract class Prototype {
 	 * Given a table name, will return the
 	 * next order number.
 	 *
-	 * @param string      $rel_table
-	 *
-	 * @param string|null $limiting_key Use the limiting key/val to limit the relevant rows
-	 * @param string|null $limiting_val The key/val should be a column that uniquely identifies the subset of interest
+	 * @param string     $rel_table
+	 * @param array|null $where Optional WHERE clause to limit the scope of the order search.
 	 *
 	 * @return bool|int
-	 * @throws Exception
+	 * @throws BadRequest
+	 * @throws ExitException
 	 */
-	public function getOrder(string $rel_table, ?string $limiting_key = NULL, ?string $limiting_val = NULL)
+	public function getOrder(string $rel_table, ?array $where = NULL)
 	{
 		# Ensure the table has an order column
 		if(!in_array("order", array_keys($this->sql->getTableMetadata(["db" => $this->db, "name" => $rel_table], true)))){
@@ -254,9 +254,7 @@ abstract class Prototype {
 				"max_order" => ["max", "order"],
 			],
 			"table" => $rel_table,
-			"where" => [
-				$limiting_key => $limiting_val,
-			],
+			"where" => $where,
 			"limit" => 1,
 		]);
 
