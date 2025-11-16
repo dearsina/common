@@ -336,7 +336,7 @@ class Country extends Prototype {
 	 * @return array|null
 	 * @throws \Exception
 	 */
-	public static function getAllCountryNamesFromIsoAlpha2(?string $iso2): ?array
+	public static function getAllCountryNamesFromIsoAlpha2(?string $iso2, ?array $include = NULL): ?array
 	{
 		# Ensure the string is only two characters long
 		if(strlen($iso2) != 2){
@@ -355,13 +355,27 @@ class Country extends Prototype {
 
 		$country = $countries[$key];
 
-		$names[] = $country['country_code'];
-		$names[] = $country['iso_alpha-3'];
-		$names[] = $country['alt_iso_alpha-3'];
-		$names[] = $country['cc_tld'];
-		$names[] = $country['name'];
-		if($country['alt_name']){
-			$names = array_merge($names, explode("|", $country['alt_name']));
+		if(!$include){
+			$include = [
+				"country_code",
+				"iso_alpha-3",
+				"alt_iso_alpha-3",
+				"cc_tld",
+				"name",
+				"alt_name",
+			];
+		}
+
+		$names = [];
+		foreach($include as $col){
+			if($col == "alt_name"){
+				if($country['alt_name']){
+					$names = array_merge($names, explode("|", $country['alt_name']));
+				}
+			}
+			else {
+				$names[] = $country[$col];
+			}
 		}
 
 		return array_filter(array_unique($names));
