@@ -5676,6 +5676,49 @@ LATEX;
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earth_radius * $c;
+    }
 
+    /**
+     * @param string $text
+     * @return string
+     */
+    public static function slugify(string $text): string
+    {
+        # set the separator to always be '-'
+        $separator = '-';
+
+        # replace & with 'and'
+        $text = str_replace('&', ' and ', $text);
+
+        # convert to UTF-8 (if not already) and trim
+        $text = trim($text);
+
+        if (function_exists('iconv')) {
+            # use TRANSLIT when available to try converting accented chars
+            $trans = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+            if ($trans !== false) {
+                $text = $trans;
+            }
+        }
+
+        # ensure that the text is lowercase
+        $text = mb_strtolower($text, 'UTF-8');
+
+        # replace anything that's not letter, number or separator with a space
+        $text = preg_replace('~[^\\pL\\pN]+~u', ' ', $text);
+
+        # replace spaces and repeated separators with single separator
+        $text = preg_replace('~[\\s_]+~u', $separator, $text);
+
+        # remove any characters that are not separator, letters or numbers
+        $pattern = sprintf('~[^%s\\pL\\pN]+~u', preg_quote($separator, '~'));
+        $text = preg_replace($pattern, '', $text);
+
+        # fallback: if empty, return 'n-a'
+        if ($text === '') {
+            return 'n-a';
+        }
+
+        return $text;
     }
 }
