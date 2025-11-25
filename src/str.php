@@ -5682,8 +5682,12 @@ LATEX;
      * @param string $text
      * @return string
      */
-    public static function slugify(string $text): string
+    public static function slugify(?string $text): ?string
     {
+		if($text === NULL){
+			return NULL;
+		}
+
         # set the separator to always be '-'
         $separator = '-';
 
