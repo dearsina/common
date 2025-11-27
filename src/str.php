@@ -1657,6 +1657,11 @@ EOF;
 		return mb_strtolower(preg_replace('/(?<!^)[\p{L}]/u', '-$0', $string));
 	}
 
+	public static function snakeToKebabCase(string $string): string
+	{
+		return str_replace("_", "-", $string);
+	}
+
 	/**
 	 * Given two or more strings
 	 * (or a whole multidimensional array of data),
