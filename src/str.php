@@ -2679,10 +2679,10 @@ EOF;
 	 *
 	 * @return int
 	 */
-	public static function strtotime(?string $string, $now = NULL): int
+	public static function strtotime(?string $string, $now = NULL): ?int
 	{
 		if(!$string){
-			return 0;
+			return NULL;
 		}
 
 		# Treat d/m/Y as d/m/Y, not as m/d/Y
@@ -2690,7 +2690,13 @@ EOF;
 			$string = preg_replace("/(\d{1,2})\/(\d{1,2})\/(\d{4})/", "$2/$1/$3", $string);
 		}
 
-		return strtotime($string, $now);
+		$time = strtotime($string, $now);
+
+		if($time === false){
+			return NULL;
+		}
+
+		return $time;
 	}
 
 
