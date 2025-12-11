@@ -2131,6 +2131,15 @@ class User extends Prototype {
 		]);
 	}
 
+	const GENERIC_RESET_EMAIL_SENT = [
+		"container" => ".card-body",
+		"icon" => "envelope",
+		"title" => "Reset email sent",
+		"message" => "An email has been sent with a link to reset the password.
+		Please check your inbox. If you cannot find it, ensure you have entered the right email address,
+		then please check your spam/junk folder, as it may have ended up there.",
+	];
+
 	/**
 	 * Send a reset password email.
 	 *
@@ -2161,13 +2170,9 @@ class User extends Prototype {
 			"limit" => 1,
 		])){
 			//If the given email address cannot be found.
-			$this->log->error([
-				"container" => ".card-body",
-				"icon" => "envelope",
-				"title" => "Email not found",
-				"message" => "The given email address cannot be found.",
-			]);
-			return false;
+			$this->log->success(self::GENERIC_RESET_EMAIL_SENT);
+			// Send the success message anyway, to avoid giving away which email addresses are registered
+			return true;
 		}
 
 		if(!$user['verified']){
@@ -2210,14 +2215,7 @@ class User extends Prototype {
 			->to([$user['email'] => $user['name']])
 			->send();
 
-		$this->log->info([
-			"container" => ".card-body",
-			"type" => "alert",
-			"colour" => "success",
-			"title" => "Reset email sent",
-			"message" => "An email has been sent with a link to reset the password. Please check your inbox. If you cannot find it, please check your spam/junk folder, as it may have ended up there.",
-		]);
-
+		$this->log->success(self::GENERIC_RESET_EMAIL_SENT);
 		return true;
 	}
 
@@ -2322,8 +2320,9 @@ class User extends Prototype {
 			$this->log->error([
 				"closeInSeconds" => 10,
 				"container" => ".card-body",
-				"title" => 'Email not found',
-				"message" => "The email address <code>{$vars['email']}</code> cannot be found. Are you sure have registered with {$_ENV['title']}?",
+				"title" => 'Invalid credentials',
+				"message" => "The email address cannot be found or the password is incorrect.
+				If you enter the wrong password ".User::MAX_FAILED_LOGIN_ATTEMPTS." times, your account will be locked.",
 			]);
 			return false;
 		}
@@ -2394,10 +2393,9 @@ class User extends Prototype {
 
 				$this->log->error([
 					"container" => ".card-body",
-					"title" => 'Incorrect password',
-					"message" => "Please ensure you have written the correct password.
-						After {$remaining_login_attempts} more failed login " .
-						str::pluralise_if($remaining_login_attempts, "attempt") . ", your account will be locked.",
+					"title" => 'Invalid credentials',
+					"message" => "The email address cannot be found or the password is incorrect.
+					If you enter the wrong password ".User::MAX_FAILED_LOGIN_ATTEMPTS." times, your account will be locked."
 				]);
 			}
 
