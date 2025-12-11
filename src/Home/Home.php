@@ -52,7 +52,12 @@ class Home extends Prototype {
 
 			# Ensure the method is available
 			if(!str::methodAvailable($classInstance, $method)){
-				throw new \Exception("The <code>".str::generate_uri($a)."</code> method doesn't exist or is not public.");
+				if(str::isDev()){
+					throw new \Exception("The <code>".htmlentities(str::generate_uri($a))."</code> method doesn't exist or is not public.");
+				}
+				else {
+					throw new \Exception("The requested resource was not found.", 404);
+				}
 			}
 
 			# Use the app method

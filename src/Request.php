@@ -590,8 +590,13 @@ class Request {
 
 		if(!$classPath = str::findClass($rel_table)){
 			//if a class doesn't exist
-			unset($a['vars']);
-			throw new \Exception("No matching class for <code>" . str::generate_uri($a) . "</code> can be found.");
+			if(str::isDev()){
+				unset($a['vars']);
+				throw new \Exception("The <code>" . htmlentities(str::generate_uri($a)) . "</code> class doesn't exist.");
+			}
+			else {
+				throw new \Exception("The requested resource was not found.", 404);
+			}
 		}
 
 		# Create a new instance of the class
@@ -602,8 +607,14 @@ class Request {
 
 		# Ensure the method is available
 		if(!str::methodAvailable($classInstance, $method)){
-			unset($a['vars']);
-			throw new \Exception("The <code>" . str::generate_uri($a) . "</code> method doesn't exist or is not public.");
+			if(str::isDev()){
+				unset($a['vars']);
+				throw new \Exception("The <code>" . htmlentities(str::generate_uri($a)) . "</code> method doesn't exist or is not public.");
+			}
+			else {
+				throw new \Exception("The requested resource was not found.", 404);
+			}
+
 		}
 
 		# Make the subdomain variable global
