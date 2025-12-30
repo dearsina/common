@@ -13,7 +13,7 @@ use App\UI\Navigation\Factory;
  * Class Navigation
  * @package App\Common\Navigation
  */
-class Navigation {
+class Navigation extends Prototype {
 	/**
 	 * Public facing method.
 	 * All it does is to call the static method.
