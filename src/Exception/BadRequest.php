@@ -23,6 +23,8 @@ class BadRequest extends Prototype {
 	public function __construct(string $public_message, ?string $private_message = NULL, $code = 400, \Exception $previous = NULL, ?bool $log = true)
 	{
 		$private_message = $private_message ?: $public_message;
+		$private_message = preg_replace("/[\r\n\t]+/", " ", $private_message);
+
 		if($log){
 			self::logException("Bad Request", $private_message, $code);
 		}
