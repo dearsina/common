@@ -192,6 +192,12 @@ class App extends Prototype implements NavigationInterface {
 					"colour" => "success",
 					"icon" => "check",
 					"pill" => true,
+					"class" => [
+						"float-right"
+					],
+					"style" => [
+						"padding" => "4px 3px"
+					]
 				];
 			}
 			else {

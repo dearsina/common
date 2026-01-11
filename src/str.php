@@ -4322,7 +4322,7 @@ EOF;
 		if(is_array($array)){
 			$count = count($array);
 		}
-		else if(is_int($array) && $array){
+		else if(is_numeric($array) && $array){
 			$count = $array;
 		}
 		else if(is_string($array) && $string = preg_replace("/[^0-9.]/", "", $array)){
