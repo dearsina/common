@@ -33,12 +33,37 @@ class Home extends Prototype {
 	{
 		extract($a);
 
-		# User needs to be logged in
-		if(!$this->user->isLoggedIn()){
-			return $this->accessDenied();
+		# Check to see if the user is logged in
+		if($this->user->isLoggedIn()){
+			global $role;
+			return $this->viewRole($a, $role);
 		}
 
-		global $role;
+		# If they're on a particular subdomain, send them as users to that subdomain
+		if($subdomain && $subdomain != "app"){
+			$role = "user";
+			return $this->viewRole($a, $role);
+		}
+		// This allows for non-logged in users to see a home page on their selected subdomain
+
+
+		# User needs to be logged in
+		return $this->accessDenied();
+	}
+
+	/**
+	 * Once we have a role, we can try to find a specific
+	 * home page for that role.
+	 *
+	 * @param array  $a
+	 * @param string $role
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	private function viewRole(array $a, string $role): bool
+	{
+		extract($a);
 
 		# Ideally there is an app method for this role
 		if($classPath = str::findClass($role, "Home")){
@@ -53,7 +78,7 @@ class Home extends Prototype {
 			# Ensure the method is available
 			if(!str::methodAvailable($classInstance, $method)){
 				if(str::isDev()){
-					throw new \Exception("The <code>".htmlentities(str::generate_uri($a))."</code> method doesn't exist or is not public.");
+					throw new \Exception("The <code>" . htmlentities(str::generate_uri($a)) . "</code> method doesn't exist or is not public.");
 				}
 				else {
 					throw new \Exception("The requested resource was not found.", 404);
@@ -66,13 +91,15 @@ class Home extends Prototype {
 				"action" => $method,
 				"rel_table" => $rel_table,
 				"rel_id" => $rel_id,
-				"vars" => $vars
+				"vars" => $vars,
 			]);
 		}
 
 		# Otherwise, use the generic view
 		return $this->genericView($a);
 	}
+
+
 
 	/**
 	 * @param $a
@@ -91,14 +118,14 @@ class Home extends Prototype {
 		$page = new Page([
 			"title" => "Generic {$role['role']} home",
 			"subtitle" => "Create a <code>".str::getClassCase("\\App\\Home\\{$role['role']}")."</code> class to avoid this screen.",
-			"icon" => $role['icon']
+			"icon" => $role['icon'],
 		]);
 
 		# Make sure the app has at least one admin
 		if(!$this->info("admin")){
 			//if the app has no admins
 			$page->setGrid([
-				"html" => $this->user->card()->newAdmin()
+				"html" => $this->user->card()->newAdmin(),
 			]);
 		}
 
@@ -113,7 +140,7 @@ class Home extends Prototype {
 				"sm" => 3,
 				"rows" => $rows,
 			],
-			"body" => $body
+			"body" => $body,
 		]);
 
 		$page->setGrid($card->getHTML());

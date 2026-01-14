@@ -3,6 +3,7 @@
 
 namespace App\Common\Navigation;
 
+use App\Common\Hash;
 use App\Common\Output;
 use App\Common\str;
 use App\Common\User\User;
@@ -64,6 +65,19 @@ class Navigation extends Prototype {
 			}
 		}
 
+		# Ensure we're on the right subdomain for this role
+		//		if(!self::rightSubdomainForRole($a)){
+		//			// If we're not, abort mission
+		//			return true;
+		//		}
+		// Doesn't quite work the way we want it to yet.
+
+		/**
+		 * The levels array will be furnished with all the details
+		 * for the header navigation.
+		 *
+		 * @var array $levels The navigation levels and their contents.
+		 */
 		$levels = [];
 
 		# Get the generic app levels
@@ -91,6 +105,33 @@ class Navigation extends Prototype {
 		$output->footer($navigation->getFooterHTML());
 
 		return true;
+	}
+
+	private static function rightSubdomainForRole(?array $a = NULL): bool
+	{
+		# Get the role
+		global $role;
+
+		# If there is no role, we don't care about subdomains
+		if(!$role){
+			return true;
+		}
+
+		# Users can access anything
+		if($role == "user"){
+			return true;
+		}
+
+		# App subdomain is always allowed
+		if($a['subdomain'] == "app"){
+			return true;
+		}
+
+		# But if a user with a different role than user is trying to access a different subdomain than app
+		Hash::getInstance()->set("https://app." . $_ENV['domain'] . $a['vars']['pathname']);
+		// Push them to the app subdomain
+
+		return false;
 	}
 
 	/**
@@ -132,6 +173,7 @@ class Navigation extends Prototype {
 			throw new \Exception("The <code>{$method}</code> method in the <code>{$classPath}</code> class doesn't exist or is not public.");
 		}
 
+		# Capture any levels data from the Navigation\App class
 		$levels = $classInstance->$method([
 			"subdomain" => $subdomain,
 			"action" => $method,
@@ -144,12 +186,15 @@ class Navigation extends Prototype {
 	}
 
 	/**
-	 * @param $levels
+	 * Append role level navigation features to the levels array.
+	 *
+	 * @param array      $levels
+	 * @param array|null $a
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	protected static function getRoleLevels(&$levels, ?array $a = NULL): bool
+	protected static function getRoleLevels(array &$levels, ?array $a = NULL): bool
 	{
 		global $role;
 
