@@ -1621,4 +1621,67 @@ class Doc extends \App\Common\Prototype {
 
 		return false;
 	}
+
+	/**
+	 * Runs a series of pre-flight checks on an XLSX file
+	 * to ensure it's a valid, unencrypted XLSX file.
+	 * If any checks fail, an array with title/message
+	 * is returned.
+	 *
+	 * If all checks pass, an empty array is returned.
+	 *
+	 * @param array $file
+	 *
+	 * @return array|string[]|null
+	 */
+	public static function runXlsxPreFlightChecks(array $file): array
+	{
+		$tmp_name = $file['tmp_name'];
+
+		if(!is_file($tmp_name) || !is_readable($tmp_name)){
+			return [
+				"title" => "File did not upload correctly",
+				"message" => "The file <code>{$file['name']}</code> does not exist or is not readable. Please try to upload the file again.",
+			];
+		}
+
+		$zip = new \ZipArchive();
+		$res = $zip->open($tmp_name);
+		if($res !== true){
+			return [
+				"title" => "Unable to open file",
+				"message" => "The file <code>{$file['name']}</code> doesn't seem to be a valid, unencrypted Excel file.
+				Ensure you're able to open the file in Excel or another spreadsheet application uploading it again.",
+			];
+		}
+
+		$hasEncryptionInfo = ($zip->locateName('EncryptionInfo', \ZipArchive::FL_NODIR) !== false);
+		$hasEncryptedPackage = ($zip->locateName('EncryptedPackage', \ZipArchive::FL_NODIR) !== false);
+
+		if($hasEncryptionInfo || $hasEncryptedPackage){
+			$zip->close();
+			return [
+				"title" => "File appears to be encrypted",
+				"message" => "The file <code>{$file['name']}</code> appears to be encrypted or permission-protected.
+				The system cannot read encrypted or permission-protected workbooks. Please remove any protection and try again.",
+			];
+		}
+
+		// Basic sanity checks for a normal XLSX
+		$hasContentTypes = ($zip->locateName('[Content_Types].xml', \ZipArchive::FL_NODIR) !== false);
+		$hasWorkbookXml = ($zip->locateName('xl/workbook.xml', \ZipArchive::FL_NODIR) !== false);
+
+		$zip->close();
+
+		if(!$hasContentTypes || !$hasWorkbookXml){
+			return [
+				"title" => "File does not appear to be a valid .xlsx",
+				"message" => "The file <code>{$file['name']}</code> exists as a ZIP container but does not appear to be a valid .xlsx file.
+				Ensure you're able to open the file in Excel or another spreadsheet application before trying to upload it again.",
+			];
+		}
+
+		return [];
+	}
+
 }
