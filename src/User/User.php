@@ -3375,7 +3375,11 @@ class User extends Prototype {
 	public function setCookie(string $key, string $val, ?bool $remove = NULL): bool
 	{
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
-		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
+		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Secure; HttpOnly; SameSite=Strict;", false);
+
+//		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
+		// We've removed the Domain directive, so that cookies are set on a subdomain level.
+
 		return true;
 	}
 
