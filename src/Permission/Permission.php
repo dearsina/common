@@ -69,6 +69,7 @@ class Permission extends Prototype {
 			// For each permission requested
 			if(!$role_permissions[$l] && !$user_permissions[$l]){
 				// If neither the role or the user has the permission
+				Permission::setGlobalAccessDeniedMessage($l, $rel_table);
 				return false;
 				// Return false
 			}
@@ -76,6 +77,20 @@ class Permission extends Prototype {
 
 		return true;
 		// Otherwise return true
+	}
+
+	const CRUD = [
+		"c" => "create",
+		"r" => "read",
+		"u" => "update",
+		"d" => "delete",
+	];
+
+	public static function setGlobalAccessDeniedMessage(string $crud, string $rel_table): void
+	{
+		global $access_denied_message;
+		$action = self::CRUD[$crud];
+		$access_denied_message = str::title("You do not have permission to {$action} in this {$rel_table}.");
 	}
 
 	/**

@@ -3437,6 +3437,12 @@ class User extends Prototype {
 	{
 		global $user_id;
 
+		# If no specific message is provided, see if a global one exists
+		if(!$message){
+			global $access_denied_message;
+			$message = $access_denied_message;
+		}
+
 		if($user_id){
 			//if a user is logged in, and is trying to perform an action they do not have access to
 			$this->log->error([
