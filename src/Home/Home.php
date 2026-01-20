@@ -36,6 +36,21 @@ class Home extends Prototype {
 		# Check to see if the user is logged in
 		if($this->user->isLoggedIn()){
 			global $role;
+
+			# If a user with elevated permissions is accessing a subdomain, route them to app
+			if($role != "user" && $subdomain && $subdomain != "app"){
+				$url = "https://app.{$_ENV['domain']}/";
+				$url .= str::generate_uri([
+					"subdomain" => "app",
+					"rel_table" => $rel_table,
+					"rel_id" => $rel_id,
+					"action" => $action,
+					"vars" => $vars,
+				]);
+				$this->hash->set($url);
+				return true;
+			}
+
 			return $this->viewRole($a, $role);
 		}
 
