@@ -336,16 +336,17 @@ class WebSocketServer extends Prototype {
 				"server_id" => $this->server_id,
 				"fd" => $request->fd,
 				"opened" => "NOW()",
-			],
-			"where" => [
 				"closed" => NULL,
-				//				"ip" => $request->server['remote_addr'],
-				/**
-				 * For now, we cannot use the IP address because
-				 * it is always an IPv4 address, while the connection
-				 * table does at times use an IPv6 address.
-				 */
 			],
+//			"where" => [
+//				"closed" => NULL,
+//				//				"ip" => $request->server['remote_addr'],
+//				/**
+//				 * For now, we cannot use the IP address because
+//				 * it is always an IPv4 address, while the connection
+//				 * table does at times use an IPv6 address.
+//				 */
+//			],
 			"id" => $connection_id,
 			"reconnect" => true,
 			"user_id" => false,

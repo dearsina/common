@@ -90,7 +90,7 @@ class Permission extends Prototype {
 	{
 		global $access_denied_message;
 		$action = self::CRUD[$crud];
-		$access_denied_message = str::title("You do not have permission to {$action} in this {$rel_table}.");
+		$access_denied_message = str::title("You do not have permission to {$action} this {$rel_table}.");
 	}
 
 	/**
