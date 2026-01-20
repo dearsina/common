@@ -1694,7 +1694,13 @@ class Doc extends \App\Common\Prototype {
 	}
 
 	/**
-	 * Detects the container type of a file based on its signature.
+	 * Detects the container type of file based on its signature.
+	 * Will return 'zip' for ZIP containers (such as XLSX, DOCX, PPTX),
+	 * 'cfb' for Compound File Binary (OLE) containers (such as legacy
+	 * XLS, DOC, PPT), or NULL if the container type cannot be determined.
+	 *
+	 * Compound File Binary format xlsx files are often used for encrypted
+	 * documents.
 	 *
 	 * @param string $path
 	 *
