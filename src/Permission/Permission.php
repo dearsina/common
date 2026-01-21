@@ -5,7 +5,6 @@ namespace App\Common\Permission;
 
 use App\Common\Prototype;
 use App\Common\str;
-use App\Subscription\SubscriptionHandler;
 use App\UI\Icon;
 
 /**
@@ -108,20 +107,7 @@ class Permission extends Prototype {
 			$action = self::CRUD[$l];
 		}
 
-		if($subscription_id){
-			$subscription = new SubscriptionHandler($subscription_id);
-			$subscription_name = $subscription->getCompany("name");;
-		}
-
-		if($rel_table == "workflow" && $rel_id){
-			$workflow = \App\Common\SQL\Info\Info::getInstance()->getInfo("workflow", $rel_id);
-
-			if($subscription_id && $subscription_id != $workflow['subscription_id']){
-				$access_denied_message = "You are trying to {$action} a workflow that is outside the <i>{$subscription_name}</i> subscription that you're currently logged in to.";
-				return;
-			}
-		}
-
+		# If we're looking for global access to a rel_table
 		if(!$rel_id){
 			$rel_tables = str::pluralise(str::title($rel_table));
 			$access_denied_message = str::title("You do not have permission to {$action} {$rel_tables}.");
