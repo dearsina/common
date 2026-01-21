@@ -177,6 +177,14 @@ class Process {
 	 */
 	public static function getGlobalVariables(?bool $as_string = true)
 	{
+		# Collect all the cookies
+		foreach($_COOKIE as $key => $val){
+			if(!is_array($val) && !is_object($val)){
+				$global_vars[$key] = $val;
+			}
+		}
+		// Order matters here, cookies need to be set first
+
 		# User ID (if exists)
 		global $user_id;
 		if($user_id){
@@ -187,13 +195,6 @@ class Process {
 		global $role;
 		if($role){
 			$global_vars['role'] = $role;
-		}
-
-		# Collect all the cookies
-		foreach($_COOKIE as $key => $val){
-			if(!is_array($val) && !is_object($val)){
-				$global_vars[$key] = $val;
-			}
 		}
 
 		# Connection ID
