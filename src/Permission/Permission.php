@@ -5,6 +5,7 @@ namespace App\Common\Permission;
 
 use App\Common\Prototype;
 use App\Common\str;
+use App\Subscription\SubscriptionHandler;
 use App\UI\Icon;
 
 /**
@@ -34,21 +35,21 @@ class Permission extends Prototype {
 	 * combo.
 	 *
 	 * @param string      $rel_table A mandatory rel_table
-	 * @param string|null $rel_id An optional rel_id
-	 * @param string|null $crud Create, Read, Update and/or Delete, NULL = CRUD
+	 * @param string|null $rel_id    An optional rel_id
+	 * @param string|null $crud      Create, Read, Update and/or Delete, NULL = CRUD
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function get (string $rel_table, ?string $rel_id = NULL, ?string $crud = NULL): bool
+	public function get(string $rel_table, ?string $rel_id = NULL, ?string $crud = NULL): bool
 	{
 		# If no CRUD is specified = ALL access
-		if (!strlen($crud)) {
+		if(!strlen($crud)){
 			$crud = "crud";
 		}
 
 		# The user is always the current user
-		if (!$user_id = $this->user->isLoggedIn()) {
+		if(!$user_id = $this->user->isLoggedIn()){
 			return false;
 		}
 
@@ -65,11 +66,11 @@ class Permission extends Prototype {
 		$user_permissions = $this->getUserPermission($user_id, $rel_table, $rel_id);
 
 		# Check permissions
-		foreach (str_split(strtolower($crud)) as $l) {
+		foreach(str_split(strtolower($crud)) as $l){
 			// For each permission requested
 			if(!$role_permissions[$l] && !$user_permissions[$l]){
 				// If neither the role or the user has the permission
-				Permission::setGlobalAccessDeniedMessage($l, $rel_table);
+				Permission::setGlobalAccessDeniedMessage(NULL, $rel_table, $rel_id, $l);
 				return false;
 				// Return false
 			}
@@ -86,10 +87,47 @@ class Permission extends Prototype {
 		"d" => "delete",
 	];
 
-	public static function setGlobalAccessDeniedMessage(string $crud, string $rel_table): void
+	/**
+	 * Sets descriptive access denied messages to make it easier to understand
+	 * why access was denied.
+	 *
+	 * @param string|null $subscription_id
+	 * @param string      $rel_table
+	 * @param string|null $rel_id
+	 * @param string      $crud
+	 *
+	 * @return void
+	 * @throws \Exception
+	 */
+	public static function setGlobalAccessDeniedMessage(?string $subscription_id, string $rel_table, ?string $rel_id, string $crud): void
 	{
 		global $access_denied_message;
-		$action = self::CRUD[$crud];
+
+		# In case more than one letter is passed, we only concern ourselves with the last (highest level of access requested)
+		foreach(str_split(strtolower($crud)) as $l){
+			$action = self::CRUD[$l];
+		}
+
+		if($subscription_id){
+			$subscription = new SubscriptionHandler($subscription_id);
+			$subscription_name = $subscription->getCompany("name");;
+		}
+
+		if($rel_table == "workflow" && $rel_id){
+			$workflow = \App\Common\SQL\Info\Info::getInstance()->getInfo("workflow", $rel_id);
+
+			if($subscription_id && $subscription_id != $workflow['subscription_id']){
+				$access_denied_message = "You are trying to {$action} a workflow that is outside the <i>{$subscription_name}</i> subscription that you're currently logged in to.";
+				return;
+			}
+		}
+
+		if(!$rel_id){
+			$rel_tables = str::pluralise(str::title($rel_table));
+			$access_denied_message = str::title("You do not have permission to {$action} {$rel_tables}.");
+			return;
+		}
+
 		$access_denied_message = str::title("You do not have permission to {$action} this {$rel_table}.");
 	}
 
@@ -102,7 +140,7 @@ class Permission extends Prototype {
 	 *
 	 * @return array A single row of CRUDs from the user_permission table.
 	 */
-	private function getUserPermission (string $user_id, string $rel_table, ?string $rel_id): array
+	private function getUserPermission(string $user_id, string $rel_table, ?string $rel_id): array
 	{
 		$where = [
 			"user_id" => $user_id,
@@ -117,7 +155,8 @@ class Permission extends Prototype {
 		 */
 		if($rel_id){
 			$where['rel_id'] = $rel_id;
-		} else {
+		}
+		else {
 			$where['rel_id'] = NULL;
 		}
 
@@ -138,7 +177,7 @@ class Permission extends Prototype {
 			],
 			"table" => "user_permission",
 			"where" => $where,
-			"limit" => 1
+			"limit" => 1,
 		]);
 
 		$this->userPermissions[$key] = $permission;
@@ -156,7 +195,7 @@ class Permission extends Prototype {
 	 *
 	 * @return array A single row of CRUDs from the role_permission table
 	 */
-	private function getRolePermission (?string $role, string $rel_table, ?string $rel_id): array
+	private function getRolePermission(?string $role, string $rel_table, ?string $rel_id): array
 	{
 
 		# Not all users have roles
@@ -202,12 +241,12 @@ class Permission extends Prototype {
 				"table" => "role",
 				"on" => "role_id",
 				"where" => [
-					"role" => $role
-				]
+					"role" => $role,
+				],
 			]],
 			"where" => $where,
 			"or" => $or,
-			"limit" => 1
+			"limit" => 1,
 		]);
 
 		$this->rolePermissions[$key] = $permission;
@@ -236,13 +275,13 @@ class Permission extends Prototype {
 	public function set(string $rel_table, ?string $rel_id, ?string $crud = NULL, ?string $user_id = NULL): bool
 	{
 		# If not CRUD = ALL access
-		if (strlen($curd)) {
+		if(strlen($curd)){
 			$crud = "crud";
 		}
 
 		# No user ID = the current user
-		if (!$user_id) {
-			if (!$user_id = $this->user->isLoggedIn()) {
+		if(!$user_id){
+			if(!$user_id = $this->user->isLoggedIn()){
 				throw new \Exception("Permission was requested without a valid user ID.");
 			}
 		}
@@ -253,15 +292,15 @@ class Permission extends Prototype {
 			"user_id" => $user_id,
 		];
 
-		foreach (["c", "r", "u", "d"] as $l) {
+		foreach(["c", "r", "u", "d"] as $l){
 			$access[$l] = in_array($l, str_split(strtolower($crud)));
 		}
 
-		if ($existing_permission = $this->sql->select([
+		if($existing_permission = $this->sql->select([
 			"table" => "user_permission",
 			"where" => $set,
-			"limit" => 1
-		])) {
+			"limit" => 1,
+		])){
 			//if there already exists permissions for this user/rel_table/id combo
 			$this->sql->update([
 				"table" => "user_permission",
@@ -298,8 +337,8 @@ class Permission extends Prototype {
 			"where" => [
 				"rel_table" => $rel_table,
 				"rel_id" => $rel_id,
-				"user_id" => $user_id
-			]
+				"user_id" => $user_id,
+			],
 		]);
 	}
 
@@ -316,11 +355,11 @@ class Permission extends Prototype {
 	{
 		extract($a);
 
-		if ($vars['role_id']) {
-			if (!$item = $this->sql->select([
+		if($vars['role_id']){
+			if(!$item = $this->sql->select([
 				"table" => "role",
 				"id" => $vars['role_id'],
-			])) {
+			])){
 				// If the role cannot be found
 				throw new \Exception("The requested role cannot be found.");
 			}
@@ -354,11 +393,11 @@ class Permission extends Prototype {
 	 * @return array|bool
 	 * @throws \Exception
 	 */
-	public function update (array $a, $silent = NULL): bool
+	public function update(array $a, $silent = NULL): bool
 	{
 		extract($a);
 
-		if (!$this->user->is("admin")) {
+		if(!$this->user->is("admin")){
 			//Only admins have access
 			return $this->accessDenied($a);
 		}
@@ -366,7 +405,7 @@ class Permission extends Prototype {
 		[$role_or_user_col, $role_or_user_id] = $this->separateOutRoleAndUserPermissions($a);
 
 		# Get existing permissions
-		if ($results = $this->sql->select([
+		if($results = $this->sql->select([
 			"distinct" => true,
 			"columns" => [
 				"rel_table",
@@ -374,29 +413,30 @@ class Permission extends Prototype {
 				"r",
 				"u",
 				"d",
-				"count_rel_id" => ["COUNT", "rel_id"]
+				"count_rel_id" => ["COUNT", "rel_id"],
 			],
 			"table" => $rel_table,
 			"where" => [
 				$role_or_user_col => $role_or_user_id,
 			],
-		])) {
-			foreach ($results as $table) {
+		])){
+			foreach($results as $table){
 				$existing_permissions[$table['rel_table']] = $table;
 			}
-		} else {
+		}
+		else {
 			//if this role has no permissions
 			$existing_permissions = [];
 		}
 
 		# For each table returned
-		foreach ($vars['table'] as $table => $crud) {
+		foreach($vars['table'] as $table => $crud){
 
 			# New table
-			if (!is_array($existing_permissions) || !key_exists($table, $existing_permissions)) {
+			if(!is_array($existing_permissions) || !key_exists($table, $existing_permissions)){
 				//if this table doesn't exist in the existing role permissions
 
-				if (empty(array_filter($crud))) {
+				if(empty(array_filter($crud))){
 					//if the table doesn't have any values
 					continue;
 					//There is nothing to set, continue
@@ -419,21 +459,22 @@ class Permission extends Prototype {
 			}
 
 			# If the table already exists
-			foreach ($crud as $key => $val) {
+			foreach($crud as $key => $val){
 				//For each CRUD value for that table
-				if ($existing_permissions[$table][$key] == $val) {
+				if($existing_permissions[$table][$key] == $val){
 					//if the value remains the same
-					if ($val) {
+					if($val){
 						//only count the permission if it exists
 						$counts['same']++;
 					}
 					continue;
 				}
 
-				if ($existing_permissions[$table][$key]) {
+				if($existing_permissions[$table][$key]){
 					//if the value is being removed
 					$counts['removed']++;
-				} else {
+				}
+				else {
 					//If the value is being added
 					$counts['added']++;
 				}
@@ -452,7 +493,7 @@ class Permission extends Prototype {
 			}
 		}
 
-		if (!$silent) {
+		if(!$silent){
 			$narrative[] = str::were($counts['added'], "permission", true) . " added";
 			$narrative[] = str::were($counts['same'], "permission", true) . " kept the same";
 			$narrative[] = str::were($counts['removed'], "permission", true) . " removed";
