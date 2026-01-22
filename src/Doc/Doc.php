@@ -412,6 +412,23 @@ class Doc extends \App\Common\Prototype {
 		# Ensure upload was successful
 		self::checkUpload($key);
 
+		# Do not allow PHP, or any file format that can contain code executable in Linux or Windows to be uploaded
+		if($file_name = Doc::getMatchingMimeTypeFile([
+			"application/x-php",
+			"application/php",
+			"text/x-php",
+			"text/php",
+			"application/x-msdownload",
+			"application/x-executable",
+			"application/x-sh",
+			"application/x-csh",
+			"application/x-bat",
+			"application/x-dosexec",
+		], $key)){
+			//if the file is of an unwanted type
+			throw new BadRequest("The uploaded file <code>{$file_name}</code> is not an accepted file type. Please upload a different file.");
+		}
+
 		# No GIFs allowed (optional)
 		if($no_gifs_allowed){
 			//if no GIFs are allowed

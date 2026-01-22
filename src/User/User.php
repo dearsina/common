@@ -3457,9 +3457,9 @@ class User extends Prototype {
 		if($user_id){
 			//if a user is logged in, and is trying to perform an action they do not have access to
 			$this->log->error([
-				"title" => 'Access violation',
+				"title" => "Access violation",
 				"message" => "{$message} If you believe you should have access, please notify the administrators.",
-				"trace" => str::isDev() ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : NULL,
+				"trace" => str::backtrace(true, false),
 			]);
 
 			return false;

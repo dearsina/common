@@ -63,7 +63,12 @@ class Process {
 
 		# Ensure the method is available
 		if(!str::methodAvailable($instance, $method)){
-			throw new \Exception("The <code>{$method}</code> method doesn't exist in the <code>{$class}</code> class, or is not public.");
+			if(str::isDev()){
+				throw new \Exception("The <code>{$method}</code> method doesn't exist in the <code>{$class}</code> class, or is not public.");
+			}
+			else {
+				throw new \Exception("The requested resource was not found.", 404);
+			}
 		}
 
 		# Format the (optional) params to feed to the method

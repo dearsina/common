@@ -69,10 +69,20 @@ class Log {
 
 		foreach($this->alerts as $type => $alerts){
 			foreach($alerts as $alert){
+
+				# Ensure the alert is for display
 				if($alert['display'] === false){
 					//if the alert was just for logging, and not for display
 					continue;
 				}
+
+				# Remove trace if not in development mode
+				if(!str::isDev()){
+					//if not in development mode
+					unset($alert['trace']);
+					//remove the backtrace from the alert
+				}
+
 				$this->setAlertToDisplayedAlertsArray($displayed_alerts, $type, $alert);
 			}
 		}
@@ -390,7 +400,9 @@ EOF;
 	 *    "type" => "",
 	 *    "icon" => $icon,
 	 *    "title" => $title,
-	 *    "message" => $message
+	 *    "message" => $message,
+	 * 	  "log" => bool, // If set to FALSE, the message will not be logged in the error_log table
+	 *    "display" => bool, // If set to FALSE, the message will not be displayed to the user
 	 * ]);
 	 * </code>
 	 *
