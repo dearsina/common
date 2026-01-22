@@ -1619,6 +1619,17 @@ class User extends Prototype {
 		return true;
 	}
 
+	public static function getNormalisedAuthenticationFailureMessage(?bool $include_max_failed_login_attempts_narrative = NULL): string
+	{
+		$html = "Email or password is incorrect. Please try again.";
+
+		if($include_max_failed_login_attempts_narrative){
+			$html .= "After " . User::MAX_FAILED_LOGIN_ATTEMPTS . " failed attempts, your account will be locked.";
+		}
+
+		return $html;
+	}
+
 	public function updateSignature(array $a): bool
 	{
 		extract($a);
@@ -1638,8 +1649,8 @@ class User extends Prototype {
 			if(!$this->validatePassword($vars['password'], $user['password'])){
 				$this->log->error([
 					"container" => ".modal-body",
-					"title" => 'Incorrect password',
-					"message" => 'Please ensure you have written the correct password.',
+					"title" => "Incorrect credentials",
+					"message" => self::getNormalisedAuthenticationFailureMessage()
 				]);
 				return false;
 			}
@@ -1799,8 +1810,8 @@ class User extends Prototype {
 			if(!$this->validatePassword($vars['password'], $user['password'])){
 				$this->log->error([
 					"container" => ".modal-body",
-					"title" => 'Incorrect password',
-					"message" => 'Please ensure you have written the correct password.',
+					"title" => "Incorrect credentials",
+					"message" => self::getNormalisedAuthenticationFailureMessage()
 				]);
 				return false;
 			}
@@ -2135,7 +2146,7 @@ class User extends Prototype {
 		"container" => ".card-body",
 		"icon" => "envelope",
 		"title" => "Reset email sent",
-		"message" => "An email has been sent with a link to reset the password.
+		"message" => "If an account exists for the given email, an email will be sent sent with a link to reset the password.
 		Please check your inbox. If you cannot find it, ensure you have entered the right email address,
 		then please check your spam/junk folder, as it may have ended up there.",
 	];
