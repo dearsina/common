@@ -280,6 +280,18 @@ class UserRole extends \App\Common\Prototype {
 			$html .= Button::generate($button);
 		}
 
+		$html .= Button::generate([
+			"icon" => Icon::get("user"),
+			"title" => "Log in as user",
+			"hash" => [
+				"rel_table" => "user",
+				"rel_id" => $vars['user_id'],
+				"action" => "impersonate"
+			],
+			"class" => "float-right",
+			"alt" => "Log in as this user to see their view of the system.",
+		]);
+
 		$this->output->update("#user_roles", "<div class=btn-float-right>{$html}</div>");
 		return true;
 	}

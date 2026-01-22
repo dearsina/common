@@ -656,7 +656,7 @@ class User extends Prototype {
 			"where" => [
 				"user_id" => $user_id,
 			],
-			"user_id" => $this->user->getId() ?: $user_id
+			"user_id" => $this->user->getId() ?: $user_id,
 		]);
 	}
 
@@ -2322,7 +2322,7 @@ class User extends Prototype {
 				"container" => ".card-body",
 				"title" => 'Invalid credentials',
 				"message" => "The email address cannot be found or the password is incorrect.
-				If you enter the wrong password ".User::MAX_FAILED_LOGIN_ATTEMPTS." times, your account will be locked.",
+				If you enter the wrong password " . User::MAX_FAILED_LOGIN_ATTEMPTS . " times, your account will be locked.",
 			]);
 			return false;
 		}
@@ -2395,7 +2395,7 @@ class User extends Prototype {
 					"container" => ".card-body",
 					"title" => 'Invalid credentials',
 					"message" => "The email address cannot be found or the password is incorrect.
-					If you enter the wrong password ".User::MAX_FAILED_LOGIN_ATTEMPTS." times, your account will be locked."
+					If you enter the wrong password " . User::MAX_FAILED_LOGIN_ATTEMPTS . " times, your account will be locked.",
 				]);
 			}
 
@@ -2459,7 +2459,7 @@ class User extends Prototype {
 			"set" => [
 				"failed_login_attempts" => $user['failed_login_attempts'],
 			],
-			"user_id" => false
+			"user_id" => false,
 		]);
 	}
 
@@ -2473,7 +2473,7 @@ class User extends Prototype {
 			"set" => [
 				"failed_login_attempts" => $user['failed_login_attempts'],
 			],
-			"user_id" => false
+			"user_id" => false,
 		]);
 	}
 
@@ -2644,7 +2644,7 @@ class User extends Prototype {
 			$this->log->error([
 				"display" => false,
 				"title" => 'Session mismatch',
-				"message" => "The two-factor authentication key provided by {$user['user_id']} was correct, but the session ID changed from {$user['session_id']} to ".session_id().".",
+				"message" => "The two-factor authentication key provided by {$user['user_id']} was correct, but the session ID changed from {$user['session_id']} to " . session_id() . ".",
 			]);
 		}
 
@@ -3377,7 +3377,7 @@ class User extends Prototype {
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
 		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Secure; HttpOnly; SameSite=Strict;", false);
 
-//		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
+		//		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
 		// We've removed the Domain directive, so that cookies are set on a subdomain level.
 
 		return true;
@@ -3482,6 +3482,10 @@ class User extends Prototype {
 			return $this->accessDenied();
 		}
 
+		if(!$vars['term']){
+			return false;
+		}
+
 		$this->generateOptions($vars['term']);
 
 		return true;
@@ -3509,6 +3513,7 @@ class User extends Prototype {
 			$or = [
 				["first_name", "LIKE", "%{$term}%"],
 				["last_name", "LIKE", "%{$term}%"],
+				["email", "LIKE", "%{$term}%"],
 			];
 		}
 
@@ -3523,9 +3528,13 @@ class User extends Prototype {
 
 		if($results){
 			foreach($results as $row){
+				$html = "{$row['full_name']} <smallest>{$row['email']}</smallest>";
 				$users[] = [
 					"id" => $row['user_id'],
-					"text" => $row['full_name'],
+					"data" => [
+						"html" => $html,
+					],
+					"text" => strip_tags($html),
 				];
 			}
 		}
@@ -3534,5 +3543,44 @@ class User extends Prototype {
 		}
 
 		$this->output->setVar("results", $users);
+	}
+
+	public function impersonate(array $a): bool
+	{
+		extract($a);
+
+		if(!$this->is("admin")){
+			//Only admins have access
+			return $this->accessDenied();
+		}
+
+		if(!$user = $this->sql->select([
+			"table" => "user",
+			"id" => $rel_id,
+		])){
+			$this->log->error("Cannot find the given user.");
+			return false;
+		}
+
+		global $user_id;
+		if($user_id == $user['user_id']){
+			$this->log->warning("You are already logged in as {$user['first_name']} {$user['last_name']}.");
+			return false;
+		}
+
+		global $subscription_id;
+		$subscription_id = NULL;
+		$_COOKIE['subscription_id'] = NULL;
+		$this->setCookie("subscription_id", "", true);
+
+		$this->logUserIn($user, false);
+
+		Navigation::update($a);
+
+		$this->log->success("You are now logged in as {$user['first_name']} {$user['last_name']}.");
+
+		$this->hash->set("home");
+
+		return true;
 	}
 }
