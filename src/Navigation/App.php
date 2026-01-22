@@ -15,7 +15,8 @@ class App extends Prototype implements NavigationInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public function update (): array {
+	public function update(): array
+	{
 		# All users see the generic brand title if no subdomain is used
 		$this->allUsers();
 
@@ -161,7 +162,7 @@ class App extends Prototype implements NavigationInterface {
 
 		$this->levels[1]['items'][] = [
 			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
-			"alt" => "You are currently logged in as ".str::A($role),
+			"alt" => "You are currently logged in as " . str::A($role),
 			"direction" => "left",
 			"children" => $children,
 		];
@@ -193,11 +194,11 @@ class App extends Prototype implements NavigationInterface {
 					"icon" => "check",
 					"pill" => true,
 					"class" => [
-						"float-right"
+						"float-right",
 					],
 					"style" => [
-						"padding" => "4px 3px"
-					]
+						"padding" => "4px 3px",
+					],
 				];
 			}
 			else {
@@ -231,5 +232,39 @@ class App extends Prototype implements NavigationInterface {
 			"direction" => "left",
 			"children" => $children,
 		];
+	}
+
+	/**
+	 * Sets the $a array from the global request pathname.
+	 *
+	 * @return array
+	 */
+	public static function getAFromTheGlobalVarsPathNameRequest(): array
+	{
+		if(!is_array($_REQUEST['vars'])){
+			// Failsafe. Not sure why this wouldn't happen
+			return [];
+		}
+
+		foreach($_REQUEST['vars'] as $key => $value){
+			# Treat pathname separately
+			if($key == "pathname"){
+				$pathname_array = explode("/", trim($value, "/"));
+				$a['rel_table'] = $pathname_array[0];
+				$a['rel_id'] = $pathname_array[1];
+				$a['action'] = $pathname_array[2];
+
+				# Then any other path name array  values are key-values, put them in the vars array
+				for($i = 3; $i < count($pathname_array); $i += 2){
+					$a['vars'][$pathname_array[$i]] = $pathname_array[$i + 1];
+				}
+			}
+
+			if(!isset($a['vars'][$key])){
+				$a['vars'][$key] = $value;
+			}
+		}
+
+		return $a;
 	}
 }
