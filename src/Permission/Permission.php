@@ -325,6 +325,7 @@ class Permission extends Prototype {
 				"rel_id" => $rel_id,
 				"user_id" => $user_id,
 			],
+			"user_id" => $this->user->getId() ?: $user_id,
 		]);
 	}
 
