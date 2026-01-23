@@ -5689,18 +5689,19 @@ LATEX;
         return $earth_radius * $c;
     }
 
-    /**
-     * @param string $text
-     * @return string
-     */
-    public static function slugify(?string $text): ?string
+	/**
+	 * Converts a string into a URL-friendly "slug".
+	 *
+	 * @param string|null $text
+	 * @param string|null $separator The default separator is '-'
+	 *
+	 * @return string
+	 */
+    public static function slugify(?string $text, ?string $separator = "-"): ?string
     {
 		if($text === NULL){
 			return NULL;
 		}
-
-        # set the separator to always be '-'
-        $separator = '-';
 
         # replace & with 'and'
         $text = str_replace('&', ' and ', $text);
@@ -5729,9 +5730,9 @@ LATEX;
         $pattern = sprintf('~[^%s\\pL\\pN]+~u', preg_quote($separator, '~'));
         $text = preg_replace($pattern, '', $text);
 
-        # fallback: if empty, return 'n-a'
+        # If the text is empty, return NULL
         if ($text === '') {
-            return 'n-a';
+            return NULL;
         }
 
         return $text;
