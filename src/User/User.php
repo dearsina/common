@@ -645,6 +645,7 @@ class User extends Prototype {
 		$this->sql->remove([
 			"table" => "user",
 			"id" => $user_id,
+			"user_id" => $this->user->getId() ?: $user_id,
 		]);
 
 		# Remove all permissions related
