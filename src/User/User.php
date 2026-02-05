@@ -639,7 +639,7 @@ class User extends Prototype {
 	 *
 	 * @param $user_id
 	 */
-	private function removeUser($user_id): void
+	private function removeUser(string $user_id): void
 	{
 		# Remove the user
 		$this->sql->remove([
@@ -2718,7 +2718,7 @@ class User extends Prototype {
 
 		# Store cookies if the user has asked for it
 		if($remember){
-			$this->storeCookies($user_id);
+			$this->storeUserAndSessionIdCookies($user_id);
 		}
 
 		# Assign role
@@ -3297,8 +3297,9 @@ class User extends Prototype {
 		# Are the cookie values correct?
 		if(!$user = $this->sql->select([
 			"table" => "user",
-			"where" => [
+			"or" => [
 				"session_id" => $_COOKIE['session_id'],
+				["session_id", "=", session_id()]
 			],
 			"id" => $_COOKIE['user_id'],
 		])){
@@ -3337,7 +3338,7 @@ class User extends Prototype {
 		$this->logAccess($user_id);
 
 		# Update the cookies
-		$this->storeCookies($user_id);
+		$this->storeUserAndSessionIdCookies($user_id);
 
 		return true;
 	}
@@ -3355,7 +3356,7 @@ class User extends Prototype {
 	 *
 	 * @return bool
 	 */
-	private function storeCookies(string $user_id): bool
+	private function storeUserAndSessionIdCookies(string $user_id): bool
 	{
 		$this->setCookie("user_id", $user_id);
 		$this->setCookie("session_id", session_id());
@@ -3386,11 +3387,20 @@ class User extends Prototype {
 	 */
 	public function setCookie(string $key, string $val, ?bool $remove = NULL): bool
 	{
+		# Set the browser cookie
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
-		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Secure; HttpOnly; SameSite=Strict;", false);
+		$header = "Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Secure; HttpOnly; SameSite=Strict;";
+		header($header);
 
-		//		header("Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Domain={$_ENV['domain']}; Secure; HttpOnly; SameSite=Strict;", false);
-		// We've removed the Domain directive, so that cookies are set on a subdomain level.
+		# Set the cookie for this request also (as headers are only sent at the end of the request)
+		if($remove){
+			// If removing the cookie
+			unset($_COOKIE[$key]);
+		}
+		else {
+			// Setting the cookie
+			$_COOKIE[$key] = $val;
+		}
 
 		return true;
 	}
