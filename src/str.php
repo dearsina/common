@@ -422,8 +422,7 @@ class str {
 			return $markdown;
 		}
 
-		# Convert line breaks to <br> tags
-		$html = nl2br($markdown);
+		$html = $markdown;
 
 		# Convert **bold** to <strong>bold</strong>
 		$html = preg_replace("/\*\*(.*?)\*\*/", '<strong>$1</strong>', $html);
@@ -439,6 +438,9 @@ class str {
 		$html = preg_replace("/\n## (.*?)\n/", '<h2>$1</h2>', $html);
 		$html = preg_replace("/\n# (.*?)\n/", '<h1>$1</h1>', $html);
 
+		# Convert horizontal rules to <hr>
+		$html = preg_replace("/[\r\n]---[\r\n]/", '<hr>', $html);
+
 		# Convert unordered lists to <ul><li>...</li></ul>
 		$html = preg_replace("/\n- (.*?)\n/", '<ul><li>$1</li></ul>', $html);
 
@@ -448,11 +450,11 @@ class str {
 		# Convert blockquotes to <blockquote>...</blockquote>
 		$html = preg_replace("/\n> (.*?)\n/", '<blockquote>$1</blockquote>', $html);
 
-		# Convert horizontal rules to <hr>
-		$html = preg_replace("/\n---\n/", '<hr>', $html);
-
 		# Convert markdown links to HTML links
 		$html = preg_replace("/\[(.*?)\]\((.*?)\)/", '<a href="$2">$1</a>', $html);
+
+		# Convert line breaks to <br> tags
+		$html = nl2br($html);
 
 		return $html;
 
