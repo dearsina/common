@@ -362,6 +362,54 @@ class str {
 	}*/
 
 	/**
+	 * Convert a title to convert_a_title.
+	 *
+	 * @param string|null $key
+	 * @param int|null    $max_field_key_length
+	 *
+	 * @return string|null
+	 */
+	public static function titleToSnakeCase(?string $key, ?int $max_field_key_length = 50): ?string
+	{
+		if(!$key){
+			return $key;
+		}
+
+		# Lowercase
+		$key = mb_strtolower($key);
+
+		# Remove diacritics
+		$transliterator = \Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', \Transliterator::FORWARD);
+		$key = $transliterator->transliterate($key);
+
+		# Replace all non-alphanumeric characters with underscores
+		$key = preg_replace("/[^a-z0-9]+/i", "_", $key);
+
+		# Remove leading and trailing underscores
+		$key = trim($key, "_");
+
+		# Trim the string if it's longer than max chars
+		if(strlen($key) > $max_field_key_length){
+			if(strrpos(substr($key, 0, $max_field_key_length), "_") !== false){
+				//if the field key can be broken by underscores and be less than the max field key length
+				$key = substr($key, 0, strrpos(substr($key, 0, $max_field_key_length), "_"));
+			}
+
+			else {
+				//if the field cannot be broken by underscores, just to a straight cut at max length
+				$key = substr($key, 0, $max_field_key_length);
+			}
+		}
+
+		if(!preg_match("/\p{L}/u", $key)){
+			//if the key contains no alpha characters, abort mission
+			return NULL;
+		}
+
+		return $key;
+	}
+
+	/**
 	 * Fixes the casing on all titles
 	 * <code>
 	 * str::title("str");
