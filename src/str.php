@@ -410,6 +410,55 @@ class str {
 	}
 
 	/**
+	 * Convert Markdown to HTML.
+	 *
+	 * @param string|null $markdown
+	 *
+	 * @return string
+	 */
+	public static function markdownToHtml(?string $markdown): ?string
+	{
+		if(!$markdown){
+			return $markdown;
+		}
+
+		# Convert line breaks to <br> tags
+		$html = nl2br($markdown);
+
+		# Convert **bold** to <strong>bold</strong>
+		$html = preg_replace("/\*\*(.*?)\*\*/", '<strong>$1</strong>', $html);
+
+		# Convert *italic* to <em>italic</em>
+		$html = preg_replace("/\*(.*?)\*/", '<em>$1</em>', $html);
+
+		# Convert `code` to <code>code</code>
+		$html = preg_replace("/`(.*?)`/", '<code>$1</code>', $html);
+
+		# Convert ### Heading to <h3>Heading</h3>, ## Heading to <h2>Heading</h2>, and # Heading to <h1>Heading</h1>
+		$html = preg_replace("/\n### (.*?)\n/", '<h3>$1</h3>', $html);
+		$html = preg_replace("/\n## (.*?)\n/", '<h2>$1</h2>', $html);
+		$html = preg_replace("/\n# (.*?)\n/", '<h1>$1</h1>', $html);
+
+		# Convert unordered lists to <ul><li>...</li></ul>
+		$html = preg_replace("/\n- (.*?)\n/", '<ul><li>$1</li></ul>', $html);
+
+		# Convert ordered lists to <ol><li>...</li></ol>
+		$html = preg_replace("/\n\d+\. (.*?)\n/", '<ol><li>$1</li></ol>', $html);
+
+		# Convert blockquotes to <blockquote>...</blockquote>
+		$html = preg_replace("/\n> (.*?)\n/", '<blockquote>$1</blockquote>', $html);
+
+		# Convert horizontal rules to <hr>
+		$html = preg_replace("/\n---\n/", '<hr>', $html);
+
+		# Convert markdown links to HTML links
+		$html = preg_replace("/\[(.*?)\]\((.*?)\)/", '<a href="$2">$1</a>', $html);
+
+		return $html;
+
+	}
+
+	/**
 	 * Fixes the casing on all titles
 	 * <code>
 	 * str::title("str");
