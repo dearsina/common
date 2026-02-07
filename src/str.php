@@ -433,9 +433,13 @@ class str {
 		# Convert `code` to <code>code</code>
 		$html = preg_replace("/`(.*?)`/", '<code>$1</code>', $html);
 
-		# Convert ### Heading to <h3>Heading</h3>, ## Heading to <h2>Heading</h2>, and # Heading to <h1>Heading</h1>
+		# Convert ### Heading to <h3>Heading</h3>
 		$html = preg_replace("/\n### (.*?)\n/", '<h3>$1</h3>', $html);
+
+		# Convert ## Heading to <h2>Heading</h2>
 		$html = preg_replace("/\n## (.*?)\n/", '<h2>$1</h2>', $html);
+
+		 # Convert # Heading to <h1>Heading</h1>
 		$html = preg_replace("/\n# (.*?)\n/", '<h1>$1</h1>', $html);
 
 		# Convert horizontal rules to <hr>
@@ -944,7 +948,7 @@ class str {
 		if(str::isDev()){
 			global $backtrace;
 			if($backtrace){
-					$steps = base64_decode($backtrace) . PHP_EOL . $steps;
+				$steps = base64_decode($backtrace) . PHP_EOL . $steps;
 			}
 		}
 
@@ -3770,7 +3774,7 @@ EOF;
 	 *
 	 * @param array $array1 The first array to merge into.
 	 * @param array $array2 The second array whose values will overwrite the first array's values if they are not empty.
-	 * 
+	 *
 	 * @return array The merged array.
 	 */
 	public static function mergeWithoutEmptyValues(array $array1, array $array2): array {
@@ -5763,30 +5767,30 @@ LATEX;
 		return 'data:image/png;base64,' . base64_encode($png);
 	}
 
-    public static function distanceBetweenCoordinates(float $latitude_1, float $longitude_1, float $latitude_2, float $longitude_2): int
-    {
-        return self::haversine($latitude_1, $longitude_1, $latitude_2, $longitude_2);
-    }
+	public static function distanceBetweenCoordinates(float $latitude_1, float $longitude_1, float $latitude_2, float $longitude_2): int
+	{
+		return self::haversine($latitude_1, $longitude_1, $latitude_2, $longitude_2);
+	}
 
-    public static function haversine(float $latitude_1, float $longitude_1, float $latitude_2, float $longitude_2): int
-    {
-        $earth_radius = 6371000; # Earth's approximate radius in metres
+	public static function haversine(float $latitude_1, float $longitude_1, float $latitude_2, float $longitude_2): int
+	{
+		$earth_radius = 6371000; # Earth's approximate radius in metres
 
-        # Convert the degrees to radians
-        $latitude_1 = deg2rad($latitude_1);
-        $longitude_1 = deg2rad($longitude_1);
-        $latitude_difference = deg2rad($latitude_2 - $latitude_1);
-        $longitude_difference = deg2rad($longitude_2 - $longitude_1);
+		# Convert the degrees to radians
+		$latitude_1 = deg2rad($latitude_1);
+		$longitude_1 = deg2rad($longitude_1);
+		$latitude_difference = deg2rad($latitude_2 - $latitude_1);
+		$longitude_difference = deg2rad($longitude_2 - $longitude_1);
 
-        # Formula for getting the distance before its converted to metres
-        $a = sin($latitude_difference / 2) ** 2 +
-            cos($latitude_1) * cos($latitude_2) *
-            sin($longitude_difference / 2) ** 2;
+		# Formula for getting the distance before its converted to metres
+		$a = sin($latitude_difference / 2) ** 2 +
+			cos($latitude_1) * cos($latitude_2) *
+			sin($longitude_difference / 2) ** 2;
 
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+		$c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
-        return $earth_radius * $c;
-    }
+		return $earth_radius * $c;
+	}
 
 	/**
 	 * Converts a string into a URL-friendly "slug".
@@ -5796,55 +5800,55 @@ LATEX;
 	 *
 	 * @return string
 	 */
-    public static function slugify(?string $text, ?string $separator = "-"): ?string
-    {
+	public static function slugify(?string $text, ?string $separator = "-"): ?string
+	{
 		if($text === NULL){
 			return NULL;
 		}
 
-        # replace & with 'and'
-        $text = str_replace('&', ' and ', $text);
+		# replace & with 'and'
+		$text = str_replace('&', ' and ', $text);
 
-        # convert to UTF-8 (if not already) and trim
-        $text = trim($text);
+		# convert to UTF-8 (if not already) and trim
+		$text = trim($text);
 
-        if (function_exists('iconv')) {
-            # use TRANSLIT when available to try converting accented chars
-            $trans = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-            if ($trans !== false) {
-                $text = $trans;
-            }
-        }
+		if (function_exists('iconv')) {
+			# use TRANSLIT when available to try converting accented chars
+			$trans = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
+			if ($trans !== false) {
+				$text = $trans;
+			}
+		}
 
-        # ensure that the text is lowercase
-        $text = mb_strtolower($text, 'UTF-8');
+		# ensure that the text is lowercase
+		$text = mb_strtolower($text, 'UTF-8');
 
-        # replace anything that's not letter, number or separator with a space
-        $text = preg_replace('~[^\\pL\\pN]+~u', ' ', $text);
+		# replace anything that's not letter, number or separator with a space
+		$text = preg_replace('~[^\\pL\\pN]+~u', ' ', $text);
 
-        # replace spaces and repeated separators with single separator
-        $text = preg_replace('~[\\s_]+~u', $separator, $text);
+		# replace spaces and repeated separators with single separator
+		$text = preg_replace('~[\\s_]+~u', $separator, $text);
 
-        # remove any characters that are not separator, letters or numbers
-        $pattern = sprintf('~[^%s\\pL\\pN]+~u', preg_quote($separator, '~'));
-        $text = preg_replace($pattern, '', $text);
+		# remove any characters that are not separator, letters or numbers
+		$pattern = sprintf('~[^%s\\pL\\pN]+~u', preg_quote($separator, '~'));
+		$text = preg_replace($pattern, '', $text);
 
-        # If the text is empty, return NULL
-        if ($text === '') {
-            return NULL;
-        }
+		# If the text is empty, return NULL
+		if ($text === '') {
+			return NULL;
+		}
 
-        return $text;
-    }
+		return $text;
+	}
 
-    /**
-     * Checks if a string contains any arabic characters
-     *
-     * @param $str
-     * @return bool
-     */
-    public static function containsArabic($str): bool
-    {
-        return preg_match('/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}]/u', $str) === 1;
-    }
+	/**
+	 * Checks if a string contains any arabic characters
+	 *
+	 * @param $str
+	 * @return bool
+	 */
+	public static function containsArabic($str): bool
+	{
+		return preg_match('/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}]/u', $str) === 1;
+	}
 }
