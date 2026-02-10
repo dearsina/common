@@ -3887,6 +3887,19 @@ EOF;
 	}
 
 	/**
+	 * Alias for stopTimer, for better readability in some contexts.
+	 *
+	 * @param float|null  $start_time
+	 * @param string|null $marker
+	 *
+	 * @return float
+	 */
+	public static function endTimer(?float $start_time = NULL, ?string $marker = NULL): float
+	{
+		return self::stopTimer($start_time, $marker);
+	}
+
+	/**
 	 * Same as exec(), except it will terminate the process
 	 * if it takes longer than the timeout.
 	 *
