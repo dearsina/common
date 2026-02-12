@@ -4,6 +4,7 @@
 namespace App\Common\Navigation;
 
 use App\Common\Hash;
+use App\Common\Home\Home;
 use App\Common\Output;
 use App\Common\str;
 use App\Common\User\User;
@@ -66,10 +67,10 @@ class Navigation extends Prototype {
 		}
 
 		# Ensure we're on the right subdomain for this role
-		//		if(!self::rightSubdomainForRole($a)){
-		//			// If we're not, abort mission
-		//			return true;
-		//		}
+		if(!Home::rightSubdomainForRole($a)){
+			// If we're not, abort mission
+			return true;
+		}
 		// Doesn't quite work the way we want it to yet.
 
 		/**
@@ -105,33 +106,6 @@ class Navigation extends Prototype {
 		$output->footer($navigation->getFooterHTML());
 
 		return true;
-	}
-
-	private static function rightSubdomainForRole(?array $a = NULL): bool
-	{
-		# Get the role
-		global $role;
-
-		# If there is no role, we don't care about subdomains
-		if(!$role){
-			return true;
-		}
-
-		# Users can access anything
-		if($role == "user"){
-			return true;
-		}
-
-		# App subdomain is always allowed
-		if($a['subdomain'] == "app"){
-			return true;
-		}
-
-		# But if a user with a different role than user is trying to access a different subdomain than app
-		Hash::getInstance()->set("https://app." . $_ENV['domain'] . $a['vars']['pathname']);
-		// Push them to the app subdomain
-
-		return false;
 	}
 
 	/**
