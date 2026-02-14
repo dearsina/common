@@ -19,14 +19,16 @@ class UserRole extends \App\Common\Prototype {
 	/**
 	 * @return Card
 	 */
-	public function card(){
+	public function card()
+	{
 		return new Card();
 	}
 
 	/**
 	 * @return Modal
 	 */
-	public function modal(){
+	public function modal()
+	{
 		return new Modal();
 	}
 
@@ -56,8 +58,8 @@ class UserRole extends \App\Common\Prototype {
 			"table" => $rel_table,
 			"where" => [
 				"user_id" => $vars['user_id'],
-				"rel_table" => $vars['role']
-			]
+				"rel_table" => $vars['role'],
+			],
 		])){
 			$this->log->error("This user has already been given this role.");
 			return false;
@@ -67,37 +69,38 @@ class UserRole extends \App\Common\Prototype {
 			"table" => $rel_table,
 			"where" => [
 				"user_id" => $vars['user_id'],
-				"rel_table" => $vars['role']
+				"rel_table" => $vars['role'],
 			],
 			"include_removed" => true,
-			"limit" => 1
+			"limit" => 1,
 		])){
 			// If the user used to have this role before
 
 			# Restore user_role
 			$this->sql->restore([
 				"table" => $rel_table,
-				"id" => $removed_role["{$rel_table}_id"]
+				"id" => $removed_role["{$rel_table}_id"],
 			]);
 			# Restore role
 			$this->sql->restore([
 				"table" => $removed_role['rel_table'],
-				"id" => $removed_role["rel_id"]
+				"id" => $removed_role["rel_id"],
 			]);
 			$this->log->success([
 				"icon" => Icon::get("role"),
 				"title" => str::title("{$vars['role']} role restored"),
 				"message" => "The user had the <code>{$vars['role']}</code> role before and this role has now been restored. This may have unintended consequences.",
-				"container" => ".modal-body"
+				"container" => ".modal-body",
 			]);
 
-		} else {
+		}
+		else {
 			// If this is the first time the user is having this role
 			$user = $this->info("user", $vars['user_id']);
 
 			$rel_id = $this->sql->insert([
 				"table" => $vars['role'],
-				"ignore_empty" => true
+				"ignore_empty" => true,
 			]);
 
 			$this->sql->insert([
@@ -105,15 +108,15 @@ class UserRole extends \App\Common\Prototype {
 				"set" => [
 					"user_id" => $vars['user_id'],
 					"rel_table" => $vars['role'],
-					"rel_id" => $rel_id
-				]
+					"rel_id" => $rel_id,
+				],
 			]);
 
 			$this->log->success([
 				"icon" => Icon::get("role"),
 				"title" => "{$user['first_name']} given {$vars['role']} role",
-				"message" => "{$user['first_name']} was successfully given the <code>{$vars['role']}</code> role. There may be additional settings for the role that user needs to set in order to fully operate as ".str::A($vars['role']).".",
-				"container" => ".modal-body"
+				"message" => "{$user['first_name']} was successfully given the <code>{$vars['role']}</code> role. There may be additional settings for the role that user needs to set in order to fully operate as " . str::A($vars['role']) . ".",
+				"container" => ".modal-body",
 			]);
 		}
 
@@ -123,7 +126,7 @@ class UserRole extends \App\Common\Prototype {
 		# Prepare the variables for the email
 		$variables = [
 			"first_name" => $user['first_name'],
-			"role" => $vars['role']
+			"role" => $vars['role'],
 		];
 
 		# Email the user about the new role
@@ -134,8 +137,8 @@ class UserRole extends \App\Common\Prototype {
 			$this->log->info([
 				"icon" => Icon::get("role"),
 				"title" => "{$user['first_name']} emailed about {$vars['role']} role",
-				"message" => "An email was sent to {$user['first_name']} informing them about their new role as ".str::A($vars['role']).".",
-				"container" => ".modal-body"
+				"message" => "An email was sent to {$user['first_name']} informing them about their new role as " . str::A($vars['role']) . ".",
+				"container" => ".modal-body",
 			]);
 		}
 
@@ -143,8 +146,8 @@ class UserRole extends \App\Common\Prototype {
 			$this->log->error([
 				"icon" => Icon::get("role"),
 				"title" => "Failed to email {$user['first_name']} about {$vars['role']} role",
-				"message" => "An email was not sent to {$user['first_name']} informing them about their new role as ".str::A($vars['role']).".",
-				"container" => ".modal-body"
+				"message" => "An email was not sent to {$user['first_name']} informing them about their new role as " . str::A($vars['role']) . ".",
+				"container" => ".modal-body",
 			]);
 		}
 
@@ -165,7 +168,7 @@ class UserRole extends \App\Common\Prototype {
 		# Make sure role exists
 		if(!$role = $this->sql->select([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		])){
 			$this->log->error("This user does not have this role.");
 			return false;
@@ -174,20 +177,20 @@ class UserRole extends \App\Common\Prototype {
 		# Remove user_role
 		$this->sql->remove([
 			"table" => $rel_table,
-			"id" => $rel_id
+			"id" => $rel_id,
 		]);
 
 		# Remove role
 		$this->sql->remove([
 			"table" => $role['rel_table'],
-			"id" => $role['rel_id']
+			"id" => $role['rel_id'],
 		]);
 
 		$this->log->info([
 			"icon" => Icon::get("remove"),
 			"title" => str::title("{$role['rel_table']} role removed"),
 			"message" => "The <code>{$role['rel_table']}</code> role was successfully removed from the user.",
-			"container" => ".modal-body"
+			"container" => ".modal-body",
 		]);
 
 		# A change in roles will have impact on the navigation
@@ -209,17 +212,17 @@ class UserRole extends \App\Common\Prototype {
 		if(!$user_roles = $this->sql->select([
 			"table" => "user_role",
 			"where" => [
-				"user_id" => $vars['user_id']
-			]
+				"user_id" => $vars['user_id'],
+			],
 		])){
 
 			$this->output->update("#user_roles", Grid::generate([
 				"row_style" => [
-					"float" => "left"
+					"float" => "left",
 				],
 				"html" => [
-					"button" => $this->modal()->getMutedRoleButtons()
-				]
+					"button" => $this->modal()->getMutedRoleButtons(),
+				],
 			]));
 			return true;
 		}
@@ -241,17 +244,18 @@ class UserRole extends \App\Common\Prototype {
 					"hash" => [
 						"rel_table" => $rel_table,
 						"rel_id" => $user_roles[$key]['user_role_id'],
-						"action" => "remove"
+						"action" => "remove",
 					],
 					"disabled" => ($role['role'] == "admin") && ($vars['user_id'] == $user_id),
 					"approve" => [
 						"colour" => "red",
 						"icon" => Icon::get("remove"),
 						"title" => "Remove this role?",
-						"message" => "Removing the {$role['role']} role from this user will remove all permissions this user has through the role, and may have unintended consequences."
-					]
+						"message" => "Removing the {$role['role']} role from this user will remove all permissions this user has through the role, and may have unintended consequences.",
+					],
 				];
-			} else {
+			}
+			else {
 				//if the user does NOT have this role
 				$buttons[] = [
 					"colour" => "primary",
@@ -263,15 +267,15 @@ class UserRole extends \App\Common\Prototype {
 						"action" => "insert",
 						"vars" => [
 							"role" => $role['role'],
-							"user_id" => $vars['user_id']
-						]
+							"user_id" => $vars['user_id'],
+						],
 					],
 					"approve" => [
 						"colour" => "blue",
 						"icon" => $role['icon'],
 						"title" => "Add this role?",
-						"message" => "Adding the {$role['role']} role to this user will give the user all the permissions of the {$role['role']} role."
-					]
+						"message" => "Adding the {$role['role']} role to this user will give the user all the permissions of the {$role['role']} role.",
+					],
 				];
 			}
 		}
@@ -286,7 +290,7 @@ class UserRole extends \App\Common\Prototype {
 			"hash" => [
 				"rel_table" => "user",
 				"rel_id" => $vars['user_id'],
-				"action" => "impersonate"
+				"action" => "impersonate",
 			],
 			"class" => "float-right",
 			"alt" => "Log in as this user to see their view of the system.",
@@ -296,7 +300,16 @@ class UserRole extends \App\Common\Prototype {
 		return true;
 	}
 
-	public function switch($a){
+	/**
+	 * The method called to switch the user's current role.
+	 *
+	 * @param array $a
+	 *
+	 * @return bool
+	 * @throws \Exception
+	 */
+	public function switch(array $a): bool
+	{
 		extract($a);
 
 		if(!$this->user->isLoggedIn()){
@@ -306,7 +319,8 @@ class UserRole extends \App\Common\Prototype {
 		# If a user has been given, use it, otherwise, use global
 		if($vars['user_id']){
 			$user_id = $vars['user_id'];
-		} else {
+		}
+		else {
 			global $user_id;
 		}
 
@@ -320,7 +334,7 @@ class UserRole extends \App\Common\Prototype {
 			$this->log->info([
 				"icon" => Icon::get("role"),
 				"title" => str::title("Switched to {$vars['new_role']}"),
-				"message" => "You have successfully switched user roles to that of ".str::A($vars['new_role']).".",
+				"message" => "You have successfully switched user roles to that of " . str::A($vars['new_role']) . ".",
 			]);
 
 			# Since you're changing roles, go home
@@ -344,21 +358,22 @@ class UserRole extends \App\Common\Prototype {
 	 * Given a user ID and a new role,
 	 * will check if the user has been assigned that role,
 	 * and if so, will switch that user to this new role.
-
+	 *
 	 * @param string $user_id
 	 * @param string $new_role
 	 *
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function performSwitch(string $user_id, string $new_role){
+	public function performSwitch(string $user_id, string $new_role)
+	{
 		# Ensure the user has been assigned this role
 		if(!$this->sql->select([
 			"table" => "user_role",
 			"where" => [
 				"user_id" => $user_id,
-				"rel_table" => $new_role
-			]
+				"rel_table" => $new_role,
+			],
 		])){
 			throw new \Exception("This user has not been assigned the {$new_role} role.");
 		}
@@ -369,9 +384,9 @@ class UserRole extends \App\Common\Prototype {
 			$this->sql->update([
 				"table" => "user",
 				"set" => [
-					"last_role" => $new_role
+					"last_role" => $new_role,
 				],
-				"id" => $user_id
+				"id" => $user_id,
 			]);
 		}
 

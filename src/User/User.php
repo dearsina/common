@@ -1651,7 +1651,7 @@ class User extends Prototype {
 				$this->log->error([
 					"container" => ".modal-body",
 					"title" => "Incorrect credentials",
-					"message" => self::getNormalisedAuthenticationFailureMessage()
+					"message" => self::getNormalisedAuthenticationFailureMessage(),
 				]);
 				return false;
 			}
@@ -1812,7 +1812,7 @@ class User extends Prototype {
 				$this->log->error([
 					"container" => ".modal-body",
 					"title" => "Incorrect credentials",
-					"message" => self::getNormalisedAuthenticationFailureMessage()
+					"message" => self::getNormalisedAuthenticationFailureMessage(),
 				]);
 				return false;
 			}
@@ -2713,12 +2713,15 @@ class User extends Prototype {
 		global $user_id;
 		$user_id = $_SESSION['user_id'];
 
+		# Generate the session token
+		$token = $this->generateSessionToken();
+
 		# Log access
-		$this->logAccess($user_id);
+		$this->logAccess($user_id, $token);
 
 		# Store cookies if the user has asked for it
 		if($remember){
-			$this->storeUserAndSessionIdCookies($user_id);
+			$this->storeUserAndSessionIdCookies($user_id, $token);
 		}
 
 		# Assign role
@@ -2772,16 +2775,17 @@ class User extends Prototype {
 	 * Logs the time the user logged in and keeps a record of the time before that they logged in.
 	 *
 	 * @param string $user_id
+	 * @param string $session_token
 	 *
 	 * @return void
 	 */
-	private function logAccess(string $user_id): void
+	private function logAccess(string $user_id, string $session_token): void
 	{
 		$this->sql->update([
 			"table" => "user",
 			"id" => $user_id,
 			"set" => [
-				"session_id" => session_id(),
+				"session_id" => hash("sha256", $session_token),
 				"last_logged_in" => ["user", "logged_in"],
 				"logged_in" => "NOW()",
 			],
@@ -3297,9 +3301,8 @@ class User extends Prototype {
 		# Are the cookie values correct?
 		if(!$user = $this->sql->select([
 			"table" => "user",
-			"or" => [
-				"session_id" => $_COOKIE['session_id'],
-				["session_id", "=", session_id()]
+			"where" => [
+				"session_id" => hash("sha256", $_COOKIE['session_id']),
 			],
 			"id" => $_COOKIE['user_id'],
 		])){
@@ -3325,22 +3328,27 @@ class User extends Prototype {
 		$user_id = $user['user_id'];
 		$role = $user['last_role'];
 
-		# Update the session ID with the new PHP session ID
-		$this->sql->update([
-			"table" => "user",
-			"set" => [
-				"session_id" => session_id(),
-			],
-			"id" => $user['user_id'],
-		]);
+		# Create a new token (cycle tokens on each login to prevent session hijacking)
+		$session_token = $this->generateSessionToken();
 
 		# Log access
-		$this->logAccess($user_id);
+		$this->logAccess($user_id, $session_token);
 
 		# Update the cookies
-		$this->storeUserAndSessionIdCookies($user_id);
+		$this->storeUserAndSessionIdCookies($user_id, $session_token);
 
 		return true;
+	}
+
+	/**
+	 * Generates a secure token for the session ID.
+	 *
+	 * @return string
+	 * @throws \Random\RandomException
+	 */
+	protected function generateSessionToken(): string
+	{
+		return bin2hex(random_bytes(32));
 	}
 
 	/**
@@ -3352,14 +3360,15 @@ class User extends Prototype {
 	 * be given access again. Both the cookie and the database variable will
 	 * then be refreshed.
 	 *
-	 * @param $user_id
+	 * @param string $user_id
+	 * @param string $session_token
 	 *
 	 * @return bool
 	 */
-	private function storeUserAndSessionIdCookies(string $user_id): bool
+	private function storeUserAndSessionIdCookies(string $user_id, string $session_token): bool
 	{
 		$this->setCookie("user_id", $user_id);
-		$this->setCookie("session_id", session_id());
+		$this->setCookie("session_id", $session_token);
 
 		return true;
 	}
@@ -3387,10 +3396,24 @@ class User extends Prototype {
 	 */
 	public function setCookie(string $key, string $val, ?bool $remove = NULL): bool
 	{
-		# Set the browser cookie
+		# Set the expiration date for the cookie
 		$expires = gmdate('D, d-M-Y H:i:s T', strtotime($remove ? "-1 year" : "+30 days"));
-		$header = "Set-Cookie: {$key}={$val}; Expires={$expires}; Path=/; Secure; HttpOnly; SameSite=Strict;";
-		header($header);
+
+		# Set the browser cookie
+		setcookie($key, $val, [
+			'expires'  => $expires,
+			'path'     => '/',
+			'domain'   => $_ENV['domain'],
+			// By setting the domain to the root domain, the cookie will be available on all subdomains, but not on parent domains.
+			// For example, if the domain is set to "example.com", the cookie will be available on "www.example.com" and "sub.example.com", but not on "anotherdomain.com".
+			'secure'   => true,
+			'httponly' => true,
+			'samesite' => 'Strict',
+		]);
+		/**
+		 * We're using setcookie() instead of header because setcookie() will automatically handle URL encoding
+		 * and other edge cases for us, and is generally more reliable for setting cookies.
+		 */
 
 		# Set the cookie for this request also (as headers are only sent at the end of the request)
 		if($remove){

@@ -111,10 +111,14 @@ class Home extends Prototype {
 		 * is trying to access a different subdomain than app
 		 * push them to the app subdomain.
 		 */
-		$url = "https://app.{$_ENV['domain']}/";
+		$url = "https://app.{$_ENV['domain']}";
 
 		# If a pathname is specified, use that
 		if($vars['pathname']){
+			# Ensure the pathname starts with a slash
+			if($vars['pathname'][0] != "/"){
+				$vars['pathname'] = "/" . $vars['pathname'];
+			}
 			$url .= $vars['pathname'];
 		}
 
