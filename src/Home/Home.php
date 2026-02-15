@@ -5,7 +5,6 @@ namespace App\Common\Home;
 
 
 use App\Common\Hash;
-use App\Common\Navigation\App;
 use App\Common\Prototype;
 use App\Common\str;
 
@@ -89,7 +88,7 @@ class Home extends Prototype {
 			return true;
 		}
 
-		# Users can access anything
+		# Users
 		if($role == "user"){
 			return true;
 		}
@@ -100,6 +99,8 @@ class Home extends Prototype {
 		else {
 			return true;
 		}
+
+		# All other roles
 
 		# App subdomain is always allowed
 		if($subdomain == "app"){
@@ -113,6 +114,7 @@ class Home extends Prototype {
 		 */
 		$url = "https://app.{$_ENV['domain']}/";
 		// The URL ends with a slash
+
 
 		# If a pathname is specified, use that
 		if($vars['pathname']){

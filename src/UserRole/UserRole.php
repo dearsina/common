@@ -7,6 +7,8 @@ namespace App\Common\UserRole;
 use App\Common\Email\Email;
 use App\Navigation\Navigation;
 use App\Common\str;
+use App\Subscription\Subscription;
+use App\Subscription\SubscriptionHandler;
 use App\UI\Button;
 use App\UI\Grid;
 use App\UI\Icon;
@@ -329,6 +331,17 @@ class UserRole extends \App\Common\Prototype {
 
 			# Perform the user role switch
 			$this->performSwitch($user_id, $vars['new_role']);
+			// This confusingly also checks if you're allowed to switch
+
+			if($vars['new_role'] == "user"){
+				// If an admin is switching to being a user
+				if($subscription_id = Subscription::getCurrentId()){
+					// If they're logged into a subscription
+					$subscription = new SubscriptionHandler($subscription_id);
+					$subdomain = $subscription->get("subdomain");
+					$url = "https://{$subdomain}.{$_ENV['domain']}/";
+				}
+			}
 
 			# Notify the user
 			$this->log->info([
@@ -337,10 +350,16 @@ class UserRole extends \App\Common\Prototype {
 				"message" => "You have successfully switched user roles to that of " . str::A($vars['new_role']) . ".",
 			]);
 
-			# Since you're changing roles, go home
-			$this->hash->set("home");
+			if($url){
+				$this->hash->set($url);
+			}
 
-			Navigation::update();
+			else {
+				# Since you're changing roles, go home
+				$this->hash->set("home");
+
+				Navigation::update();
+			}
 
 			return true;
 		}
