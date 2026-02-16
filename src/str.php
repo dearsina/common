@@ -3908,10 +3908,11 @@ EOF;
 	 * @param string     $command
 	 * @param array|null $output
 	 * @param int|null   $timeout
+	 * @param bool|null  $silent If set, will not notify admins via email if there is an error with the command.
 	 *
 	 * @return bool Returns TRUE on success or FALSE on failure.
 	 */
-	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30): bool
+	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30, ?bool $silent = NULL): bool
 	{
 		$descriptorspec = [
 			0 => ["pipe", "r"],  // stdin
@@ -3997,11 +3998,14 @@ EOF;
 			]);
 
 			# Email admins
-			Email::notifyAdmins([
-				"subject" => $title,
-				"body" => $message,
-				"backtrace" => str::backtrace(true, false),
-			]);
+			if(!$silent){
+				// But only if silent mode isn't enabled
+				Email::notifyAdmins([
+					"subject" => $title,
+					"body" => $message,
+					"backtrace" => str::backtrace(true, false),
+				]);
+			}
 			return false;
 		}
 
@@ -4039,7 +4043,8 @@ EOF;
 		$output = [];
 
 		// Execute the command
-		str::exec($command, $output);
+		str::exec($command, $output, NULL, true);
+		// Deliberately set it to silent
 
 		// Remove and process the first line (column headers)
 		$headers = preg_split('/\s+/', trim(array_shift($output)));

@@ -286,7 +286,7 @@ class Convert {
 		exec("rm {$file['tmp_name']}");
 
 		# Return the last bit of the output, which is generally the error message
-		if(array_filter($output)){
+		if(is_array($output) && array_filter($output)){
 			exec("rm {$original['tmp_name']}");
 			// Remove the original also
 
