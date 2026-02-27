@@ -2714,14 +2714,14 @@ class User extends Prototype {
 		$user_id = $_SESSION['user_id'];
 
 		# Generate the session token
-		$token = $this->generateSessionToken();
+		$session_token = $this->generateSessionToken();
 
 		# Log access
-		$this->logAccess($user_id, $token);
+		$this->logAccess($user_id, $session_token);
 
 		# Store cookies if the user has asked for it
 		if($remember){
-			$this->storeUserAndSessionIdCookies($user_id, $token);
+			$this->storeUserAndSessionIdCookies($user_id, $session_token);
 		}
 
 		# Assign role
@@ -3341,14 +3341,18 @@ class User extends Prototype {
 	}
 
 	/**
-	 * Generates a secure token for the session ID.
+	 * Was generating a secure token, but is now just using the inbuild session ID,
+	 * as it is already secure and we can avoid the overhead of generating a separate token.
+	 *
+	 * ~Generates a secure token for the session ID.~
 	 *
 	 * @return string
 	 * @throws \Random\RandomException
 	 */
 	protected function generateSessionToken(): string
 	{
-		return bin2hex(random_bytes(32));
+		return session_id();
+//		return bin2hex(random_bytes(32));
 	}
 
 	/**
