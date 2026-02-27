@@ -2321,13 +2321,17 @@ EOF;
 	/**
 	 * Checks to see if a given string is a UUID (matches a UUID pattern).
 	 *
-	 * @param string|null $string String is case-insensitive.
+	 * @param mixed|null $string Should just be string. Will reject arrays. String is case-insensitive.
 	 *
 	 * @return bool Returns TRUE if the pattern matches given subject,
 	 *                FALSE if it does not or if an error occurred.
 	 */
-	public static function isUuid(?string $string): bool
+	public static function isUuid($string): bool
 	{
+		# Failsafe in case an array is passed instead of a string
+		if(is_array($string)){
+			return false;
+		}
 		return preg_match("/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i", $string);
 	}
 
