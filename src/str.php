@@ -439,7 +439,7 @@ class str {
 		# Convert ## Heading to <h2>Heading</h2>
 		$html = preg_replace("/\n## (.*?)\n/", '<h2>$1</h2>', $html);
 
-		 # Convert # Heading to <h1>Heading</h1>
+		# Convert # Heading to <h1>Heading</h1>
 		$html = preg_replace("/\n# (.*?)\n/", '<h1>$1</h1>', $html);
 
 		# Convert horizontal rules to <hr>
@@ -1505,10 +1505,11 @@ EOF;
 	 * @return array
 	 */
 	public static function getClassesFromPath(
-		string $path,
-		?string $implementation = null,
-		?string $search = null
-	): array {
+		string  $path,
+		?string $implementation = NULL,
+		?string $search = NULL
+	): array
+	{
 		$finder = new \Symfony\Component\Finder\Finder();
 
 		// Only scan PHP files, and ignore noise
@@ -1520,7 +1521,7 @@ EOF;
 			->ignoreVCS(true);
 
 		// If we have a search term, restrict upfront
-		if ($search !== null && $search !== '') {
+		if($search !== NULL && $search !== ''){
 			// Case-insensitive filename match: e.g., *Controller*.php
 			$finder->name('/' . preg_quote($search, '/') . '.*\.php$/i');
 
@@ -1534,22 +1535,22 @@ EOF;
 
 		// Build list without loading classes (ClassIterator parses files)
 		$classes = array_keys($iter->getClassMap());
-		if (!$classes) {
+		if(!$classes){
 			return [];
 		}
 
 		// If also filtering by implementation/interface, do it now
-		if ($implementation) {
+		if($implementation){
 			$withImpl = [];
-			foreach ($classes as $class) {
+			foreach($classes as $class){
 				// Avoid autoload penalties if you can—ClassIterator already found the FQCN;
 				// but if you need to confirm implements, PHP must load the class.
-				if (!class_exists($class)) {
+				if(!class_exists($class)){
 					// If you have a PSR-4 autoloader, this will load it; otherwise skip.
 					continue;
 				}
 				$impls = class_implements($class) ?: [];
-				if (isset($impls[$implementation])) {
+				if(isset($impls[$implementation])){
 					$withImpl[] = $class;
 				}
 			}
@@ -1599,7 +1600,7 @@ EOF;
 	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC"): array
 	{
 		$modifier = strtoupper($modifier);
-		$cmd  = "\\Swoole\\Coroutine\\run(function(){";
+		$cmd = "\\Swoole\\Coroutine\\run(function(){";
 		$cmd .= "require \"/var/www/html/app/settings.php\";";
 		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
 		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
@@ -2479,9 +2480,9 @@ EOF;
 		return implode(', ', $string);
 	}
 
-	static function daysSummary(?int $days = null, ?bool $full = null): string
+	static function daysSummary(?int $days = NULL, ?bool $full = NULL): string
 	{
-		if ($days === null || $days < 0) {
+		if($days === NULL || $days < 0){
 			return 'just now';
 		}
 
@@ -2497,24 +2498,24 @@ EOF;
 		$days %= 7;
 
 		$units = [
-			'y' => ['value' => $years,  'label' => 'year'],
+			'y' => ['value' => $years, 'label' => 'year'],
 			'm' => ['value' => $months, 'label' => 'month'],
-			'w' => ['value' => $weeks,  'label' => 'week'],
-			'd' => ['value' => $days,   'label' => 'day'],
+			'w' => ['value' => $weeks, 'label' => 'week'],
+			'd' => ['value' => $days, 'label' => 'day'],
 		];
 
-		foreach ($units as $unit) {
-			if ($unit['value'] > 0) {
+		foreach($units as $unit){
+			if($unit['value'] > 0){
 				$label = $unit['label'] . ($unit['value'] > 1 ? 's' : '');
 				$string[] = $unit['value'] . ' ' . $label;
 			}
 		}
 
-		if (empty($string)) {
+		if(empty($string)){
 			return 'just now';
 		}
 
-		if (!$full) {
+		if(!$full){
 			$string = array_slice($string, 0, 1);
 		}
 
@@ -2781,6 +2782,7 @@ EOF;
 	 * <code>
 	 *     echo str::strtotime("01/02/2020"); // 1580515200
 	 * </code>
+	 *
 	 * @param string|null $string
 	 * @param             $now
 	 *
@@ -3781,10 +3783,11 @@ EOF;
 	 *
 	 * @return array The merged array.
 	 */
-	public static function mergeWithoutEmptyValues(array $array1, array $array2): array {
-		foreach ($array2 as $key => $value) {
+	public static function mergeWithoutEmptyValues(array $array1, array $array2): array
+	{
+		foreach($array2 as $key => $value){
 			// Only overwrite if the value is not empty
-			if (!empty($value) || !isset($array1[$key])) {
+			if(!empty($value) || !isset($array1[$key])){
 				$array1[$key] = $value;
 			}
 		}
@@ -3888,6 +3891,35 @@ EOF;
 		}
 
 		return $stop_time;
+	}
+
+	/**
+	 * Checks if a given string is a valid regular expression pattern.
+	 *
+	 * This is done by attempting to use the pattern in a preg_match call and checking for errors.
+	 * Note that this method does not check if the pattern is logically correct, only if it is syntactically valid.
+	 * If the pattern is invalid, preg_match will return false and trigger a warning, which we suppress with the @
+	 * operator.
+	 *
+	 * If the pattern is valid, preg_match will return 0 (no match) or 1 (match), which are both not false.
+	 * This method is useful for validating user input that is expected to be a regular expression pattern, to prevent
+	 * errors when using it later in the code.
+	 *
+	 * @param string|null $pattern
+	 *
+	 * @return bool
+	 */
+	public static function isValidRegex($pattern): ?bool
+	{
+		if(!$pattern){
+			return NULL;
+		}
+
+		if(!is_string($pattern)){
+			return false;
+		}
+
+		return @preg_match($pattern, '') !== false;
 	}
 
 	/**
@@ -5834,10 +5866,10 @@ LATEX;
 		# convert to UTF-8 (if not already) and trim
 		$text = trim($text);
 
-		if (function_exists('iconv')) {
+		if(function_exists('iconv')){
 			# use TRANSLIT when available to try converting accented chars
 			$trans = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-			if ($trans !== false) {
+			if($trans !== false){
 				$text = $trans;
 			}
 		}
@@ -5856,7 +5888,7 @@ LATEX;
 		$text = preg_replace($pattern, '', $text);
 
 		# If the text is empty, return NULL
-		if ($text === '') {
+		if($text === ''){
 			return NULL;
 		}
 
@@ -5867,6 +5899,7 @@ LATEX;
 	 * Checks if a string contains any arabic characters
 	 *
 	 * @param $str
+	 *
 	 * @return bool
 	 */
 	public static function containsArabic($str): bool
