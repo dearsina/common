@@ -22,7 +22,7 @@ class Admin extends Prototype implements NavigationInterface {
 	public function update (): array
 	{
 		$this->errors();
-		$this->issues();
+		$this->email();
 		$this->fieldTypes();
 		$this->cron();
 		$this->users();
@@ -177,55 +177,21 @@ class Admin extends Prototype implements NavigationInterface {
 		];
 	}
 
-	private function issues() : void
+	private function email() : void
 	{
 		$children[] = [
-			"icon" => Icon::get("new"),
-			"title" => "New issue",
-			"alt" => "Create a new issue",
+			"icon" => "mailbox",
+			"title" => "System mailboxes",
+			"alt" => "Mange system mailboxes",
 			"hash" => [
-				"rel_table" => "issue_tracker",
-				"action" => "new",
-				"vars" => [
-					"callback" => [
-						"rel_table" => "issue_tracker",
-						"action" => "all"
-					]
-				]
-			],
-		];
-
-		$children[] = [
-			"icon" => Icon::get("issue"),
-			"title" => "All issues",
-			"alt" => "See all issues",
-			"hash" => [
-				"rel_table" => "issue_tracker",
-				"action" => "all"
-			],
-		];
-
-		$children[] = [
-			"icon" => [
-				"type" => "thick",
-				"name" => "cogs"
-			],
-			"title" => "Issue types",
-			"alt" => "Manage issue types",
-			"hash" => [
-				"rel_table" => "issue_type",
-				"action" => "all"
+				"rel_table" => "system_mailbox",
+				"action" => "all",
 			],
 		];
 
 		$this->levels[2]['items'][] = [
-			"icon" => Icon::get("issue"),
-			"title" => "Issues",
-			"alt" => "Development issues and bugs",
-//			"hash" => [
-//				"rel_table" => "issue_tracker",
-//				"action" => "all"
-//			],
+			"icon" => Icon::get("email"),
+			"title" => "Emails",
 			"children" => $children
 		];
 	}
