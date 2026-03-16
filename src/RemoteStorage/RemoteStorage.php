@@ -12,8 +12,10 @@ use App\Subscription\Subscription;
  */
 class RemoteStorage extends Prototype {
 
-    //The value is based the region value pulled from Cloudian
-    private const S3_LOCATIONS = [
+    /**
+     * List of locations that use S3 or S3-like services
+     */
+    protected const S3_LOCATIONS = [
         'my', // Malaysia
         'sa', // Saudi Arabia
         'tr', // Turkey
