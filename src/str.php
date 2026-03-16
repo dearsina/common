@@ -118,13 +118,18 @@ class str {
 	/**
 	 * Given a dot notation key, this function will return the value from the array.
 	 *
-	 * @param array  $array
-	 * @param string $dot_notation_key
+	 * @param array|null  $array $array
+	 * @param string|null $dot_notation_key
 	 *
 	 * @return mixed|null
 	 */
-	public static function getArrayValueByDotNotation(?array $array, string $dot_notation_key)
+	public static function getArrayValueByDotNotation(?array $array, ?string $dot_notation_key)
 	{
+		# If no dot notation key is provided, return the whole array as is
+		if(!$dot_notation_key){
+			return $array;
+		}
+
 		// Break the dot notation key into an array of keys
 		$keys = explode('.', $dot_notation_key);
 
