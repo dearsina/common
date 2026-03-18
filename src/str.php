@@ -5911,4 +5911,49 @@ LATEX;
 	{
 		return preg_match('/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}]/u', $str) === 1;
 	}
+
+	/**
+	 * Given an array with dot notation keys, will explode the keys into nested arrays.
+	 *
+	 * For example, the array:
+	 * <code>
+	 *     [
+	 * 	   "user.name" => "John",
+	 * 	   "user.email" => "john@email.com",
+	 *     ]
+	 * </code>
+	 * will be transformed into:
+	 * <code>
+	 *     [
+	 * 	   "user" => [
+	 * 	     "name" => "John",
+	 * 	     "email" => "john@email.com",
+	 * 	   ],
+	 *     ]
+	 * </code>
+	 *
+	 * This is useful for transforming flat arrays into nested arrays,
+	 * especially when dealing with form data or configuration settings.
+	 *
+	 * @param array $array
+	 *
+	 * @return void
+	 */
+	public static function explodeDotNotationArray(array &$array): void
+	{
+		foreach($array as $key => $value){
+			if(strpos($key, '.') !== false){
+				$keys = explode('.', $key);
+				$current = &$array;
+				foreach($keys as $k){
+					if(!isset($current[$k]) || !is_array($current[$k])){
+						$current[$k] = [];
+					}
+					$current = &$current[$k];
+				}
+				$current = $value;
+				unset($array[$key]);
+			}
+		}
+	}
 }
