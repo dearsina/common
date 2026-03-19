@@ -40,14 +40,15 @@ class Factory {
 			//If there is a SQL error
 
 			# Notify info@, as this is a huge problem
-			$email = new Email();
-			$variables = [
-				"ip" => $_SERVER['REMOTE_ADDR'],
-				"error_message" => $e->getMessage(),
-			];
-			$email->template("database_down", $variables)
-				->to("info@{$_ENV['domain']}")
-				->send();
+//			$email = new Email();
+//			$variables = [
+//				"ip" => $_SERVER['REMOTE_ADDR'],
+//				"error_message" => $e->getMessage(),
+//			];
+//			$email->template("database_down", $variables)
+//				->to("info@{$_ENV['domain']}")
+//				->send();
+			// Ends up self-DDOSing
 
 			$message = "An error has been detected and the system has become temporarily inaccessible. System engineers have been notified and the matter should be resolved shortly. Apologies for the inconvenience.";
 

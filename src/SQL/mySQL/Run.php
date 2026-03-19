@@ -5,6 +5,7 @@ namespace App\Common\SQL\mySQL;
 
 
 use App\Common\Exception\MySqlException;
+use App\Common\Log;
 use App\Common\str;
 
 class Run extends Common {
@@ -105,6 +106,11 @@ class Run extends Common {
 				$message .= ". Tried to re-run the query " . self::MAX_TRIES . " times.";
 				break;
 			}
+
+			Log::getInstance()->error([
+				"display" => false,
+				"message" => "MySQL Error: " . $message . " | Query: " . $query,
+			]);
 
 			throw new MySqlException($message, $e->getCode(), $e);
 		}

@@ -40,6 +40,9 @@ class Select extends Common {
 		# Set distinct (optional)
 		$this->setDistinct($distinct);
 
+		# Set straight join (optional)
+		$this->setStraightJoin($straight_join);
+
 		# Set columns
 		$this->setColumns($columns, $include_meta);
 
@@ -290,6 +293,7 @@ class Select extends Common {
 		# Generate table sub-query
 		$table[] = "SELECT";
 		$table[] = $this->getDistinctSQL();
+		$table[] = $this->getStraightJoinSQL();
 		$table[] = $this->getColumnsSQL($this->getTableAliasWithWhereAndOrder());
 		$table[] = $this->getTableSQL();
 		$table[] = $this->getJoinsSQL(true, false);
@@ -302,6 +306,7 @@ class Select extends Common {
 		# Generate query (with sub-query)
 		$query[] = "SELECT";
 		$query[] = $this->getDistinctSQL();
+		$query[] = $this->getStraightJoinSQL();
 		$query[] = $this->getColumnsSQL(NULL, NULL, $this->getTableAliasWithWhereAndOrder());
 		$query[] = $this->getTableSQL(implode("\r\n", array_filter($table)));
 		$query[] = $this->getJoinsSQL(false, true);
@@ -325,6 +330,7 @@ class Select extends Common {
 
 		$query[] = "SELECT";
 		$query[] = $this->getDistinctSQL();
+		$query[] = $this->getStraightJoinSQL();
 		$query[] = $this->getColumnsSQL();
 		$query[] = $this->getTableSQL();
 		$query[] = $this->getJoinsSQL();
@@ -355,6 +361,7 @@ class Select extends Common {
 		$this->setSeparator($separator);
 
 		$query[] = $this->getDistinctSQL();
+		$query[] = $this->getStraightJoinSQL();
 		$query[] = $this->getColumnsSQL();
 		$query[] = $this->getOrderBySQL();
 		$query[] = $this->getSeparatorSQL();
@@ -741,6 +748,19 @@ class Select extends Common {
 	private function setDistinct(?bool $distinct): void
 	{
 		$this->distinct = (bool)$distinct;
+	}
+
+	private function setStraightJoin(?bool $straight_join): void
+	{
+		$this->straight_join = (bool)$straight_join;
+	}
+
+	private function getStraightJoinSQL(): ?string
+	{
+		if(!$this->straight_join){
+			return NULL;
+		}
+		return "STRAIGHT_JOIN";
 	}
 
 	/**

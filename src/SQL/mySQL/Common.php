@@ -40,6 +40,14 @@ abstract class Common {
 	protected bool $distinct = false;
 
 	/**
+	 * Is this a STRAIGHT_JOIN query?
+	 * Only applies to SELECT queries, and forces the order of the joins to be the same as the order of the tables.
+	 * This is useful when you know the order of the joins will be more efficient, and want to override the mySQL optimiser's decision.
+	 * @var bool
+	 */
+	protected bool $straight_join = false;
+
+	/**
 	 * An array of meta-columns that exist
 	 * in (almost) every table on the database.
 	 *
@@ -395,6 +403,10 @@ abstract class Common {
 		}
 		else if(is_string($j)){
 			$joins[] = ["table" => $j];
+		}
+		else {
+			// If it's not a valid join, ignore it
+			return;
 		}
 
 		foreach($joins as $join){
