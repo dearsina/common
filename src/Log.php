@@ -101,9 +101,11 @@ class Log {
 	public function setAlertToDisplayedAlertsArray(?array &$alerts, string $type, array $alert): void
 	{
 		# Get the icon string
-		$icon = Icon::getArray($alert['icon']);
-		$alert["type"] = $type;
-		$alert["icon"] = "{$icon['type']} fa-{$icon['name']}";
+		if($alert['icon']){
+			$icon = Icon::getArray($alert['icon']);
+			$alert["type"] = $type;
+			$alert["icon"] = "{$icon['type']} fa-{$icon['name']}";
+		}
 
 		# Remove backtrace
 		unset($alert['backtrace']);
@@ -450,7 +452,7 @@ EOF;
 			// Removes all non-printable characters, which would have prevented the message from being displayed
 		}
 
-		if(!$alert['icon']){
+		if(!key_exists("icon", $alert)){
 			$alert['icon'] = Icon::DEFAULTS[$type];
 		}
 
