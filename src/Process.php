@@ -123,7 +123,8 @@ class Process {
 		$requester = self::getGlobalVariables();
 
 		# Format the params to feed to the method
-		$params = self::stringifyArray($a);
+//		$params = self::stringifyArray($a);
+        $params = var_export($a, true);
 
 		# Build the command that executes the execute method
 		$cmd = "go(function(){";
@@ -167,8 +168,10 @@ class Process {
 
 		$cmd .= "});\\Swoole\\Event::wait();";
 
+        $cmd = escapeshellarg($cmd);
+
 		# Use the Process class to execute it with a pID that can be checked
-		$process = new Process("php -r '{$cmd}'");
+		$process = new Process("php -r {$cmd}");
 
 		return $process->getPid();
 	}
