@@ -75,7 +75,7 @@ interface RemoteStorageInterface {
 	 *
 	 * @return void
 	 */
-	public function setFile(string $container_id, string $blob_id, array &$file): void;
+	public function setFile(string $container_id, string $blob_id, array $file): void;
 
 	/**
 	 * Compare the current instance's location with the passed location.
