@@ -26,6 +26,21 @@ class RemoteStorage extends Prototype {
 
     private RemoteStorage $storage;
 
+    /**
+     * A list of custom internal error codes to be used for better handling
+     * of storage issues.
+     *
+     * All error codes should follow the convention of 1nnn. Where nnn is the most relevant
+     * HTTP status code
+     */
+    #region internal error codes
+    // The file was not found in the temp folder
+    const LOCAL_FILE_FILE_NOT_FOUND = '1404';
+
+    // File should exist but is not available on the remote storage
+    const SERVER_FILE_NOT_FOUND = '1204';
+    #endregion
+
 	/**
 	 * Creates a remote storage instance.
 	 *
