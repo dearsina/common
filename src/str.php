@@ -2843,9 +2843,12 @@ EOF;
 	 * Set a language, the string will be formatted with PrismJS.
 	 *
 	 * @param string|array $str
-	 * @param array|null   $settings
+	 * @param array|null   $settings Set "crop" to TRUE to crop the output. Set "language" to a language supported by
+	 *                               PrismJS to format the code with syntax highlighting. Other settings include
+	 *                               "wrapper_class", "wrapper_style", "pre_class", "pre_style", "class" and "style",
+	 *                               which are all fed into the corresponding tags.
 	 *
-	 * @return string
+	 * @return string Returns a code tag, wrapped in a pre tag, wrapped in a div wrapper tag. Each tag can be styled independently with the settings.
 	 */
 	public static function pre($str, ?array $settings = [])
 	{
@@ -2877,27 +2880,37 @@ EOF;
 		$Parsedown->setSafeMode(true);
 		$str = "```\r\n{$str}\r\n```";
 		$str = $Parsedown->text($str);
+		// Will produce pre > code
 
-		# Parent class
-		$parent_class_array = str::getAttrArray($parent_class, "code-mute", $only_parent_class);
-		$parent_class = str::getAttrTag("class", $parent_class_array);
+		# Strip the <pre> and <code> tags
+		$str = preg_replace("/^<pre><code>/", "", $str);
+		$str = preg_replace("/<\/code><\/pre>$/", "", $str);
+		// They will be added below, but we need to strip them first to easier be able to add the classes and styles
 
-		# Parent style
-		$parent_style = str::getAttrTag("style", $parent_style);
+		/**
+		 * We're now going to build and style a div wrapper around the pre > code
+		 * which will allow us to crop the code and add a scrollbar if necessary,
+		 * and also to add language-specific classes for syntax highlighting.
+		 */
 
-		if($language){
-			# Class
-			$class_array = str::getAttrArray($class, "language-{$language}", $only_class);
-			$class = str::getAttrTag("class", $class_array);
+		# Wrapper-class and style
+		$wrapper_class_array = str::getAttrArray($wrapper_class, "code-mute", $only_wrapper_class);
+		$wrapper_class = str::getAttrTag("class", $wrapper_class_array);
+		$wrapper_style = str::getAttrTag("style", $wrapper_style);
 
-			# Style
-			$style = str::getAttrTag("style", $style);
-			$str = str_replace("<code>", "<code{$class}{$style}>", $str);
-		}
+		# Pre-class and style
+		$pre_class_array = str::getAttrArray($pre_class, NULL, $only_pre_class);
+		$pre_class = str::getAttrTag("class", $pre_class_array);
+		$pre_style = str::getAttrTag("style", $pre_style);
 
-		$str = "<div{$parent_class}{$parent_style}>{$str}</div>";
+		# Code-class and style
+		$class_array = str::getAttrArray($class, "language-{$language}", $only_class);
+		$class = str::getAttrTag("class", $class_array);
+		$style = str::getAttrTag("style", $style);
 
-		return $str;
+		return /** @lang HTML */ <<<EOF
+<div{$wrapper_class}{$wrapper_style}><pre{$pre_class}{$pre_style}><code{$class}{$style}>{$str}</code></pre></div>
+EOF;
 	}
 
 	/**
@@ -5918,17 +5931,17 @@ LATEX;
 	 * For example, the array:
 	 * <code>
 	 *     [
-	 * 	   "user.name" => "John",
-	 * 	   "user.email" => "john@email.com",
+	 *       "user.name" => "John",
+	 *       "user.email" => "john@email.com",
 	 *     ]
 	 * </code>
 	 * will be transformed into:
 	 * <code>
 	 *     [
-	 * 	   "user" => [
-	 * 	     "name" => "John",
-	 * 	     "email" => "john@email.com",
-	 * 	   ],
+	 *       "user" => [
+	 *         "name" => "John",
+	 *         "email" => "john@email.com",
+	 *       ],
 	 *     ]
 	 * </code>
 	 *
