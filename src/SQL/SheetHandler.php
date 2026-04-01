@@ -1017,7 +1017,6 @@ class SheetHandler extends \App\Common\Prototype {
 		$set['col_count'] = $this->sheet_metadata[$sheet_name]['col_count'];
 
 		$set['title'] = $sheet_name;
-		$set['desc'] = $set['file_name'];
 
 		if($this->meta_id){
 			$this->meta = $this->info([
@@ -1025,6 +1024,8 @@ class SheetHandler extends \App\Common\Prototype {
 				"rel_table" => $this->meta_table,
 				"rel_id" => $this->meta_id,
 			]);
+
+			$set['desc'] = $this->meta['desc']."\r\nUpdated on " . date("Y-m-d H:i:s") . " with file: " . $set['file_name'];
 
 			# Update some metadata with the new file
 			$this->sql->update([
@@ -1036,6 +1037,8 @@ class SheetHandler extends \App\Common\Prototype {
 
 			return;
 		}
+
+		$set['desc'] = $set['file_name'];
 
 		# If there are custom meta table columns to add, add them here
 		if($this->meta_table_columns){
