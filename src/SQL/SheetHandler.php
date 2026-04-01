@@ -1016,8 +1016,6 @@ class SheetHandler extends \App\Common\Prototype {
 		$set['row_count'] = $this->sheet_metadata[$sheet_name]['row_count'];
 		$set['col_count'] = $this->sheet_metadata[$sheet_name]['col_count'];
 
-		$set['title'] = $sheet_name;
-
 		if($this->meta_id){
 			$this->meta = $this->info([
 				"db" => $this->meta_db,
@@ -1038,6 +1036,7 @@ class SheetHandler extends \App\Common\Prototype {
 			return;
 		}
 
+		$set['title'] = $sheet_name;
 		$set['desc'] = $set['file_name'];
 
 		# If there are custom meta table columns to add, add them here
