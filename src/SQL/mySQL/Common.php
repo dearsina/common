@@ -2039,6 +2039,10 @@ abstract class Common {
 			throw new mysqli_sql_exception("The <code>{$this->table['name']}</code> table has no columns that can be set.");
 		}
 
+		# Take into consideration that columns in mySQL are case-insensitive, but array keys in PHP are case-sensitive
+		$table_metadata = array_change_key_case($table_metadata, CASE_LOWER);
+		$this->columns = array_map("strtolower", $this->columns);
+
 		# Only keep the columns that actually exist in the table (and that the user can update/insert)
 		$this->columns = array_intersect($this->columns, array_keys($table_metadata));
 	}

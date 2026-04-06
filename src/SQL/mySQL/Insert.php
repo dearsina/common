@@ -95,6 +95,10 @@ class Insert extends Common {
 		sort($this->columns);
 		foreach($this->set as $row){
 			$values = [];
+			# Ensure row keys are all lowercase
+			$row = array_change_key_case($row, CASE_LOWER);
+			// That's because the $this->columns array is all lowercase, and we need to match the keys in the row to the columns in the $this->columns array
+
 			foreach($this->columns as $col){
 				# Grab the expected column from the row array
 				$val = $row[$col];
