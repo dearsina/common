@@ -97,6 +97,7 @@ class Insert extends Common {
 			$values = [];
 			# Ensure row keys are all lowercase
 			$row = array_change_key_case($row, CASE_LOWER);
+			$this->columns = array_map("strtolower", $this->columns);
 			// That's because the $this->columns array is all lowercase, and we need to match the keys in the row to the columns in the $this->columns array
 
 			foreach($this->columns as $col){
