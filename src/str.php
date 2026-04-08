@@ -1580,7 +1580,7 @@ EOF;
 	 * @return bool
 	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
 	 */
-	public static function methodAvailable(object $class, string $method, $modifier = "public"): bool
+	public static function methodAvailable(?object $class, ?string $method, $modifier = "public"): bool
 	{
 		if(!$class || !$method){
 			return false;

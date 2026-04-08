@@ -260,7 +260,7 @@ class Call {
 		$method = str::getMethodCase($action) ?: "view";
 
 		# Ensure the method is available
-		if(!str::methodAvailable($classInstance, $method)){
+		if(!str::methodAvailable($this->classInstance, $method)){
 			throw new BadRequest("Invalid request method sent.");
 		}
 
