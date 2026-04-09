@@ -2758,10 +2758,12 @@ abstract class Common {
 	 */
 	protected function getSetSQL(): string
 	{
-		foreach(reset($this->set) as $col => $val){
+		$strings = [];
 
+		foreach(reset($this->set) as $col => $val){
 			# Make sure the column is part of the accepted set
-			if(is_string($col) && !in_array($col, $this->columns)){
+			if(is_string($col) && !str::in_array_ci($col, $this->columns)){
+				// Column names are case insensitive
 				continue;
 			}
 
@@ -2907,6 +2909,12 @@ abstract class Common {
 			$val = $this->formatInsertVal($this->table, $col, $val);
 			$strings[] = "`{$this->table['alias']}`.`$col` = {$val}";
 		}
+
+		if(!$strings){
+			// Something has gone wrong, as there are no columns to update
+			throw new \Exception("No valid columns were found to update with the provided set array: " . str::var_export($this->set, true));
+		}
+
 		return "SET\r\n\t" . implode(",\r\n\t", $strings);
 	}
 
