@@ -696,7 +696,7 @@ class Request {
 		}
 
 //		print_r(array_values($queries));
-		echo json_encode(array_values($queries));
+		echo str::json_encode(array_values($queries), JSON_PRETTY_PRINT);
 		exit;
 	}
 
@@ -801,6 +801,16 @@ class Request {
 			 * the request has been handled.
 			 */
 		}
+
+		# Clear from memory all the session data that we don't want to carry over to the next request
+		unset(
+			$_SESSION['database_calls'],
+			$_SESSION['queries'],
+			$_SESSION['query'],
+			$_SESSION['cached_queries'],
+			$_SESSION['query_timer'],
+			$_SESSION['no_cache_found'],
+		);
 
 		return json_encode($output, JSON_PRETTY_PRINT | JSON_NUMERIC_CHECK);
 	}
