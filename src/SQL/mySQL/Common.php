@@ -2035,7 +2035,7 @@ abstract class Common {
 	protected function removeIllegalColumns(): void
 	{
 		# If this table has no columns the user can set
-		if(!$table_metadata = $this->getTableMetadata($this->table)){
+		if(!$table_metadata = $this->getTableMetadata($this->table, true)){
 			throw new mysqli_sql_exception("The <code>{$this->table['name']}</code> table has no columns that can be set.");
 		}
 
