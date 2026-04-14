@@ -18,9 +18,9 @@ class Insert extends Common {
 	 * @param array     $a Insert data
 	 * @param bool|null $return_query If set, will return the SQL query only.
 	 *
-	 * @return string|null Returns the FIRST ID only.
+	 * @return string|array|null Returns the ID or IDs if more than one row has been inserted
 	 */
-	public function insert(array $a, ?bool $return_query = NULL): ?string
+	public function insert(array $a, ?bool $return_query = NULL)
 	{
 		extract($a);
 
@@ -58,8 +58,13 @@ class Insert extends Common {
 		$sql = new Run($this->mysqli);
 		$sql->run($query, $log);
 
-		# Returns the FIRST id (only)
-		return reset($this->set)[$this->table["id_col"]];
+		# If only one row hsa been inserted, return the ID
+		if(count($this->set) === 1){
+			return reset($this->set)[$this->table["id_col"]];
+		}
+
+		# Otherwise, return the IDs of all the rows that have been inserted
+		return array_column($this->set, $this->table["id_col"]);
 	}
 	/**
 	 * Build a standard INSERT query.
