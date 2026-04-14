@@ -601,6 +601,7 @@ class str {
 		"Blvd",
 		"Pty",
 		"Ltd",
+		"Fsp",
 	];
 
 	/**
