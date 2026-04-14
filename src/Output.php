@@ -304,27 +304,46 @@ EOF;
 
 		extract($a);
 
-		# Filename
-		$this->setVar("filename", $filename);
-		# Content type
-		$this->setVar("type", $content_type);
-
-		if($data){
-			# The content itself
-			$this->setVar("save", base64_encode($data));
-		}
-
-		else if($url){
-			$this->setVar("save", true);
-			$this->setVar("url", $url);
-		}
-
-		else {
+		if(!$data && !$url){
 			throw new BadRequest("Either a URL or data contents must be passed to save.");
 		}
 
+		# For immediate download
 		if($recipients){
-			PA::getInstance()->speak($recipients, array_merge(["success" => true], $this->output));
+			$payload = [
+				"success" => true,
+				"filename" => $filename,
+				"type" => $content_type,
+			];
+
+			if($data){
+				$payload["save"] = base64_encode($data);
+			}
+
+			else if($url){
+				$payload["save"] = true;
+				$payload["url"] = $url;
+			}
+
+			PA::getInstance()->speak($recipients, $payload);
+			return;
+		}
+
+		# Filename
+		$this->setVar("filename", $filename);
+
+		# Content type
+		$this->setVar("type", $content_type);
+
+		# The content itself
+		if($data){
+			$this->setVar("save", base64_encode($data));
+		}
+
+		# A link to the content, which the browser can then download
+		else if($url){
+			$this->setVar("save", true);
+			$this->setVar("url", $url);
 		}
 	}
 

@@ -562,6 +562,7 @@ class str {
 		"ID",
 		"AI",
 		"URL",
+		"W.L.L"
 	];
 
 	const NAME_PREFIXES = [
@@ -596,6 +597,7 @@ class str {
 		"Blvd",
 		"Pty",
 		"Ltd",
+		"Fsp",
 	];
 
 	/**
@@ -1010,15 +1012,17 @@ class str {
 			return trim($ip);
 		}, explode(",", $_ENV['dev_ip']));
 
+		$server_addr = $_SERVER['SERVER_ADDR'] ?? $_SERVER['LOCAL_ADDR'] ?? NULL;
+
 		# Use the SERVER_ADDR if it's set
-		if($_SERVER['SERVER_ADDR']){
+		if($server_addr){
 			# But only if it's one of the expected DEV or PROD IPs
-			if(in_array($_SERVER['SERVER_ADDR'], array_merge(
+			if(in_array($server_addr, array_merge(
 				$prod_ips,
 				$dev_ips
 			))){
 				# Finally, we check if the server address is in the production IPs
-				return !in_array($_SERVER['SERVER_ADDR'], $prod_ips);
+				return !in_array($server_addr, $prod_ips);
 				// If it's not, we're in DEV
 			}
 			// Otherwise, we're going to use the `ip a` results
@@ -1042,8 +1046,127 @@ class str {
 	 */
 	public static function getLocalServerIPs(?bool $withV6 = true): array
 	{
-		preg_match_all('/inet' . ($withV6 ? '6?' : '') . ' ([^ \/]+)/', `ip a`, $ips);
-		return $ips[1];
+		$ips = [];
+		$hostname = gethostname();
+
+		foreach([
+			$_SERVER['SERVER_ADDR'] ?? NULL,
+			$_SERVER['LOCAL_ADDR'] ?? NULL,
+			$hostname ? gethostbyname($hostname) : NULL,
+		] as $value){
+			$ips = array_merge($ips, self::extractIPsFromString($value, $withV6));
+		}
+
+		if($hostname && function_exists('gethostbynamel')){
+			$ips = array_merge($ips, self::extractIPsFromString(implode(" ", (array)@gethostbynamel($hostname)), $withV6));
+		}
+
+		foreach(self::getIPDiscoveryCommands() as $command){
+			$ips = array_merge($ips, self::extractIPsFromString(self::runShellCommand($command), $withV6));
+		}
+
+		return array_values(array_unique($ips));
+	}
+
+	/**
+	 * Runs a shell command only if shell execution is available.
+	 *
+	 * STDERR is redirected to the platform-specific null device so failed
+	 * discovery commands do not emit warnings to the calling process.
+	 *
+	 * @param string|null $command
+	 *
+	 * @return string|null
+	 */
+	private static function runShellCommand(?string $command): ?string
+	{
+		if(!$command || !self::canRunShellCommand()){
+			return NULL;
+		}
+
+		$stderr = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '2>nul' : '2>/dev/null';
+
+		return @shell_exec("{$command} {$stderr}");
+	}
+
+	/**
+	 * Determines whether `shell_exec()` can be used in the current runtime.
+	 *
+	 * @return bool
+	 */
+	private static function canRunShellCommand(): bool
+	{
+		if(!function_exists('shell_exec')){
+			return false;
+		}
+
+		$disabled_functions = array_filter(array_map('trim', explode(',', (string)ini_get('disable_functions'))));
+
+		return !in_array('shell_exec', $disabled_functions, true);
+	}
+
+	/**
+	 * Returns the list of commands that may expose local interface IPs for the
+	 * current operating system.
+	 *
+	 * @return array
+	 */
+	private static function getIPDiscoveryCommands(): array
+	{
+		if(strtoupper(substr(PHP_OS, 0, 3)) === 'WIN'){
+			return [
+				'ipconfig',
+			];
+		}
+
+		return [
+			'hostname -I',
+			'ip a',
+			'/sbin/ip a',
+			'/usr/sbin/ip a',
+			'ifconfig',
+			'/sbin/ifconfig',
+			'/usr/sbin/ifconfig',
+		];
+	}
+
+	/**
+	 * Extracts IPv4 and optionally IPv6 addresses from arbitrary command output
+	 * or server metadata strings.
+	 *
+	 * @param string|null $string
+	 * @param bool|null   $withV6
+	 *
+	 * @return array
+	 */
+	private static function extractIPsFromString(?string $string, ?bool $withV6 = true): array
+	{
+		if(!$string){
+			return [];
+		}
+
+		$ips = [];
+		$tokens = preg_split("/[\s,]+/", $string);
+
+		foreach($tokens as $token){
+			$token = trim($token, "[]() \t\n\r\0\x0B");
+			$token = preg_replace("/\/\d+$/", "", $token);
+
+			if(!$token){
+				continue;
+			}
+
+			if(filter_var($token, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)){
+				$ips[] = $token;
+				continue;
+			}
+
+			if($withV6 && filter_var($token, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)){
+				$ips[] = $token;
+			}
+		}
+
+		return array_values(array_unique($ips));
 	}
 
 	/**
@@ -1454,7 +1577,7 @@ EOF;
 	 * @return bool
 	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
 	 */
-	public static function methodAvailable(object $class, string $method, $modifier = "public"): bool
+	public static function methodAvailable(?object $class, ?string $method, $modifier = "public"): bool
 	{
 		if(!$class || !$method){
 			return false;
@@ -2839,9 +2962,12 @@ EOF;
 	 * Set a language, the string will be formatted with PrismJS.
 	 *
 	 * @param string|array $str
-	 * @param array|null   $settings
+	 * @param array|null   $settings Set "crop" to TRUE to crop the output. Set "language" to a language supported by
+	 *                               PrismJS to format the code with syntax highlighting. Other settings include
+	 *                               "wrapper_class", "wrapper_style", "pre_class", "pre_style", "class" and "style",
+	 *                               which are all fed into the corresponding tags.
 	 *
-	 * @return string
+	 * @return string Returns a code tag, wrapped in a pre tag, wrapped in a div wrapper tag. Each tag can be styled independently with the settings.
 	 */
 	public static function pre($str, ?array $settings = [])
 	{
@@ -2873,27 +2999,37 @@ EOF;
 		$Parsedown->setSafeMode(true);
 		$str = "```\r\n{$str}\r\n```";
 		$str = $Parsedown->text($str);
+		// Will produce pre > code
 
-		# Parent class
-		$parent_class_array = str::getAttrArray($parent_class, "code-mute", $only_parent_class);
-		$parent_class = str::getAttrTag("class", $parent_class_array);
+		# Strip the <pre> and <code> tags
+		$str = preg_replace("/^<pre><code>/", "", $str);
+		$str = preg_replace("/<\/code><\/pre>$/", "", $str);
+		// They will be added below, but we need to strip them first to easier be able to add the classes and styles
 
-		# Parent style
-		$parent_style = str::getAttrTag("style", $parent_style);
+		/**
+		 * We're now going to build and style a div wrapper around the pre > code
+		 * which will allow us to crop the code and add a scrollbar if necessary,
+		 * and also to add language-specific classes for syntax highlighting.
+		 */
 
-		if($language){
-			# Class
-			$class_array = str::getAttrArray($class, "language-{$language}", $only_class);
-			$class = str::getAttrTag("class", $class_array);
+		# Wrapper-class and style
+		$wrapper_class_array = str::getAttrArray($wrapper_class, "code-mute", $only_wrapper_class);
+		$wrapper_class = str::getAttrTag("class", $wrapper_class_array);
+		$wrapper_style = str::getAttrTag("style", $wrapper_style);
 
-			# Style
-			$style = str::getAttrTag("style", $style);
-			$str = str_replace("<code>", "<code{$class}{$style}>", $str);
-		}
+		# Pre-class and style
+		$pre_class_array = str::getAttrArray($pre_class, NULL, $only_pre_class);
+		$pre_class = str::getAttrTag("class", $pre_class_array);
+		$pre_style = str::getAttrTag("style", $pre_style);
 
-		$str = "<div{$parent_class}{$parent_style}>{$str}</div>";
+		# Code-class and style
+		$class_array = str::getAttrArray($class, "language-{$language}", $only_class);
+		$class = str::getAttrTag("class", $class_array);
+		$style = str::getAttrTag("style", $style);
 
-		return $str;
+		return /** @lang HTML */ <<<EOF
+<div{$wrapper_class}{$wrapper_style}><pre{$pre_class}{$pre_style}><code{$class}{$style}>{$str}</code></pre></div>
+EOF;
 	}
 
 	/**
@@ -5914,17 +6050,17 @@ LATEX;
 	 * For example, the array:
 	 * <code>
 	 *     [
-	 * 	   "user.name" => "John",
-	 * 	   "user.email" => "john@email.com",
+	 *       "user.name" => "John",
+	 *       "user.email" => "john@email.com",
 	 *     ]
 	 * </code>
 	 * will be transformed into:
 	 * <code>
 	 *     [
-	 * 	   "user" => [
-	 * 	     "name" => "John",
-	 * 	     "email" => "john@email.com",
-	 * 	   ],
+	 *       "user" => [
+	 *         "name" => "John",
+	 *         "email" => "john@email.com",
+	 *       ],
 	 *     ]
 	 * </code>
 	 *

@@ -26,7 +26,7 @@ class CronJob extends Prototype {
 		'0 4 * * *' => 'Daily, at 4am UTC',
 		'@hourly' => 'Hourly',
 		'0,30 * * * *' => "Every 30 minutes",
-		'0/15 * * * *' => "Every 15 minutes",
+		'*/15 * * * *' => "Every 15 minutes",
 		'*/5 * * * *' => "Every 5 minutes",
 		'*/4 * * * *' => "Every 4 minutes",
 		'*/3 * * * *' => "Every 3 minutes",

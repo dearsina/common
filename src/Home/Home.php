@@ -224,7 +224,13 @@ class Home extends Prototype {
 		$rows["Subdomain"] = strtoupper($subdomain);
 		$rows["User IP address"] = $_SERVER['REMOTE_ADDR'];
 		$rows["User Agent"] = $_SERVER['HTTP_USER_AGENT'];
-		$rows["Cookies"] = str::pre(print_r($_COOKIE, true));
+		$rows["Cookies"] = [
+			"html" => str::pre(print_r($_COOKIE, true)),
+			"style" => [
+				"width" => "100%",
+				"overflow" => "hidden"
+			]
+		];
 
 		$card = new Card([
 			"header" => "This is the generic home for " . str::A($role['role']),

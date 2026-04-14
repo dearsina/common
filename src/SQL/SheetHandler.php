@@ -49,6 +49,12 @@ class SheetHandler extends \App\Common\Prototype {
 	 * The number of rows that have been imported
 	 * for a given sheet.
 	 *
+	 * Will have the following root keys:
+	 * - inserted
+	 * - duplicates
+	 * - updated
+	 * - no_change
+	 *
 	 * @var int
 	 */
 	private array $import_counts = [];
@@ -272,12 +278,20 @@ class SheetHandler extends \App\Common\Prototype {
 			]);
 		}
 
-		# Inform the user if there were updated rows
-		if($this->import_counts[$sheet_name]['updated']){
-			$this->log->info([
+		if($import_type == "update"){
+			# Inform the user if there were updated rows
+			$this->log->success([
 				"title" => "Updated rows",
 				"message" => str::pluralise_if($this->import_counts[$sheet_name]['updated'], "row", true) .
 					" were updated in the table.",
+			]);
+
+
+			# Inform the user if there were rows that were not updated because the data was the same
+			$this->log->info([
+				"title" => "Unchanged rows",
+				"message" => str::pluralise_if($this->import_counts[$sheet_name]['no_change'], "row", true) .
+					" already had the same values in the table and were not updated.",
 			]);
 		}
 
@@ -325,6 +339,7 @@ class SheetHandler extends \App\Common\Prototype {
 			$handled_rows = $this->import_counts[$sheet_name]['inserted'];
 			$handled_rows += $this->import_counts[$sheet_name]['duplicates'];
 			$handled_rows += $this->import_counts[$sheet_name]['updated'];
+			$handled_rows += $this->import_counts[$sheet_name]['no_change'];
 
 			# Calculate the progress made
 			if(!$this->sheet_metadata[$sheet_name]['row_count']){
@@ -366,25 +381,21 @@ class SheetHandler extends \App\Common\Prototype {
 	}
 
 	/**
-	 * Will update or ignore existing data rows,
-	 * depending on whether or not the row exists,
-	 * and whether or not we're updating existing rows.
-	 *
-	 * If the row exists, and we're updating existing rows,
-	 * it will be updated. If the row exists, and we're
-	 * not updating existing rows, it will be ignored.
+	 * If we're only interested in a subset of the set values to see if a corresponding
+	 * row already existed or needs to be inserted.
 	 *
 	 * @param array      $set
-	 * @param array|null $update_columns
+	 * @param array|null $unique_columns
 	 *
-	 * @return bool Returns true if the row exists and we either updated it or ignored it.
+	 * @return array
 	 */
-	private function updateOrIgnoreExistingDataRow(array $set, ?array $update_columns = NULL): bool
+	private function getWhereBasedOnUniqueColumns(array $set, ?array $unique_columns): array
 	{
 		$where = [];
+
 		foreach($set as $key => $val){
 			# If we're only basing a unique row on a subset of columns
-			if($update_columns && !in_array($key, $update_columns)){
+			if($unique_columns && !in_array($key, $unique_columns)){
 				continue;
 			}
 
@@ -397,31 +408,66 @@ class SheetHandler extends \App\Common\Prototype {
 			}
 		}
 
-		# If the set doesn't exist
+		return $where;
+	}
+
+	/**
+	 * Will update or ignore existing data rows,
+	 * depending on whether or not the row exists,
+	 * and whether or not we're updating existing rows.
+	 *
+	 * If the row exists, and we're updating existing rows,
+	 * it will be updated. If the row exists, and we're
+	 * not updating existing rows, it will be ignored.
+	 *
+	 * @param array      $set
+	 * @param string     $sheet_name
+	 * @param array|null $update_columns
+	 *
+	 * @return bool Returns true if the row exists and we either updated it or ignored it.
+	 */
+	private function updateOrIgnoreExistingDataRow(array $set, string $sheet_name, ?array $update_columns = NULL): bool
+	{
+		# Check to see if a row with the same values in the unique columns already exists in the table
 		if(!$this->sql->select([
 			"db" => $this->data_db,
 			"table" => $this->data_table,
-			"where" => $where,
+			"where" => $this->getWhereBasedOnUniqueColumns($set, $update_columns),
 		])){
+			// If it doesn't exist, we can insert it instead of updating, so return false
 			return false;
 		}
 
 		# If the row exists, and we're updating rows, update it now
 		if($update_columns){
 			// If we're updating existing rows
+
+			# Check to see if all the column values are the same (in which case, an update won't change anything)
+			if($this->sql->select([
+				"db" => $this->data_db,
+				"table" => $this->data_table,
+				"where" => $set,
+			])){
+				// If all the column values are the same, we don't need to do anything
+				$this->import_counts[$sheet_name]['no_change']++;
+				return true;
+			}
+
 			$this->sql->update([
 				"db" => $this->data_db,
 				"table" => $this->data_table,
-				"where" => $where,
+				"where" => $this->getWhereBasedOnUniqueColumns($set, $update_columns),
 				"set" => $set,
 			]);
 
+			# We updated the row
 			$this->import_counts[$sheet_name]['updated']++;
 		}
 
 		else {
-			// If we're just ignoring duplicates
+			# We didn't touch the row because it already existed
 			$this->import_counts[$sheet_name]['duplicates']++;
+			// and we're not updating existing rows, so count it as a duplicate
 		}
 
 		return true;
@@ -478,7 +524,7 @@ class SheetHandler extends \App\Common\Prototype {
 				$set[$key] = $val;
 			}
 
-			if($this->updateOrIgnoreExistingDataRow($set, $update_columns)){
+			if($this->updateOrIgnoreExistingDataRow($set, $sheet_name, $update_columns)){
 				continue;
 			}
 
@@ -970,15 +1016,14 @@ class SheetHandler extends \App\Common\Prototype {
 		$set['row_count'] = $this->sheet_metadata[$sheet_name]['row_count'];
 		$set['col_count'] = $this->sheet_metadata[$sheet_name]['col_count'];
 
-		$set['title'] = $sheet_name;
-		$set['desc'] = $set['file_name'];
-
 		if($this->meta_id){
 			$this->meta = $this->info([
 				"db" => $this->meta_db,
 				"rel_table" => $this->meta_table,
 				"rel_id" => $this->meta_id,
 			]);
+
+			$set['desc'] = $this->meta['desc']."\r\nUpdated on " . date("Y-m-d H:i:s") . " with file: " . $set['file_name'];
 
 			# Update some metadata with the new file
 			$this->sql->update([
@@ -990,6 +1035,9 @@ class SheetHandler extends \App\Common\Prototype {
 
 			return;
 		}
+
+		$set['title'] = $sheet_name;
+		$set['desc'] = $set['file_name'];
 
 		# If there are custom meta table columns to add, add them here
 		if($this->meta_table_columns){

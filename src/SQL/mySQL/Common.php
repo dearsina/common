@@ -2035,9 +2035,13 @@ abstract class Common {
 	protected function removeIllegalColumns(): void
 	{
 		# If this table has no columns the user can set
-		if(!$table_metadata = $this->getTableMetadata($this->table)){
+		if(!$table_metadata = $this->getTableMetadata($this->table, true)){
 			throw new mysqli_sql_exception("The <code>{$this->table['name']}</code> table has no columns that can be set.");
 		}
+
+		# Take into consideration that columns in mySQL are case-insensitive, but array keys in PHP are case-sensitive
+		$table_metadata = array_change_key_case($table_metadata, CASE_LOWER);
+		$this->columns = array_map("strtolower", $this->columns);
 
 		# Only keep the columns that actually exist in the table (and that the user can update/insert)
 		$this->columns = array_intersect($this->columns, array_keys($table_metadata));
@@ -2754,10 +2758,12 @@ abstract class Common {
 	 */
 	protected function getSetSQL(): string
 	{
-		foreach(reset($this->set) as $col => $val){
+		$strings = [];
 
+		foreach(reset($this->set) as $col => $val){
 			# Make sure the column is part of the accepted set
-			if(is_string($col) && !in_array($col, $this->columns)){
+			if(is_string($col) && !str::in_array_ci($col, $this->columns)){
+				// Column names are case insensitive
 				continue;
 			}
 
@@ -2903,6 +2909,12 @@ abstract class Common {
 			$val = $this->formatInsertVal($this->table, $col, $val);
 			$strings[] = "`{$this->table['alias']}`.`$col` = {$val}";
 		}
+
+		if(!$strings){
+			// Something has gone wrong, as there are no columns to update
+			throw new \Exception("No valid columns were found to update with the provided set array: " . str::var_export($this->set, true));
+		}
+
 		return "SET\r\n\t" . implode(",\r\n\t", $strings);
 	}
 

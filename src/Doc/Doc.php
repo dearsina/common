@@ -12,6 +12,19 @@ use Pelago\Emogrifier\CssInliner;
  */
 class Doc extends \App\Common\Prototype {
 
+	public const BLOCKED_UPLOAD_MIME_TYPES = [
+		'application/x-php',
+		'application/php',
+		'text/x-php',
+		'text/php',
+		'application/x-msdownload',
+		'application/x-executable',
+		'application/x-sh',
+		'application/x-csh',
+		'application/x-bat',
+		'application/x-dosexec',
+	];
+
 	/**
 	 * Checks to see if a file is a PDF,
 	 * and if the PDF is passport protected.
@@ -413,18 +426,7 @@ class Doc extends \App\Common\Prototype {
 		self::checkUpload($key);
 
 		# Do not allow PHP, or any file format that can contain code executable in Linux or Windows to be uploaded
-		if($file_name = Doc::getMatchingMimeTypeFile([
-			"application/x-php",
-			"application/php",
-			"text/x-php",
-			"text/php",
-			"application/x-msdownload",
-			"application/x-executable",
-			"application/x-sh",
-			"application/x-csh",
-			"application/x-bat",
-			"application/x-dosexec",
-		], $key)){
+		if($file_name = Doc::getMatchingMimeTypeFile(self::BLOCKED_UPLOAD_MIME_TYPES, $key)){
 			//if the file is of an unwanted type
 			throw new BadRequest("The uploaded file <code>{$file_name}</code> is not an accepted file type. Please upload a different file.");
 		}

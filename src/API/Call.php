@@ -4,6 +4,7 @@
 namespace App\Common\API;
 
 
+use App\ApiPayload\PendingLog;
 use App\Common\Exception\BadRequest;
 use App\Common\Exception\Unauthorized;
 use App\Common\Connection\Connection;
@@ -38,6 +39,14 @@ class Call {
 	 * @var Output
 	 */
 	private Output $output;
+
+	/**
+	 * Holds the current request class instance so post-response hooks can be invoked after
+	 * the final API output has been assembled.
+	 *
+	 * @var object|null
+	 */
+	private ?object $classInstance = null;
 
 	/**
 	 * Contains the current API call connection ID.
@@ -105,6 +114,8 @@ class Call {
 	 */
 	public function handler(array $a): void
 	{
+		$request_started_at = str::startTimer();
+
 		/**
 		 * The method is placed in a try/catch
 		 * to catch any exceptions thrown by system errors.
@@ -199,6 +210,9 @@ class Call {
 			}
 		}
 
+		# Allow request handlers to queue any response-aware async work before the body is emitted
+		$this->queueResponseAwareWork($output, str::stopTimer($request_started_at));
+
 		# Echo the output to the user
 		echo json_encode($output);
 
@@ -240,17 +254,68 @@ class Call {
 		}
 
 		# Create a new instance of the class
-		$classInstance = new $classPath();
+		$this->classInstance = new $classPath();
 
 		# Set the method (view is the default)
 		$method = str::getMethodCase($action) ?: "view";
 
 		# Ensure the method is available
-		if(!str::methodAvailable($classInstance, $method)){
+		if(!str::methodAvailable($this->classInstance, $method)){
 			throw new BadRequest("Invalid request method sent.");
 		}
 
-		return (bool)$classInstance->$method($a);
+		return (bool)$this->classInstance->$method($a);
+	}
+
+	/**
+	 * Invokes any optional response-aware hooks on the request handler.
+	 *
+	 * This is currently used by the client and client-document API endpoints to queue
+	 * asynchronous payload logging only after the final response body and HTTP response
+	 * code are known. Failures in this ancillary path are logged but must never replace
+	 * the primary API response.
+	 *
+	 * @param array      $output             The final API response body about to be JSON-encoded.
+	 * @param float|null $processing_seconds The total request duration in seconds.
+	 *
+	 * @return void
+	 */
+	private function queueResponseAwareWork(array $output, ?float $processing_seconds = null): void
+	{
+		try {
+			PendingLog::queue($output, (int)http_response_code(), $processing_seconds);
+		}
+		catch(\Throwable $throwable) {
+			$this->logAuxiliaryThrowable("API payload log", $throwable);
+
+			try {
+				PendingLog::discard();
+			}
+			catch(\Throwable $cleanup_throwable) {
+				$this->logAuxiliaryThrowable("API payload log cleanup", $cleanup_throwable);
+			}
+		}
+	}
+
+	/**
+	 * Normalises auxiliary hook failures into the exception logger.
+	 *
+	 * The shared exception logger accepts `\Exception` instances only, while the response
+	 * hook protects the primary API response path against any `\Throwable`.
+	 *
+	 * @param string     $origin    The origin label to include in the exception log.
+	 * @param \Throwable $throwable The failure encountered while running ancillary work.
+	 *
+	 * @return void
+	 */
+	private function logAuxiliaryThrowable(string $origin, \Throwable $throwable): void
+	{
+		if($throwable instanceof \Exception){
+			ExceptionHandler::logException($origin, $throwable);
+			return;
+		}
+
+		ExceptionHandler::logException($origin, new \Exception($throwable->getMessage(), (int)$throwable->getCode(), $throwable));
 	}
 
 	private function response($success): array
