@@ -12,8 +12,8 @@ use App\UI\Icon;
  * @package App\Common
  */
 class Log {
-	private $alerts = [];
-	private $script_start_time;
+	private array $alerts = [];
+	private float $script_start_time;
 
 	/**
 	 * The constructor is private so that the class

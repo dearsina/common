@@ -30,7 +30,7 @@ class str {
 	 * @var bool
 	 */
 	private $str;
-	private static $instance = NULL;
+	private static ?str $instance = null;
 
 	/**
 	 * The constructor is private so that the class
@@ -198,27 +198,26 @@ class str {
 	public static function contains(?string $string, ?string $chars, ?bool $case_sensitive = false): bool
 	{
 		# Both the string and the characters to search for must be set
-		if(!$string || !$chars){
+		if (!$string || !$chars) {
 			return false;
 		}
 
 		# If the search is case-insensitive
-		if(!$case_sensitive){
+		if (!$case_sensitive) {
 			return stripos($string, $chars) !== false;
 		}
 
 		# If the search is case-sensitive
-		return strpos($string, $chars) !== false;
+		return str_contains($string, $chars);
 	}
 
 	/**
-	 * @return str|null
+	 * @return str
 	 */
-	public static function getInstance()
+	public static function getInstance(): str
 	{
-
-		// Check if instance is already exists
-		if(self::$instance == NULL){
+		// Check if instance already exists
+		if (self::$instance === null) {
 			self::$instance = new str();
 		}
 
@@ -236,8 +235,6 @@ class str {
 	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
 	/**
-	 * PHP7 version of PHP8's str_ends_with() method.
-	 *
 	 * @param string $haystack
 	 * @param string $needle
 	 *
@@ -245,8 +242,7 @@ class str {
 	 */
 	public static function endsWith(string $haystack, string $needle): bool
 	{
-		$needle_len = strlen($needle);
-		return ($needle_len === 0 || 0 === substr_compare($haystack, $needle, -$needle_len));
+		return str_ends_with($haystack, $needle);
 	}
 
 	/**
