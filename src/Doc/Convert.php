@@ -129,7 +129,7 @@ class Convert {
 		$imagick->readImage($file['tmp_name']);
 
 		# Load PDF slightly differently
-		if($file['pdf_info']){
+		if(array_filter($file['pdf_info'])){
 			//if the file is a PDF
 
 			# We're not interested in PDFs that have text
