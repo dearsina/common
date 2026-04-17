@@ -13,6 +13,7 @@ use App\Common\SQL\mySQL\mySQL;
  * Class Request
  * @package App\Common
  */
+#[\AllowDynamicProperties]
 class Request {
 
 	/**
