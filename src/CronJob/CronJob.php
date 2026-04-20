@@ -886,6 +886,7 @@ EOF;
 						"output" => $this->log->getAlertMessages() . str::pre($output),
 					],
 				]);
+                return true;
 			};
 
 			$args = [[
@@ -963,5 +964,6 @@ EOF;
 
 		# Return them to the caller
 		$this->output->setOptions($class_options, "Select a class");
+        return true;
 	}
 }

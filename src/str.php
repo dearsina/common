@@ -929,7 +929,8 @@ class str {
 	static function backtrace(?bool $return = false, ?bool $keep_arguments = true)
 	{
 		$steps = [];
-		array_walk(debug_backtrace(), function($a) use (&$steps, $keep_arguments){
+        $debug_backtrace = debug_backtrace();
+		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
 			$args = $keep_arguments ? json_encode($a['args']) : NULL;
 			$line_number = str_pad($a['line'], 4, " ", STR_PAD_LEFT);
 			$file_name = basename($a['file']);

@@ -266,6 +266,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 			$lineage[] = $id;
 
 			# Go through generations to get to the folder on the root
+            $i = 0;
 			while(!$folders[$parent_id]['children'][$id]) {
 
 				# Get the parent (to get *their* parent)
@@ -384,6 +385,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 	private function throwError(\Exception $e, ?string $context = NULL): void
 	{
 		# The best way of getting error responses
+        $error = $e->getMessage();
 		if(method_exists($e, "getResponse") && method_exists($e->getResponse(), "getBody")){
 			$error_code = $e->getCode();
 
@@ -399,7 +401,7 @@ class OneDrive extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth
 		}
 
 		# A decent fallback
-		else if($error = $e->getMessage() && $pos = strpos($error, "{")){
+		else if($error && $pos = strpos($error, "{")){
 			$message = substr($error, 0, $pos);
 			$error_array = json_decode(substr($error, $pos), true);
 			$error_code = $error_array['error']['code'];
