@@ -58,13 +58,14 @@ class Insert extends Common {
 		$sql = new Run($this->mysqli);
 		$sql->run($query, $log);
 
-		# If only one row hsa been inserted, return the ID
-		if(count($this->set) === 1){
+		# If only one row has been inserted, return the ID of that row
+		if(str::isAssociativeArray($set)){
 			return reset($this->set)[$this->table["id_col"]];
 		}
 
 		# Otherwise, return the IDs of all the rows that have been inserted
 		return array_column($this->set, $this->table["id_col"]);
+		// Even if in effect only one row was inserted
 	}
 	/**
 	 * Build a standard INSERT query.
