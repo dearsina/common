@@ -938,6 +938,7 @@ class Email extends Prototype {
 		$host = $this->smtp_transport_settings['email_smtp_host'];
 		$port = (int)$this->smtp_transport_settings['email_smtp_port'];
 		$encryption = strtolower($this->smtp_transport_settings['email_smtp_encryption'] ?: 'tls');
+		$disable_certificate_verification = (bool)$this->smtp_transport_settings['disable_certificate_verification'];
 
 		if(!$host || !$port){
 			return [
@@ -949,10 +950,10 @@ class Email extends Prototype {
 
 		switch($encryption) {
 		case 'tls':
-			return $this->smtpStartTlsDiagnostic($host, $port, $timeout);
+			return $this->smtpStartTlsDiagnostic($host, $port, $timeout, $disable_certificate_verification);
 
 		case 'ssl':
-			return $this->smtpImplicitTlsDiagnostic($host, $port, $timeout);
+			return $this->smtpImplicitTlsDiagnostic($host, $port, $timeout, $disable_certificate_verification);
 
 		default:
 			return [
@@ -1002,6 +1003,13 @@ class Email extends Prototype {
 			return 'TLS certificate validation failed: the certificate name does not match the SMTP hostname.';
 		}
 
+		if(
+			stripos($text, 'certificate verify failed') !== false ||
+			stripos($text, 'ssl routines::certificate verify failed') !== false
+		){
+			return 'TLS certificate validation failed: OpenSSL could not verify the SMTP server certificate. Check that the certificate chain is complete, the certificate is still valid, and the SMTP hostname matches the certificate.';
+		}
+
 		return 'TLS certificate validation failed during handshake.';
 	}
 
@@ -1019,6 +1027,7 @@ class Email extends Prototype {
 				"email_smtp_encryption" => "TLS",
 				"email_username" => $_ENV['email_username'],
 				"email_password" => $_ENV['email_password'],
+				"disable_certificate_verification" => false,
 				"dkim_private_key_file" => $_ENV['dkim_private_key'],
 				"dkim_domain" => $_ENV['domain'],
 			]);
@@ -1036,21 +1045,14 @@ class Email extends Prototype {
 	 *
 	 * @return array
 	 */
-	private function smtpStartTlsDiagnostic(string $host, int $port, ?int $timeout = 10): array
+	private function smtpStartTlsDiagnostic(string $host, int $port, ?int $timeout = 10, ?bool $disable_certificate_verification = false): array
 	{
 		$errno = 0;
 		$errstr = '';
 		$warnings = [];
 
 		$context = stream_context_create([
-			'ssl' => [
-				'verify_peer' => true,
-				'verify_peer_name' => true,
-				'peer_name' => $host,
-				'capture_peer_cert' => true,
-				'capture_peer_cert_chain' => true,
-				'SNI_enabled' => true,
-			],
+			'ssl' => $this->getDiagnosticSslContextOptions($host, $disable_certificate_verification),
 		]);
 
 		set_error_handler(function($severity, $message) use (&$warnings){
@@ -1162,8 +1164,11 @@ class Email extends Prototype {
 		return [
 			'ok' => true,
 			'stage' => 'tls_handshake',
-			'message' => 'TLS handshake and certificate verification succeeded.',
+			'message' => $disable_certificate_verification
+				? 'TLS handshake succeeded with certificate verification disabled.'
+				: 'TLS handshake and certificate verification succeeded.',
 			'certificate_count' => count($cert_chain),
+			'certificate_verification_disabled' => $disable_certificate_verification,
 		];
 	}
 
@@ -1176,21 +1181,14 @@ class Email extends Prototype {
 	 *
 	 * @return array
 	 */
-	private function smtpImplicitTlsDiagnostic(string $host, int $port, ?int $timeout = 10): array
+	private function smtpImplicitTlsDiagnostic(string $host, int $port, ?int $timeout = 10, ?bool $disable_certificate_verification = false): array
 	{
 		$errno = 0;
 		$errstr = '';
 		$warnings = [];
 
 		$context = stream_context_create([
-			'ssl' => [
-				'verify_peer' => true,
-				'verify_peer_name' => true,
-				'peer_name' => $host,
-				'capture_peer_cert' => true,
-				'capture_peer_cert_chain' => true,
-				'SNI_enabled' => true,
-			],
+			'ssl' => $this->getDiagnosticSslContextOptions($host, $disable_certificate_verification),
 		]);
 
 		set_error_handler(function($severity, $message) use (&$warnings){
@@ -1218,6 +1216,7 @@ class Email extends Prototype {
 				'stage' => 'connect_tls',
 				'message' => $warnings ? self::explainTlsWarnings($warnings) : ($errstr ?: 'Could not connect to the SMTP server over implicit TLS.'),
 				'warnings' => $warnings,
+				'certificate_verification_disabled' => $disable_certificate_verification,
 			];
 		}
 
@@ -1240,9 +1239,46 @@ class Email extends Prototype {
 		return [
 			'ok' => true,
 			'stage' => 'tls_handshake',
-			'message' => 'TLS handshake and certificate verification succeeded.',
+			'message' => $disable_certificate_verification
+				? 'TLS handshake succeeded with certificate verification disabled.'
+				: 'TLS handshake and certificate verification succeeded.',
 			'certificate_count' => count($cert_chain),
+			'certificate_verification_disabled' => $disable_certificate_verification,
 		];
+	}
+
+	/**
+	 * Returns the SSL context options to use for SMTP TLS diagnostics.
+	 *
+	 * The diagnostic should mirror the configured SMTP transport behaviour so that
+	 * the preflight check matches the real send path.
+	 *
+	 * @param string $host
+	 * @param bool   $disable_certificate_verification
+	 *
+	 * @return array
+	 */
+	private function getDiagnosticSslContextOptions(string $host, bool $disable_certificate_verification): array
+	{
+		$options = [
+			'peer_name' => $host,
+			'capture_peer_cert' => true,
+			'capture_peer_cert_chain' => true,
+			'SNI_enabled' => true,
+		];
+
+		if($disable_certificate_verification){
+			$options['verify_peer'] = false;
+			$options['verify_peer_name'] = false;
+			$options['allow_self_signed'] = true;
+			return $options;
+		}
+
+		$options['verify_peer'] = true;
+		$options['verify_peer_name'] = true;
+		$options['allow_self_signed'] = false;
+
+		return $options;
 	}
 
 	/**
