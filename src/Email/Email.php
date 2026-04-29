@@ -780,7 +780,8 @@ class Email extends Prototype {
 
 		try {
 			# Send the email
-			$mailer->send($this->envelope);
+			@$mailer->send($this->envelope);
+			// Supress warnings
 		}
 
 		catch(\Exception $e) {
@@ -973,6 +974,17 @@ class Email extends Prototype {
 		$transport->setEncryption($this->smtp_transport_settings['email_smtp_encryption'] ?: "TLS");
 		$transport->setUsername($this->smtp_transport_settings['email_username']);
 		$transport->setPassword($this->smtp_transport_settings['email_password']);
+
+		if($this->smtp_transport_settings['disable_certificate_verification']){
+			// This is a hack to allow self-signed certificates, which seems to be necessary for some email servers.
+			$transport->setStreamOptions(array(
+				'ssl' => array(
+					'verify_peer' => false,
+					'verify_peer_name' => false,
+					'allow_self_signed' => true
+				)
+			));
+		}
 
 		// Create the Mailer using your created Transport
 		$smtp_mailer = new \Swift_Mailer($transport);
