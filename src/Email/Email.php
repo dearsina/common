@@ -115,6 +115,7 @@ class Email extends Prototype {
 				"email_smtp_host" => $subscription_email['smtp_host'],
 				"email_smtp_port" => $subscription_email['smtp_port'],
 				"email_username" => $subscription_email['smtp_username'] ?: $subscription_email['email'],
+				"disable_certificate_verification" => $subscription_email['disable_certificate_verification'],
 				"email_password" => SubscriptionEmail::decryptPassword($subscription_email['smtp_password']),
 			]);
 		}
@@ -919,6 +920,353 @@ class Email extends Prototype {
 	}
 
 	/**
+	 * Runs an SMTP TLS diagnostic against the configured SMTP server.
+	 *
+	 * This validates that the target SMTP server can be reached and that its TLS
+	 * certificate chain is usable for the configured transport mode. For explicit
+	 * TLS (`tls`) the diagnostic verifies `STARTTLS`. For implicit TLS (`ssl`) it
+	 * verifies the certificate during the initial socket connection.
+	 *
+	 * @param int|null $timeout The socket timeout in seconds.
+	 *
+	 * @return array
+	 */
+	public function smtpTlsDiagnostic(?int $timeout = 10): array
+	{
+		$this->getEffectiveSmtpTransportSettings();
+
+		$host = $this->smtp_transport_settings['email_smtp_host'];
+		$port = (int)$this->smtp_transport_settings['email_smtp_port'];
+		$encryption = strtolower($this->smtp_transport_settings['email_smtp_encryption'] ?: 'tls');
+
+		if(!$host || !$port){
+			return [
+				'ok' => false,
+				'stage' => 'settings',
+				'message' => 'The SMTP host or port is missing from the email configuration.',
+			];
+		}
+
+		switch($encryption) {
+		case 'tls':
+			return $this->smtpStartTlsDiagnostic($host, $port, $timeout);
+
+		case 'ssl':
+			return $this->smtpImplicitTlsDiagnostic($host, $port, $timeout);
+
+		default:
+			return [
+				'ok' => false,
+				'stage' => 'settings',
+				'message' => "The SMTP encryption method <code>{$this->smtp_transport_settings['email_smtp_encryption']}</code> is not supported for TLS diagnostics.",
+			];
+		}
+	}
+
+	/**
+	 * Returns a human-readable explanation for TLS warnings captured from PHP/OpenSSL.
+	 *
+	 * @param array $warnings
+	 *
+	 * @return string
+	 */
+	public static function explainTlsWarnings(array $warnings): string
+	{
+		$text = implode("\n", $warnings);
+
+		if(!$text){
+			return 'TLS certificate validation failed during handshake.';
+		}
+
+		if(
+			stripos($text, 'unable to get local issuer certificate') !== false ||
+			stripos($text, 'unable to verify the first certificate') !== false
+		){
+			return 'TLS certificate validation failed: the SMTP server is probably not sending a complete certificate chain or intermediate certificate.';
+		}
+
+		if(stripos($text, 'self-signed certificate') !== false || stripos($text, 'self signed certificate') !== false){
+			return 'TLS certificate validation failed: the SMTP server is using a self-signed certificate.';
+		}
+
+		if(stripos($text, 'certificate has expired') !== false || stripos($text, 'certificate expired') !== false){
+			return 'TLS certificate validation failed: the SMTP server certificate has expired.';
+		}
+
+		if(
+			stripos($text, 'Peer certificate CN=') !== false ||
+			stripos($text, 'does not match expected CN') !== false ||
+			stripos($text, 'peer certificate does not match') !== false ||
+			stripos($text, 'hostname mismatch') !== false
+		){
+			return 'TLS certificate validation failed: the certificate name does not match the SMTP hostname.';
+		}
+
+		return 'TLS certificate validation failed during handshake.';
+	}
+
+	/**
+	 * Ensures the SMTP transport settings are available and returns them.
+	 *
+	 * @return array
+	 */
+	protected function getEffectiveSmtpTransportSettings(): array
+	{
+		if(!$this->smtp_transport_settings){
+			$this->setSmtpTransportSettings([
+				"email_smtp_host" => $_ENV['email_smtp_host'],
+				"email_smtp_port" => $_ENV['email_smtp_port'],
+				"email_smtp_encryption" => "TLS",
+				"email_username" => $_ENV['email_username'],
+				"email_password" => $_ENV['email_password'],
+				"dkim_private_key_file" => $_ENV['dkim_private_key'],
+				"dkim_domain" => $_ENV['domain'],
+			]);
+		}
+
+		return $this->smtp_transport_settings;
+	}
+
+	/**
+	 * Tests explicit TLS (`STARTTLS`) SMTP connectivity and certificate validation.
+	 *
+	 * @param string   $host
+	 * @param int      $port
+	 * @param int|null $timeout
+	 *
+	 * @return array
+	 */
+	private function smtpStartTlsDiagnostic(string $host, int $port, ?int $timeout = 10): array
+	{
+		$errno = 0;
+		$errstr = '';
+		$warnings = [];
+
+		$context = stream_context_create([
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => true,
+				'peer_name' => $host,
+				'capture_peer_cert' => true,
+				'capture_peer_cert_chain' => true,
+				'SNI_enabled' => true,
+			],
+		]);
+
+		set_error_handler(function($severity, $message) use (&$warnings){
+			$warnings[] = $message;
+			return true;
+		});
+
+		try {
+			$fp = stream_socket_client(
+				"tcp://{$host}:{$port}",
+				$errno,
+				$errstr,
+				$timeout,
+				STREAM_CLIENT_CONNECT,
+				$context
+			);
+		}
+		finally {
+			restore_error_handler();
+		}
+
+		if(!$fp){
+			return [
+				'ok' => false,
+				'stage' => 'connect',
+				'message' => $errstr ?: 'Could not connect to the SMTP server.',
+				'warnings' => $warnings,
+			];
+		}
+
+		stream_set_timeout($fp, $timeout);
+
+		$greeting = fgets($fp, 515);
+		if($greeting === false){
+			fclose($fp);
+			return [
+				'ok' => false,
+				'stage' => 'greeting',
+				'message' => 'The SMTP server did not send a greeting banner.',
+			];
+		}
+
+		fwrite($fp, "EHLO kycdd.local\r\n");
+		$ehlo = $this->readSmtpResponse($fp);
+
+		if(!$ehlo){
+			fclose($fp);
+			return [
+				'ok' => false,
+				'stage' => 'ehlo',
+				'message' => 'The SMTP server did not respond to EHLO.',
+			];
+		}
+
+		if(stripos($ehlo, 'STARTTLS') === false){
+			fclose($fp);
+			return [
+				'ok' => false,
+				'stage' => 'ehlo',
+				'message' => 'The SMTP server does not advertise STARTTLS.',
+				'raw' => trim($ehlo),
+			];
+		}
+
+		fwrite($fp, "STARTTLS\r\n");
+		$starttls = fgets($fp, 515);
+
+		if($starttls === false || strpos($starttls, '220') !== 0){
+			fclose($fp);
+			return [
+				'ok' => false,
+				'stage' => 'starttls',
+				'message' => 'The SMTP server refused STARTTLS.',
+				'raw' => trim((string)$starttls),
+			];
+		}
+
+		$warnings = [];
+		set_error_handler(function($severity, $message) use (&$warnings){
+			$warnings[] = $message;
+			return true;
+		});
+
+		try {
+			$crypto_ok = stream_socket_enable_crypto(
+				$fp,
+				true,
+				STREAM_CRYPTO_METHOD_TLS_CLIENT
+			);
+		}
+		finally {
+			restore_error_handler();
+		}
+
+		$params = stream_context_get_params($fp);
+		fclose($fp);
+
+		if($crypto_ok !== true){
+			return [
+				'ok' => false,
+				'stage' => 'tls_handshake',
+				'message' => self::explainTlsWarnings($warnings),
+				'warnings' => $warnings,
+			];
+		}
+
+		$cert_chain = $params['options']['ssl']['peer_certificate_chain'] ?? [];
+
+		return [
+			'ok' => true,
+			'stage' => 'tls_handshake',
+			'message' => 'TLS handshake and certificate verification succeeded.',
+			'certificate_count' => count($cert_chain),
+		];
+	}
+
+	/**
+	 * Tests implicit TLS (`ssl`) SMTP connectivity and certificate validation.
+	 *
+	 * @param string   $host
+	 * @param int      $port
+	 * @param int|null $timeout
+	 *
+	 * @return array
+	 */
+	private function smtpImplicitTlsDiagnostic(string $host, int $port, ?int $timeout = 10): array
+	{
+		$errno = 0;
+		$errstr = '';
+		$warnings = [];
+
+		$context = stream_context_create([
+			'ssl' => [
+				'verify_peer' => true,
+				'verify_peer_name' => true,
+				'peer_name' => $host,
+				'capture_peer_cert' => true,
+				'capture_peer_cert_chain' => true,
+				'SNI_enabled' => true,
+			],
+		]);
+
+		set_error_handler(function($severity, $message) use (&$warnings){
+			$warnings[] = $message;
+			return true;
+		});
+
+		try {
+			$fp = stream_socket_client(
+				"ssl://{$host}:{$port}",
+				$errno,
+				$errstr,
+				$timeout,
+				STREAM_CLIENT_CONNECT,
+				$context
+			);
+		}
+		finally {
+			restore_error_handler();
+		}
+
+		if(!$fp){
+			return [
+				'ok' => false,
+				'stage' => 'connect_tls',
+				'message' => $warnings ? self::explainTlsWarnings($warnings) : ($errstr ?: 'Could not connect to the SMTP server over implicit TLS.'),
+				'warnings' => $warnings,
+			];
+		}
+
+		stream_set_timeout($fp, $timeout);
+
+		$greeting = fgets($fp, 515);
+		$params = stream_context_get_params($fp);
+		fclose($fp);
+
+		if($greeting === false){
+			return [
+				'ok' => false,
+				'stage' => 'greeting',
+				'message' => 'The SMTP server accepted the TLS connection but did not send a greeting banner.',
+			];
+		}
+
+		$cert_chain = $params['options']['ssl']['peer_certificate_chain'] ?? [];
+
+		return [
+			'ok' => true,
+			'stage' => 'tls_handshake',
+			'message' => 'TLS handshake and certificate verification succeeded.',
+			'certificate_count' => count($cert_chain),
+		];
+	}
+
+	/**
+	 * Reads a potentially multi-line SMTP response.
+	 *
+	 * @param resource $fp
+	 *
+	 * @return string
+	 */
+	private function readSmtpResponse($fp): string
+	{
+		$response = '';
+
+		while(($line = fgets($fp, 515)) !== false){
+			$response .= $line;
+			if(isset($line[3]) && $line[3] === ' '){
+				break;
+			}
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Set the custom SMTP transport settings.
 	 * If this method is not called, the settings will be
 	 * taken from the .env file.
@@ -954,18 +1302,7 @@ class Email extends Prototype {
 
 	protected function getSmtpMailer(): \Swift_Mailer
 	{
-		# If custom SMTP settings haven't been set, use the default settings (from the .env file)
-		if(!$this->smtp_transport_settings){
-			$this->setSmtpTransportSettings([
-				"email_smtp_host" => $_ENV['email_smtp_host'],
-				"email_smtp_port" => $_ENV['email_smtp_port'],
-				"email_smtp_encryption" => "TLS",
-				"email_username" => $_ENV['email_username'],
-				"email_password" => $_ENV['email_password'],
-				"dkim_private_key_file" => $_ENV['dkim_private_key'],
-				"dkim_domain" => $_ENV['domain'],
-			]);
-		}
+		$this->getEffectiveSmtpTransportSettings();
 
 		# Create the Transport
 		$transport = new \Swift_SmtpTransport();
