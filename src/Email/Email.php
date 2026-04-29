@@ -1044,7 +1044,7 @@ class Email extends Prototype {
 
 		$context = stream_context_create([
 			'ssl' => [
-				'verify_peer' => false,
+				'verify_peer' => true,
 				'verify_peer_name' => true,
 				'peer_name' => $host,
 				'capture_peer_cert' => true,
