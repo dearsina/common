@@ -31,6 +31,8 @@ class str {
 	 */
 	private $str;
 	private static $instance = NULL;
+	private static array $is_dev_cache = [];
+	private static array $local_server_ips_cache = [];
 
 	/**
 	 * The constructor is private so that the class
@@ -1006,17 +1008,20 @@ class str {
 	 */
 	public static function isDev(): bool
 	{
-		# Get all the production IP addresses
-		$prod_ips = array_map(function($ip){
-			return trim($ip);
-		}, explode(",", $_ENV['pro_ip']));
-
-		# Get all the development IP addresses
-		$dev_ips = array_map(function($ip){
-			return trim($ip);
-		}, explode(",", $_ENV['dev_ip']));
+		# Get all the production and development IP addresses
+		$prod_ips = self::parseIpList($_ENV['pro_ip']);
+		$dev_ips = self::parseIpList($_ENV['dev_ip']);
 
 		$server_addr = $_SERVER['SERVER_ADDR'] ?? $_SERVER['LOCAL_ADDR'] ?? NULL;
+		$cache_key = md5(json_encode([
+			$server_addr,
+			$prod_ips,
+			$dev_ips,
+		]));
+
+		if(array_key_exists($cache_key, self::$is_dev_cache)){
+			return self::$is_dev_cache[$cache_key];
+		}
 
 		# Use the SERVER_ADDR if it's set
 		if($server_addr){
@@ -1024,16 +1029,29 @@ class str {
 			if(in_array($server_addr, array_merge(
 				$prod_ips,
 				$dev_ips
-			))){
+			), true)){
 				# Finally, we check if the server address is in the production IPs
-				return !in_array($server_addr, $prod_ips);
+				return self::$is_dev_cache[$cache_key] = !in_array($server_addr, $prod_ips, true);
 				// If it's not, we're in DEV
 			}
-			// Otherwise, we're going to use the `ip a` results
+			/**
+			 * If the server address is present but unexpected, don't immediately
+			 * shell out. Try cheaper local discovery first.
+			 */
+			$local_ips = self::getLocalServerIPs(true, false);
+			if($local_ips){
+				if(array_intersect($prod_ips, $local_ips)){
+					return self::$is_dev_cache[$cache_key] = false;
+				}
+
+				if(array_intersect($dev_ips, $local_ips)){
+					return self::$is_dev_cache[$cache_key] = true;
+				}
+			}
 		}
 
-		# Otherwise, check the `ip a` results for a match
-		return !array_intersect($prod_ips, str::getLocalServerIPs());
+		# As a last resort, check the shell-discovered local interface IPs
+		return self::$is_dev_cache[$cache_key] = !array_intersect($prod_ips, self::getLocalServerIPs());
 		// If there is no overlap between the two arrays, then we're in dev
 	}
 
@@ -1048,8 +1066,17 @@ class str {
 	 *
 	 * @return array
 	 */
-	public static function getLocalServerIPs(?bool $withV6 = true): array
+	public static function getLocalServerIPs(?bool $withV6 = true, ?bool $include_shell = true): array
 	{
+		$cache_key = json_encode([
+			(bool)$withV6,
+			(bool)$include_shell,
+		]);
+
+		if(array_key_exists($cache_key, self::$local_server_ips_cache)){
+			return self::$local_server_ips_cache[$cache_key];
+		}
+
 		$ips = [];
 		$hostname = gethostname();
 
@@ -1065,11 +1092,28 @@ class str {
 			$ips = array_merge($ips, self::extractIPsFromString(implode(" ", (array)@gethostbynamel($hostname)), $withV6));
 		}
 
-		foreach(self::getIPDiscoveryCommands() as $command){
-			$ips = array_merge($ips, self::extractIPsFromString(self::runShellCommand($command), $withV6));
+		if($include_shell){
+			foreach(self::getIPDiscoveryCommands() as $command){
+				$ips = array_merge($ips, self::extractIPsFromString(self::runShellCommand($command), $withV6));
+			}
 		}
 
-		return array_values(array_unique($ips));
+		return self::$local_server_ips_cache[$cache_key] = array_values(array_unique($ips));
+	}
+
+	/**
+	 * Parses a comma-separated list of IP addresses, trims whitespace from each IP,
+	 * and filters out any empty entries. Returns an array of valid IP addresses.
+	 *
+	 * @param string|null $ips A string containing a comma-separated list of IP addresses, or null.
+	 *
+	 * @return array An array containing the trimmed and non-empty IP addresses.
+	 */
+	private static function parseIpList(?string $ips): array
+	{
+		return array_values(array_filter(array_map(function($ip){
+			return trim($ip);
+		}, explode(",", (string)$ips))));
 	}
 
 	/**
