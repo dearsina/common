@@ -60,7 +60,7 @@ class Info {
 	{
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 

@@ -111,7 +111,7 @@ class str {
 	{
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 
@@ -931,7 +931,7 @@ class str {
 		$steps = [];
         $debug_backtrace = debug_backtrace();
 		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
-			$args = $keep_arguments ? json_encode($a['args']) : NULL;
+			$args = $keep_arguments && $a['args'] ? json_encode($a['args']) : "{}";
 			$line_number = str_pad($a['line'], 4, " ", STR_PAD_LEFT);
 			$file_name = basename($a['file']);
 			$steps[] = "{$a['function']}({$args});\r\n[{$line_number}] {$file_name}->";

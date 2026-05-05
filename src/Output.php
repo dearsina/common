@@ -35,7 +35,7 @@ class Output {
 		// Stopping cloning of object
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 		// Stopping unserialize of object
 	}

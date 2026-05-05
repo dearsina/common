@@ -752,7 +752,7 @@ EOF;
 	 * @param           $a
 	 * @param bool|null $ignore_interval
 	 */
-	public function execute($a, bool $ignore_interval = NULL): void
+	public function execute($a, ?bool $ignore_interval = NULL): void
 	{
 		# Ensure this method is only run from the command line
 		if(!str::runFromCLI()){

@@ -31,7 +31,7 @@ class Log {
 	{
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 
@@ -118,7 +118,7 @@ class Log {
 		]));
 
 		# Don't alert the user more than once in the same go
-		if($alerts[$md5]){
+		if(isset($alerts[$md5])){
 			return;
 		}
 

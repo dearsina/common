@@ -846,7 +846,7 @@ abstract class Prototype {
 	 *
 	 * @return string
 	 */
-	public static function getDomId(?string $suffix, ?string $rel_id = NULL, string $rel_table = NULL, ?bool $hash_prefix = true): string
+	public static function getDomId(?string $suffix, ?string $rel_id = NULL, ?string $rel_table = NULL, ?bool $hash_prefix = true): string
 	{
 		$id = str_replace("_", "-", implode("-", array_filter([
 			$rel_table,
