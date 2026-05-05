@@ -88,6 +88,18 @@ class WebSocketServer extends Prototype {
 	}
 
 	/**
+	 * @param $msg
+	 *
+	 * @return void
+	 */
+	private function debugAlert($msg): void
+	{
+		if(str::isDev()){
+			$this->alert($msg);
+		}
+	}
+
+	/**
 	 * Run this method to kickstart the webserver.
 	 * It is running as a daemon, so the script will complete,
 	 * even if the server continues.
@@ -108,8 +120,11 @@ class WebSocketServer extends Prototype {
 			return;
 		}
 
+		$cpu_count = function_exists('swoole_cpu_num') ? \swoole_cpu_num() : 2;
+		$worker_count = max(2, (int)$cpu_count);
+
 		# Set up the server
-		$this->external_server = new \Swoole\WebSocket\Server($_ENV['websocket_external_ip'], $_ENV['websocket_external_port'], SWOOLE_BASE, SWOOLE_SOCK_TCP | SWOOLE_SSL);
+		$this->external_server = new \Swoole\WebSocket\Server($_ENV['websocket_external_ip'], $_ENV['websocket_external_port'], SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
 
 		# Set the SSL keys
 		$this->external_server->set([
@@ -122,6 +137,14 @@ class WebSocketServer extends Prototype {
 
 			# Run as daemon
 			"daemonize" => true,
+
+			# Use dedicated worker processes for the event callbacks
+			"worker_num" => $worker_count,
+
+			# Increase the connection queue and clean up stale sockets
+			"backlog" => 512,
+			"heartbeat_idle_time" => 600,
+			"heartbeat_check_interval" => 60,
 
 			# Raise the message size limit from the default 2mb to 32mb
 			"package_max_length" => 32 * 1024 * 1024,
@@ -220,7 +243,7 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onInternalConnect(\Swoole\WebSocket\Server $server, int $fd)
 	{
-		$this->alert("Internal connection [{$fd}] attempt.");
+		$this->debugAlert("Internal connection [{$fd}] attempt.");
 	}
 
 	/**
@@ -231,7 +254,7 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onInternalOpen(\Swoole\WebSocket\Server $server, \Swoole\Http\Request $request)
 	{
-		$this->alert("Internal connection [{$request->fd}] opened.");
+		$this->debugAlert("Internal connection [{$request->fd}] opened.");
 	}
 
 	/**
@@ -251,13 +274,13 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onInternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame): bool
 	{
-		$this->alert("Internal message from connection [{$frame->fd}]: {$frame->data}");
+		$this->debugAlert("Internal message from connection [{$frame->fd}]: {$frame->data}");
 
 		# Break open the data string into an array
 		$data_array = json_decode($frame->data, true);
 
 		if(!$data_array['fd']){
-			$this->alert("No recipients identified.");
+			$this->debugAlert("No recipients identified.");
 			return true;
 		}
 
@@ -267,7 +290,7 @@ class WebSocketServer extends Prototype {
 				$server->push($fd, json_encode($data_array['data']));
 			}
 			else {
-				echo "The [{$fd}] connection is no longer established, thus the following message was not sent to them:\r\n" . json_encode($data_array['data']);
+				$this->debugAlert("The [{$fd}] connection is no longer established, thus the message was not sent.");
 			}
 
 		}
@@ -283,7 +306,7 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onInternalClose(\Swoole\WebSocket\Server $server, int $fd)
 	{
-		$this->alert("Internal connection [{$fd}] closed.");
+		$this->debugAlert("Internal connection [{$fd}] closed.");
 	}
 
 	/**
@@ -294,7 +317,7 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onExternalConnect(\Swoole\WebSocket\Server $server, int $fd)
 	{
-		$this->alert("External connection [{$fd}] attempt.");
+		$this->debugAlert("External connection [{$fd}] attempt.");
 	}
 
 	/**
@@ -357,7 +380,7 @@ class WebSocketServer extends Prototype {
 			return false;
 		}
 
-		$this->alert("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$connection_id}]");
+		$this->debugAlert("External connection [{$request->fd}] opened with IP [{$request->server['remote_addr']}], connection_id [{$connection_id}]");
 
 		return true;
 	}
@@ -373,7 +396,7 @@ class WebSocketServer extends Prototype {
 	 */
 	public function onExternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame): void
 	{
-		$this->alert("External message from connection [{$frame->fd}]: {$frame->data}");
+		$this->debugAlert("External message from connection [{$frame->fd}]: {$frame->data}");
 	}
 
 	/**
@@ -406,7 +429,7 @@ class WebSocketServer extends Prototype {
 			return false;
 		}
 
-		$this->alert("External connection [{$fd}] closed.");
+		$this->debugAlert("External connection [{$fd}] closed.");
 
 		return true;
 	}

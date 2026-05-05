@@ -530,8 +530,15 @@ class PA {
 		# Fire up the http client
 		$cmd .= "\$client = new \\Swoole\\Coroutine\\Http\\Client(\"{$_ENV['websocket_internal_ip']}\", \"{$_ENV['websocket_internal_port']}\");";
 
-		# Upgrade the connection (not exactly sure why)
-		$cmd .= "\$client->upgrade(\"/\");";
+		# Upgrade the connection before trying to push data
+		$cmd .= "if(!\$client->upgrade(\"/\")){";
+		$cmd .= "\$statusCode = \$client->statusCode;";
+		$cmd .= "\$errCode = \$client->errCode;";
+		$cmd .= "\$errMsg = \$errCode && function_exists(\"socket_strerror\") ? socket_strerror(\$errCode) : NULL;";
+		$cmd .= "fwrite(STDERR, \"WebSocket upgrade failed to {$_ENV['websocket_internal_ip']}:{$_ENV['websocket_internal_port']} (statusCode={\$statusCode}, errCode={\$errCode}\".(\$errMsg ? \", errMsg={\$errMsg}\" : \"\").\")\".PHP_EOL);";
+		$cmd .= "\$client->close();";
+		$cmd .= "return;";
+		$cmd .= "}";
 
 		# If the data being sent is larger than 900 chars, create a tmp file and send the file link instead
 		if(strlen($data) > 900){
