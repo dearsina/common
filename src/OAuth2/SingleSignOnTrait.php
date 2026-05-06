@@ -29,24 +29,26 @@ trait SingleSignOnTrait {
 			}
 
 			# Go thru each provider and their alternative provider field names
-			foreach($field['provider'] as $provider => $provider_fields){
-				# If the provider field names is not an array, make it one
-				if(!is_array($provider_fields)){
-					$provider_fields = [$provider_fields];
-				}
+			if($field['provider']){
+				foreach($field['provider'] as $provider => $provider_fields){
+					# If the provider field names is not an array, make it one
+					if(!is_array($provider_fields)){
+						$provider_fields = [$provider_fields];
+					}
 
-				# Go thru each provider field name and if the user has a value for it, use that value instead
-				foreach($provider_fields as $provider_field){
-					# If the user has a value for this field, use it
-					if(key_exists($provider_field, $user)){
-						# If the value is an array, use the first value
-						if(is_array($user[$provider_field])){
-							$user[$key] = reset($user[$provider_field]);
+					# Go thru each provider field name and if the user has a value for it, use that value instead
+					foreach($provider_fields as $provider_field){
+						# If the user has a value for this field, use it
+						if(key_exists($provider_field, $user)){
+							# If the value is an array, use the first value
+							if(is_array($user[$provider_field])){
+								$user[$key] = reset($user[$provider_field]);
+								continue 3;
+							}
+							# Use the value and continue to the next field
+							$user[$key] = $user[$provider_field];
 							continue 3;
 						}
-						# Use the value and continue to the next field
-						$user[$key] = $user[$provider_field];
-						continue 3;
 					}
 				}
 			}
