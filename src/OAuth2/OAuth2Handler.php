@@ -84,9 +84,12 @@ class OAuth2Handler extends \App\Common\Prototype {
 		],
 	];
 
+	/**
+	 * Signature is excluded by design, as SSO providers don't provide a signature.
+	 */
 	const USER_SSO_DATA_FIELDS = [
 		"id" => [
-			"title" => "ID",
+			"title" => "ID (SSO)",
 			"icon" => "fingerprint",
 			"provider" => [
 				"entra" => "id",
@@ -220,7 +223,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 			"field_type" => [
 				"name" => "input",
 			],
-		]
+		],
 	];
 
 	/**

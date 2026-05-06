@@ -4,6 +4,7 @@ namespace App\Common\OAuth2;
 
 use App\Common\href;
 use App\Common\Img;
+use App\User\User;
 
 trait SingleSignOnTrait {
 	public static function unifyMember(array &$member): void
@@ -21,7 +22,7 @@ trait SingleSignOnTrait {
 	 */
 	public static function unifyUser(array &$user): void
 	{
-		foreach(OAuth2Handler::USER_SSO_DATA_FIELDS as $key => $field){
+		foreach(User::getAllUserDataFields(NULL, NULL, false) as $key => $field){
 			# If the provider already has a value for this field, skip it
 			if($user[$key]){
 				continue;
