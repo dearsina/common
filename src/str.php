@@ -3017,7 +3017,7 @@ EOF;
 	public static function pre($str, ?array $settings = [])
 	{
 		if(is_array($str)){
-			$str = str::var_export($str, true);
+			$str = str::json_encode($str, "base64", JSON_PRETTY_PRINT);
 		}
 
 		extract($settings);
