@@ -116,7 +116,6 @@ class Connection extends Prototype {
 	 */
 	public function setConnection(?array $set = []): string
 	{
-        file_put_contents('/var/www/tmp/process.log', 'three' .PHP_EOL, FILE_APPEND);
 		# Record the user's geolocation
 		Geolocation::get();
 

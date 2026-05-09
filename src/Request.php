@@ -363,7 +363,6 @@ class Request {
 		}
 
 		if($a['action'] == "getSessionToken"){
-            file_put_contents('/var/www/tmp/process.log', 'In request check' .PHP_EOL, FILE_APPEND);
 			/**
 			 * If the user is getting the session token, there is
 			 * no need to check for the CSRF token, because it has
