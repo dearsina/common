@@ -987,7 +987,7 @@ class str {
 	public static function isDate(?string $date, ?string $format = "Y-m-d"): bool
 	{
 		$dt = \DateTime::createFromFormat($format, $date);
-		return $dt !== false && !array_sum($dt::getLastErrors());
+		return $dt !== false && $dt::getLastErrors() === false;
 	}
 
 	/**
