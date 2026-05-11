@@ -310,6 +310,12 @@ class Request {
 			return true;
 		}
 
+		# Mek exception for Loader.ai
+		if($a['rel_table'] == "loader"){
+			// Make an exception for when we're testing loads using Loader.ai
+			return true;
+		}
+
 		# OAuth2 redirects are exempt from CSRF checks
 		if($_SERVER['REDIRECT_URL'] == "/oauth2.php"){
 			return true;
