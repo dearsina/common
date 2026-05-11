@@ -359,6 +359,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 				//SharePoint doesn't give MD5, so we're going to use size instead
 			];
 		}
+
+        // This should never be reached
+        return NULL;
 	}
 
 	/**
@@ -775,6 +778,9 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 			# The root has sites
 			return $this->getSites();
 		}
+
+        // This should never be reached
+        return null;
 	}
 
 	/**
@@ -791,6 +797,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	private function throwError(\Exception $e, ?string $context = NULL, ?string $endpoint = NULL): void
 	{
 		# The best way of getting error responses
+        $error = $e->getMessage();
 		if(method_exists($e, "getResponse") && method_exists($e->getResponse(), "getBody")){
 			$error_code = $e->getCode();
 
@@ -806,7 +813,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 		}
 
 		# A decent fallback
-		else if($error = $e->getMessage() && $pos = strpos($error, "{")){
+		else if($error && $pos = strpos($error, "{")){
 			$message = substr($error, 0, $pos);
 			$error_array = json_decode(substr($error, $pos), true);
 			$error_code = $error_array['error']['code'];

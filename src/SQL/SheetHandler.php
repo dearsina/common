@@ -153,7 +153,7 @@ class SheetHandler extends \App\Common\Prototype {
 			if($worksheet['totalColumns'] > self::MAX_NUMBER_OF_COLUMNS){
 				$this->log->warning([
 					"title" => "Too many columns",
-					"message" => "The {$sheet_name} sheet has {$col_count} columns. Sheets with more than " . self::MAX_NUMBER_OF_COLUMNS . " columns will not be imported.
+					"message" => "The {$worksheet['worksheetName']} sheet has {$worksheet['totalColumns']} columns. Sheets with more than " . self::MAX_NUMBER_OF_COLUMNS . " columns will not be imported.
 					If the column count doesn't correspond with the number of columns that actually hold data, you may find it useful to copy
 					and paste the data columns (only) into a new sheet, delete this sheet and start the import process again.",
 				]);

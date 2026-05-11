@@ -13,6 +13,7 @@ use App\Common\SQL\mySQL\mySQL;
  * Class Request
  * @package App\Common
  */
+#[\AllowDynamicProperties]
 class Request {
 
 	/**
@@ -163,8 +164,8 @@ class Request {
 	 *
 	 * @return bool
 	 */
-	public function handler($a)
-	{
+	public function handler(array $a): bool|string|null
+    {
 		/**
 		 * The method is placed in a try/catch
 		 * to catch any exceptions thrown by system errors.
@@ -302,10 +303,16 @@ class Request {
 	 * @return bool TRUE on token is valid, FALSE on token is missing or invalid.
 	 * @throws \Exception
 	 */
-	private function preventCSRF($a): bool
+	private function preventCSRF(array $a): bool
 	{
 		# CLI commands are exempt from CSRF checks
 		if(str::runFromCLI()){
+			return true;
+		}
+
+		# Mek exception for Loader.ai
+		if($a['rel_table'] == "loader"){
+			// Make an exception for when we're testing loads using Loader.ai
 			return true;
 		}
 
@@ -362,6 +369,7 @@ class Request {
 		}
 
 		if($a['action'] == "getSessionToken"){
+            file_put_contents('/var/www/tmp/process.log', 'In request check' .PHP_EOL, FILE_APPEND);
 			/**
 			 * If the user is getting the session token, there is
 			 * no need to check for the CSRF token, because it has

@@ -107,7 +107,7 @@ class mySQL extends Common {
 		// Prevent the cloning of the object
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 		// Stopping unserializing of object
 	}

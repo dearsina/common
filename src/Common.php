@@ -23,43 +23,22 @@ use function GuzzleHttp\Psr7\str;
  * @package App\Common
  */
 abstract class Common {
-	/**
-	 * @var Log
-	 */
-	public $log;
-
-	/**
-	 * @var Output
-	 */
-	public $output;
-
-	/**
-	 * @var Hash
-	 */
-	public $hash;
-
+	public Log $log;
+	public Output $output;
+	public Hash $hash;
 	/**
 	 * @var SQL\mySQL\mySQL
 	 */
 	public $sql;
-
 	/**
 	 * The name of the non-standard database.
 	 * Used by generic methods.
-	 * @string
 	 */
-	public ?string $db = NULL;
+	public ?string $db = null;
+	public User $user;
+	public PA $pa;
 
-	/**
-	 * @var User
-	 */
-	public $user;
-	/**
-	 * @var PA
-	 */
-	public $pa;
-
-	function __construct()
+	public function __construct()
 	{
 		$this->hash = Hash::getInstance();
 		$this->log = Log::getInstance();
@@ -75,13 +54,11 @@ abstract class Common {
 		 *
 		 * So far, that's only the App\Common\User\User class
 		 */
-		if(in_array(get_called_class(), ['App\Common\User\User'])){
-			return true;
+		if (in_array(get_called_class(), ['App\Common\User\User'])) {
+			return;
 		}
 
 		$this->user = new User();
-
-		return true;
 	}
 
 	/**

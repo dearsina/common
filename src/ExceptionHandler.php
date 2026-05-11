@@ -29,9 +29,9 @@ class ExceptionHandler {
 	 */
 	public static function getType (object $e): string
 	{
-		$type = end(explode("\\", get_class($e)));
-		$type = trim(preg_replace("/([A-Z])/", " $1", $type));
-		return $type;
+        $types = explode("\\", get_class($e));
+		$type = end($types);
+        return trim(preg_replace("/([A-Z])/", " $1", $type));
 	}
 
 	/**

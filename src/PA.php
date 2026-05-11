@@ -93,7 +93,7 @@ class PA {
 	/**
 	 * Stops unserializing of the object
 	 */
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 

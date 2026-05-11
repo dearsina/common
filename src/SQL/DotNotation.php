@@ -34,6 +34,7 @@ class DotNotation {
 		$non_scalar = [];
 
 		# For each row of the array
+        $scalar_row_strings = [];
 		foreach($array as $single_row){
 
 			# For each key (column) of a single row
