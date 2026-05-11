@@ -230,9 +230,9 @@ class Navigation extends Prototype {
 
 		$footers = $classInstance->$method([
 			"action" => $method,
-			"rel_table" => $rel_table,
-			"rel_id" => $rel_id,
-			"vars" => $vars,
+			"rel_table" => $rel_table ?? null,
+			"rel_id" => $rel_id ?? null,
+			"vars" => $vars ?? null,
 		]);
 
 		return true;
@@ -270,9 +270,9 @@ class Navigation extends Prototype {
 		# Get the footers for this role
 		$role_footers = $classInstance->$method([
 			"action" => $method,
-			"rel_table" => $rel_table,
-			"rel_id" => $rel_id,
-			"vars" => $vars,
+			"rel_table" => $rel_table ?? null,
+			"rel_id" => $rel_id ?? null,
+			"vars" => $vars ?? null,
 		]);
 
 		# Merge role footers into app footers

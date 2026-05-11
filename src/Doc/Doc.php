@@ -776,8 +776,8 @@ class Doc extends \App\Common\Prototype {
 
 		$scale_factor = min($scale_width, $scale_height);
 
-		$new_width = intval($dimensions['width'] * $scale_factor * 72);  // Convert back to points
-		$new_height = intval($dimensions['height'] * $scale_factor * 72); // Convert back to points
+		$new_width = intval($file['width'] * $scale_factor * 72);  // Convert back to points
+		$new_height = intval($file['height'] * $scale_factor * 72); // Convert back to points
 
 		# Use GhostScript to resize the PDF
 		$cmd = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile={$file['tmp_name']} -g{$new_width}x{$new_height} -r72x72 -c \"<</BeginPage{{$scale_factor} {$scale_factor} scale}>> setpagedevice\" -f {$file['tmp_name']}";
@@ -1024,6 +1024,13 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		if($return_array){
+            $scale_width = self::MAX_PAGE_SIZE_IN / $file['width'];
+            $scale_height = self::MAX_PAGE_SIZE_IN / $file['height'];
+
+            $scale_factor = min($scale_width, $scale_height);
+
+            $new_width = intval($file['width'] * $scale_factor * 72);  // Convert back to points
+            $new_height = intval($file['height'] * $scale_factor * 72); // Convert back to points
 			$data = [
 				"data" => $data,
 				"width" => $new_width,
@@ -1123,7 +1130,7 @@ class Doc extends \App\Common\Prototype {
 		$file['md5'] = md5_file($file['tmp_name']);
 
 		# Get the file extension
-		$file['ext'] = $ext;
+		$file['ext'] = ".svg";
 		//the extension is stored in all lowercase only
 
 		# Get the mime type
@@ -1363,7 +1370,7 @@ class Doc extends \App\Common\Prototype {
 				$new_height = $max_height;
 			}
 
-			$divisor = $newheight ? $height / $newheight : $height;
+			$divisor = $new_height ? $height / $new_height : $height;
 			$new_width = floor($width / $divisor);
 		}
 

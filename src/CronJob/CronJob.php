@@ -752,7 +752,7 @@ EOF;
 	 * @param           $a
 	 * @param bool|null $ignore_interval
 	 */
-	public function execute($a, bool $ignore_interval = NULL): void
+	public function execute($a, ?bool $ignore_interval = NULL): void
 	{
 		# Ensure this method is only run from the command line
 		if(!str::runFromCLI()){
@@ -886,6 +886,7 @@ EOF;
 						"output" => $this->log->getAlertMessages() . str::pre($output),
 					],
 				]);
+                return true;
 			};
 
 			$args = [[
@@ -963,5 +964,6 @@ EOF;
 
 		# Return them to the caller
 		$this->output->setOptions($class_options, "Select a class");
+        return true;
 	}
 }

@@ -30,7 +30,7 @@ class str {
 	 * @var bool
 	 */
 	private $str;
-	private static $instance = NULL;
+	private static ?str $instance = NULL;
 	private static array $is_dev_cache = [];
 	private static array $local_server_ips_cache = [];
 
@@ -113,7 +113,7 @@ class str {
 	{
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 
@@ -200,27 +200,26 @@ class str {
 	public static function contains(?string $string, ?string $chars, ?bool $case_sensitive = false): bool
 	{
 		# Both the string and the characters to search for must be set
-		if(!$string || !$chars){
+		if (!$string || !$chars) {
 			return false;
 		}
 
 		# If the search is case-insensitive
-		if(!$case_sensitive){
+		if (!$case_sensitive) {
 			return stripos($string, $chars) !== false;
 		}
 
 		# If the search is case-sensitive
-		return strpos($string, $chars) !== false;
+		return str_contains($string, $chars);
 	}
 
 	/**
-	 * @return str|null
+	 * @return str
 	 */
-	public static function getInstance()
+	public static function getInstance(): str
 	{
-
-		// Check if instance is already exists
-		if(self::$instance == NULL){
+		// Check if instance already exists
+		if (self::$instance === null) {
 			self::$instance = new str();
 		}
 
@@ -238,8 +237,6 @@ class str {
 	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
 	/**
-	 * PHP7 version of PHP8's str_ends_with() method.
-	 *
 	 * @param string $haystack
 	 * @param string $needle
 	 *
@@ -247,8 +244,7 @@ class str {
 	 */
 	public static function endsWith(string $haystack, string $needle): bool
 	{
-		$needle_len = strlen($needle);
-		return ($needle_len === 0 || 0 === substr_compare($haystack, $needle, -$needle_len));
+		return str_ends_with($haystack, $needle);
 	}
 
 	/**
@@ -935,8 +931,9 @@ class str {
 	static function backtrace(?bool $return = false, ?bool $keep_arguments = true)
 	{
 		$steps = [];
-		array_walk(debug_backtrace(), function($a) use (&$steps, $keep_arguments){
-			$args = $keep_arguments ? json_encode($a['args']) : NULL;
+        $debug_backtrace = debug_backtrace();
+		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
+			$args = $keep_arguments && $a['args'] ? json_encode($a['args']) : "{}";
 			$line_number = str_pad($a['line'], 4, " ", STR_PAD_LEFT);
 			$file_name = basename($a['file']);
 			$steps[] = "{$a['function']}({$args});\r\n[{$line_number}] {$file_name}->";

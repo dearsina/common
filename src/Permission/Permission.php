@@ -261,7 +261,7 @@ class Permission extends Prototype {
 	public function set(string $rel_table, ?string $rel_id, ?string $crud = NULL, ?string $user_id = NULL): bool
 	{
 		# If not CRUD = ALL access
-		if(strlen($curd)){
+		if(strlen($crud)){
 			$crud = "crud";
 		}
 

@@ -46,7 +46,7 @@ class Hash {
 	{
 	}
 
-	private function __wakeup()
+	public function __wakeup()
 	{
 	}
 

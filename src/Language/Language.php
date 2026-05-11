@@ -155,6 +155,7 @@ class Language extends Prototype {
 			$language = \App\Common\SQL\Info\Info::getInstance()->getInfo("language", $language_or_language_id);
 		}
 
+        $class = "";
 		if(strtolower($language['script']) != "latin"){
 			$class .= strtolower(" script-{$language['script']}");
 		}
@@ -455,6 +456,7 @@ class Language extends Prototype {
 			];
 		}
 
+        $continents = [];
 		foreach($countries as $country){
 			$continents[$country['continent_name']]++;
 		}

@@ -2458,9 +2458,10 @@ abstract class Common {
 	private function loadDatabaseMetadata(string $db, ?string $table = NULL, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
 		# Not sure why this would go missing, but it has (at times)
+        $sleep = 0;
 		if(@!$this->mysqli->thread_id){
 			do {
-				if($sleep){
+				if($sleep > 0){
 					sleep($sleep);
 					if(str::isDev()){
 						Log::getInstance()->info([
@@ -2591,8 +2592,9 @@ abstract class Common {
 		# Go through the result (assuming the database-table exists)
 		if(is_object($result)){
 			# Convert and save each result row
+            $ordinal_position = 0;
 			while($c = $result->fetch_assoc()) {
-				$ordinal_position += 1;
+				$ordinal_position++;
 				$c = $this->convertShowColumnsRowToInformationSchemaFormat($table, $c, $ordinal_position);
 				$this->meta["tmp"][$c['TABLE_NAME']][$c['COLUMN_NAME']] = $c;
 			}

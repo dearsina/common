@@ -191,6 +191,7 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 	private function throwError(\Exception $e, ?string $context = NULL): void
 	{
 		# The best way of getting error responses
+        $error = $e->getMessage();
 		if(method_exists($e, "getResponse") && method_exists($e->getResponse(), "getBody")){
 			$error_code = $e->getCode();
 
@@ -206,7 +207,7 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 		}
 
 		# A decent fallback
-		else if($error = $e->getMessage() && $pos = strpos($error, "{")){
+		else if($error && $pos = strpos($error, "{")){
 			$message = substr($error, 0, $pos);
 			$error_array = json_decode(substr($error, $pos), true);
 			$error_code = $error_array['error']['code'];

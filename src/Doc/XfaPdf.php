@@ -681,13 +681,13 @@ class XfaPdf {
 		return $window_id;
 	}
 
-	private function getCurrentAcrobatWindowCount(): int
+	private function getCurrentAcrobatWindowCount(int $i): int
 	{
 		$count = (int)$this->runCommand('xdotool search --name "Adobe Reader" 2>/dev/null | wc -l', NULL, true);
 
 		if($count){
 			# Take a screenshot of the windows
-			$this->takeScreenshot("awaitReaderWindows-{$n}-found-{$count}-after-{$i}s");
+			$this->takeScreenshot("awaitReaderWindows-{$count}-found-{$count}-after-{$i}s");
 		}
 
 		return $count;
@@ -707,7 +707,7 @@ class XfaPdf {
 		$this->print("Awaiting $n Adobe Reader windows for $seconds seconds");
 
 		for($i = 1; $i <= $seconds; $i = $i + self::JUMP){
-			$count = $this->getCurrentAcrobatWindowCount();
+			$count = $this->getCurrentAcrobatWindowCount($i);
 
 			# Log the number of windows found
 			$this->print("Windows found after {$i} seconds: {$count}");

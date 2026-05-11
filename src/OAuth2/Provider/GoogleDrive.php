@@ -326,6 +326,7 @@ EOF;
 			$lineage[] = $id;
 
 			# Go through generations to get to the folder on the root
+            $i = 0;
 			while(!$folders[$parent_id]['children'][$id]) {
 
 				# Get the parent (to get *their* parent)

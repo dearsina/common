@@ -91,6 +91,7 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 		catch(\Exception $e) {
 			$this->throwError($e, "%s error attempting to get organization: %s");
 		}
+        return null;
 	}
 
 	/**
@@ -363,7 +364,7 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 					->execute();
 			}
 			else {
-				$response = $this->graph->createRequest("GET", "/groups{$search}")
+				$response = $this->graph->createRequest("GET", "/groups")
 					->setReturnType(\Microsoft\Graph\Model\Group::class)
 					->execute();
 			}
@@ -585,6 +586,7 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 	private function throwError(\Exception $e, ?string $context = NULL): void
 	{
 		# The best way of getting error responses
+        $error = $e->getMessage();
 		if(method_exists($e, "getResponse") && method_exists($e->getResponse(), "getBody")){
 			$error_code = $e->getCode();
 
@@ -600,7 +602,7 @@ class Entra extends Prototype implements SingleSignOnProviderInterface {
 		}
 
 		# A decent fallback
-		else if($error = $e->getMessage() && $pos = strpos($error, "{")){
+		else if($error && $pos = strpos($error, "{")){
 			$message = substr($error, 0, $pos);
 			$error_array = json_decode(substr($error, $pos), true);
 			$error_code = $error_array['error']['code'];

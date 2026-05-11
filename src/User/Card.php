@@ -126,9 +126,7 @@ class Card extends Prototype {
 	 */
 	public function selectRole($role)
 	{
-
-
-		return $html;
+		return "";
 	}
 
 	/**

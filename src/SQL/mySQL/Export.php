@@ -129,6 +129,9 @@ class Export extends Common {
 		else {
 			throw new \Exception("No query or rows provided to export.");
 		}
+
+        // This should never be reached
+        return "";
 	}
 
 	public function deleteTmpFile(): void

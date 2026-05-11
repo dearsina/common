@@ -22,8 +22,6 @@ class Modal extends Prototype {
 	 * @throws \Exception
 	 */
 	public function selectRole(string $user_id, array $roles){
-		if(is_array($a))
-			extract($a);
 
 		if(empty($roles)){
 			throw new \Exception("No roles given to the select role modal.");

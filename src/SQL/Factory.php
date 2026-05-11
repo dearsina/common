@@ -24,11 +24,12 @@ class Factory {
 	 */
 	public static function getInstance(string $type = "mySQL", ?bool $api = NULL)
 	{
-		# Set the class depending on type type
-		switch(strtolower($type)) {
-		case 'mysql':
-		default:
-			$class = "mySQL";
+		# Set the class depending on type
+		switch(strtolower($type)){
+			case "mysql":
+			default:
+				$class = "mySQL";
+				break;
 		}
 
 		# Create the full path
