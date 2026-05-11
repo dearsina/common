@@ -1023,6 +1023,11 @@ class Doc extends \App\Common\Prototype {
 			$data = 'data:' . $type . ';base64,' . base64_encode($data);
 		}
 
+		# Failsafe
+		if(!$file['width'] || !$file['width']){
+			return NULL;
+		}
+
 		if($return_array){
             $scale_width = self::MAX_PAGE_SIZE_IN / $file['width'];
             $scale_height = self::MAX_PAGE_SIZE_IN / $file['height'];

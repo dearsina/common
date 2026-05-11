@@ -2040,11 +2040,9 @@ class User extends Prototype {
 	public function getSessionToken(array $a): bool
 	{
 		extract($a);
-        file_put_contents('/var/www/tmp/process.log', 'one' .PHP_EOL, FILE_APPEND);
+
 		# Get the connection ID
 		$connection = new Connection();
-        file_put_contents('/var/www/tmp/process.log', 'two' .PHP_EOL, FILE_APPEND);
-
 		$connection_id = $connection->setConnection($vars);
 
 		# The CSRF token is the connection UUID, return it to the user
