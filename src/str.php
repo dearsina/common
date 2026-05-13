@@ -9,6 +9,7 @@ use GuzzleHttp\Client;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Exception;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use function array_first;
 
 /**
  * Static class related mainly to string manipulation.
@@ -834,8 +835,8 @@ class str {
 			}
 
 			# Flatten keys in scope (that only have 1 child anyway)
-			if(str::isNumericArray($val) && in_array($key, $keys) && count($val) == 1){
-				$array[$key] = reset($val);
+			if(array_is_list($val) && in_array($key, $keys) && count($val) === 1){
+				$array[$key] = array_first($val);
 			}
 
 			# This can happen if an array within an array is just a string
