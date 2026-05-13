@@ -200,12 +200,12 @@ class str {
 	public static function contains(?string $string, ?string $chars, ?bool $case_sensitive = false): bool
 	{
 		# Both the string and the characters to search for must be set
-		if (!$string || !$chars) {
+		if(!$string || !$chars){
 			return false;
 		}
 
 		# If the search is case-insensitive
-		if (!$case_sensitive) {
+		if(!$case_sensitive){
 			return stripos($string, $chars) !== false;
 		}
 
@@ -219,7 +219,7 @@ class str {
 	public static function getInstance(): str
 	{
 		// Check if instance already exists
-		if (self::$instance === null) {
+		if(self::$instance === NULL){
 			self::$instance = new str();
 		}
 
@@ -564,7 +564,7 @@ class str {
 		"ID",
 		"AI",
 		"URL",
-		"W.L.L"
+		"W.L.L",
 	];
 
 	const NAME_PREFIXES = [
@@ -931,7 +931,7 @@ class str {
 	static function backtrace(?bool $return = false, ?bool $keep_arguments = true)
 	{
 		$steps = [];
-        $debug_backtrace = debug_backtrace();
+		$debug_backtrace = debug_backtrace();
 		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
 			$args = $keep_arguments && $a['args'] ? json_encode($a['args']) : "{}";
 			$line_number = str_pad($a['line'], 4, " ", STR_PAD_LEFT);
@@ -1078,10 +1078,10 @@ class str {
 		$hostname = gethostname();
 
 		foreach([
-			$_SERVER['SERVER_ADDR'] ?? NULL,
-			$_SERVER['LOCAL_ADDR'] ?? NULL,
-			$hostname ? gethostbyname($hostname) : NULL,
-		] as $value){
+					$_SERVER['SERVER_ADDR'] ?? NULL,
+					$_SERVER['LOCAL_ADDR'] ?? NULL,
+					$hostname ? gethostbyname($hostname) : NULL,
+				] as $value){
 			$ips = array_merge($ips, self::extractIPsFromString($value, $withV6));
 		}
 
@@ -1563,8 +1563,16 @@ EOF;
 	 */
 	public static function isValidModify(?string $modify): bool
 	{
+		if($modify === NULL)
+			return false;
 		$dt = new \DateTime();
-		return (bool)@$dt->modify($modify);
+		try {
+			$dt->modify($modify);
+			return true;
+		}
+		catch(\Exception $e) {
+			return false;
+		}
 	}
 
 	/**
@@ -3012,7 +3020,8 @@ EOF;
 	 *                               "wrapper_class", "wrapper_style", "pre_class", "pre_style", "class" and "style",
 	 *                               which are all fed into the corresponding tags.
 	 *
-	 * @return string Returns a code tag, wrapped in a pre tag, wrapped in a div wrapper tag. Each tag can be styled independently with the settings.
+	 * @return string Returns a code tag, wrapped in a pre tag, wrapped in a div wrapper tag. Each tag can be styled
+	 *                independently with the settings.
 	 */
 	public static function pre($str, ?array $settings = [])
 	{
