@@ -2459,23 +2459,49 @@ abstract class Common {
 	{
 		# Not sure why this would go missing, but it has (at times)
         $sleep = 0;
-		if(@!$this->mysqli->thread_id){
-			do {
-				if($sleep > 0){
-					sleep($sleep);
-					if(str::isDev()){
-						Log::getInstance()->info([
-							"message" => "Slept for {$sleep} seconds, while waiting for a new mySQLi connection.",
-						], true);
-					}
-				}
-				$this->mysqli = mySQL::getNewConnection();
-				$sleep++;
-				if($sleep == 10){
-					throw new \Exception("Tried 10 times without luck to reconnect to the mySQL server when getting metadata of the {$db} db.");
-				}
-			} while(@!$this->mysqli->thread_id);
-		}
+        $connected = false;
+
+        if ($this->mysqli instanceof \mysqli) {
+            try {
+                $this->mysqli->query('DO 1');
+                $connected = true;
+            } catch (\mysqli_sql_exception $e) {
+                $connected = false;
+            }
+        }
+
+        if (!$connected) {
+            do {
+                if ($sleep > 0) {
+                    sleep($sleep);
+
+                    if (str::isDev()) {
+                        Log::getInstance()->info([
+                            'message' => "Slept for {$sleep} seconds while waiting for a new MySQL connection.",
+                        ], true);
+                    }
+                }
+
+                try {
+                    $this->mysqli = mySQL::getNewConnection();
+
+                    // verify connection works
+                    $this->mysqli->query('DO 1');
+
+                    break;
+                } catch (\Throwable $e) {
+                    $sleep++;
+
+                    if ($sleep >= 10) {
+                        throw new \Exception(
+                            "Tried 10 times without luck reconnecting to the MySQL server while getting metadata of the {$db} db.",
+                            0,
+                            $e
+                        );
+                    }
+                }
+            } while(true);
+        }
 
 		# If there is no "local" cache, but there a session schema cache, use it
 		if(!$this->meta && $_SESSION['schema_cache'][$this->mysqli->thread_id]){
