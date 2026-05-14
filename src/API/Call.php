@@ -316,6 +316,7 @@ class Call {
 	{
 		global $subscription_id;
 		global $subscription_api_key_token;
+		$route = self::getPayloadLogRoute($a);
 
 		PendingLog::set([
 			'subscription_id' => $subscription_id,
@@ -324,6 +325,9 @@ class Call {
 			'client_id' => NULL,
 			'api_key' => $subscription_api_key_token ?: NULL,
 			'endpoint' => $this->getFallbackPayloadLogEndpoint($a),
+			'rel_table' => $route['rel_table'],
+			'rel_id' => $route['rel_id'],
+			'action' => $route['action'],
 			'ip_address' => Geolocation::getIp(),
 			'payload' => is_array($a['vars'] ?? NULL) ? $a['vars'] : [],
 		]);
@@ -332,7 +336,7 @@ class Call {
 	/**
 	 * Builds the canonical endpoint string stored on fallback payload-log rows.
 	 *
-	 * When the request has already been aligned, we prefer the normal `rel_table//action`
+	 * When the request has already been aligned, we prefer the normal `rel_table/rel_id/action`
 	 * format. Otherwise we fall back to the raw redirected API path so malformed requests
 	 * can still be attributed to a route.
 	 *
@@ -363,15 +367,31 @@ class Call {
 	 */
 	public static function buildPayloadLogEndpoint(array $a, ?string $default_rel_table = NULL): string
 	{
-		$segments = array_values(array_filter([
-			$a['rel_table'] ?? $default_rel_table,
-			$a['rel_id'] ?? NULL,
-			$a['action'] ?? NULL,
-		], function($segment){
+		$segments = array_values(array_filter(self::getPayloadLogRoute($a, $default_rel_table), function($segment){
 			return $segment !== NULL && $segment !== '';
 		}));
 
 		return implode('/', $segments);
+	}
+
+	/**
+	 * Extracts the route fragments that identify an API request for payload logging.
+	 *
+	 * The route is stored both as a single human-readable endpoint string and as separate
+	 * columns so usage filtering can ignore dynamic rel_ids such as client UUIDs.
+	 *
+	 * @param array       $a                 The current request array.
+	 * @param string|null $default_rel_table Optional fallback rel_table when none was supplied.
+	 *
+	 * @return array The normalised `rel_table`, `rel_id`, and `action` fragments.
+	 */
+	public static function getPayloadLogRoute(array $a, ?string $default_rel_table = NULL): array
+	{
+		return [
+			'rel_table' => ($a['rel_table'] ?? NULL) ?: $default_rel_table,
+			'rel_id' => ($a['rel_id'] ?? NULL) ?: NULL,
+			'action' => ($a['action'] ?? NULL) ?: NULL,
+		];
 	}
 
 	/**
