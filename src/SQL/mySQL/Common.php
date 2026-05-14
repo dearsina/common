@@ -173,16 +173,294 @@ abstract class Common {
 	 */
 	protected ?array $tableAliasWithOrder = [];
 
+	/**
+	 * Indicates whether the persistent schema cache has been hydrated during the current request.
+	 *
+	 * This flag prevents multiple hydration attempts in a single request,
+	 * ensuring that the schema cache is loaded only once per request.
+	 *
+	 * @var bool 
+	 */
+	private bool $isHydrated = false;
+
+	/**
+	 * Seed the query helper with the shared mysqli connection owned by the root SQL class.
+	 *
+	 * Child query builders are short-lived and are created repeatedly during a request, so
+	 * they receive the already-open connection instead of opening their own.
+	 *
+	 * @param \mysqli|null $mysqli The active request-scoped MySQL connection.
+	 */
 	public function __construct(?\mysqli $mysqli = NULL)
 	{
 		$this->mysqli = $mysqli;
 	}
 
+	/**
+	 * Clear all object properties so the helper can be reused without leaking state from a
+	 * previous query build.
+	 *
+	 * This is deliberately broad: the query builders accumulate a large amount of derived
+	 * state while assembling SQL, and partial resets have historically been fragile.
+	 */
 	protected function resetVariables(): void
 	{
 		foreach(array_keys(get_object_vars($this)) as $var){
 			unset($this->{$var});
 		}
+	}
+
+	/**
+	 * Return the current server-side connection thread id, if a live mysqli instance exists.
+	 *
+	 * Temporary tables are scoped to the underlying MySQL connection, so their metadata cache
+	 * has to be keyed by thread id rather than by database name.
+	 *
+	 * @return int|null The current MySQL thread id, or NULL when no live connection is attached.
+	 */
+	private function getConnectionThreadId(): ?int
+	{
+		if(!($this->mysqli instanceof \mysqli)){
+			return NULL;
+		}
+
+		return $this->mysqli->thread_id ?: NULL;
+	}
+
+	/**
+	 * Pull durable schema metadata from the session cache into the current in-memory cache.
+	 *
+	 * The persistent cache stores real database schemas and is shared across AJAX requests in
+	 * the same PHP session. Local in-memory metadata wins on collisions because it may already
+	 * contain fresher state gathered earlier in the current request.
+	 */
+	private function hydratePersistentSchemaCache(): void
+	{
+		if ($this->isHydrated) {
+			return; // Stop parsing if we already loaded it in this request!
+		}
+
+		$schema_cache = $_SESSION['schema_cache']['db'] ?? NULL;
+		if(!is_array($schema_cache)){
+			return;
+		}
+
+		// Keep request-local metadata authoritative
+		$this->meta = array_replace_recursive($schema_cache, $this->meta ?: []);
+
+		$this->isHydrated = true; // Mark as complete
+	}
+
+	/**
+	 * Pull temporary-table metadata for the current connection thread into memory.
+	 *
+	 * Temp tables are not visible from other MySQL connections, so this cache must stay
+	 * connection-scoped even though the surrounding session cache is request-spanning.
+	 */
+	private function hydrateTmpSchemaCache(): void
+	{
+		if(!$thread_id = $this->getConnectionThreadId()){
+			return;
+		}
+
+		$schema_cache = $_SESSION['schema_cache']['tmp'][$thread_id] ?? NULL;
+		if(!is_array($schema_cache)){
+			return;
+		}
+
+		$this->meta['tmp'] = array_replace_recursive($schema_cache, $this->meta['tmp'] ?? []);
+	}
+
+	/**
+	 * Persist non-temporary schema metadata back into the session cache.
+	 *
+	 * Temporary-table metadata is intentionally stripped before persistence because it becomes
+	 * invalid as soon as the request uses a different MySQL connection.
+	 */
+	private function persistPersistentSchemaCache(): void
+	{
+		$meta = $this->meta;
+		unset($meta['tmp']);
+
+		if($meta){
+			$_SESSION['schema_cache']['db'] = $meta;
+		}
+		else {
+			unset($_SESSION['schema_cache']['db']);
+		}
+
+		$this->cleanupSchemaCacheSession();
+	}
+
+	/**
+	 * Persist temp-table metadata for the current connection thread only.
+	 *
+	 * This keeps temporary schemas available to other helper instances during the same request
+	 * while avoiding accidental reuse by later requests that will run on a different thread id.
+	 */
+	private function persistTmpSchemaCache(): void
+	{
+		if(!$thread_id = $this->getConnectionThreadId()){
+			return;
+		}
+
+		if(!empty($this->meta['tmp'])){
+			$_SESSION['schema_cache']['tmp'][$thread_id] = $this->meta['tmp'];
+		}
+		else {
+			unset($_SESSION['schema_cache']['tmp'][$thread_id]);
+		}
+
+		$this->cleanupSchemaCacheSession();
+	}
+
+	/**
+	 * Invalidate part or all of the persistent schema cache for a real database.
+	 *
+	 * Table-level invalidation is used for normal refreshes so unrelated tables in the same
+	 * schema keep their cached metadata. Database-level invalidation remains available for the
+	 * few call sites that genuinely need a clean reload.
+	 *
+	 * @param string      $db    Database name whose cached metadata should be invalidated.
+	 * @param string|null $table Optional table name to invalidate inside the database.
+	 */
+	private function invalidatePersistentSchemaCache(string $db, ?string $table = NULL): void
+	{
+		if($table){
+			unset($this->meta[$db][$table]);
+			unset($_SESSION['schema_cache']['db'][$db][$table]);
+
+			if(empty($this->meta[$db])){
+				unset($this->meta[$db]);
+			}
+			if(empty($_SESSION['schema_cache']['db'][$db])){
+				unset($_SESSION['schema_cache']['db'][$db]);
+			}
+		}
+		else {
+			unset($this->meta[$db]);
+			unset($_SESSION['schema_cache']['db'][$db]);
+		}
+
+		$this->cleanupSchemaCacheSession();
+	}
+
+	/**
+	 * Invalidate cached metadata for temporary tables on the current connection thread.
+	 *
+	 * @param string|null $table Optional temp-table name to invalidate. When omitted, the
+	 *                           entire temp-table cache for the current thread is removed.
+	 */
+	private function invalidateTmpSchemaCache(?string $table = NULL): void
+	{
+		$thread_id = $this->getConnectionThreadId();
+
+		if($table){
+			unset($this->meta['tmp'][$table]);
+			if($thread_id){
+				unset($_SESSION['schema_cache']['tmp'][$thread_id][$table]);
+				if(empty($_SESSION['schema_cache']['tmp'][$thread_id])){
+					unset($_SESSION['schema_cache']['tmp'][$thread_id]);
+				}
+			}
+
+			if(empty($this->meta['tmp'])){
+				unset($this->meta['tmp']);
+			}
+		}
+		else {
+			unset($this->meta['tmp']);
+			if($thread_id){
+				unset($_SESSION['schema_cache']['tmp'][$thread_id]);
+			}
+		}
+
+		$this->cleanupSchemaCacheSession();
+	}
+
+	/**
+	 * Remove empty schema-cache branches from the session payload.
+	 *
+	 * This keeps the session structure compact and avoids leaving behind empty `db` / `tmp`
+	 * arrays that would otherwise make debugging cache state harder.
+	 */
+	private function cleanupSchemaCacheSession(): void
+	{
+		if(empty($_SESSION['schema_cache']['db'])){
+			unset($_SESSION['schema_cache']['db']);
+		}
+
+		if(empty($_SESSION['schema_cache']['tmp'])){
+			unset($_SESSION['schema_cache']['tmp']);
+		}
+
+		if(empty($_SESSION['schema_cache'])){
+			unset($_SESSION['schema_cache']);
+		}
+	}
+
+	/**
+	 * Ensure a usable MySQL connection exists before issuing a metadata query.
+	 *
+	 * Metadata reads are less latency-sensitive than the normal query path, so this method
+	 * does an explicit liveness probe and bounded retry loop only when a cache miss forces us
+	 * to talk to `INFORMATION_SCHEMA` or `SHOW COLUMNS`.
+	 *
+	 * @param string $db Database name used only for error context.
+	 *
+	 * @throws \Exception When the connection cannot be re-established after repeated retries.
+	 */
+	private function ensureMetadataConnection(string $db): void
+	{
+		$sleep = 0;
+		$connected = false;
+
+		if($this->mysqli instanceof \mysqli){
+			try {
+				$this->mysqli->query('DO 1');
+				$connected = true;
+			}
+			catch(\mysqli_sql_exception $e) {
+				$connected = false;
+			}
+		}
+
+		if($connected){
+			return;
+		}
+
+		do {
+			if($sleep > 0){
+				// Back off progressively so a struggling server gets a brief recovery window.
+				sleep($sleep);
+
+				if(str::isDev()){
+					Log::getInstance()->info([
+						'message' => "Slept for {$sleep} seconds while waiting for a new MySQL connection.",
+					], true);
+				}
+			}
+
+			try {
+				$this->mysqli = mySQL::getNewConnection();
+
+				// Verify the replacement connection works before carrying on.
+				$this->mysqli->query('DO 1');
+
+				return;
+			}
+			catch(\Throwable $e) {
+				$sleep++;
+
+				if($sleep >= 10){
+					throw new \Exception(
+						"Tried 10 times without luck reconnecting to the MySQL server while getting metadata of the {$db} db.",
+						0,
+						$e
+					);
+				}
+			}
+		} while(true);
 	}
 
 	/**
@@ -2030,18 +2308,27 @@ abstract class Common {
 	 * into fields they're not allowed to insert values into,
 	 * or don't exist.
 	 *
-	 * @param array $set Array of columns to set.
+	 * The normal path reads from cached table metadata. If the caller is trying to write a
+	 * column that the cache does not know about yet, we do one targeted refresh before
+	 * filtering the requested columns. That lets long-lived sessions survive deploy-time
+	 * schema changes without forcing every write path to refresh metadata up front.
 	 */
 	protected function removeIllegalColumns(): void
 	{
 		# If this table has no columns the user can set
-		if(!$table_metadata = $this->getTableMetadata($this->table, true)){
+		if(!$table_metadata = $this->getTableMetadata($this->table)){
 			throw new mysqli_sql_exception("The <code>{$this->table['name']}</code> table has no columns that can be set.");
 		}
 
 		# Take into consideration that columns in mySQL are case-insensitive, but array keys in PHP are case-sensitive
 		$table_metadata = array_change_key_case($table_metadata, CASE_LOWER);
 		$this->columns = array_map("strtolower", $this->columns);
+
+		# If the cache predates a schema change, refresh once and re-check the requested columns
+		if(array_diff($this->columns, array_keys($table_metadata))){
+			// A missing requested column is the clearest signal that the session cache is stale.
+			$table_metadata = array_change_key_case($this->getTableMetadata($this->table, true), CASE_LOWER);
+		}
 
 		# Only keep the columns that actually exist in the table (and that the user can update/insert)
 		$this->columns = array_intersect($this->columns, array_keys($table_metadata));
@@ -2358,17 +2645,24 @@ abstract class Common {
 	}
 
 	/**
-	 * Returns a table (array) of metadata for a given table, on a column-per-row basis.
+	 * Returns column metadata for a table in `column_name => information_schema_row` form.
+	 *
+	 * This is the public entry point used throughout the SQL layer. It normalises the caller's
+	 * table reference, routes temp tables to the thread-scoped cache path, routes real tables to
+	 * the session-persisted schema cache, and optionally filters out columns that callers are not
+	 * allowed to write to.
+	 *
 	 * Can be called externally like so:
 	 * <code>
 	 * $this->sql->getTableMetadata($tbl, true, true);
 	 * </code>
 	 *
-	 * @param string|array $table   A table array (containing at least `db` and `name` keys)
-	 * @param bool|null    $refresh If set to TRUE will force a refresh of the metadata
-	 * @param bool|null    $all     If set to TRUE to return all columns (not just the ones the user can update)
+	 * @param string|array $table   A table array (containing at least `db` and `name` keys), or a
+	 *                              bare table name in the default database.
+	 * @param bool|null    $refresh If TRUE, invalidate the relevant cache branch before reloading.
+	 * @param bool|null    $all     If TRUE, return all columns instead of only user-writeable ones.
 	 *
-	 * @return array
+	 * @return array Column metadata keyed by column name.
 	 * @throws BadRequest
 	 * @throws \Swoole\ExitException
 	 */
@@ -2414,7 +2708,7 @@ abstract class Common {
 
 			# Ensure newly created tables are captured
 			if(!$this->meta[$table['db']][$table['name']]){
-				//If the table isn't found, because maybe it was just created
+				// A cache miss here often means the table was created earlier in the same request.
 				# Rerun the loading, just in case
 				$this->loadDatabaseMetadata($table['db'], $table['name'], true);
 			}
@@ -2441,88 +2735,40 @@ abstract class Common {
 	 * table or column exists, we load all the metadata for an entire
 	 * database with a single call.
 	 *
-	 * This method will not only save the data in a class variable,
-	 * it will also store it in a session variable. This allows for
-	 * mySQL scripts from other all copies of the SQL class to
-	 * share the same metadata information, reducing the number of
-	 * times the DB call from this method is required to one per
-	 * PHP script.
+	 * This method hydrates from the session cache first, only touches the database on a cache
+	 * miss, and then writes the fresh schema snapshot back to the session. The cache is keyed
+	 * by real database/table names so it survives across AJAX requests in the same PHP session.
 	 *
 	 * @param string      $db
-	 * @param string|null $table
-	 * @param bool|null   $refresh
-	 * @param bool|null   $retrying
+	 * @param string|null $table   Optional table name whose branch should be present in cache.
+	 * @param bool|null   $refresh If TRUE, invalidate the relevant cache branch before loading.
+	 * @param bool|null   $retrying Retained for signature compatibility with older call sites.
 	 *
 	 * @throws \Swoole\ExitException|BadRequest
 	 */
 	private function loadDatabaseMetadata(string $db, ?string $table = NULL, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
-		# Not sure why this would go missing, but it has (at times)
-        $sleep = 0;
-        $connected = false;
-
-        if ($this->mysqli instanceof \mysqli) {
-            try {
-                $this->mysqli->query('DO 1');
-                $connected = true;
-            } catch (\mysqli_sql_exception $e) {
-                $connected = false;
-            }
-        }
-
-        if (!$connected) {
-            do {
-                if ($sleep > 0) {
-                    sleep($sleep);
-
-                    if (str::isDev()) {
-                        Log::getInstance()->info([
-                            'message' => "Slept for {$sleep} seconds while waiting for a new MySQL connection.",
-                        ], true);
-                    }
-                }
-
-                try {
-                    $this->mysqli = mySQL::getNewConnection();
-
-                    // verify connection works
-                    $this->mysqli->query('DO 1');
-
-                    break;
-                } catch (\Throwable $e) {
-                    $sleep++;
-
-                    if ($sleep >= 10) {
-                        throw new \Exception(
-                            "Tried 10 times without luck reconnecting to the MySQL server while getting metadata of the {$db} db.",
-                            0,
-                            $e
-                        );
-                    }
-                }
-            } while(true);
-        }
-
-		# If there is no "local" cache, but there a session schema cache, use it
-		if(!$this->meta && $_SESSION['schema_cache'][$this->mysqli->thread_id]){
-			$this->meta = $_SESSION['schema_cache'][$this->mysqli->thread_id];
-		}
+		# Reuse any persisted cache before touching the database
+		$this->hydratePersistentSchemaCache();
 
 		# Clear any cache if the loaded data is to be refreshed
 		if($refresh){
-			unset($this->meta[$db]);
+			$this->invalidatePersistentSchemaCache($db, $table);
 		}
 
-		# We're only doing this once per DB call, unless that DB is "cache"
-		if($db == "cache"){
-			if($this->meta[$db][$table]){
+		# We're only doing this when the requested schema is not already cached
+		if($table){
+			// Table-level cache hits are enough for the callers that only need one table verified.
+			if(!empty($this->meta[$db][$table])){
 				return;
 			}
 		}
-
-		else if($this->meta[$db]){
+		else if(!empty($this->meta[$db])){
 			return;
 		}
+
+		# Only validate the connection if we actually need to hit INFORMATION_SCHEMA
+		$this->ensureMetadataConnection($db);
 
 		# Write the query for database metadata
 		$query = "
@@ -2545,6 +2791,10 @@ abstract class Common {
 
 		# Go through the result (assuming the database exists)
 		if(is_array($result['rows'])){
+			# Replace the cached snapshot for this database with the freshly loaded one
+			// Clearing the old branch prevents removed tables/columns from lingering in the cache.
+			unset($this->meta[$db]);
+
 			# Save each result row
 			foreach($result['rows'] as $row){
 				if($db == "cache" && $table && $row['TABLE_NAME'] != $table){
@@ -2563,9 +2813,8 @@ abstract class Common {
 			}
 		}
 
-		# Log the added-to schema as a session schema cache
-		unset($_SESSION['schema_cache']);
-		$_SESSION['schema_cache'][$this->mysqli->thread_id] = $this->meta;
+		# Persist the durable schema cache across requests
+		$this->persistPersistentSchemaCache();
 	}
 
 	/**
@@ -2573,28 +2822,28 @@ abstract class Common {
 	 * method.
 	 *
 	 * Because tmp tables don't have a database as such,
-	 * we have to load their metadata one by one.
+	 * we have to load their metadata one by one. Unlike real-table metadata, this cache stays
+	 * tied to the current MySQL thread id because temp tables disappear outside that connection.
 	 *
-	 * @param string    $table    The tmp table name
-	 * @param bool|null $refresh  If set to TRUE will force a refresh of the metadata
-	 * @param bool|null $retrying Whether we're retrying or not
+	 * @param string    $table    The tmp table name.
+	 * @param bool|null $refresh  If TRUE, invalidate the cached temp-table metadata first.
+	 * @param bool|null $retrying Internal recursion guard used after reconnecting.
 	 *
 	 * @throws \Swoole\ExitException
 	 */
 	protected function loadTmpTableMetadata(string $table, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
-		# If there is no "local" cache, but there a session schema cache, use it
-		if(!$this->meta && $_SESSION['schema_cache'][$this->mysqli->thread_id]){
-			$this->meta = $_SESSION['schema_cache'][$this->mysqli->thread_id];
-		}
+		// Real-table metadata may already be in memory, so reload both cache layers in a fixed order.
+		$this->hydratePersistentSchemaCache();
+		$this->hydrateTmpSchemaCache();
 
 		# Clear any cache if the loaded data is to be refreshed
 		if($refresh){
-			unset($this->meta['tmp']);
+			$this->invalidateTmpSchemaCache($table);
 		}
 
 		# We're only doing this once per DB call
-		if($this->meta["tmp"][$table]){
+		if(!empty($this->meta["tmp"][$table])){
 			return;
 		}
 
@@ -2612,13 +2861,16 @@ abstract class Common {
 				throw new \Exception("SQL reconnection error when trying to get the metadata of a temp table [{$e->getCode()}]: {$e->getMessage()}");
 			}
 			$this->mysqli = mySQL::getNewConnection();
+			// Temp tables are connection-bound, so reloading after reconnect is the only safe recovery path.
 			$this->loadTmpTableMetadata($table, $refresh, true);
+			return;
 		}
 
 		# Go through the result (assuming the database-table exists)
 		if(is_object($result)){
 			# Convert and save each result row
-            $ordinal_position = 0;
+			// SHOW COLUMNS does not return ordinal position in INFORMATION_SCHEMA shape, so we reconstruct it.
+			$ordinal_position = 0;
 			while($c = $result->fetch_assoc()) {
 				$ordinal_position++;
 				$c = $this->convertShowColumnsRowToInformationSchemaFormat($table, $c, $ordinal_position);
@@ -2628,9 +2880,8 @@ abstract class Common {
 			//Frees the memory associated with the result.
 		}
 
-		# Log the added-to schema as a session schema cache
-		unset($_SESSION['schema_cache']);
-		$_SESSION['schema_cache'][$this->mysqli->thread_id] = $this->meta;
+		# Persist temp-table metadata only for the current connection
+		$this->persistTmpSchemaCache();
 	}
 
 	/**
