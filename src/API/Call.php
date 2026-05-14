@@ -10,11 +10,13 @@ use App\Common\Exception\Unauthorized;
 use App\Common\Connection\Connection;
 use App\Common\Exception\UnprocessableEntity;
 use App\Common\ExceptionHandler;
+use App\Common\Geolocation\Geolocation;
 use App\Common\Log;
 use App\Common\Output;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
 use App\Common\str;
+use App\SubscriptionApiKey\SubscriptionApiKey;
 
 /**
  * Class Call
@@ -78,7 +80,7 @@ class Call {
 		# If the data sent was in the wrong format
 		catch(BadRequest $e) {
 			# The error code is the HTTP response code
-			http_response_code($e->getCode());
+			http_response_code($this->normaliseHttpResponseCode((int)$e->getCode(), 400));
 
 			# The error message can be made public
 			$output = [
@@ -129,6 +131,7 @@ class Call {
 		try {
 			# Ensure the API key exists, is valid and has been converted to $user_id/$role global variables
 			$this->alignAccess();
+			$this->registerFallbackPayloadLog($a);
 
 			# Make the request
 			$result = $this->request($a);
@@ -150,7 +153,7 @@ class Call {
 			$this->connection_id = Connection::open();
 
 			# The error code is the HTTP response code
-			http_response_code($e->getCode());
+			http_response_code($this->normaliseHttpResponseCode((int)$e->getCode(), 401));
 
 			# The error message can be made public
 			$output = [
@@ -161,7 +164,7 @@ class Call {
 
 		catch(UnprocessableEntity $e){
 			# The error code is the HTTP response code
-			http_response_code($e->getCode());
+			http_response_code($this->normaliseHttpResponseCode((int)$e->getCode(), 422));
 
 			# The error message is already formatted as a JSON
 			$output = json_decode($e->getMessage(), true);
@@ -170,7 +173,7 @@ class Call {
 		# All other exceptions are caught here
 		catch(\Exception $e) {
 			# Throw a 500 Internal Server Error
-			http_response_code($e->getCode());
+			http_response_code($this->normaliseHttpResponseCode((int)$e->getCode(), 500));
 
 			# Log the error for closer examination
 			ExceptionHandler::logException("API", $e);
@@ -298,6 +301,80 @@ class Call {
 	}
 
 	/**
+	 * Registers a minimal payload-log context for the current authenticated API request.
+	 *
+	 * Endpoint-specific handlers may later replace this with richer workflow, location, and
+	 * client context once they have resolved those details. The fallback exists so requests
+	 * that fail before module-specific registration, such as generic 400 responses, still
+	 * get a payload-log row.
+	 *
+	 * @param array $a The current request array.
+	 *
+	 * @return void
+	 */
+	private function registerFallbackPayloadLog(array $a): void
+	{
+		global $subscription_id;
+		global $subscription_api_key_token;
+
+		PendingLog::set([
+			'subscription_id' => $subscription_id,
+			'workflow_id' => NULL,
+			'location' => NULL,
+			'client_id' => NULL,
+			'api_key' => $subscription_api_key_token ?: NULL,
+			'endpoint' => $this->getFallbackPayloadLogEndpoint($a),
+			'ip_address' => Geolocation::getIp(),
+			'payload' => is_array($a['vars'] ?? NULL) ? $a['vars'] : [],
+		]);
+	}
+
+	/**
+	 * Builds the canonical endpoint string stored on fallback payload-log rows.
+	 *
+	 * When the request has already been aligned, we prefer the normal `rel_table//action`
+	 * format. Otherwise we fall back to the raw redirected API path so malformed requests
+	 * can still be attributed to a route.
+	 *
+	 * @param array $a The current request array.
+	 *
+	 * @return string The endpoint identifier for the payload log.
+	 */
+	private function getFallbackPayloadLogEndpoint(array $a): string
+	{
+		if($endpoint = self::buildPayloadLogEndpoint($a)){
+			return $endpoint;
+		}
+
+		return trim((string)($_SERVER['REDIRECT_URL'] ?? 'api'), '/') ?: 'api';
+	}
+
+	/**
+	 * Builds the canonical endpoint string stored on API payload log rows.
+	 *
+	 * The route is normalised into `rel_table/rel_id/action` order, with blank trailing or
+	 * missing segments omitted so partial routes such as `client/{workflow_id}` or
+	 * `client/get` still render cleanly.
+	 *
+	 * @param array       $a                 The current request array.
+	 * @param string|null $default_rel_table Optional fallback rel_table when none was supplied.
+	 *
+	 * @return string The canonical endpoint identifier, or an empty string when no route data exists.
+	 */
+	public static function buildPayloadLogEndpoint(array $a, ?string $default_rel_table = NULL): string
+	{
+		$segments = array_values(array_filter([
+			$a['rel_table'] ?? $default_rel_table,
+			$a['rel_id'] ?? NULL,
+			$a['action'] ?? NULL,
+		], function($segment){
+			return $segment !== NULL && $segment !== '';
+		}));
+
+		return implode('/', $segments);
+	}
+
+	/**
 	 * Normalises auxiliary hook failures into the exception logger.
 	 *
 	 * The shared exception logger accepts `\Exception` instances only, while the response
@@ -357,14 +434,12 @@ class Call {
 		}
 
 		# Ensure the API key is valid
-		if(!$subscription = $this->sql->select([
-			"table" => "subscription",
-			"where" => [
-				"api_key" => $api_key,
-			],
-			"limit" => 1,
-		])){
+		if(!$subscription_api_key = SubscriptionApiKey::getByToken($api_key)){
 			throw new Unauthorized("The API key supplied is not valid.", "Invalid API key [{$api_key}] supplied");
+		}
+
+		if(!$subscription = $subscription_api_key['subscription']){
+			throw new Unauthorized("The API key supplied is not valid.", "API key [{$api_key}] is no longer attached to a valid subscription.");
 		}
 
 		# Ensure the subscription is active
@@ -378,8 +453,35 @@ class Call {
 		global $subscription_id;
 		$subscription_id = $subscription['subscription_id'];
 
+		global $subscription_api_key_context;
+		$subscription_api_key_context = $subscription_api_key;
+
+		global $subscription_api_key_token;
+		$subscription_api_key_token = $api_key;
+
 		# Log the API call connection
 		$this->connection_id = Connection::open();
+	}
+
+	/**
+	 * Ensures only valid HTTP response codes are set on the response before auxiliary
+	 * logging reads them back.
+	 *
+	 * PHP leaves the current status in place when fed an invalid code, which can cause
+	 * error responses to be recorded as `200` in downstream logs.
+	 *
+	 * @param int $response_code The candidate response code from an exception.
+	 * @param int $fallback      The safe status code to use when the candidate is invalid.
+	 *
+	 * @return int A valid HTTP response code.
+	 */
+	private function normaliseHttpResponseCode(int $response_code, int $fallback): int
+	{
+		if($response_code >= 100 && $response_code <= 599){
+			return $response_code;
+		}
+
+		return $fallback;
 	}
 
 	/**
