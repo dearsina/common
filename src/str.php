@@ -3136,35 +3136,68 @@ EOF;
 			$order = [$order => 'asc'];
 		}
 
-		uasort($array, function($a, $b) use ($order, $case_sensitive){
-			$t = [true => -1, false => 1];
-			$r = true;
-			$k = 1;
-			foreach($order as $key => $value){
-				if(is_array($value)){
+		$sorts = [];
+		foreach($order as $key => $value){
+			if(is_array($value)){
+				continue;
+			}
+
+			$sorts[] = [
+				'path' => is_array($key) ? $key : explode('.', $key),
+				'dir' => (strtolower($value) === 'asc') ? 1 : -1,
+			];
+		}
+
+		if(!$sorts){
+			return;
+		}
+
+		$decorated = [];
+		$index = 0;
+		foreach($array as $original_key => $row){
+			$values = [];
+			foreach($sorts as $sort){
+				$value = self::getNestedValue($row, $sort['path']);
+				if(!$case_sensitive && !is_array($value)){
+					$value = strtolower((string)$value);
+				}
+				$values[] = $value;
+			}
+
+			$decorated[] = [
+				'key' => $original_key,
+				'row' => $row,
+				'values' => $values,
+				'index' => $index++,
+			];
+		}
+
+		usort($decorated, function($a, $b) use ($sorts){
+			foreach($sorts as $i => $sort){
+				$a_value = $a['values'][$i];
+				$b_value = $b['values'][$i];
+
+				if($a_value == $b_value){
 					continue;
 				}
-				$k = (mb_strtolower($value) === 'asc') ? 1 : -1;
 
-				$a_value = self::getNestedValue($a, $key);
-				$b_value = self::getNestedValue($b, $key);
-
-				if($case_sensitive || is_array($a_value) || is_array($b_value)){
-					$r = ($a_value < $b_value);
-				}
-				else {
-					$r = (strtolower($a_value) < strtolower($b_value));
-				}
-				if($a_value !== $b_value){
-					return $t[$r] * $k;
-				}
+				return ($a_value < $b_value ? -1 : 1) * $sort['dir'];
 			}
-			return $t[$r] * $k;
+
+			return $a['index'] <=> $b['index'];
 		});
 
 		if($reset_keys){
-			$array = array_values($array);
+			$array = array_column($decorated, 'row');
+			return;
 		}
+
+		$ordered = [];
+		foreach($decorated as $item){
+			$ordered[$item['key']] = $item['row'];
+		}
+
+		$array = $ordered;
 	}
 
 	/**
