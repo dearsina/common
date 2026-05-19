@@ -480,7 +480,7 @@ abstract class Common {
 			$this->table = $this->getTable($table['db'], $table['table'], $id, true, $count);
 			$select = new Select($this->mysqli);
 			$this->table['sub_query'] = $select->select($table, true);
-			$this->table['include_removed'] = true;
+			$this->table['include_removed'] = $include_removed;
 			$this->table['columns'] = $select->getAllColumns();
 		}
 
