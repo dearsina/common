@@ -102,6 +102,16 @@ class mySQL extends Common {
 		return $mysqli;
 	}
 
+	/**
+	 * Keep the shared request-scoped SQL instance aligned with a reconnected mysqli handle.
+	 */
+	public static function replaceSharedConnection(\mysqli $mysqli): void
+	{
+		if(self::$instance instanceof self){
+			self::$instance->mysqli = $mysqli;
+		}
+	}
+
 	private function __clone()
 	{
 		// Prevent the cloning of the object
@@ -267,7 +277,7 @@ class mySQL extends Common {
 	protected function reconnect(?int $tries = 0): bool
 	{
 		try {
-			if(!@$this->mysqli->ping()){
+			if($this->connectionHandleIsClosed() || !@$this->mysqli->ping()){
 				throw new mysqli_sql_exception("SQL ping error: " . mysqli_connect_error(), mysqli_connect_errno());
 			}
 			return true;
@@ -275,17 +285,20 @@ class mySQL extends Common {
 		catch(mysqli_sql_exception $e) {
 			if($tries < 4){
 				# Close the connection
-				@$this->mysqli->close();
+				$this->closeConnectionSilently();
 				# Sleep
 				sleep($tries);
-				# Create a new connection
-				if(self::__construct()){
+				try {
+					# Create a new connection
+					$this->replaceConnection(self::getNewConnection());
 					return true;
 				}
-				# Count the try
-				$tries++;
-				# Rerun the reconnection
-				return $this->reconnect($tries);
+				catch(\Throwable $reconnect_error) {
+					# Count the try
+					$tries++;
+					# Rerun the reconnection
+					return $this->reconnect($tries);
+				}
 			}
 		}
 		return false;

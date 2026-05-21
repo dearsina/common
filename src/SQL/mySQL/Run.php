@@ -77,7 +77,7 @@ class Run extends Common {
 		}
 
 			# Catch either type of mySQL error
-		catch(MySqlException|\mysqli_sql_exception $e) {
+		catch(\Throwable $e) {
 			# Grab the error message
 			$message = $e->getMessage();
 			// Grabbing it so that we can optionally add to it
@@ -87,15 +87,16 @@ class Run extends Common {
 			case $message == 'MySQL server has gone away':
 			case $message == 'Deadlock found when trying to get lock; try restarting transaction':
 			case stripos($message, 'OS errno 24 - Too many open files') !== false:
+			case stripos($message, 'mysqli object is already closed') !== false:
 				//			default:
 				# Try again if we haven't tried too many times
 				if($tries <= self::MAX_TRIES){
 					# Close the connection
-					$this->mysqli->close();
+					$this->closeConnectionSilently();
 					# Sleep
 					sleep($tries);
 					# Create a new connection
-					$this->mysqli = mySQL::getNewConnection();
+					$this->replaceConnection(mySQL::getNewConnection());
 					# Count the try
 					$tries++;
 					# Rerun the query
@@ -179,8 +180,8 @@ class Run extends Common {
 	 */
 	private function ensureConnection(): void
 	{
-		if(!$this->mysqli){
-			$this->mysqli = mySQL::getNewConnection();
+		if($this->connectionHandleIsClosed()){
+			$this->replaceConnection(mySQL::getNewConnection());
 		}
 	}
 

@@ -197,6 +197,57 @@ abstract class Common {
 	}
 
 	/**
+	 * Replace the current mysqli handle and update the shared root SQL instance as well.
+	 *
+	 * Query helpers are short-lived, but the root mySQL singleton is reused across a request.
+	 * When a helper has to reconnect, the singleton must be kept in sync or later helpers will
+	 * be seeded with a stale closed handle.
+	 */
+	protected function replaceConnection(\mysqli $mysqli): void
+	{
+		$this->mysqli = $mysqli;
+		mySQL::replaceSharedConnection($mysqli);
+	}
+
+	/**
+	 * Close the current mysqli handle without letting an already-closed object raise an Error.
+	 */
+	protected function closeConnectionSilently(): void
+	{
+		if(!isset($this->mysqli) || !($this->mysqli instanceof \mysqli)){
+			return;
+		}
+
+		try {
+			@$this->mysqli->close();
+		}
+		catch(\Throwable $e) {
+			// The handle is already unusable. Nothing else to do here.
+		}
+	}
+
+	/**
+	 * Detect whether the current mysqli handle has already been closed.
+	 *
+	 * Accessing lightweight handle metadata is enough here; if the object is closed, PHP raises
+	 * an Error before any network round-trip happens.
+	 */
+	protected function connectionHandleIsClosed(): bool
+	{
+		if(!isset($this->mysqli) || !($this->mysqli instanceof \mysqli)){
+			return true;
+		}
+
+		try {
+			$this->mysqli->thread_id;
+			return false;
+		}
+		catch(\Throwable $e) {
+			return true;
+		}
+	}
+
+	/**
 	 * Clear all object properties so the helper can be reused without leaking state from a
 	 * previous query build.
 	 *
@@ -220,11 +271,16 @@ abstract class Common {
 	 */
 	private function getConnectionThreadId(): ?int
 	{
-		if(!($this->mysqli instanceof \mysqli)){
+		if(!isset($this->mysqli) || !($this->mysqli instanceof \mysqli)){
 			return NULL;
 		}
 
-		return $this->mysqli->thread_id ?: NULL;
+		try {
+			return $this->mysqli->thread_id ?: NULL;
+		}
+		catch(\Throwable $e) {
+			return NULL;
+		}
 	}
 
 	/**
@@ -442,7 +498,7 @@ abstract class Common {
 			}
 
 			try {
-				$this->mysqli = mySQL::getNewConnection();
+				$this->replaceConnection(mySQL::getNewConnection());
 
 				// Verify the replacement connection works before carrying on.
 				$this->mysqli->query('DO 1');
@@ -2860,7 +2916,7 @@ abstract class Common {
 			if($retrying){
 				throw new \Exception("SQL reconnection error when trying to get the metadata of a temp table [{$e->getCode()}]: {$e->getMessage()}");
 			}
-			$this->mysqli = mySQL::getNewConnection();
+			$this->replaceConnection(mySQL::getNewConnection());
 			// Temp tables are connection-bound, so reloading after reconnect is the only safe recovery path.
 			$this->loadTmpTableMetadata($table, $refresh, true);
 			return;
