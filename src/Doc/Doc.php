@@ -988,6 +988,8 @@ class Doc extends \App\Common\Prototype {
 				# Resize the image (if required)
 				$file['scale_ratio'] = self::resizeImage($im, $max_width, $max_height);
 				//This will return 1 if the image is not resized
+                $file['width'] = $im->getImageWidth();
+                $file['height'] = $im->getImageHeight();
 			}
 
 				# If there is an error
@@ -1024,7 +1026,7 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Failsafe
-		if(!$file['width'] || !$file['width']){
+		if(!$file['width'] || !$file['height']){
 			return NULL;
 		}
 
