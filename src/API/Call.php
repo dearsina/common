@@ -582,17 +582,23 @@ class Call {
 		# The first section is always the rel_table
 		$_REQUEST['rel_table'] = $hash[1];
 
-		# Depending on whether the second section is a UUID or not, it's either a rel_id (UUID) or action (non-UUID)
-		if(\App\Common\str::isUuid($hash[2])){
-			//We have to check for this because API calls without rel_ids are problematic
+		# Three-part routes follow the canonical `rel_table/rel_id/action` shape,
+		# even when the rel_id is not a UUID. This is required for public custom
+		# identifiers such as workflow version set short codes:
+		# - /client/{workflow-short-code}/insert
+		# - /webhook/{workflow-short-code}/insert
+		#
+		# Two-part routes still mean `rel_table/action`, for endpoints like:
+		# - /client/get
+		# - /client/remove
+		if($hash[3]){
 			$_REQUEST['rel_id'] = $hash[2];
-			# If there is a rel_id, check to see if there is a third variable
-			if($hash[3]){
-				//In which case that's the action
-				$_REQUEST['action'] = $hash[3];
-			}
-		} else {
-			//If the second variable is NOT a UUID, then it must be an action
+			$_REQUEST['action'] = $hash[3];
+		}
+		else if(\App\Common\str::isUuid($hash[2])){
+			$_REQUEST['rel_id'] = $hash[2];
+		}
+		else {
 			$_REQUEST['action'] = $hash[2];
 		}
 
