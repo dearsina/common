@@ -6075,11 +6075,11 @@ LATEX;
 	 * Converts a string into a URL-friendly "slug".
 	 *
 	 * @param string|null $text
-	 * @param string|null $separator The default separator is '-'
+	 * @param string|null $separator The default separator is '_'
 	 *
 	 * @return string
 	 */
-	public static function slugify(?string $text, ?string $separator = "-"): ?string
+	public static function slugify(?string $text, ?string $separator = "_"): ?string
 	{
 		if($text === NULL){
 			return NULL;
@@ -6103,14 +6103,15 @@ LATEX;
 		$text = mb_strtolower($text, 'UTF-8');
 
 		# replace anything that's not letter, number or separator with a space
-		$text = preg_replace('~[^\\pL\\pN]+~u', ' ', $text);
+		$pattern = sprintf('~[^%s\\pL\\pN]+~u', preg_quote($separator, '~'));
+		$text = preg_replace($pattern, ' ', $text);
 
 		# replace spaces and repeated separators with single separator
-		$text = preg_replace('~[\\s_]+~u', $separator, $text);
+		$pattern = sprintf('~[%s\\s]+~u', preg_quote($separator, '~'));
+		$text = preg_replace($pattern, $separator, $text);
 
-		# remove any characters that are not separator, letters or numbers
-		$pattern = sprintf('~[^%s\\pL\\pN]+~u', preg_quote($separator, '~'));
-		$text = preg_replace($pattern, '', $text);
+		# Ensure the string doesn't start or end with separators
+		$text = trim($text, $separator);
 
 		# If the text is empty, return NULL
 		if($text === ''){
