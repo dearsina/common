@@ -1192,6 +1192,7 @@ abstract class Common {
 	 */
 	protected function recursiveWhere(array $table, string $glue, array $array, ?bool $where = NULL): array
 	{
+        $outer = [];
 		foreach($array as $key => $val){
 
 			# Goes deeper if required
