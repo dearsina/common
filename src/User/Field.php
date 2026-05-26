@@ -517,12 +517,13 @@ class Field extends FieldPrototype {
 	}
 
 	/**
-	 * @param null $a
+	 * @param array|null $a
+	 * @param array      $user
 	 *
 	 * @return array[]
 	 * @throws \Exception
 	 */
-	public static function codeFor2FA($a = NULL)
+	public static function codeFor2FA(?array $a = NULL, array $user)
 	{
 		if(is_array($a))
 			extract($a);

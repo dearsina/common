@@ -345,7 +345,7 @@ class Card extends Prototype {
 			"action" => "verify_2FA_code",
 			"rel_id" => $user['user_id'],
 			"callback" => $this->hash->getCallback(),
-			"fields" => Field::codeFor2FA($vars),
+			"fields" => Field::codeFor2FA($vars, $user),
 			"buttons" => $buttons,
 		]);
 

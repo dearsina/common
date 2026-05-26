@@ -1193,7 +1193,7 @@ class User extends Prototype {
 				"email" => $vars['email'],
 				"phone" => $vars['phone'],
 				"last_role" => "user",
-                "2fa_enabled" => ['app' => true, 'email' => false],
+				"2fa_enabled" => ['app' => true, 'email' => false],
 				"key" => $key,
 			],
 		]);
@@ -1368,7 +1368,7 @@ class User extends Prototype {
 				"email" => $vars['email'],
 				"phone" => $vars['phone'],
 				"last_role" => "user",
-                "2fa_enabled" => ['app' => true, 'email' => false],
+				"2fa_enabled" => ['app' => true, 'email' => false],
 				"key" => $key,
 			],
 		]);
@@ -3352,7 +3352,7 @@ class User extends Prototype {
 	protected function generateSessionToken(): string
 	{
 		return session_id();
-//		return bin2hex(random_bytes(32));
+		//		return bin2hex(random_bytes(32));
 	}
 
 	/**
@@ -3405,12 +3405,12 @@ class User extends Prototype {
 
 		# Set the browser cookie
 		setcookie($key, $val, [
-			'expires'  => $expires,
-			'path'     => '/',
-			'domain'   => $_ENV['domain'],
+			'expires' => $expires,
+			'path' => '/',
+			'domain' => $_ENV['domain'],
 			// By setting the domain to the root domain, the cookie will be available on all subdomains, but not on parent domains.
 			// For example, if the domain is set to "example.com", the cookie will be available on "www.example.com" and "sub.example.com", but not on "anotherdomain.com".
-			'secure'   => true,
+			'secure' => true,
 			'httponly' => true,
 			'samesite' => 'Strict',
 		]);
@@ -3631,5 +3631,26 @@ class User extends Prototype {
 		$this->hash->set("home");
 
 		return true;
+	}
+
+	public static function get2FaMethod(?array $user): ?string
+	{
+		if(!$user){
+			return NULL;
+		}
+
+		if(!$user['2fa_enabled']){
+			return NULL;
+		}
+
+		if($user['2fa_enabled']['app']){
+			return "app";
+		}
+
+		if($user['2fa_enabled']['email']){
+			return "email";
+		}
+
+		return NULL;
 	}
 }
