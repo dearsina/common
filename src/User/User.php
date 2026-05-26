@@ -1193,7 +1193,7 @@ class User extends Prototype {
 				"email" => $vars['email'],
 				"phone" => $vars['phone'],
 				"last_role" => "user",
-				"2fa_enabled" => true,
+                "2fa_enabled" => ['app' => true, 'email' => false],
 				"key" => $key,
 			],
 		]);
@@ -1368,7 +1368,7 @@ class User extends Prototype {
 				"email" => $vars['email'],
 				"phone" => $vars['phone'],
 				"last_role" => "user",
-				"2fa_enabled" => true,
+                "2fa_enabled" => ['app' => true, 'email' => false],
 				"key" => $key,
 			],
 		]);
