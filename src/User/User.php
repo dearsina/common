@@ -1357,7 +1357,7 @@ class User extends Prototype {
 		}
 
 		# Create a random key for the verification process
-		$key = str::uuid();
+//		$key = str::uuid();
 
 		# Insert the new user, get the new user_id
 		$user_id = $this->sql->insert([
@@ -1368,8 +1368,8 @@ class User extends Prototype {
 				"email" => $vars['email'],
 				"phone" => $vars['phone'],
 				"last_role" => "user",
-				"2fa_enabled" => 2,
-				"key" => $key,
+				"2fa_enabled" => ['app' => true, 'email' => false],
+//				"key" => $key,
 			],
 		]);
 
