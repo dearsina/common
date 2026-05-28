@@ -6032,7 +6032,7 @@ LATEX;
 		file_put_contents("{$filename}.tex", $latex);
 
 		# Compile LaTeX to PDF
-		str::exec("cd /var/www/tmp && pdflatex --shell-escape {$filename}.tex 2>&1", $output);
+		str::exec("cd /var/www/tmp && /usr/bin/pdflatex --shell-escape {$filename}.tex 2>&1", $output);
 
 		# Convert PDF to PNG
 		str::exec("convert -density 300 -trim {$filename}.pdf {$filename}.png 2>&1", $output);
