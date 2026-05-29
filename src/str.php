@@ -4175,12 +4175,6 @@ EOF;
 	 */
 	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30, ?bool $silent = NULL): bool
 	{
-		$timeout = $timeout ?? 30;
-		$stdout = NULL;
-		$stderr = NULL;
-		$return_value = NULL;
-		$timed_out = false;
-		$process_started = false;
 		$descriptorspec = [
 			0 => ["pipe", "r"],  // stdin
 			1 => ["pipe", "w"],  // stdout
@@ -4192,43 +4186,44 @@ EOF;
 		// We're adding the echo $? >&3 to get the return value of the command
 
 		if(is_resource($process)){
-			$process_started = true;
-
 			// Wait for the process to terminate or the timeout to expire
-			$status = proc_get_status($process);
-			$endTime = $timeout > 0 ? microtime(true) + $timeout : NULL;
-			while($status && $status['running']) {
-				if($endTime !== NULL && microtime(true) >= $endTime){
-					$timed_out = true;
-					proc_terminate($process);
-					break;
+			$endTime = time() + $timeout;
+			while(time() < $endTime && $status = proc_get_status($process)) {
+				if(!$status['running']){
+					break; // Process finished before timeout
 				}
-
 				usleep(100000); // Sleep for 0.1 seconds
-				$status = proc_get_status($process);
 			}
 
-			// Process completed, read its output
-			foreach([1, 2, 3] as $pipe_index){
-				$meta_data = stream_get_meta_data($pipes[$pipe_index]);
-				if($meta_data['blocked']){
-					stream_set_blocking($pipes[$pipe_index], 0);
+			if($status['running']){
+				// The process is still running, so terminate it
+				proc_terminate($process);
+				return false;
+			}
+
+			else {
+				// Process completed, read its output
+
+				# Get the pipe metadata to ensure the pipes are not blocked
+				$meta_data[1] = stream_get_meta_data($pipes[1]);
+				$meta_data[2] = stream_get_meta_data($pipes[2]);
+
+				if($meta_data[1]['blocked']){
+					//unblock the stdout stream
+					stream_set_blocking($pipes[1], 0);
 				}
-			}
 
-			$stdout = stream_get_contents($pipes[1]) ?: NULL;
-			$stderr = stream_get_contents($pipes[2]) ?: NULL;
-			$return_output = stream_get_contents($pipes[3]);
+				if($meta_data[2]['blocked']){
+					//unblock the stderr stream
+					stream_set_blocking($pipes[2], 0);
+				}
+				// This will the pipes hanging
 
-			if(!$timed_out && $return_output !== false && trim($return_output) !== ''){
-				$return_value = (int)trim($return_output);
-			}
-			else if(!$timed_out && is_array($status) && ($status['exitcode'] ?? -1) >= 0){
-				$return_value = (int)$status['exitcode'];
-			}
+				$stdout = stream_get_contents($pipes[1]);
+				$stderr = stream_get_contents($pipes[2]);
 
-			if($timed_out && is_array($status) && ($status['exitcode'] ?? -1) >= 0){
-				$return_value = (int)$status['exitcode'];
+				# Get the return value of the command
+				$return_value = (int)rtrim(fgets($pipes[3], 5), "\n");
 			}
 
 			// Close all pipes and terminate the process
@@ -4239,19 +4234,18 @@ EOF;
 
 			proc_close($process);
 		}
-		else {
-			$stderr = "Unable to start the command with proc_open().";
-		}
 
 		if($stdout){
-			$output = preg_split('/\R/', rtrim($stdout, "\r\n"));
+			$output = explode(PHP_EOL, $stdout);
 		}
 
 		if($stderr){
-			$output = preg_split('/\R/', rtrim($stderr, "\r\n"));
+			$output = explode(PHP_EOL, $stderr);
 		}
 
-		if($timed_out || !$process_started || $return_value !== 0){
+		# If there is an error, notify admins
+		if($return_value !== 0){
+			# Log it
 			if(class_exists(\App\CmdErrorLog\CmdErrorLog::class)){
 				\App\CmdErrorLog\CmdErrorLog::logExecFailure([
 					'command' => $command,
@@ -4263,16 +4257,27 @@ EOF;
 					'backtrace' => str::backtrace(true, false),
 				]);
 			}
-			else {
-				Log::getInstance()->error([
-					"display" => false,
-					"title" => "Command failed",
-					"message" => "<p>Command: <pre>{$command}</pre></p>"
-						. "<p>Output: <pre>" . implode("\n", $output ?: []) . "</pre></p>"
-						. "<p>Return value: " . ($timed_out ? "Timed out" : ($return_value === NULL ? "Unknown" : $return_value)) . "</p>",
-				]);
-			}
+//			Log::getInstance()->error([
+//				"display" => false,
+//				"title" => $title,
+//				"message" => $message,
+//			]);
 
+			# Email admins
+//			if(!$silent){
+//				# Write the message
+//				$title = "Command failed";
+//				$message = "<p>Command: <pre>{$command}</pre></p>
+//			<p>Output: <pre>" . implode("\n", $output) . "</pre></p>
+//			<p>Return value: {$return_value}</p>";
+//
+//				// But only if silent mode isn't enabled
+//				Email::notifyAdmins([
+//					"subject" => $title,
+//					"body" => $message,
+//					"backtrace" => str::backtrace(true, false),
+//				]);
+//			}
 			return false;
 		}
 
