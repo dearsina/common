@@ -4175,6 +4175,15 @@ EOF;
 	 */
 	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30, ?bool $silent = NULL): bool
 	{
+		$timeout = $timeout ?? 30;
+		$stdout = NULL;
+		$stderr = NULL;
+		$return_value = NULL;
+		$timed_out = false;
+		$status = [
+			'running' => false,
+		];
+
 		$descriptorspec = [
 			0 => ["pipe", "r"],  // stdin
 			1 => ["pipe", "w"],  // stdout
@@ -4197,7 +4206,29 @@ EOF;
 
 			if($status['running']){
 				// The process is still running, so terminate it
+				$timed_out = true;
+				$stderr = "Command timed out after {$timeout} seconds.";
+				$output = [$stderr];
 				proc_terminate($process);
+
+				fclose($pipes[0]);
+				fclose($pipes[1]);
+				fclose($pipes[2]);
+				fclose($pipes[3]);
+				proc_close($process);
+
+				if(class_exists(\App\CmdErrorLog\CmdErrorLog::class)){
+					\App\CmdErrorLog\CmdErrorLog::logExecFailure([
+						'command' => $command,
+						'output' => $output,
+						'stdout' => $stdout,
+						'stderr' => $stderr,
+						'return_value' => $return_value,
+						'timed_out' => true,
+						'backtrace' => str::backtrace(true, false),
+					]);
+				}
+
 				return false;
 			}
 
@@ -4234,6 +4265,10 @@ EOF;
 
 			proc_close($process);
 		}
+		else {
+			$stderr = "Unable to start the command process.";
+			$output = [$stderr];
+		}
 
 		if($stdout){
 			$output = explode(PHP_EOL, $stdout);
@@ -4251,7 +4286,7 @@ EOF;
 					'command' => $command,
 					'output' => $output,
 					'stdout' => $stdout,
-					'stderr' => $stderr ?: ($timed_out ? "Command timed out after {$timeout} seconds." : NULL),
+					'stderr' => $stderr,
 					'return_value' => $return_value,
 					'timed_out' => $timed_out,
 					'backtrace' => str::backtrace(true, false),
