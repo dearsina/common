@@ -133,7 +133,7 @@ class Tab {
 		$header['id'] = $id;
 
 		$data = [
-			"id" => $id,
+			"tab_id" => $id,
 			"header" => Tabs::generateHeaderHTML($header),
 			"active" => $active,
 		];
@@ -165,7 +165,7 @@ class Tab {
 		$pane['id'] = $id;
 
 		$data = [
-			"id" => $id,
+			"tab_id" => $id,
 			"pane" => Tabs::generatePaneHTML($pane),
 			"active" => $active,
 		];
