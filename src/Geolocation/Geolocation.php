@@ -176,6 +176,18 @@ class Geolocation extends \App\Common\Prototype {
 			$set['type'] = strlen($ip) <= 15 ? "ipv4" : "ipv6";
 		}
 
+		# Double check that it hasn't been added while we got the data about it
+		if($geolocation = $this->info([
+			"rel_table" => "geolocation",
+			"where" => [
+				"ip" => $ip
+			],
+			"limit" => 1
+		],  NULL, true)){
+			return $geolocation;
+		}
+
+		# Finally, insert
 		$this->sql->insert([
 			"table" => "geolocation",
 			"set" => $set,
