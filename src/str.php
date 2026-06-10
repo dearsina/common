@@ -1690,7 +1690,7 @@ EOF;
 	{
 		$finder = new \Symfony\Component\Finder\Finder();
 
-		// Only scan PHP files, and ignore noise
+		// Only scan PHP files, and ignore noise.
 		$finder
 			->files()
 			->in($path)
@@ -1698,44 +1698,509 @@ EOF;
 			->ignoreUnreadableDirs()
 			->ignoreVCS(true);
 
-		// If we have a search term, restrict upfront
+		// If we have a search term, restrict upfront.
 		if($search !== NULL && $search !== ''){
-			// Case-insensitive filename match: e.g., *Controller*.php
 			$finder->name('/' . preg_quote($search, '/') . '.*\.php$/i');
 
-			// Case-insensitive path/namespace match:
-			// turns "App\Service\User" -> "App/Service/User" and matches any segment
 			$nsPart = str_replace('\\', '/', $search);
 			$finder->path('/' . preg_quote($nsPart, '/') . '/i');
 		}
 
-		$iter = new \hanneskod\classtools\Iterator\ClassIterator($finder);
-
-		// Build list without loading classes (ClassIterator parses files)
-		$classes = array_keys($iter->getClassMap());
-		if(!$classes){
+		$definitions = self::getPhpDefinitionsFromFinder($finder);
+		if(!$definitions){
 			return [];
 		}
 
-		// If also filtering by implementation/interface, do it now
-		if($implementation){
-			$withImpl = [];
-			foreach($classes as $class){
-				// Avoid autoload penalties if you can—ClassIterator already found the FQCN;
-				// but if you need to confirm implements, PHP must load the class.
-				if(!class_exists($class)){
-					// If you have a PSR-4 autoloader, this will load it; otherwise skip.
-					continue;
-				}
-				$impls = class_implements($class) ?: [];
-				if(isset($impls[$implementation])){
-					$withImpl[] = $class;
-				}
+		if(!$implementation){
+			return array_values(array_keys($definitions));
+		}
+
+		$implementation = ltrim($implementation, "\\");
+		$classes = [];
+		foreach($definitions as $definition_name => $definition){
+			if($definition['type'] !== 'class'){
+				continue;
 			}
-			$classes = $withImpl;
+
+			if(self::getPhpDefinitionImplements($definition_name, $implementation, $definitions)){
+				$classes[] = $definition_name;
+			}
 		}
 
 		return array_values($classes);
+	}
+
+	/**
+	 * Tokenize matching PHP files and extract named classes, interfaces and traits.
+	 *
+	 * @param \Symfony\Component\Finder\Finder $finder
+	 *
+	 * @return array
+	 */
+	private static function getPhpDefinitionsFromFinder(\Symfony\Component\Finder\Finder $finder): array
+	{
+		$definitions = [];
+
+		foreach($finder as $file){
+			foreach(self::getPhpDefinitionsFromContents($file->getContents()) as $definition_name => $definition){
+				$definitions[$definition_name] = $definition;
+			}
+		}
+
+		return $definitions;
+	}
+
+	/**
+	 * Extract metadata for named classes, interfaces and traits from a PHP snippet.
+	 *
+	 * @param string $contents
+	 *
+	 * @return array
+	 */
+	private static function getPhpDefinitionsFromContents(string $contents): array
+	{
+		$definitions = [];
+		$namespace = "";
+		$uses = [];
+		$namespace_stack = [];
+		$brace_level = 0;
+		$namespace_body_level = 0;
+		$tokens = token_get_all($contents);
+		$token_count = count($tokens);
+
+		for($i = 0; $i < $token_count; $i++){
+			$token = $tokens[$i];
+
+			if(is_string($token)){
+				if($token === "{"){
+					$brace_level++;
+				}
+				elseif($token === "}"){
+					$brace_level--;
+					while($namespace_stack && $brace_level < $namespace_stack[array_key_last($namespace_stack)]['exit_level']){
+						$frame = array_pop($namespace_stack);
+						$namespace = $frame['previous_namespace'];
+						$uses = $frame['previous_uses'];
+						$namespace_body_level = $frame['previous_namespace_body_level'];
+					}
+				}
+
+				continue;
+			}
+
+			$token_id = $token[0];
+
+			if($token_id === T_NAMESPACE){
+				$namespace_data = self::readPhpQualifiedName($tokens, $i + 1);
+				$delimiter_index = self::skipIgnorablePhpTokens($tokens, $namespace_data['index']);
+				$previous_namespace = $namespace;
+				$previous_uses = $uses;
+				$previous_namespace_body_level = $namespace_body_level;
+				$namespace = trim($namespace_data['name'], "\\");
+				$uses = [];
+
+				if(isset($tokens[$delimiter_index]) && $tokens[$delimiter_index] === "{"){
+					$namespace_stack[] = [
+						'previous_namespace' => $previous_namespace,
+						'previous_uses' => $previous_uses,
+						'previous_namespace_body_level' => $previous_namespace_body_level,
+						'exit_level' => $brace_level + 1,
+					];
+					$brace_level++;
+					$namespace_body_level = $brace_level;
+				}
+				else {
+					$namespace_body_level = $brace_level;
+				}
+
+				$i = $delimiter_index;
+				continue;
+			}
+
+			if($token_id === T_USE && $brace_level === $namespace_body_level){
+				$use_data = self::readPhpUseStatements($tokens, $i + 1);
+				$uses = array_replace($uses, $use_data['aliases']);
+				$i = $use_data['index'];
+				continue;
+			}
+
+			if(!in_array($token_id, [T_CLASS, T_INTERFACE, T_TRAIT], true)){
+				continue;
+			}
+
+			$name_index = self::skipIgnorablePhpTokens($tokens, $i + 1);
+			if(!isset($tokens[$name_index]) || !is_array($tokens[$name_index]) || $tokens[$name_index][0] !== T_STRING){
+				continue;
+			}
+
+			$short_name = $tokens[$name_index][1];
+			$definition_name = ltrim(($namespace ? "{$namespace}\\" : "") . $short_name, "\\");
+			$definition = [
+				'name' => $definition_name,
+				'type' => $token_id === T_CLASS ? 'class' : ($token_id === T_INTERFACE ? 'interface' : 'trait'),
+				'extends' => [],
+				'implements' => [],
+			];
+
+			for($cursor = $name_index + 1; $cursor < $token_count; ){
+				$cursor = self::skipIgnorablePhpTokens($tokens, $cursor);
+				if(!isset($tokens[$cursor])){
+					break;
+				}
+
+				$cursor_token = $tokens[$cursor];
+				if(is_string($cursor_token)){
+					if($cursor_token === "{" || $cursor_token === ";"){
+						break;
+					}
+
+					$cursor++;
+					continue;
+				}
+
+				if($cursor_token[0] === T_EXTENDS){
+					$name_data = self::readPhpNameList($tokens, $cursor + 1, $namespace, $uses);
+					$definition['extends'] = $name_data['names'];
+					$cursor = $name_data['index'];
+					continue;
+				}
+
+				if($cursor_token[0] === T_IMPLEMENTS){
+					$name_data = self::readPhpNameList($tokens, $cursor + 1, $namespace, $uses);
+					$definition['implements'] = $name_data['names'];
+					$cursor = $name_data['index'];
+					continue;
+				}
+
+				$cursor++;
+			}
+
+			$definitions[$definition_name] = $definition;
+			$i = $name_index;
+		}
+
+		return $definitions;
+	}
+
+	/**
+	 * Determine if a parsed definition implements an interface without autoloading.
+	 *
+	 * @param string $definition_name
+	 * @param string $implementation
+	 * @param array  $definitions
+	 * @param array  $visited
+	 *
+	 * @return bool
+	 */
+	private static function getPhpDefinitionImplements(
+		string $definition_name,
+		string $implementation,
+		array $definitions,
+		array $visited = []
+	): bool
+	{
+		$definition_name = ltrim($definition_name, "\\");
+		$implementation = ltrim($implementation, "\\");
+
+		if(isset($visited[$definition_name])){
+			return false;
+		}
+		$visited[$definition_name] = true;
+
+		if(!$definition = $definitions[$definition_name] ?? NULL){
+			return false;
+		}
+
+		if($definition['type'] === 'interface'){
+			if($definition_name === $implementation){
+				return true;
+			}
+
+			foreach($definition['extends'] as $extended_interface){
+				if($extended_interface === $implementation || self::getPhpDefinitionImplements($extended_interface, $implementation, $definitions, $visited)){
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		foreach($definition['implements'] as $implemented_interface){
+			if($implemented_interface === $implementation || self::getPhpDefinitionImplements($implemented_interface, $implementation, $definitions, $visited)){
+				return true;
+			}
+		}
+
+		foreach($definition['extends'] as $parent_class){
+			if(self::getPhpDefinitionImplements($parent_class, $implementation, $definitions, $visited)){
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Read a namespaced identifier such as Foo\Bar from a token stream.
+	 *
+	 * @param array $tokens
+	 * @param int   $index
+	 *
+	 * @return array{name: string, index: int}
+	 */
+	private static function readPhpQualifiedName(array $tokens, int $index): array
+	{
+		$name = "";
+		$token_count = count($tokens);
+
+		for($i = self::skipIgnorablePhpTokens($tokens, $index); $i < $token_count; $i++){
+			$token = $tokens[$i];
+
+			if(is_string($token)){
+				if($token === "\\"){
+					$name .= $token;
+					continue;
+				}
+
+				break;
+			}
+
+			if(in_array($token[0], [T_STRING, T_NS_SEPARATOR, T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE], true)){
+				$name .= $token[1];
+				continue;
+			}
+
+			break;
+		}
+
+		return [
+			'name' => $name,
+			'index' => $i,
+		];
+	}
+
+	/**
+	 * Read a comma-separated list of names and resolve them to fully qualified names.
+	 *
+	 * @param array  $tokens
+	 * @param int    $index
+	 * @param string $namespace
+	 * @param array  $uses
+	 *
+	 * @return array{names: array, index: int}
+	 */
+	private static function readPhpNameList(array $tokens, int $index, string $namespace, array $uses): array
+	{
+		$names = [];
+		$token_count = count($tokens);
+		$i = self::skipIgnorablePhpTokens($tokens, $index);
+
+		while($i < $token_count){
+			$name_data = self::readPhpQualifiedName($tokens, $i);
+			if(!$name_data['name']){
+				break;
+			}
+
+			$resolved_name = self::resolvePhpName($name_data['name'], $namespace, $uses);
+			if($resolved_name){
+				$names[] = $resolved_name;
+			}
+
+			$i = self::skipIgnorablePhpTokens($tokens, $name_data['index']);
+			if(isset($tokens[$i]) && $tokens[$i] === ','){
+				$i++;
+				$i = self::skipIgnorablePhpTokens($tokens, $i);
+				continue;
+			}
+
+			break;
+		}
+
+		return [
+			'names' => array_values(array_unique($names)),
+			'index' => $i,
+		];
+	}
+
+	/**
+	 * Read namespace-level use imports and build an alias map for class-like names.
+	 *
+	 * @param array $tokens
+	 * @param int   $index
+	 *
+	 * @return array{aliases: array, index: int}
+	 */
+	private static function readPhpUseStatements(array $tokens, int $index): array
+	{
+		$aliases = [];
+		$current_name = "";
+		$current_alias = NULL;
+		$current_type = 'class';
+		$group_prefix = "";
+		$group_type = 'class';
+		$inside_group = false;
+		$token_count = count($tokens);
+
+		for($i = self::skipIgnorablePhpTokens($tokens, $index); $i < $token_count; $i++){
+			$token = $tokens[$i];
+
+			if(is_string($token)){
+				switch($token){
+				case "\\":
+					$current_name .= $token;
+					continue 2;
+				case ',':
+					self::storePhpUseImport($aliases, $current_name, $current_alias, $current_type, $inside_group ? $group_prefix : "");
+					$current_name = "";
+					$current_alias = NULL;
+					$current_type = $inside_group ? $group_type : 'class';
+					continue 2;
+				case '{':
+					$group_prefix = trim($current_name, "\\");
+					$group_type = $current_type;
+					$inside_group = true;
+					$current_name = "";
+					$current_alias = NULL;
+					$current_type = $group_type;
+					continue 2;
+				case '}':
+					self::storePhpUseImport($aliases, $current_name, $current_alias, $current_type, $group_prefix);
+					$current_name = "";
+					$current_alias = NULL;
+					$current_type = 'class';
+					$group_type = 'class';
+					$group_prefix = "";
+					$inside_group = false;
+					continue 2;
+				case ';':
+					self::storePhpUseImport($aliases, $current_name, $current_alias, $current_type, $inside_group ? $group_prefix : "");
+					return [
+						'aliases' => $aliases,
+						'index' => $i,
+					];
+				}
+
+				continue;
+			}
+
+			if(in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)){
+				continue;
+			}
+
+			if($token[0] === T_AS){
+				$alias_index = self::skipIgnorablePhpTokens($tokens, $i + 1);
+				if(isset($tokens[$alias_index]) && is_array($tokens[$alias_index]) && $tokens[$alias_index][0] === T_STRING){
+					$current_alias = $tokens[$alias_index][1];
+					$i = $alias_index;
+				}
+				continue;
+			}
+
+			if($current_name === "" && $current_alias === NULL && in_array($token[0], [T_FUNCTION, T_CONST], true)){
+				$current_type = $token[0] === T_FUNCTION ? 'function' : 'const';
+				continue;
+			}
+
+			if(in_array($token[0], [T_STRING, T_NS_SEPARATOR, T_NAME_FULLY_QUALIFIED, T_NAME_QUALIFIED, T_NAME_RELATIVE], true)){
+				$current_name .= $token[1];
+			}
+		}
+
+		return [
+			'aliases' => $aliases,
+			'index' => $token_count,
+		];
+	}
+
+	/**
+	 * Store a class-like use import in the alias map.
+	 *
+	 * @param array       $aliases
+	 * @param string      $name
+	 * @param string|null $alias
+	 * @param string      $type
+	 * @param string      $group_prefix
+	 *
+	 * @return void
+	 */
+	private static function storePhpUseImport(array &$aliases, string $name, ?string $alias, string $type, string $group_prefix = ""): void
+	{
+		if($type !== 'class'){
+			return;
+		}
+
+		$name = trim($name, "\\");
+		$group_prefix = trim($group_prefix, "\\");
+		if($group_prefix){
+			$name = trim("{$group_prefix}\\{$name}", "\\");
+		}
+
+		if(!$name){
+			return;
+		}
+
+		$alias = $alias ?: basename(str_replace("\\", "/", $name));
+		$aliases[$alias] = $name;
+	}
+
+	/**
+	 * Resolve a potentially relative or imported name to a fully qualified class name.
+	 *
+	 * @param string $name
+	 * @param string $namespace
+	 * @param array  $uses
+	 *
+	 * @return string
+	 */
+	private static function resolvePhpName(string $name, string $namespace, array $uses): string
+	{
+		if(!$name){
+			return "";
+		}
+
+		if($name[0] === "\\"){
+			return ltrim($name, "\\");
+		}
+
+		if(str_starts_with($name, 'namespace\\')){
+			$name = substr($name, strlen('namespace\\'));
+			return trim(($namespace ? "{$namespace}\\" : "") . $name, "\\");
+		}
+
+		$first_segment = strstr($name, "\\", true);
+		if($first_segment === false){
+			$first_segment = $name;
+		}
+
+		if(isset($uses[$first_segment])){
+			return trim($uses[$first_segment] . substr($name, strlen($first_segment)), "\\");
+		}
+
+		return trim(($namespace ? "{$namespace}\\" : "") . $name, "\\");
+	}
+
+	/**
+	 * Skip whitespace and comments inside a token stream.
+	 *
+	 * @param array $tokens
+	 * @param int   $index
+	 *
+	 * @return int
+	 */
+	private static function skipIgnorablePhpTokens(array $tokens, int $index): int
+	{
+		$token_count = count($tokens);
+
+		while($index < $token_count){
+			$token = $tokens[$index];
+			if(!is_array($token) || !in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)){
+				break;
+			}
+
+			$index++;
+		}
+
+		return $index;
 	}
 
 	/**
