@@ -2254,11 +2254,12 @@ EOF;
 
 		# Temporary filter before Swoole 4.6+
 		$output = array_filter($output, function($line){
-			return $line != "Deprecated: Swoole\Event::rshutdown(): Event::wait() in shutdown function is deprecated in Unknown on line 0";
+			return $line != "Deprecated: Swoole\Event::rshutdown(): Event::wait() in shutdown function is deprecated in Unknown on line 0"
+                && !str_contains($line, "Xdebug: [Log Files]");
 		});
 
 		# Return false if no methods matching are found
-		if(!$array = json_decode($output[0], true)){
+		if(!$array = json_decode(array_first($output), true)){
 			return [];
 		}
 
