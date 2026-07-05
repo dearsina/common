@@ -416,55 +416,20 @@ class str {
 	/**
 	 * Convert Markdown to HTML.
 	 *
-	 * @param string|null $markdown
+	 * @param string|null $text
 	 *
 	 * @return string
 	 */
-	public static function markdownToHtml(?string $markdown): ?string
+	public static function markdownToHtml(?string $text): ?string
 	{
-		if(!$markdown){
-			return $markdown;
+		if(!$text){
+			return NULL;
 		}
 
-		$html = $markdown;
+		$parsedown = new \Parsedown();
+		$parsedown->setBreaksEnabled(true);
 
-		# Convert **bold** to <strong>bold</strong>
-		$html = preg_replace("/\*\*(.*?)\*\*/", '<strong>$1</strong>', $html);
-
-		# Convert *italic* to <em>italic</em>
-		$html = preg_replace("/\*(.*?)\*/", '<em>$1</em>', $html);
-
-		# Convert `code` to <code>code</code>
-		$html = preg_replace("/`(.*?)`/", '<code>$1</code>', $html);
-
-		# Convert ### Heading to <h3>Heading</h3>
-		$html = preg_replace("/\n### (.*?)\n/", '<h3>$1</h3>', $html);
-
-		# Convert ## Heading to <h2>Heading</h2>
-		$html = preg_replace("/\n## (.*?)\n/", '<h2>$1</h2>', $html);
-
-		# Convert # Heading to <h1>Heading</h1>
-		$html = preg_replace("/\n# (.*?)\n/", '<h1>$1</h1>', $html);
-
-		# Convert horizontal rules to <hr>
-		$html = preg_replace("/[\r\n]---[\r\n]/", '<hr>', $html);
-
-		# Convert unordered lists to <ul><li>...</li></ul>
-		$html = preg_replace("/\n- (.*?)\n/", '<ul><li>$1</li></ul>', $html);
-
-		# Convert ordered lists to <ol><li>...</li></ol>
-		$html = preg_replace("/\n\d+\. (.*?)\n/", '<ol><li>$1</li></ol>', $html);
-
-		# Convert blockquotes to <blockquote>...</blockquote>
-		$html = preg_replace("/\n> (.*?)\n/", '<blockquote>$1</blockquote>', $html);
-
-		# Convert markdown links to HTML links
-		$html = preg_replace("/\[(.*?)\]\((.*?)\)/", '<a href="$2">$1</a>', $html);
-
-		# Convert line breaks to <br> tags
-		$html = nl2br($html);
-
-		return $html;
+		return $parsedown->text($text);
 
 	}
 
