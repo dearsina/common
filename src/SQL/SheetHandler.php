@@ -485,15 +485,6 @@ class SheetHandler extends \App\Common\Prototype {
 	 */
 	private function insertDataRows(string $sheet_name, array $rows, ?array $update_columns = NULL): void
 	{
-		if($form_list_cols = $this->info([
-			"rel_table" => "form_list_col",
-			"where" => [
-				"form_list_id" => $this->data_table,
-			],
-		])){
-			$existing_column_names = array_column($form_list_cols, "col");
-		}
-
 		$sets = [];
 
 		# Last minute clean-up of the rows
@@ -505,13 +496,6 @@ class SheetHandler extends \App\Common\Prototype {
 			foreach($row as $key => $val){
 				# Ensure key is in the Excel style
 				$key = !is_int($key) ? $key : str::excelKey($key);
-
-				# If we're refreshing a table, only import the relevant columns
-				if($existing_column_names){
-					if(!in_array($key, $existing_column_names)){
-						continue;
-					}
-				}
 
 				# Ensure Datetime objects are converted to strings
 				if($val instanceof \DateTime){
@@ -546,6 +530,28 @@ class SheetHandler extends \App\Common\Prototype {
 		]);
 
 		$this->import_counts[$sheet_name]['inserted'] += count($sets);
+	}
+
+	private function ensureDataTableColumns(string $sheet_name): void
+	{
+		$table_metadata = $this->sql->getTableMetadata([
+			"db" => $this->data_db,
+			"name" => $this->data_table,
+		], true, true);
+
+		for($i = 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
+			$col = str::excelKey($i);
+			if(array_key_exists($col, $table_metadata)){
+				continue;
+			}
+
+			$this->sql->run("ALTER TABLE `{$this->data_db}`.`{$this->data_table}` ADD COLUMN `{$col}` TEXT COLLATE utf8mb4_0900_ai_ci DEFAULT NULL;");
+		}
+
+		$this->sql->getTableMetadata([
+			"db" => $this->data_db,
+			"name" => $this->data_table,
+		], true, true);
 	}
 
 	/**
@@ -607,6 +613,7 @@ class SheetHandler extends \App\Common\Prototype {
 			// If the table already exists
 			if(!$this->deleteDataTable($import_type)){
 				// If we don't need to delete the table, just return
+				$this->ensureDataTableColumns($sheet_name);
 				return;
 			}
 		}
@@ -650,6 +657,10 @@ class SheetHandler extends \App\Common\Prototype {
 
 	private function createColumnsTable(string $sheet_name, SheetInterface $sheet): void
 	{
+		$form_list_cols = [];
+		$existing_cols = [];
+		$headers = [];
+
 		# Ensure rows don't already exist
 		if($form_list_cols = $this->sql->select([
 			"db" => $this->meta_db,
@@ -657,15 +668,9 @@ class SheetHandler extends \App\Common\Prototype {
 			"where" => [
 				"{$this->meta_table}_id" => $this->meta_id,
 			],
-		])){
-			if(count($form_list_cols) >= $this->sheet_metadata[$sheet_name]['col_count']){
-				// And the number of columns matches the number of columns in the sheet
-				$this->form_list_cols = $form_list_cols;
-				return;
-			}
-
-			# If new columns have been added
-			$i = $this->sheet_metadata[$sheet_name]['col_count'] - 1;
+			"include_removed" => true,
+			])){
+			$existing_cols = array_column($form_list_cols, NULL, "col");
 		}
 
 		if($this->meta['header_row'] != NULL){
@@ -679,17 +684,31 @@ class SheetHandler extends \App\Common\Prototype {
 		}
 
 		# Otherwise, we need to create the table
-		for($i = $i ?: 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
-			$this->sql->insert([
+		for($i = 0; $i < $this->sheet_metadata[$sheet_name]['col_count']; $i++){
+			$col = str::excelKey($i);
+
+			if(array_key_exists($col, $existing_cols)){
+				continue;
+			}
+
+			$form_list_col_id = $this->sql->insert([
 				"db" => $this->meta_db,
 				"table" => "{$this->meta_table}_col",
 				"set" => [
 					"subscription_id" => $this->meta['subscription_id'],
 					"{$this->meta_table}_id" => $this->meta_id,
-					"col" => str::excelKey($i),
-					"title" => $headers[$i] ?: str::excelKey($i),
+					"col" => $col,
+					"title" => $headers[$i] ?: $col,
 				],
 			]);
+
+			if($form_list_cols){
+				$this->sql->remove([
+					"db" => $this->meta_db,
+					"table" => "{$this->meta_table}_col",
+					"id" => $form_list_col_id,
+				]);
+			}
 		}
 	}
 
