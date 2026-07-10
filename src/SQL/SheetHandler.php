@@ -266,6 +266,9 @@ class SheetHandler extends \App\Common\Prototype {
 		# Identify duplicate rows
 		SheetHandler::identifyDuplicateRows($this->meta_db, $this->meta_table, $this->meta_id, $this->data_db, $this->data_table);
 
+		# Store the current active row count after the import/refresh has finished.
+		SheetHandler::updateRowCount($this->meta_db, $this->meta_table, $this->meta_id, $this->data_db, $this->data_table);
+
 		# And we're done, so set the progress bar to 100%
 		$this->updateSheetProgressBar($sheet_name, true);
 
@@ -785,15 +788,20 @@ class SheetHandler extends \App\Common\Prototype {
 		}
 	}
 
-	public static function updateRowCount(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): void
+	public static function updateRowCount(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): int
 	{
 		$sql = Factory::getInstance();
+
+		$include_removed = !$sql->columnExists([
+			"db" => $data_db,
+			"name" => $data_table,
+		], "removed");
 
 		$row_count = $sql->select([
 			"count" => true,
 			"db" => $data_db,
 			"table" => $data_table,
-			"include_removed" => true,
+			"include_removed" => $include_removed,
 		]);
 
 		$sql->update([
@@ -806,6 +814,8 @@ class SheetHandler extends \App\Common\Prototype {
 				"row_count" => $row_count,
 			],
 		]);
+
+		return (int)$row_count;
 	}
 
 	public static function updateColCount(?string $meta_db = NULL, ?string $meta_table = NULL, ?string $meta_id = NULL, ?string $data_db = NULL, ?string $data_table = NULL): void
@@ -992,19 +1002,7 @@ class SheetHandler extends \App\Common\Prototype {
 		# Update the row count in the meta table
 		if($result['affected_rows']){
 			// But only if rows were removed
-			$sql->update([
-				"db" => $meta_db,
-				"table" => $meta_table,
-				"id" => $meta_id,
-				"set" => [
-					"row_count" => $sql->select([
-						"db" => $data_db,
-						"table" => $data_table,
-						"count" => true,
-						"include_removed" => true,
-					]),
-				],
-			]);
+			SheetHandler::updateRowCount($meta_db, $meta_table, $meta_id, $data_db, $data_table);
 		}
 
 		# Identify the duplicate rows again, should be zero
