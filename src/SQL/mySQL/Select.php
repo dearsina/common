@@ -89,7 +89,10 @@ class Select extends Common {
 
 		# If output is to be stored in a tmp table
 		if($tmp){
-			$query = "CREATE TEMPORARY TABLE IF NOT EXISTS `{$tmp}` AS ({$query})";
+			$query = "
+			SET TRANSACTION ISOLATION LEVEL READ COMMITTED;			
+			CREATE TEMPORARY TABLE IF NOT EXISTS `{$tmp}` AS ({$query})
+			";
 		}
 
 		# If only the SQL is requested

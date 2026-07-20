@@ -25,7 +25,8 @@ abstract class ModalPrototype extends Prototype {
 	const html = [
 		"html",
 		"body",
-		"value"
+		"value",
+		"js_transform"
 	];
 
 	/**
