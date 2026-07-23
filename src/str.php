@@ -3787,14 +3787,16 @@ EOF;
 
 		# Step 3: Add Headers
 		foreach($uniqueKeys as $colIndex => $header){
-			$sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
+//			$sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
+			$sheet->setCellValue([$colIndex + 1, 1], $header);
 		}
 
 		# Step 4: Write Data Rows
 		$rowIndex = 2;
 		foreach($array as $values){
 			foreach($uniqueKeys as $colIndex => $key){
-				$sheet->setCellValueByColumnAndRow($colIndex + 1, $rowIndex, $values[$key] ?? '');
+//				$sheet->setCellValueByColumnAndRow($colIndex + 1, $rowIndex, $values[$key] ?? '');
+				$sheet->setCellValue([$colIndex + 1, $rowIndex], $values[$key] ?? '');
 			}
 			$rowIndex++;
 		}
