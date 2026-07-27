@@ -225,11 +225,13 @@ class Process {
 			# Get the global backtrace from the previous request
 			global $backtrace;
 
-			# Add the current backtrace to it
-			$backtrace .= base64_encode(str::backtrace(true));
+			# Add the current backtrace to the inherited trace if the combined value stays small
+			$inherited_backtrace = is_scalar($backtrace ?? NULL) ? (string)$backtrace : "";
+			$current_backtrace = base64_encode(str::backtrace(true, false));
 
 			# If it's not super long add it to the global vars
-			if(strlen($backtrace) < self::MAX_EXEC_CMD_LENGTH){
+			if((strlen($inherited_backtrace) + strlen($current_backtrace)) < self::MAX_EXEC_CMD_LENGTH){
+				$backtrace = $inherited_backtrace . $current_backtrace;
 				$global_vars['backtrace'] = $backtrace;
 			}
 		}

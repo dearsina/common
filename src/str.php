@@ -34,6 +34,7 @@ class str {
 	private static ?str $instance = NULL;
 	private static array $is_dev_cache = [];
 	private static array $local_server_ips_cache = [];
+	private const MAX_INHERITED_BACKTRACE_BYTES = 65536;
 
 	/**
 	 * The constructor is private so that the class
@@ -897,11 +898,11 @@ class str {
 	static function backtrace(?bool $return = false, ?bool $keep_arguments = true)
 	{
 		$steps = [];
-		$debug_backtrace = debug_backtrace();
+		$debug_backtrace = debug_backtrace($keep_arguments ? DEBUG_BACKTRACE_PROVIDE_OBJECT : DEBUG_BACKTRACE_IGNORE_ARGS);
 		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
-			$args = $keep_arguments && $a['args'] ? json_encode($a['args']) : "{}";
-			$line_number = str_pad($a['line'], 4, " ", STR_PAD_LEFT);
-			$file_name = basename($a['file']);
+			$args = $keep_arguments && $a['args'] ? json_encode($a['args'], JSON_PARTIAL_OUTPUT_ON_ERROR) : "{}";
+			$line_number = str_pad($a['line'] ?? "", 4, " ", STR_PAD_LEFT);
+			$file_name = isset($a['file']) ? basename($a['file']) : "[internal]";
 			$steps[] = "{$a['function']}({$args});\r\n[{$line_number}] {$file_name}->";
 		});
 
@@ -920,7 +921,13 @@ class str {
 		if(str::isDev()){
 			global $backtrace;
 			if($backtrace){
-				$steps = base64_decode($backtrace) . PHP_EOL . $steps;
+				$backtrace_length = strlen((string)$backtrace);
+				if($backtrace_length <= self::MAX_INHERITED_BACKTRACE_BYTES){
+					$steps = base64_decode((string)$backtrace) . PHP_EOL . $steps;
+				}
+				else {
+					$steps = "[Inherited backtrace omitted: {$backtrace_length} encoded bytes]" . PHP_EOL . $steps;
+				}
 			}
 		}
 
