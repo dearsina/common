@@ -1670,21 +1670,21 @@ EOF;
 			->ignoreUnreadableDirs()
 			->ignoreVCS(true);
 
-		// If we have a search term, restrict upfront.
-		if($search !== NULL && $search !== ''){
-			$finder->name('/' . preg_quote($search, '/') . '.*\.php$/i');
-
-			$nsPart = str_replace('\\', '/', $search);
-			$finder->path('/' . preg_quote($nsPart, '/') . '/i');
-		}
-
 		$definitions = self::getPhpDefinitionsFromFinder($finder);
 		if(!$definitions){
 			return [];
 		}
 
+		$search = trim((string)$search);
+
 		if(!$implementation){
-			return array_values(array_keys($definitions));
+			$classes = array_keys($definitions);
+			if($search !== ''){
+				$classes = array_filter($classes, function($class) use ($search){
+					return self::phpDefinitionMatchesSearch($class, $search);
+				});
+			}
+			return array_values($classes);
 		}
 
 		$implementation = ltrim($implementation, "\\");
@@ -1694,12 +1694,55 @@ EOF;
 				continue;
 			}
 
+			if($search !== '' && !self::phpDefinitionMatchesSearch($definition_name, $search)){
+				continue;
+			}
+
 			if(self::getPhpDefinitionImplements($definition_name, $implementation, $definitions)){
 				$classes[] = $definition_name;
 			}
 		}
 
 		return array_values($classes);
+	}
+
+	private static function phpDefinitionMatchesSearch(string $definition_name, string $search): bool
+	{
+		$definition_name = ltrim($definition_name, "\\");
+		$search = trim(str_replace("/", "\\", $search), "\\");
+
+		if($search === ""){
+			return true;
+		}
+
+		return stripos($definition_name, $search) !== false;
+	}
+
+	public static function getComposerPsr4Paths(?string $prefix = NULL): array
+	{
+		if(!class_exists(\Composer\Autoload\ClassLoader::class)){
+			return [];
+		}
+
+		$paths = [];
+		foreach(\Composer\Autoload\ClassLoader::getRegisteredLoaders() as $loader){
+			foreach($loader->getPrefixesPsr4() as $registered_prefix => $registered_paths){
+				if($prefix !== NULL && $registered_prefix !== $prefix){
+					continue;
+				}
+
+				foreach($registered_paths as $path){
+					if(!is_dir($path)){
+						continue;
+					}
+
+					$real_path = realpath($path) ?: $path;
+					$paths[$real_path] = $real_path;
+				}
+			}
+		}
+
+		return array_values($paths);
 	}
 
 	/**
@@ -2215,39 +2258,39 @@ EOF;
 	public static function getMethodsFromClass(string $class, ?string $modifier = "PUBLIC"): array
 	{
 		$modifier = strtoupper($modifier);
-		$cmd = "\\Swoole\\Coroutine\\run(function(){";
-		$cmd .= "require \"/var/www/html/app/settings.php\";";
-		$cmd .= "\$class = new \ReflectionClass(\"" . str_replace("\\", "\\\\", $class) . "\");";
-		$cmd .= "echo json_encode(\$class->getMethods(\ReflectionMethod::IS_{$modifier}));";
-		$cmd .= "});";
 
-		# Run the command
-		exec("php -r '{$cmd}' 2>&1", $output);
+		$reflection_modifier = match($modifier) {
+			"PRIVATE" => \ReflectionMethod::IS_PRIVATE,
+			"PROTECTED" => \ReflectionMethod::IS_PROTECTED,
+			"PUBLIC" => \ReflectionMethod::IS_PUBLIC,
+			default => \ReflectionMethod::IS_PUBLIC,
+		};
 
-		# Temporary filter before Swoole 4.6+
-		$output = array_filter($output, function($line){
-			return $line != "Deprecated: Swoole\Event::rshutdown(): Event::wait() in shutdown function is deprecated in Unknown on line 0"
-                && !str_contains($line, "Xdebug: [Log Files]");
-		});
-
-		# Return false if no methods matching are found
-		if(!$array = json_decode(array_first($output), true)){
+		try {
+			$reflection_class = new \ReflectionClass($class);
+			$array = $reflection_class->getMethods($reflection_modifier);
+		}
+		catch(\ReflectionException){
 			return [];
 		}
 
+		$methods = [];
 		foreach($array as $method){
 			# We're not interested in inherited classes
-			if($class != $method['class']){
+			if($class != $method->class){
 				continue;
 			}
 
 			# We're not interested in magic methods
-			if(substr($method['name'], 0, 2) == "__"){
+			if(substr($method->name, 0, 2) == "__"){
 				continue;
 			}
 
 			# Collect all the methods
-			$methods[] = $method;
+			$methods[] = [
+				"name" => $method->name,
+				"class" => $method->class,
+			];
 		}
 
 		return $methods;

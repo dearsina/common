@@ -933,33 +933,31 @@ EOF;
 			return true;
 		}
 
-		# The common path
-		$common_path = __DIR__ . "/../../";
-
-		# The core path
-		$core_path = $_SERVER['DOCUMENT_ROOT'] . "/../app/";
-		if(!file_exists($core_path)){
-			//if the core path doesn't exist, tell the user to make it
-			$command = "mkdir -m 0755 $core_path";
-			throw new \Exception("Run the following command to create a core path: <code>{$command}</code>");
-		}
-
-		# The API path
-		$api_path = $_SERVER['DOCUMENT_ROOT'] . "/../api/";
-		if(!file_exists($api_path)){
-			//if the API path doesn't exist, tell the user to make it
-			$command = "mkdir -m 0755 $api_path";
-			throw new \Exception("Run the following command to create an API path: <code>{$command}</code>");
-		}
-
-		# Get classes from both
-		$classes = array_merge(
-			str::getClassesFromPath($common_path, NULL, $vars['term']) ?: [],
-			str::getClassesFromPath($core_path, NULL, $vars['term']) ?: [],
-			str::getClassesFromPath($api_path, NULL, $vars['term']) ?: [],
+		$paths = array_merge(
+			str::getComposerPsr4Paths("App\\Common\\"),
+			str::getComposerPsr4Paths("App\\"),
+			str::getComposerPsr4Paths("API\\"),
 		);
 
+		if(!$paths){
+			$paths = [
+				__DIR__ . "/../../",
+				($_SERVER['DOCUMENT_ROOT'] ?? "") . "/../app/",
+				($_SERVER['DOCUMENT_ROOT'] ?? "") . "/../api/",
+			];
+		}
+
+		$paths = array_filter(array_unique(array_map(function($path){
+			return realpath($path) ?: $path;
+		}, $paths)), "is_dir");
+
+		$classes = [];
+		foreach($paths as $path){
+			$classes = array_merge($classes, str::getClassesFromPath($path, NULL, $vars['term']) ?: []);
+		}
+
 		# Sort them alphabetically
+		$classes = array_unique($classes);
 		sort($classes);
 
 		# Load them in an options array
