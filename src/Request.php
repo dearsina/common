@@ -345,7 +345,7 @@ class Request {
 		}
 
 		# Ensure the request was sent from our domain
-        $allowedDomains = ($_ENV['csrf_domains'] ?? '') . ',' . $_ENV['domain'];
+        $allowedDomains = ($_ENV['csrf_domains'] ?? '') . ',' . str::getRegisteredDomain();
 		if(!str::isAllowedDomain($domain, $allowedDomains)){
 			//if this request wasn't done from our own domain
 			$this->logErrorInternally("A cross domain request was attempted. $domain in allowed list: " . $allowedDomains);

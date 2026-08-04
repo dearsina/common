@@ -28,7 +28,7 @@ class Xero extends Prototype implements ProviderInterface {
 		return new \League\OAuth2\Client\Provider\GenericProvider([
 			'clientId' => $_ENV["XERO_CLIENT_ID"],
 			'clientSecret' => $_ENV["XERO_CLIENT_SECRET"],
-			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
+			'redirectUri' => "https://app." . str::getRegisteredDomain() . "/oauth2.php",
 			'urlAuthorize' => 'https://login.xero.com/identity/connect/authorize',
 			'urlAccessToken' => 'https://identity.xero.com/connect/token',
 			'urlResourceOwnerDetails' => 'https://api.xero.com/api.xro/2.0/Organisation',

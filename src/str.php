@@ -20,12 +20,16 @@ use ReflectionException;
 use ReflectionMethod;
 use Symfony\Component\Finder\Finder;
 use Transliterator;
+use function array_filter;
 use function array_first;
+use function array_map;
 use function explode;
 use function rtrim;
 use function str_replace;
+use function strlen;
 use function strtolower;
 use function trim;
+use function usort;
 
 /**
  * Static class related mainly to string manipulation.
@@ -1289,13 +1293,13 @@ class str {
 	public static function getDomain(?string $subdomain = NULL): string
 	{
 		if($subdomain){
-			return "https://$subdomain.{$_ENV['domain']}/";
+			return "https://$subdomain." . str::getRegisteredDomain() . "/";
 		}
 		else if($_SERVER['HTTP_HOST']){
 			return "https://{$_SERVER['HTTP_HOST']}/";
 		}
 		else {
-			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
+			return "https://{$_ENV['app_subdomain']}." . str::getRegisteredDomain() . "/";
 		}
 	}
 
@@ -1334,6 +1338,62 @@ class str {
         }
 
         return false;
+    }
+
+    /**
+     * Retrieves the registered domain from the current HTTP origin or referer, matching it against a list of allowed domains.
+     * This function determines the domain from the HTTP_ORIGIN or HTTP_REFERER values provided by the server environment
+     * and checks if it matches any domains listed in the allowed domains' configuration.
+     * The allowed domains are derived from the `csrf_domains` and `domain` environment variables.
+     *
+     * @return string The matched registered domain if found in the allowed domains list, or empty string otherwise.
+     */
+    public static function getRegisteredDomain(): string {
+        static $matched;
+        if (!isset($matched)) {
+            $domain = '';
+            # If we have been given the HTTP origin, grab the domain from there
+            if ($_SERVER['HTTP_ORIGIN']) {
+                // HTTP_ORIGIN: "https://subdomain.example.com"
+                $domain = $_SERVER['HTTP_ORIGIN'];
+            } elseif ($_SERVER['HTTP_REFERER']) { # Or if we've been given the HTTP referer
+                // HTTP_REFERER: "https://subdomain.example.com/folder"
+                $domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
+            }
+
+            $allowedDomains = ($_ENV['csrf_domains'] ?? '') . ',' . $_ENV["domain"];
+
+            $domain = $domain
+                    |> trim(...)
+                    |> strtolower(...)
+                    |> (fn($x) => rtrim($x, '.'));
+
+            $matched = '';
+            foreach(explode(',', $allowedDomains) as $allowed) {
+                $allowed = $allowed
+                        |> trim(...)
+                        |> strtolower(...)
+                        |> (fn($x) => rtrim($x, '.'));
+
+                if ($allowed === '') {
+                    continue;
+                }
+
+                // Exact match
+                if ($domain === $allowed) {
+                    $matched = $allowed;
+                    break;
+                }
+
+                // Subdomain match
+                if (str_ends_with($domain, '.' . $allowed)) {
+                    $matched = $allowed;
+                    break;
+                }
+            }
+        }
+
+        return $matched;
     }
 
 	/**

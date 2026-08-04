@@ -339,7 +339,7 @@ class UserRole extends \App\Common\Prototype {
 					// If they're logged into a subscription
 					$subscription = new SubscriptionHandler($subscription_id);
 					$subdomain = $subscription->get("subdomain");
-					$url = "https://{$subdomain}.{$_ENV['domain']}/";
+					$url = "https://{$subdomain}." . str::getRegisteredDomain() . "/";
 				}
 			}
 

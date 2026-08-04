@@ -41,7 +41,7 @@ abstract class PrintPrototype extends Prototype {
 		}
 		else {
 			$logo = [
-				"src" => "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/img/kycdd_logo_v4_black.svg",
+				"src" => "https://{$_ENV['app_subdomain']}." . str::getRegisteredDomain() . "/img/kycdd_logo_v4_black.svg",
 				"width" => "200",
 				"height" => "60",
 			];

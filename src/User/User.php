@@ -738,7 +738,7 @@ class User extends Prototype {
 		]);
 
 		# Set the hash to the front page
-		$this->hash->set("https://{$_ENV['domain']}");
+		$this->hash->set("https://" . str::getRegisteredDomain());
 
 		return true;
 	}
@@ -3407,7 +3407,7 @@ class User extends Prototype {
 		setcookie($key, $val, [
 			'expires' => $expires,
 			'path' => '/',
-			'domain' => $_ENV['domain'],
+			'domain' => str::getRegisteredDomain(),
 			// By setting the domain to the root domain, the cookie will be available on all subdomains, but not on parent domains.
 			// For example, if the domain is set to "example.com", the cookie will be available on "www.example.com" and "sub.example.com", but not on "anotherdomain.com".
 			'secure' => true,
