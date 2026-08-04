@@ -147,7 +147,8 @@ class str {
 	 *
 	 * @return mixed|null
 	 */
-	public static function getArrayValueByDotNotation(?array $array, ?string $dot_notation_key): mixed {
+	public static function getArrayValueByDotNotation(?array $array, ?string $dot_notation_key): mixed
+	{
 		# If no dot notation key is provided, return the whole array as is
 		if(!$dot_notation_key){
 			return $array;
@@ -177,9 +178,9 @@ class str {
 	/**
 	 * Recursively sets a value in an array using dot notation.
 	 *
-	 * @param array  $array  The array you want to update (passed by reference)
+	 * @param array  $array   The array you want to update (passed by reference)
 	 * @param string $dot_key A string using dot notation, e.g. "foo.bar.baz"
-	 * @param mixed  $value  The value to set at that key
+	 * @param mixed  $value   The value to set at that key
 	 *
 	 * @link https://chatgpt.com/share/678ccd08-2af8-8006-95da-aadcc23def31
 	 */
@@ -433,13 +434,13 @@ class str {
 		return $key;
 	}
 
-    /**
-     * Convert Markdown to HTML.
-     *
-     * @param string|null $text
-     *
-     * @return null|string
-     */
+	/**
+	 * Convert Markdown to HTML.
+	 *
+	 * @param string|null $text
+	 *
+	 * @return null|string
+	 */
 	public static function markdownToHtml(?string $text): ?string
 	{
 		if(!$text){
@@ -754,13 +755,13 @@ class str {
 		return mb_strtoupper(mb_substr($string, 0, 1)) . mb_strtolower(mb_substr($string, 1));
 	}
 
-    /**
-     * Given a title string, will suffix with (n), where "n" is an incremental
-     * number. Will not suffix (n) if an (n) already exists, instead it will
-     * increase n by 1.
-     *
-     * @param null|string $title
-     */
+	/**
+	 * Given a title string, will suffix with (n), where "n" is an incremental
+	 * number. Will not suffix (n) if an (n) already exists, instead it will
+	 * increase n by 1.
+	 *
+	 * @param null|string $title
+	 */
 	public static function copyTitle(?string &$title): void
 	{
 		if(!$title){
@@ -778,34 +779,35 @@ class str {
 		}
 	}
 
-    /**
-     * Takes a float or decimal and converts it to a percentage string,
-     * suffixed with the % sign.
-     *
-     * @param null|float $int_fraction float
-     * @param null|int   $decimals     int The number of decimal points to include
-     *
-     * @return string
-     */
-	static function percent(?float $int_fraction, ?int $decimals = 0): string {
+	/**
+	 * Takes a float or decimal and converts it to a percentage string,
+	 * suffixed with the % sign.
+	 *
+	 * @param null|float $int_fraction float
+	 * @param null|int   $decimals     int The number of decimal points to include
+	 *
+	 * @return string
+	 */
+	static function percent(?float $int_fraction, ?int $decimals = 0): string
+	{
 		$int = round($int_fraction * 100, $decimals);
 		return "$int%";
 	}
 
-    /**
-     * Given a set of keys, traverses the array,
-     * looks for those keys, and if they're orphans,
-     * flattens them.
-     * By flatten is meant to remove the numerical level of a child array:
-     * <code>
-     * $array['parent'][0]['child'] > $array['parent']['child']
-     * </code>
-     *
-     * @param null|array $array $array An array potentially containing numerical array children.
-     * @param array      $keys  A list of keys, if children are orphaned numerical arrays, to be flattened.
-     *
-     * @return void
-     */
+	/**
+	 * Given a set of keys, traverses the array,
+	 * looks for those keys, and if they're orphans,
+	 * flattens them.
+	 * By flatten is meant to remove the numerical level of a child array:
+	 * <code>
+	 * $array['parent'][0]['child'] > $array['parent']['child']
+	 * </code>
+	 *
+	 * @param null|array $array $array An array potentially containing numerical array children.
+	 * @param array      $keys  A list of keys, if children are orphaned numerical arrays, to be flattened.
+	 *
+	 * @return void
+	 */
 	public static function flattenSingleChildren(?array &$array, array $keys): void
 	{
 		if(!is_array($array)){
@@ -833,14 +835,14 @@ class str {
 		}
 	}
 
-    /**
-     * Takes an array or a string and converts it into a base64 URL safe string.
-     *
-     * @param null $input
-     *
-     * @return null|string
-     */
-	public static function base64_encode_url(null $input = NULL): ?string
+	/**
+	 * Takes an array or a string and converts it into a base64 URL safe string.
+	 *
+	 * @param mixed $input
+	 *
+	 * @return null|string
+	 */
+	public static function base64_encode_url($input = NULL): ?string
 	{
 		if(!$input){
 			return $input;
@@ -853,15 +855,16 @@ class str {
 		return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($input));
 	}
 
-    /**
-     * Given a base64 URl string, will decode the string and return it,
-     * or convert it back to an array if the decoded string turns out to be JSON.
-     *
-     * @param null|string $string
-     *
-     * @return mixed
-     */
-	public static function base64_decode_url(?string $string): mixed {
+	/**
+	 * Given a base64 URl string, will decode the string and return it,
+	 * or convert it back to an array if the decoded string turns out to be JSON.
+	 *
+	 * @param null|string $string
+	 *
+	 * @return mixed
+	 */
+	public static function base64_decode_url(?string $string): mixed
+	{
 		$string = base64_decode(str_replace(['-', '_'], ['+', '/'], $string));
 
 		if(str::isJson($string)){
@@ -899,21 +902,22 @@ class str {
 		return $branch;
 	}
 
-    /**
-     * Returns a readable method backtrace, like so:
-     * <code>
-     * [3176] whitelabel.php->load_ajax_call([{}]);
-     * [  28] error_log.php->unresolved([{}]);
-     * </code>
-     * Just by running this line at whichever point the backtrace is required
-     * <code>str::backtrace();</code>
-     *
-     * @param null|bool $return
-     * @param null|bool $keep_arguments
-     *
-     * @return string
-     */
-	static function backtrace(?bool $return = false, ?bool $keep_arguments = true): string {
+	/**
+	 * Returns a readable method backtrace, like so:
+	 * <code>
+	 * [3176] whitelabel.php->load_ajax_call([{}]);
+	 * [  28] error_log.php->unresolved([{}]);
+	 * </code>
+	 * Just by running this line at whichever point the backtrace is required
+	 * <code>str::backtrace();</code>
+	 *
+	 * @param null|bool $return
+	 * @param null|bool $keep_arguments
+	 *
+	 * @return string
+	 */
+	static function backtrace(?bool $return = false, ?bool $keep_arguments = true): string
+	{
 		$steps = [];
 		$debug_backtrace = debug_backtrace($keep_arguments ? DEBUG_BACKTRACE_PROVIDE_OBJECT : DEBUG_BACKTRACE_IGNORE_ARGS);
 		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
@@ -1042,17 +1046,17 @@ class str {
 		// If there is no overlap between the two arrays, then we're in dev
 	}
 
-    /**
-     * Returns an array with all the local server addresses displayed
-     * when running the *NIX command `ip a`.
-     * Running "ip a" because it's more reliable than `ifconfig`, which sometimes
-     * throws a `sh: 1: ifconfig: not found` error message
-     *
-     * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
-     * @param null|bool $include_shell
-     *
-     * @return array
-     */
+	/**
+	 * Returns an array with all the local server addresses displayed
+	 * when running the *NIX command `ip a`.
+	 * Running "ip a" because it's more reliable than `ifconfig`, which sometimes
+	 * throws a `sh: 1: ifconfig: not found` error message
+	 *
+	 * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
+	 * @param null|bool $include_shell
+	 *
+	 * @return array
+	 */
 	public static function getLocalServerIPs(?bool $withV6 = true, ?bool $include_shell = true): array
 	{
 		$cache_key = json_encode([
@@ -1303,98 +1307,125 @@ class str {
 		}
 	}
 
-    /**
-     * Checks whether a given domain is allowed based on a list of allowed domains.
-     * The method compares the provided domain against a comma-separated list of allowed domains.
-     * It performs exact matches and subdomain matches.
-     *
-     * @param string $domain         The domain to check.
-     * @param string $allowedDomains A comma-separated list of allowed domains.
-     *
-     * @return bool Returns true if the domain is allowed; otherwise, false.
-     */
-    public static function isAllowedDomain(string $domain, string $allowedDomains): bool {
-        $domain = strtolower(trim($domain));
-        $domain = rtrim($domain, '.');
-        $allowedDomains = str_replace([' '], [''], $allowedDomains);
+	/**
+	 * Checks whether a given domain is allowed based on a list of allowed domains.
+	 * The method compares the provided domain against a comma-separated list of allowed domains.
+	 * It performs exact matches and subdomain matches.
+	 *
+	 * @param string $domain         The domain to check.
+	 * @param string $allowedDomains A comma-separated list of allowed domains.
+	 *
+	 * @return bool Returns true if the domain is allowed; otherwise, false.
+	 */
+	public static function isAllowedDomain(string $domain, string $allowedDomains): bool
+	{
+		$domain = strtolower(trim($domain));
+		$domain = rtrim($domain, '.');
+		$allowedDomains = str_replace([' '], [''], $allowedDomains);
 
-        foreach (explode(',', $allowedDomains) as $allowed) {
-            $allowed = strtolower(trim($allowed));
-            $allowed = rtrim($allowed, '.');
+		foreach(explode(',', $allowedDomains) as $allowed){
+			$allowed = strtolower(trim($allowed));
+			$allowed = rtrim($allowed, '.');
 
-            if ($allowed === '') {
-                continue;
-            }
+			if($allowed === ''){
+				continue;
+			}
 
-            // Exact match
-            if ($domain === $allowed) {
-                return true;
-            }
+			// Exact match
+			if($domain === $allowed){
+				return true;
+			}
 
-            // Subdomain match
-            if (str_ends_with($domain, '.' . $allowed)) {
-                return true;
-            }
-        }
+			// Subdomain match
+			if(str_ends_with($domain, '.' . $allowed)){
+				return true;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    /**
-     * Retrieves the registered domain from the current HTTP origin or referer, matching it against a list of allowed domains.
-     * This function determines the domain from the HTTP_ORIGIN or HTTP_REFERER values provided by the server environment
-     * and checks if it matches any domains listed in the allowed domains' configuration.
-     * The allowed domains are derived from the `csrf_domains` and `domain` environment variables.
-     *
-     * @return string The matched registered domain if found in the allowed domains list, or empty string otherwise.
-     */
-    public static function getRegisteredDomain(): string {
-        static $matched;
-        if (!isset($matched)) {
-            $domain = '';
-            # If we have been given the HTTP origin, grab the domain from there
-            if ($_SERVER['HTTP_ORIGIN']) {
-                // HTTP_ORIGIN: "https://subdomain.example.com"
-                $domain = $_SERVER['HTTP_ORIGIN'];
-            } elseif ($_SERVER['HTTP_REFERER']) { # Or if we've been given the HTTP referer
-                // HTTP_REFERER: "https://subdomain.example.com/folder"
-                $domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
-            }
+	/**
+	 * Retrieves the registered domain from the current HTTP origin or referer, matching it against a list of allowed
+	 * domains. This function determines the domain from the HTTP_ORIGIN or HTTP_REFERER values provided by the server
+	 * environment and checks if it matches any domains listed in the allowed domains' configuration. The allowed
+	 * domains are derived from the `csrf_domains` and `domain` environment variables.
+	 *
+	 * @return string The matched registered domain if found in the allowed domains list, or empty string otherwise.
+	 */
+	public static function getRegisteredDomain(): string
+	{
+		$fallback_domain = $_ENV['domain'] ?: "kycdd.co.za";
 
-            $allowedDomains = ($_ENV['csrf_domains'] ?? '') . ',' . $_ENV["domain"];
+		# If we have been given the HTTP origin, grab the domain from there
+		if($_SERVER['HTTP_ORIGIN']){
+			// HTTP_ORIGIN: "https://subdomain.example.com"
+			$domain = $_SERVER['HTTP_ORIGIN'];
+		}
 
-            $domain = $domain
-                    |> trim(...)
-                    |> strtolower(...)
-                    |> (fn($x) => rtrim($x, '.'));
+		# Or if we've been given the HTTP referer
+		else if($_SERVER['HTTP_REFERER']){
+			// HTTP_REFERER: "https://subdomain.example.com/folder"
+			$domain = $_SERVER['HTTP_REFERER'];
+		}
 
-            $matched = '';
-            foreach(explode(',', $allowedDomains) as $allowed) {
-                $allowed = $allowed
-                        |> trim(...)
-                        |> strtolower(...)
-                        |> (fn($x) => rtrim($x, '.'));
+		# Fallback
+		else {
+			return $fallback_domain;
+		}
 
-                if ($allowed === '') {
-                    continue;
-                }
+		# Strip away the https:// and any trailing slashes, and get the host part of the URL
+		if (!preg_match('#^[a-z][a-z0-9+.-]*://#i', $domain)) {
+			$domain = 'https://' . ltrim($domain, '/');
+		}
+		if(!$domain = parse_url($domain, PHP_URL_HOST)){
+			return $fallback_domain;
+		}
 
-                // Exact match
-                if ($domain === $allowed) {
-                    $matched = $allowed;
-                    break;
-                }
+		# Ensure domain is formatted
+		$domain = $domain
+				|> trim(...)
+				|> strtolower(...)
+				|> (fn($x) => rtrim($x, '.'));
 
-                // Subdomain match
-                if (str_ends_with($domain, '.' . $allowed)) {
-                    $matched = $allowed;
-                    break;
-                }
-            }
-        }
+		# Get the allowed list of domains
+		switch(true) {
+		case $_ENV['csrf_domains']:
+			$allowed_domains = $_ENV['csrf_domains'];
+			break;
+			# Fallback
+		case $_ENV['domain']:
+			$allowed_domains = $_ENV['domain'];
+			break;
+			# Final fallback
+		default:
+			$allowed_domains = $fallback_domain;
+		}
 
-        return $matched;
-    }
+		# Ensure the provided domain is allowed
+		foreach(explode(',', $allowed_domains) as $allowed){
+			$allowed = $allowed
+					|> trim(...)
+					|> strtolower(...)
+					|> (fn($x) => rtrim($x, '.'));
+
+			if(!$allowed){
+				continue;
+			}
+
+			# Exact match
+			if($domain === $allowed){
+				return $allowed;
+			}
+
+			# Subdomain match
+			if(str_ends_with($domain, ".{$allowed}")){
+				return $allowed;
+			}
+		}
+
+		return $fallback_domain;
+	}
 
 	/**
 	 * Formats strings and ensures that they won't break SQL.
@@ -1409,11 +1440,12 @@ class str {
 	 * </code>
 	 *
 	 * @param null|float|int|string $i
-	 * @param null|bool        $html_accepted
+	 * @param null|bool             $html_accepted
 	 *
 	 * @return false|float|int|string
-     */
-	public static function i(null|float|int|string $i, ?bool $html_accepted = NULL): float|false|int|string {
+	 */
+	public static function i(null|float|int|string $i, ?bool $html_accepted = NULL): float|false|int|string
+	{
 		# We don't really care about stuff that looks like numbers
 		if(is_numeric($i)){
 			return $i;
@@ -1438,7 +1470,7 @@ class str {
 		 * metacharacters (quotation marks, etc.) with an escape character.
 		 */
 
-        /**
+		/**
 		 * The string is trimmed at both ends by design.
 		 * This may have unintended consequences.
 		 */
@@ -1455,11 +1487,12 @@ class str {
 	 *
 	 * @link: https://github.com/egulias/EmailValidator
 	 *
-	 *@param string $email email@address.com
+	 * @param string $email email@address.com
 	 *
 	 * @return boolean returns the email address on true or false on failure
 	 */
-	public static function isValidEmail(string $email): bool {
+	public static function isValidEmail(string $email): bool
+	{
 		$validator = new EmailValidator();
 		$multipleValidations = new MultipleValidationWithAnd([
 			new RFCValidation(),
@@ -1581,7 +1614,7 @@ EOF;
 		}
 
 		# Must decode without error
-        return json_validate($str);
+		return json_validate($str);
 	}
 
 	/**
@@ -1616,7 +1649,8 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function isValidPhoneNumber($number): bool {
+	public static function isValidPhoneNumber($number): bool
+	{
 		# Ensure it only contains valid characters
 		if(preg_match("/[^0-9\.\-\(\)\s#\+']/", $number)){
 			return false;
@@ -1659,7 +1693,8 @@ EOF;
 	 *
 	 * @return array|float|int|string
 	 */
-	public static function mysql_escape_mimic(float|int|array|string $inp): float|int|array|string {
+	public static function mysql_escape_mimic(float|int|array|string $inp): float|int|array|string
+	{
 		if(is_array($inp))
 			return array_map(__METHOD__, $inp);
 
@@ -1688,25 +1723,25 @@ EOF;
 		}
 	}
 
-    /**
-     * Checks to see if a given method is available in the current scope.
-     * And if that method is PUBLIC. Protected and private methods
-     * are protected from outside execution via the load_ajax_call() call.
-     * If the modifier is set, it will accept any methods set at that modifier or lower:
-     * <code>
-     * private
-     * protected
-     * public
-     * </code>
-     *
-     * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
-     *
-     * @param null|string $method
-     * @param string      $modifier The minimum accepted modifier level. (Default: public)
-     * @param null|object $class
-     *
-     * @return bool
-     */
+	/**
+	 * Checks to see if a given method is available in the current scope.
+	 * And if that method is PUBLIC. Protected and private methods
+	 * are protected from outside execution via the load_ajax_call() call.
+	 * If the modifier is set, it will accept any methods set at that modifier or lower:
+	 * <code>
+	 * private
+	 * protected
+	 * public
+	 * </code>
+	 *
+	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
+	 *
+	 * @param null|string $method
+	 * @param string      $modifier The minimum accepted modifier level. (Default: public)
+	 * @param null|object $class
+	 *
+	 * @return bool
+	 */
 	public static function methodAvailable(?object $class, ?string $method, string $modifier = "public"): bool
 	{
 		if(!$class || !$method){
@@ -1894,9 +1929,9 @@ EOF;
 				if($token === "{"){
 					$brace_level++;
 				}
-				elseif($token === "}"){
+				else if($token === "}"){
 					$brace_level--;
-					while($namespace_stack && $brace_level < $namespace_stack[array_key_last($namespace_stack)]['exit_level']){
+					while($namespace_stack && $brace_level < $namespace_stack[array_key_last($namespace_stack)]['exit_level']) {
 						$frame = array_pop($namespace_stack);
 						$namespace = $frame['previous_namespace'];
 						$uses = $frame['previous_uses'];
@@ -1926,10 +1961,10 @@ EOF;
 						'exit_level' => $brace_level + 1,
 					];
 					$brace_level++;
-                }
-                $namespace_body_level = $brace_level;
+				}
+				$namespace_body_level = $brace_level;
 
-                $i = $delimiter_index;
+				$i = $delimiter_index;
 				continue;
 			}
 
@@ -1958,7 +1993,7 @@ EOF;
 				'implements' => [],
 			];
 
-			for($cursor = $name_index + 1; $cursor < $token_count; ){
+			for($cursor = $name_index + 1; $cursor < $token_count;){
 				$cursor = self::skipIgnorablePhpTokens($tokens, $cursor);
 				if(!isset($tokens[$cursor])){
 					break;
@@ -2011,8 +2046,8 @@ EOF;
 	private static function getPhpDefinitionImplements(
 		string $definition_name,
 		string $implementation,
-		array $definitions,
-		array $visited = []
+		array  $definitions,
+		array  $visited = []
 	): bool
 	{
 		$definition_name = ltrim($definition_name, "\\");
@@ -2111,7 +2146,7 @@ EOF;
 		$token_count = count($tokens);
 		$i = self::skipIgnorablePhpTokens($tokens, $index);
 
-		while($i < $token_count){
+		while($i < $token_count) {
 			$name_data = self::readPhpQualifiedName($tokens, $i);
 			if(!$name_data['name']){
 				break;
@@ -2161,7 +2196,7 @@ EOF;
 			$token = $tokens[$i];
 
 			if(is_string($token)){
-				switch($token){
+				switch($token) {
 				case "\\":
 					$current_name .= $token;
 					continue 2;
@@ -2307,7 +2342,7 @@ EOF;
 	{
 		$token_count = count($tokens);
 
-		while($index < $token_count){
+		while($index < $token_count) {
 			$token = $tokens[$index];
 			if(!is_array($token) || !in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)){
 				break;
@@ -2360,7 +2395,7 @@ EOF;
 	{
 		$modifier = strtoupper($modifier);
 
-		$reflection_modifier = match($modifier) {
+		$reflection_modifier = match ($modifier) {
 			"PRIVATE" => ReflectionMethod::IS_PRIVATE,
 			"PROTECTED" => ReflectionMethod::IS_PROTECTED,
 			"PUBLIC" => ReflectionMethod::IS_PUBLIC,
@@ -2371,7 +2406,7 @@ EOF;
 			$reflection_class = new ReflectionClass($class);
 			$array = $reflection_class->getMethods($reflection_modifier);
 		}
-		catch(ReflectionException){
+		catch(ReflectionException) {
 			return [];
 		}
 
@@ -3574,12 +3609,13 @@ EOF;
 	 *
 	 * @link https://www.php.net/manual/en/function.var-export.php#122853
 	 *
-	 *@param bool $return
+	 * @param bool $return
 	 * @param      $expression
 	 *
 	 * @return string
 	 */
-	public static function var_export($expression, bool $return = false): string {
+	public static function var_export($expression, bool $return = false): string
+	{
 		$export = var_export($expression, true);
 		$export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
 		$array = preg_split("/\r\n|\n|\r/", $export);
@@ -3605,7 +3641,8 @@ EOF;
 	 * @return string Returns a code tag, wrapped in a pre tag, wrapped in a div wrapper tag. Each tag can be styled
 	 *                independently with the settings.
 	 */
-	public static function pre(array|string $str, ?array $settings = []): string {
+	public static function pre(array|string $str, ?array $settings = []): string
+	{
 		if(is_array($str)){
 			$str = str::json_encode($str, "base64", JSON_PRETTY_PRINT);
 		}
@@ -3699,11 +3736,11 @@ EOF;
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
 	 *
-	 *@param array|string $order
-	 * @param bool|null   $reset_keys     If set to TRUE, will reset the root keys to match the new order.
-	 * @param bool|null   $case_sensitive If set to TRUE, will sort case-sensitive. Uppercase will have priority over
+	 * @param array|string $order
+	 * @param bool|null    $reset_keys     If set to TRUE, will reset the root keys to match the new order.
+	 * @param bool|null    $case_sensitive If set to TRUE, will sort case-sensitive. Uppercase will have priority over
 	 *                                     lowercase.
-	 * @param array|null  $array          $array
+	 * @param array|null   $array          $array
 	 */
 	static function multidimensionalOrderBy(?array &$array, array|string $order = ["order" => "ASC"], ?bool $reset_keys = NULL, ?bool $case_sensitive = NULL): void
 	{
@@ -3935,7 +3972,7 @@ EOF;
 
 		# Step 3: Add Headers
 		foreach($uniqueKeys as $colIndex => $header){
-//			$sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
+			//			$sheet->setCellValueByColumnAndRow($colIndex + 1, 1, $header);
 			$sheet->setCellValue([$colIndex + 1, 1], $header);
 		}
 
@@ -3943,7 +3980,7 @@ EOF;
 		$rowIndex = 2;
 		foreach($array as $values){
 			foreach($uniqueKeys as $colIndex => $key){
-//				$sheet->setCellValueByColumnAndRow($colIndex + 1, $rowIndex, $values[$key] ?? '');
+				//				$sheet->setCellValueByColumnAndRow($colIndex + 1, $rowIndex, $values[$key] ?? '');
 				$sheet->setCellValue([$colIndex + 1, $rowIndex], $values[$key] ?? '');
 			}
 			$rowIndex++;
@@ -4873,32 +4910,143 @@ EOF;
 					'backtrace' => str::backtrace(true, false),
 				]);
 			}
-//			Log::getInstance()->error([
-//				"display" => false,
-//				"title" => $title,
-//				"message" => $message,
-//			]);
+			//			Log::getInstance()->error([
+			//				"display" => false,
+			//				"title" => $title,
+			//				"message" => $message,
+			//			]);
 
-			# Email admins
-//			if(!$silent){
-//				# Write the message
-//				$title = "Command failed";
-//				$message = "<p>Command: <pre>{$command}</pre></p>
-//			<p>Output: <pre>" . implode("\n", $output) . "</pre></p>
-//			<p>Return value: {$return_value}</p>";
-//
-//				// But only if silent mode isn't enabled
-//				Email::notifyAdmins([
-//					"subject" => $title,
-//					"body" => $message,
-//					"backtrace" => str::backtrace(true, false),
-//				]);
-//			}
+			# Email admins (enabled for now while we testing things out with the updated logging)
+			if(!$silent){
+				# Write the message
+				$title = "Command failed";
+				$message = "<p>Command: <pre>{$command}</pre></p>
+			<p>Output: <pre>" . implode("\n", $output) . "</pre></p>
+			<p>Return value: {$return_value}</p>";
+
+				// But only if silent mode isn't enabled
+				Email::notifyAdmins([
+					"subject" => $title,
+					"body" => $message,
+					"backtrace" => str::backtrace(true, false),
+				]);
+			}
 			return false;
 		}
 
 		return true;
 	}
+
+	//	public static function exec(string $command, ?array &$output = [], ?int $timeout = 30, ?bool $silent = NULL): bool
+	//	{
+	//		$descriptorspec = [
+	//			0 => ["pipe", "r"],  // stdin
+	//			1 => ["pipe", "w"],  // stdout
+	//			2 => ["pipe", "w"],   // stderr
+	//			3 => ["pipe", "w"],   // stderr (for the return value)
+	//		];
+	//
+	//		$process = proc_open("{$command};echo $? >&3", $descriptorspec, $pipes);
+	//		// We're adding the echo $? >&3 to get the return value of the command
+	//
+	//		if(is_resource($process)){
+	//			// Wait for the process to terminate or the timeout to expire
+	//			$endTime = time() + $timeout;
+	//			while(time() < $endTime && $status = proc_get_status($process)) {
+	//				if(!$status['running']){
+	//					break; // Process finished before timeout
+	//				}
+	//				usleep(100000); // Sleep for 0.1 seconds
+	//			}
+	//
+	//			if($status['running']){
+	//				// The process is still running, so terminate it
+	//				proc_terminate($process);
+	//				return false;
+	//			}
+	//
+	//			else {
+	//				// Process completed, read its output
+	//
+	//				# Get the pipe metadata to ensure the pipes are not blocked
+	//				$meta_data[1] = stream_get_meta_data($pipes[1]);
+	//				$meta_data[2] = stream_get_meta_data($pipes[2]);
+	//
+	//				if($meta_data[1]['blocked']){
+	//					//unblock the stdout stream
+	//					stream_set_blocking($pipes[1], 0);
+	//				}
+	//
+	//				if($meta_data[2]['blocked']){
+	//					//unblock the stderr stream
+	//					stream_set_blocking($pipes[2], 0);
+	//				}
+	//				// This will the pipes hanging
+	//
+	//				$stdout = stream_get_contents($pipes[1]);
+	//				$stderr = stream_get_contents($pipes[2]);
+	//
+	//				# Get the return value of the command
+	//				$return_value = (int)rtrim(fgets($pipes[3], 5), "\n");
+	//			}
+	//
+	//			// Close all pipes and terminate the process
+	//			fclose($pipes[0]);
+	//			fclose($pipes[1]);
+	//			fclose($pipes[2]);
+	//			fclose($pipes[3]);
+	//
+	//			proc_close($process);
+	//		}
+	//
+	//		if($stdout){
+	//			$output = explode(PHP_EOL, $stdout);
+	//		}
+	//
+	//		if($stderr){
+	//			$output = explode(PHP_EOL, $stderr);
+	//		}
+	//
+	//		# If there is an error, notify admins
+	//		if($return_value !== 0){
+	//			# Log it
+	//			if(class_exists(\App\CmdErrorLog\CmdErrorLog::class)){
+	//				\App\CmdErrorLog\CmdErrorLog::logExecFailure([
+	//					'command' => $command,
+	//					'output' => $output,
+	//					'stdout' => $stdout,
+	//					'stderr' => $stderr ?: ($timed_out ? "Command timed out after {$timeout} seconds." : NULL),
+	//					'return_value' => $return_value,
+	//					'timed_out' => $timed_out,
+	//					'backtrace' => str::backtrace(true, false),
+	//				]);
+	//			}
+	//			//			Log::getInstance()->error([
+	//			//				"display" => false,
+	//			//				"title" => $title,
+	//			//				"message" => $message,
+	//			//			]);
+	//
+	//			# Email admins
+	//			//			if(!$silent){
+	//			//				# Write the message
+	//			//				$title = "Command failed";
+	//			//				$message = "<p>Command: <pre>{$command}</pre></p>
+	//			//			<p>Output: <pre>" . implode("\n", $output) . "</pre></p>
+	//			//			<p>Return value: {$return_value}</p>";
+	//			//
+	//			//				// But only if silent mode isn't enabled
+	//			//				Email::notifyAdmins([
+	//			//					"subject" => $title,
+	//			//					"body" => $message,
+	//			//					"backtrace" => str::backtrace(true, false),
+	//			//				]);
+	//			//			}
+	//			return false;
+	//		}
+	//
+	//		return true;
+	//	}
 
 	/**
 	 * Returns an array of information about a given process ID.
