@@ -123,7 +123,7 @@ class Email extends Prototype {
 		else {
 			# Set a unique message ID (this only applies if *we* are sending the email)
 			$headers = $this->envelope->getHeaders();
-			$headers->addIdHeader('Message-ID', str::uuid() . "@" . $_ENV['domain']);
+			$headers->addIdHeader('Message-ID', str::uuid() . "@" . str::getRegisteredDomain());
 			// To avoid the "-0.001	MSGID_FROM_MTA_HEADER	Message-Id was added by a relay" error from SpamAssassin
 		}
 
@@ -1029,7 +1029,7 @@ class Email extends Prototype {
 				"email_password" => $_ENV['email_password'],
 				"disable_certificate_verification" => false,
 				"dkim_private_key_file" => $_ENV['dkim_private_key'],
-				"dkim_domain" => $_ENV['domain'],
+				"dkim_domain" => str::getRegisteredDomain(),
 			]);
 		}
 

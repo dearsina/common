@@ -84,7 +84,7 @@ class Cumulo extends \App\Common\OAuth2\Prototype implements \App\Common\OAuth2\
 		return new GenericProvider([
 			'clientId' => $_ENV["cumulo_{$env}_client_id"],
 			'clientSecret' => $_ENV["cumulo_{$env}_client_secret"],
-			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
+			'redirectUri' => "https://app." . str::getRegisteredDomain() . "/oauth2.php",
 			"accessType" => "offline",
 			"prompt" => $force_refresh_token ? "consent" : NULL, // Forces consent (and a refresh token) every time
 			"scopes" => "offline ck.key.get ck.key.sign",

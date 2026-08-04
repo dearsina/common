@@ -101,7 +101,7 @@ class Gmail extends Prototype implements EmailProviderInterface {
 		return new \League\OAuth2\Client\Provider\Google([
 			'clientId' => $_ENV['google_oauth_client_id'],
 			'clientSecret' => $_ENV['google_oauth_client_secret'],
-			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
+			'redirectUri' => "https://app." . str::getRegisteredDomain() . "/oauth2.php",
 			"accessType" => "offline",
 			"prompt" => $force_refresh_token ? "consent" : NULL, # Forces consent (and a refresh token) every time
 			"scopes" => self::SCOPES,

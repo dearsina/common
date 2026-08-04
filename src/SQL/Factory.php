@@ -47,7 +47,7 @@ class Factory {
 //				"error_message" => $e->getMessage(),
 //			];
 //			$email->template("database_down", $variables)
-//				->to("info@{$_ENV['domain']}")
+//				->to("info@" . str::getRegisteredDomain())
 //				->send();
 			// Ends up self-DDOSing
 

@@ -246,7 +246,7 @@ class OAuth2Handler extends \App\Common\Prototype {
 		 * continue as normal.
 		 */
 
-		$url = "https://app.{$_ENV['domain']}/oauth2.php?" . http_build_query(array_filter($a));
+		$url = "https://app." . str::getRegisteredDomain() . "/oauth2.php?" . http_build_query(array_filter($a));
 
 		# Single sign-on doesn't use the popup window
 		if($a['vars']['sso']){

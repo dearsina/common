@@ -144,7 +144,7 @@ class Template {
 	public function getDomain(?string $subdomain = NULL): string
 	{
 		if($subdomain){
-			return "https://{$subdomain}.{$_ENV['domain']}/";
+			return "https://{$subdomain}." . str::getRegisteredDomain() . "/";
 		}
 
 		else if($_SERVER['HTTP_HOST']){
@@ -152,7 +152,7 @@ class Template {
 		}
 
 		else {
-			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
+			return "https://{$_ENV['app_subdomain']}." . str::getRegisteredDomain() . "/";
 		}
 	}
 

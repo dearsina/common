@@ -2,14 +2,34 @@
 
 namespace App\Common;
 
-use App\Email\Email;
 use App\UI\Badge;
 use App\UI\Icon;
+use Composer\Autoload\ClassLoader;
+use DateTime;
+use Egulias\EmailValidator\EmailValidator;
+use Egulias\EmailValidator\Validation\DNSCheckValidation;
+use Egulias\EmailValidator\Validation\MultipleValidationWithAnd;
+use Egulias\EmailValidator\Validation\RFCValidation;
 use GuzzleHttp\Client;
+use Parsedown;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Exception;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionMethod;
+use Symfony\Component\Finder\Finder;
+use Transliterator;
+use function array_filter;
 use function array_first;
+use function array_map;
+use function explode;
+use function rtrim;
+use function str_replace;
+use function strlen;
+use function strtolower;
+use function trim;
+use function usort;
 
 /**
  * Static class related mainly to string manipulation.
@@ -30,11 +50,11 @@ class str {
 	 * @link https://stackoverflow.com/questions/8773236/proper-way-to-access-a-static-variable-inside-a-string-with-a-heredoc-syntax/
 	 * @var bool
 	 */
-	private $str;
+	private bool $str;
 	private static ?str $instance = NULL;
 	private static array $is_dev_cache = [];
 	private static array $local_server_ips_cache = [];
-	private const MAX_INHERITED_BACKTRACE_BYTES = 65536;
+	private const int MAX_INHERITED_BACKTRACE_BYTES = 65536;
 
 	/**
 	 * The constructor is private so that the class
@@ -86,7 +106,7 @@ class str {
 			}
 			if($cyrillic_words){
 				$cyrillic_words = implode(" ", $cyrillic_words);
-				$scripted_words[] = "<span class=\"script-cyrillic\">{$cyrillic_words}</span>";
+				$scripted_words[] = "<span class=\"script-cyrillic\">$cyrillic_words</span>";
 			}
 
 			# Arabic
@@ -97,7 +117,7 @@ class str {
 			}
 			if($arabic_words){
 				$arabic_words = implode(" ", $arabic_words);
-				$scripted_words[] = "<span class=\"script-arabic\">{$arabic_words}</span>";
+				$scripted_words[] = "<span class=\"script-arabic\">$arabic_words</span>";
 			}
 
 			$scripted_words[] = $words[$i];
@@ -127,8 +147,7 @@ class str {
 	 *
 	 * @return mixed|null
 	 */
-	public static function getArrayValueByDotNotation(?array $array, ?string $dot_notation_key)
-	{
+	public static function getArrayValueByDotNotation(?array $array, ?string $dot_notation_key): mixed {
 		# If no dot notation key is provided, return the whole array as is
 		if(!$dot_notation_key){
 			return $array;
@@ -159,12 +178,12 @@ class str {
 	 * Recursively sets a value in an array using dot notation.
 	 *
 	 * @param array  $array  The array you want to update (passed by reference)
-	 * @param string $dotKey A string using dot notation, e.g. "foo.bar.baz"
+	 * @param string $dot_key A string using dot notation, e.g. "foo.bar.baz"
 	 * @param mixed  $value  The value to set at that key
 	 *
 	 * @link https://chatgpt.com/share/678ccd08-2af8-8006-95da-aadcc23def31
 	 */
-	public static function setArrayValueByDotNotation(array &$array, string $dot_key, $value): void
+	public static function setArrayValueByDotNotation(array &$array, string $dot_key, mixed $value): void
 	{
 		// Break the dot_key into an array of keys
 		$keys = explode('.', $dot_key);
@@ -231,12 +250,12 @@ class str {
 	/**
 	 * Defines the minimum password length requirements
 	 */
-	const MIMINUM_PASSWORD_LENGTH = 8;
+	const int MIMINUM_PASSWORD_LENGTH = 8;
 
 	/**
 	 * Defines the minimum phone number length requirement.
 	 */
-	const MINIMUM_PHONE_NUMBER_LENGTH = 5;
+	const int MINIMUM_PHONE_NUMBER_LENGTH = 5;
 
 	/**
 	 * @param string $haystack
@@ -384,7 +403,7 @@ class str {
 		$key = mb_strtolower($key);
 
 		# Remove diacritics
-		$transliterator = \Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', \Transliterator::FORWARD);
+		$transliterator = Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', Transliterator::FORWARD);
 		$key = $transliterator->transliterate($key);
 
 		# Replace all non-alphanumeric characters with underscores
@@ -414,20 +433,20 @@ class str {
 		return $key;
 	}
 
-	/**
-	 * Convert Markdown to HTML.
-	 *
-	 * @param string|null $text
-	 *
-	 * @return string
-	 */
+    /**
+     * Convert Markdown to HTML.
+     *
+     * @param string|null $text
+     *
+     * @return null|string
+     */
 	public static function markdownToHtml(?string $text): ?string
 	{
 		if(!$text){
 			return NULL;
 		}
 
-		$parsedown = new \Parsedown();
+		$parsedown = new Parsedown();
 		$parsedown->setBreaksEnabled(true);
 
 		return $parsedown->text($text);
@@ -505,7 +524,7 @@ class str {
 			// Capitalize letter after certain name prefixes e.g 'Mc'
 			foreach(self::NAME_PREFIXES as $prefix){
 				$str = preg_replace_callback("/\\b($prefix)(\\w)/u", function($matches){
-					return "{$matches[1]}" . strtoupper($matches[2]);
+					return "$matches[1]" . strtoupper($matches[2]);
 				}, $str);
 			}
 		}
@@ -514,7 +533,7 @@ class str {
 			// Remove capitalisation from certain word suffixes, e.g. 's
 			foreach(self::NAME_SUFFIXES as $suffix){
 				$str = preg_replace_callback("/(\\w)($suffix)\\b/u", function($matches){
-					return "{$matches[1]}" . mb_strtolower($matches[2]);
+					return "$matches[1]" . mb_strtolower($matches[2]);
 				}, $str);
 			}
 		}
@@ -524,7 +543,7 @@ class str {
 	/**
 	 * Words or abbreviations that should always be all uppercase
 	 */
-	const ALL_UPPERCASE = [
+	const array ALL_UPPERCASE = [
 		"KYC",
 		"UK",
 		"VAT",
@@ -534,18 +553,18 @@ class str {
 		"W.L.L",
 	];
 
-	const NAME_PREFIXES = [
+	const array NAME_PREFIXES = [
 		"Mc",
 	];
 
-	const NAME_SUFFIXES = [
+	const array NAME_SUFFIXES = [
 		"'S",
 	];
 
 	/**
 	 * Words or abbreviations that should always be all lowercase
 	 */
-	const ALL_LOWERCASE = [
+	const array ALL_LOWERCASE = [
 		//		"a",
 		//In a title, a shouldn't be capitalised, but in name (initial), it should be
 		"and",
@@ -561,7 +580,7 @@ class str {
 	 * Words that need to be exempt from the
 	 * upper/lowercase logic.
 	 */
-	const ALL_CAPITALISED = [
+	const array ALL_CAPITALISED = [
 		"Rd",
 		"Blvd",
 		"Pty",
@@ -573,7 +592,7 @@ class str {
 	 * Honorifics that only contain vowels.
 	 *
 	 */
-	const CONSONANT_ONLY_HONORIFICS = [
+	const array CONSONANT_ONLY_HONORIFICS = [
 		# English
 		"Mr",
 		"Mrs",
@@ -593,7 +612,7 @@ class str {
 	 * Surname prefixes that should be lowercase,
 	 * unless not following another word (firstname).
 	 */
-	const SURNAME_PREFIXES = [
+	const array SURNAME_PREFIXES = [
 		"de la",
 		"de las",
 		"van de",
@@ -649,7 +668,7 @@ class str {
 			}
 
 			# Create a version without diacritics
-			$transliterator = \Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', \Transliterator::FORWARD);
+			$transliterator = Transliterator::createFromRules(':: Any-Latin; :: Latin-ASCII; :: NFD; :: [:Nonspacing Mark:] Remove; :: Lower(); :: NFC;', Transliterator::FORWARD);
 			$ascii_word = $transliterator->transliterate($word);
 
 
@@ -674,7 +693,7 @@ class str {
 			# Ensure O'Connor, L'Oreal, etc, are double capitalised, with exceptions (d')
 			if(preg_match("/\b([a-z]')(\p{L}+)\b/ui", $word, $match)){
 				# Some prefixes (like d') are not capitalised
-				if(in_array($match[1], ["d'"])){
+				if($match[1] == "d'"){
 					return $match[1] . str::mb_ucfirst($match[2]);
 				}
 
@@ -704,7 +723,7 @@ class str {
 		$pattern = "/\b (" . implode("|", self::SURNAME_PREFIXES) . ") \b/ui";
 		//A surname prefix, bookended by words
 		$string = preg_replace_callback($pattern, function($matches){
-			return strtolower(" {$matches[1]} ");
+			return strtolower(" $matches[1] ");
 		}, $string);
 
 		# Cater for ordinal numbers
@@ -735,13 +754,13 @@ class str {
 		return mb_strtoupper(mb_substr($string, 0, 1)) . mb_strtolower(mb_substr($string, 1));
 	}
 
-	/**
-	 * Given a title string, will suffix with (n), where "n" is an incremental
-	 * number. Will not suffix (n) if an (n) already exists, instead it will
-	 * increase n by 1.
-	 *
-	 * @param string $title
-	 */
+    /**
+     * Given a title string, will suffix with (n), where "n" is an incremental
+     * number. Will not suffix (n) if an (n) already exists, instead it will
+     * increase n by 1.
+     *
+     * @param null|string $title
+     */
 	public static function copyTitle(?string &$title): void
 	{
 		if(!$title){
@@ -751,7 +770,7 @@ class str {
 		$pattern = '/^(.+?)\((\d+)\)$/';
 		if(preg_match($pattern, $title, $matches)){
 			$digit = $matches[2] + 1;
-			$suffix = "({$digit})";
+			$suffix = "($digit)";
 			$title = preg_replace($pattern, '$1' . $suffix, $title);
 		}
 		else {
@@ -759,35 +778,34 @@ class str {
 		}
 	}
 
-	/**
-	 * Takes a float or decimal and converts it to a percentage string,
-	 * suffixed with the % sign.
-	 *
-	 * @param     $int_fraction float
-	 * @param int $decimals     int The number of decimal points to include
-	 *
-	 * @return string
-	 */
-	static function percent(?float $int_fraction, ?int $decimals = 0)
-	{
+    /**
+     * Takes a float or decimal and converts it to a percentage string,
+     * suffixed with the % sign.
+     *
+     * @param null|float $int_fraction float
+     * @param null|int   $decimals     int The number of decimal points to include
+     *
+     * @return string
+     */
+	static function percent(?float $int_fraction, ?int $decimals = 0): string {
 		$int = round($int_fraction * 100, $decimals);
-		return "{$int}%";
+		return "$int%";
 	}
 
-	/**
-	 * Given a set of keys, traverses the array,
-	 * looks for those keys, and if they're orphans,
-	 * flattens them.
-	 * By flatten is meant to remove the numerical level of a child array:
-	 * <code>
-	 * $array['parent'][0]['child'] > $array['parent']['child']
-	 * </code>
-	 *
-	 * @param array $array An array potentially containing numerical array children.
-	 * @param array $keys  A list of keys, if children are orphaned numerical arrays, to be flattened.
-	 *
-	 * @return array
-	 */
+    /**
+     * Given a set of keys, traverses the array,
+     * looks for those keys, and if they're orphans,
+     * flattens them.
+     * By flatten is meant to remove the numerical level of a child array:
+     * <code>
+     * $array['parent'][0]['child'] > $array['parent']['child']
+     * </code>
+     *
+     * @param null|array $array $array An array potentially containing numerical array children.
+     * @param array      $keys  A list of keys, if children are orphaned numerical arrays, to be flattened.
+     *
+     * @return void
+     */
 	public static function flattenSingleChildren(?array &$array, array $keys): void
 	{
 		if(!is_array($array)){
@@ -815,14 +833,14 @@ class str {
 		}
 	}
 
-	/**
-	 * Takes an array or a string and converts it into a base64 URL safe string.
-	 *
-	 * @param array|string|null $input
-	 *
-	 * @return string
-	 */
-	public static function base64_encode_url($input = NULL): ?string
+    /**
+     * Takes an array or a string and converts it into a base64 URL safe string.
+     *
+     * @param null $input
+     *
+     * @return null|string
+     */
+	public static function base64_encode_url(null $input = NULL): ?string
 	{
 		if(!$input){
 			return $input;
@@ -835,16 +853,15 @@ class str {
 		return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($input));
 	}
 
-	/**
-	 * Given a base64 URl string, will decode the string and return it,
-	 * or convert it back to an array if the decoded string turns out to be JSON.
-	 *
-	 * @param $string
-	 *
-	 * @return mixed
-	 */
-	public static function base64_decode_url(?string $string)
-	{
+    /**
+     * Given a base64 URl string, will decode the string and return it,
+     * or convert it back to an array if the decoded string turns out to be JSON.
+     *
+     * @param null|string $string
+     *
+     * @return mixed
+     */
+	public static function base64_decode_url(?string $string): mixed {
 		$string = base64_decode(str_replace(['-', '_'], ['+', '/'], $string));
 
 		if(str::isJson($string)){
@@ -882,28 +899,28 @@ class str {
 		return $branch;
 	}
 
-	/**
-	 * Returns a readable method backtrace, like so:
-	 * <code>
-	 * [3176] whitelabel.php->load_ajax_call([{}]);
-	 * [  28] error_log.php->unresolved([{}]);
-	 * </code>
-	 * Just by running this line at whichever point the backtrace is required
-	 * <code>str::backtrace();</code>
-	 *
-	 * @param null $return
-	 *
-	 * @return string
-	 */
-	static function backtrace(?bool $return = false, ?bool $keep_arguments = true)
-	{
+    /**
+     * Returns a readable method backtrace, like so:
+     * <code>
+     * [3176] whitelabel.php->load_ajax_call([{}]);
+     * [  28] error_log.php->unresolved([{}]);
+     * </code>
+     * Just by running this line at whichever point the backtrace is required
+     * <code>str::backtrace();</code>
+     *
+     * @param null|bool $return
+     * @param null|bool $keep_arguments
+     *
+     * @return string
+     */
+	static function backtrace(?bool $return = false, ?bool $keep_arguments = true): string {
 		$steps = [];
 		$debug_backtrace = debug_backtrace($keep_arguments ? DEBUG_BACKTRACE_PROVIDE_OBJECT : DEBUG_BACKTRACE_IGNORE_ARGS);
 		array_walk($debug_backtrace, function($a) use (&$steps, $keep_arguments){
 			$args = $keep_arguments && $a['args'] ? json_encode($a['args'], JSON_PARTIAL_OUTPUT_ON_ERROR) : "{}";
 			$line_number = str_pad($a['line'] ?? "", 4, " ", STR_PAD_LEFT);
 			$file_name = isset($a['file']) ? basename($a['file']) : "[internal]";
-			$steps[] = "{$a['function']}({$args});\r\n[{$line_number}] {$file_name}->";
+			$steps[] = "{$a['function']}($args);\r\n[$line_number] $file_name->";
 		});
 
 		# Fix is so that the functions and filenames are aligned correctly
@@ -926,7 +943,7 @@ class str {
 					$steps = base64_decode((string)$backtrace) . PHP_EOL . $steps;
 				}
 				else {
-					$steps = "[Inherited backtrace omitted: {$backtrace_length} encoded bytes]" . PHP_EOL . $steps;
+					$steps = "[Inherited backtrace omitted: $backtrace_length encoded bytes]" . PHP_EOL . $steps;
 				}
 			}
 		}
@@ -959,7 +976,7 @@ class str {
 	 */
 	public static function isDate(?string $date, ?string $format = "Y-m-d"): bool
 	{
-		$dt = \DateTime::createFromFormat($format, $date);
+		$dt = DateTime::createFromFormat($format, $date);
 		return $dt !== false && $dt::getLastErrors() === false;
 	}
 
@@ -1025,17 +1042,17 @@ class str {
 		// If there is no overlap between the two arrays, then we're in dev
 	}
 
-	/**
-	 * Returns an array with all the local server addresses displayed
-	 * when running the *NIX command `ip a`.
-	 *
-	 * Running "ip a" because it's more reliable than `ifconfig`, which sometimes
-	 * throws a `sh: 1: ifconfig: not found` error message
-	 *
-	 * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
-	 *
-	 * @return array
-	 */
+    /**
+     * Returns an array with all the local server addresses displayed
+     * when running the *NIX command `ip a`.
+     * Running "ip a" because it's more reliable than `ifconfig`, which sometimes
+     * throws a `sh: 1: ifconfig: not found` error message
+     *
+     * @param bool|null $withV6 Include IPv6 addresses (default is TRUE)
+     * @param null|bool $include_shell
+     *
+     * @return array
+     */
 	public static function getLocalServerIPs(?bool $withV6 = true, ?bool $include_shell = true): array
 	{
 		$cache_key = json_encode([
@@ -1104,7 +1121,7 @@ class str {
 
 		$stderr = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '2>nul' : '2>/dev/null';
 
-		return @shell_exec("{$command} {$stderr}");
+		return @shell_exec("$command $stderr");
 	}
 
 	/**
@@ -1240,11 +1257,11 @@ class str {
 	 */
 	public static function isSvg(string $path): bool
 	{
-		if(strpos($path, "://") === false){
+		if(!str_contains($path, "://")){
 			//if local file
 
-			# A svg suffix is sufficient if the file is local
-			return substr($path, -3) == "svg";
+			# A svg suffix is enough if the file is local
+			return str_ends_with($path, "svg");
 		}
 
 		# Otherwise, check the headers
@@ -1276,19 +1293,112 @@ class str {
 	public static function getDomain(?string $subdomain = NULL): string
 	{
 		if($subdomain){
-			return "https://{$subdomain}.{$_ENV['domain']}/";
+			return "https://$subdomain." . str::getRegisteredDomain() . "/";
 		}
 		else if($_SERVER['HTTP_HOST']){
 			return "https://{$_SERVER['HTTP_HOST']}/";
 		}
 		else {
-			return "https://{$_ENV['app_subdomain']}.{$_ENV['domain']}/";
+			return "https://{$_ENV['app_subdomain']}." . str::getRegisteredDomain() . "/";
 		}
 	}
 
+    /**
+     * Checks whether a given domain is allowed based on a list of allowed domains.
+     * The method compares the provided domain against a comma-separated list of allowed domains.
+     * It performs exact matches and subdomain matches.
+     *
+     * @param string $domain         The domain to check.
+     * @param string $allowedDomains A comma-separated list of allowed domains.
+     *
+     * @return bool Returns true if the domain is allowed; otherwise, false.
+     */
+    public static function isAllowedDomain(string $domain, string $allowedDomains): bool {
+        $domain = strtolower(trim($domain));
+        $domain = rtrim($domain, '.');
+        $allowedDomains = str_replace([' '], [''], $allowedDomains);
+
+        foreach (explode(',', $allowedDomains) as $allowed) {
+            $allowed = strtolower(trim($allowed));
+            $allowed = rtrim($allowed, '.');
+
+            if ($allowed === '') {
+                continue;
+            }
+
+            // Exact match
+            if ($domain === $allowed) {
+                return true;
+            }
+
+            // Subdomain match
+            if (str_ends_with($domain, '.' . $allowed)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Retrieves the registered domain from the current HTTP origin or referer, matching it against a list of allowed domains.
+     * This function determines the domain from the HTTP_ORIGIN or HTTP_REFERER values provided by the server environment
+     * and checks if it matches any domains listed in the allowed domains' configuration.
+     * The allowed domains are derived from the `csrf_domains` and `domain` environment variables.
+     *
+     * @return string The matched registered domain if found in the allowed domains list, or empty string otherwise.
+     */
+    public static function getRegisteredDomain(): string {
+        static $matched;
+        if (!isset($matched)) {
+            $domain = '';
+            # If we have been given the HTTP origin, grab the domain from there
+            if ($_SERVER['HTTP_ORIGIN']) {
+                // HTTP_ORIGIN: "https://subdomain.example.com"
+                $domain = $_SERVER['HTTP_ORIGIN'];
+            } elseif ($_SERVER['HTTP_REFERER']) { # Or if we've been given the HTTP referer
+                // HTTP_REFERER: "https://subdomain.example.com/folder"
+                $domain = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
+            }
+
+            $allowedDomains = ($_ENV['csrf_domains'] ?? '') . ',' . $_ENV["domain"];
+
+            $domain = $domain
+                    |> trim(...)
+                    |> strtolower(...)
+                    |> (fn($x) => rtrim($x, '.'));
+
+            $matched = '';
+            foreach(explode(',', $allowedDomains) as $allowed) {
+                $allowed = $allowed
+                        |> trim(...)
+                        |> strtolower(...)
+                        |> (fn($x) => rtrim($x, '.'));
+
+                if ($allowed === '') {
+                    continue;
+                }
+
+                // Exact match
+                if ($domain === $allowed) {
+                    $matched = $allowed;
+                    break;
+                }
+
+                // Subdomain match
+                if (str_ends_with($domain, '.' . $allowed)) {
+                    $matched = $allowed;
+                    break;
+                }
+            }
+        }
+
+        return $matched;
+    }
+
 	/**
 	 * Formats strings and ensures that they won't break SQL.
-	 * If a string is not a float, int or string,
+	 * If a string is not a float, int, or string,
 	 * it will be outright rejected.
 	 * <code>
 	 * str::i($string);
@@ -1298,13 +1408,12 @@ class str {
 	 * str::i($html_string, TRUE);
 	 * </code>
 	 *
-	 * @param float|int|string $i
-	 * @param bool             $html_accepted
+	 * @param null|float|int|string $i
+	 * @param null|bool        $html_accepted
 	 *
-	 * @return mixed|string
-	 */
-	public static function i($i, $html_accepted = NULL)
-	{
+	 * @return false|float|int|string
+     */
+	public static function i(null|float|int|string $i, ?bool $html_accepted = NULL): float|false|int|string {
 		# We don't really care about stuff that looks like numbers
 		if(is_numeric($i)){
 			return $i;
@@ -1329,35 +1438,32 @@ class str {
 		 * metacharacters (quotation marks, etc.) with an escape character.
 		 */
 
-		$i = trim($i);
-		/**
+        /**
 		 * The string is trimmed at both ends by design.
 		 * This may have unintended consequences.
 		 */
 
-		return $i;
+		return trim($i);
 	}
 
 	/**
 	 * DEPRECATED
-	 *
 	 * Has been prone to failing valid email addresses.
 	 * Replaced with filter_var($email, FILTER_VALIDATE_EMAIL)
-	 *
 	 * Checks to see if an email address is valid
 	 *    <code>str::isValidEmail($email);<code>
 	 *
-	 * @param string $email email@address.com
+	 * @link: https://github.com/egulias/EmailValidator
+	 *
+	 *@param string $email email@address.com
 	 *
 	 * @return boolean returns the email address on true or false on failure
-	 * @link: https://github.com/egulias/EmailValidator
 	 */
-	public static function isValidEmail($email)
-	{
-		$validator = new \Egulias\EmailValidator\EmailValidator();
-		$multipleValidations = new \Egulias\EmailValidator\Validation\MultipleValidationWithAnd([
-			new \Egulias\EmailValidator\Validation\RFCValidation(),
-			new \Egulias\EmailValidator\Validation\DNSCheckValidation(),
+	public static function isValidEmail(string $email): bool {
+		$validator = new EmailValidator();
+		$multipleValidations = new MultipleValidationWithAnd([
+			new RFCValidation(),
+			new DNSCheckValidation(),
 		]);
 		return $validator->isValid($email, $multipleValidations);
 	}
@@ -1369,7 +1475,7 @@ class str {
 	 * @link https://stackoverflow.com/a/201378/429071
 	 * @link https://emailregex.com/
 	 */
-	const EMAIL_REGEX = <<<EOF
+	const string EMAIL_REGEX = <<<EOF
 >(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])>ui
 EOF;
 
@@ -1457,7 +1563,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function isJson($str): bool
+	public static function isJson(mixed $str): bool
 	{
 		# Must be a string
 		if(!is_string($str)){
@@ -1475,8 +1581,7 @@ EOF;
 		}
 
 		# Must decode without error
-		json_decode($str);
-		return json_last_error() === JSON_ERROR_NONE;
+        return json_validate($str);
 	}
 
 	/**
@@ -1511,8 +1616,7 @@ EOF;
 	 *
 	 * @return bool
 	 */
-	public static function isValidPhoneNumber($number)
-	{
+	public static function isValidPhoneNumber($number): bool {
 		# Ensure it only contains valid characters
 		if(preg_match("/[^0-9\.\-\(\)\s#\+']/", $number)){
 			return false;
@@ -1538,12 +1642,12 @@ EOF;
 	{
 		if($modify === NULL)
 			return false;
-		$dt = new \DateTime();
+		$dt = new DateTime();
 		try {
 			$dt->modify($modify);
 			return true;
 		}
-		catch(\Exception $e) {
+		catch(\Exception) {
 			return false;
 		}
 	}
@@ -1551,12 +1655,11 @@ EOF;
 	/**
 	 * @link http://php.net/manual/en/function.mysql-real-escape-string.php#101248
 	 *
-	 * @param array|float|int|string $inp
+	 * @param float|int|array|string $inp
 	 *
 	 * @return array|float|int|string
 	 */
-	public static function mysql_escape_mimic($inp)
-	{
+	public static function mysql_escape_mimic(float|int|array|string $inp): float|int|array|string {
 		if(is_array($inp))
 			return array_map(__METHOD__, $inp);
 
@@ -1585,25 +1688,26 @@ EOF;
 		}
 	}
 
-	/**
-	 * Checks to see if a given method is available in the current scope.
-	 * And if that method is PUBLIC. Protected and private methods
-	 * are protected from outside execution via the load_ajax_call() call.
-	 * If the modifier is set, it will accept any methods set at that modifier or lower:
-	 * <code>
-	 * private
-	 * protected
-	 * public
-	 * </code>
-	 *
-	 * @param object $class
-	 * @param string $method
-	 * @param string $modifier The minimum accepted modifier level. (Default: public)
-	 *
-	 * @return bool
-	 * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
-	 */
-	public static function methodAvailable(?object $class, ?string $method, $modifier = "public"): bool
+    /**
+     * Checks to see if a given method is available in the current scope.
+     * And if that method is PUBLIC. Protected and private methods
+     * are protected from outside execution via the load_ajax_call() call.
+     * If the modifier is set, it will accept any methods set at that modifier or lower:
+     * <code>
+     * private
+     * protected
+     * public
+     * </code>
+     *
+     * @link https://stackoverflow.com/questions/4160901/how-to-check-if-a-function-is-public-or-protected-in-php
+     *
+     * @param null|string $method
+     * @param string      $modifier The minimum accepted modifier level. (Default: public)
+     * @param null|object $class
+     *
+     * @return bool
+     */
+	public static function methodAvailable(?object $class, ?string $method, string $modifier = "public"): bool
 	{
 		if(!$class || !$method){
 			return false;
@@ -1614,9 +1718,9 @@ EOF;
 		}
 
 		try {
-			$reflection = new \ReflectionMethod($class, $method);
+			$reflection = new ReflectionMethod($class, $method);
 		}
-		catch(\ReflectionException $e) {
+		catch(ReflectionException) {
 			return false;
 		}
 
@@ -1660,7 +1764,7 @@ EOF;
 		?string $search = NULL
 	): array
 	{
-		$finder = new \Symfony\Component\Finder\Finder();
+		$finder = new Finder();
 
 		// Only scan PHP files, and ignore noise.
 		$finder
@@ -1720,12 +1824,12 @@ EOF;
 
 	public static function getComposerPsr4Paths(?string $prefix = NULL): array
 	{
-		if(!class_exists(\Composer\Autoload\ClassLoader::class)){
+		if(!class_exists(ClassLoader::class)){
 			return [];
 		}
 
 		$paths = [];
-		foreach(\Composer\Autoload\ClassLoader::getRegisteredLoaders() as $loader){
+		foreach(ClassLoader::getRegisteredLoaders() as $loader){
 			foreach($loader->getPrefixesPsr4() as $registered_prefix => $registered_paths){
 				if($prefix !== NULL && $registered_prefix !== $prefix){
 					continue;
@@ -1752,7 +1856,7 @@ EOF;
 	 *
 	 * @return array
 	 */
-	private static function getPhpDefinitionsFromFinder(\Symfony\Component\Finder\Finder $finder): array
+	private static function getPhpDefinitionsFromFinder(Finder $finder): array
 	{
 		$definitions = [];
 
@@ -1822,13 +1926,10 @@ EOF;
 						'exit_level' => $brace_level + 1,
 					];
 					$brace_level++;
-					$namespace_body_level = $brace_level;
-				}
-				else {
-					$namespace_body_level = $brace_level;
-				}
+                }
+                $namespace_body_level = $brace_level;
 
-				$i = $delimiter_index;
+                $i = $delimiter_index;
 				continue;
 			}
 
@@ -1849,7 +1950,7 @@ EOF;
 			}
 
 			$short_name = $tokens[$name_index][1];
-			$definition_name = ltrim(($namespace ? "{$namespace}\\" : "") . $short_name, "\\");
+			$definition_name = ltrim(($namespace ? "$namespace\\" : "") . $short_name, "\\");
 			$definition = [
 				'name' => $definition_name,
 				'type' => $token_id === T_CLASS ? 'class' : ($token_id === T_INTERFACE ? 'interface' : 'trait'),
@@ -2147,7 +2248,7 @@ EOF;
 		$name = trim($name, "\\");
 		$group_prefix = trim($group_prefix, "\\");
 		if($group_prefix){
-			$name = trim("{$group_prefix}\\{$name}", "\\");
+			$name = trim("$group_prefix\\$name", "\\");
 		}
 
 		if(!$name){
@@ -2179,7 +2280,7 @@ EOF;
 
 		if(str_starts_with($name, 'namespace\\')){
 			$name = substr($name, strlen('namespace\\'));
-			return trim(($namespace ? "{$namespace}\\" : "") . $name, "\\");
+			return trim(($namespace ? "$namespace\\" : "") . $name, "\\");
 		}
 
 		$first_segment = strstr($name, "\\", true);
@@ -2191,7 +2292,7 @@ EOF;
 			return trim($uses[$first_segment] . substr($name, strlen($first_segment)), "\\");
 		}
 
-		return trim(($namespace ? "{$namespace}\\" : "") . $name, "\\");
+		return trim(($namespace ? "$namespace\\" : "") . $name, "\\");
 	}
 
 	/**
@@ -2260,17 +2361,17 @@ EOF;
 		$modifier = strtoupper($modifier);
 
 		$reflection_modifier = match($modifier) {
-			"PRIVATE" => \ReflectionMethod::IS_PRIVATE,
-			"PROTECTED" => \ReflectionMethod::IS_PROTECTED,
-			"PUBLIC" => \ReflectionMethod::IS_PUBLIC,
-			default => \ReflectionMethod::IS_PUBLIC,
+			"PRIVATE" => ReflectionMethod::IS_PRIVATE,
+			"PROTECTED" => ReflectionMethod::IS_PROTECTED,
+			"PUBLIC" => ReflectionMethod::IS_PUBLIC,
+			default => ReflectionMethod::IS_PUBLIC,
 		};
 
 		try {
-			$reflection_class = new \ReflectionClass($class);
+			$reflection_class = new ReflectionClass($class);
 			$array = $reflection_class->getMethods($reflection_modifier);
 		}
-		catch(\ReflectionException){
+		catch(ReflectionException){
 			return [];
 		}
 
@@ -2282,7 +2383,7 @@ EOF;
 			}
 
 			# We're not interested in magic methods
-			if(substr($method->name, 0, 2) == "__"){
+			if(str_starts_with($method->name, "__")){
 				continue;
 			}
 
@@ -3058,7 +3159,7 @@ EOF;
 
 		# Ensure we have a DateTime object
 		if(!is_object($dt)){
-			$dt = new \DateTime($dt);
+			$dt = new DateTime($dt);
 		}
 
 		# The element ID (for uniqueness)
@@ -3099,8 +3200,8 @@ EOF;
 	 */
 	static function timeSummary(?string $datetime = NULL, ?bool $full = NULL)
 	{
-		$now = new \DateTime;
-		$ago = new \DateTime($datetime);
+		$now = new DateTime;
+		$ago = new DateTime($datetime);
 		$diff = $now->diff($ago);
 
 		$diff->w = floor($diff->d / 7);
@@ -3195,8 +3296,8 @@ EOF;
 		if(!$date){
 			return false;
 		}
-		$then = \DateTime::createFromFormat("Y-m-d", $date);
-		$now = new \DateTime();
+		$then = DateTime::createFromFormat("Y-m-d", $date);
+		$now = new DateTime();
 		$days_away = (int)$then->diff($now)->format("%r%a");
 		if(!$string){
 			return $days_away;
@@ -3231,7 +3332,7 @@ EOF;
 
 		$years_old = floor((time() - strtotime($ymd)) / 31556926);
 
-		$html = (new \DateTime($ymd))->format("d M Y");
+		$html = (new DateTime($ymd))->format("d M Y");
 		$html .= Badge::generate([
 			"style" => [
 				"margin-left" => "0.5rem",
@@ -3360,10 +3461,10 @@ EOF;
 	 *
 	 * @return \DateTime
 	 */
-	public static function today(): \DateTime
+	public static function today(): DateTime
 	{
 		# Get today's date (only)
-		$today = new \DateTime();
+		$today = new DateTime();
 		$today->setTime(0, 0, 0, 0);
 		return $today;
 	}
@@ -3414,18 +3515,18 @@ EOF;
 	 * @return \DateTime
 	 * @throws \Exception
 	 */
-	public static function newDateTimeDateOnly($date = NULL): \DateTime
+	public static function newDateTimeDateOnly($date = NULL): DateTime
 	{
-		if($date instanceof \DateTime){
+		if($date instanceof DateTime){
 			$dt = $date;
 		}
 
 		else {
 			try {
-				$dt = new \DateTime($date);
+				$dt = new DateTime($date);
 			}
 			catch(\Exception $e) {
-				$dt = new \DateTime();
+				$dt = new DateTime();
 			}
 		}
 
@@ -3471,14 +3572,14 @@ EOF;
 	/**
 	 * var_export() with square brackets and indented 4 spaces.
 	 *
+	 * @link https://www.php.net/manual/en/function.var-export.php#122853
+	 *
+	 *@param bool $return
 	 * @param      $expression
-	 * @param bool $return
 	 *
 	 * @return string
-	 * @link https://www.php.net/manual/en/function.var-export.php#122853
 	 */
-	public static function var_export($expression, $return = false)
-	{
+	public static function var_export($expression, bool $return = false): string {
 		$export = var_export($expression, true);
 		$export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
 		$array = preg_split("/\r\n|\n|\r/", $export);
@@ -3492,11 +3593,10 @@ EOF;
 	/**
 	 * Return text strings in a "raw" format.
 	 * Include settings for further customisation.
-	 *
 	 * Set crop to TRUE, the output will be cropped.
 	 * Set a language, the string will be formatted with PrismJS.
 	 *
-	 * @param string|array $str
+	 * @param array|string $str
 	 * @param array|null   $settings Set "crop" to TRUE to crop the output. Set "language" to a language supported by
 	 *                               PrismJS to format the code with syntax highlighting. Other settings include
 	 *                               "wrapper_class", "wrapper_style", "pre_class", "pre_style", "class" and "style",
@@ -3505,8 +3605,7 @@ EOF;
 	 * @return string Returns a code tag, wrapped in a pre tag, wrapped in a div wrapper tag. Each tag can be styled
 	 *                independently with the settings.
 	 */
-	public static function pre($str, ?array $settings = [])
-	{
+	public static function pre(array|string $str, ?array $settings = []): string {
 		if(is_array($str)){
 			$str = str::json_encode($str, "base64", JSON_PRETTY_PRINT);
 		}
@@ -3531,7 +3630,7 @@ EOF;
 EOF;
 		}
 
-		$Parsedown = new \Parsedown();
+		$Parsedown = new Parsedown();
 		$Parsedown->setSafeMode(true);
 		$str = "```\r\n{$str}\r\n```";
 		$str = $Parsedown->text($str);
@@ -3588,9 +3687,7 @@ EOF;
 	/**
 	 * Orders a multidimensional array by one or many
 	 * key values. Use dot notation for nested keys.
-	 *
 	 * Maintains the key values, unless told otherwise.
-	 *
 	 * <code>
 	 * $order = [
 	 *    "countryCode" => "asc",
@@ -3599,15 +3696,16 @@ EOF;
 	 *    "addr1" => "asc",
 	 * ];
 	 * </code>
-	 * @param array|null   $array          $array
-	 * @param array|string $order
-	 * @param bool|null    $reset_keys     If set to TRUE, will reset the root keys to match the new order.
-	 * @param bool|null    $case_sensitive If set to TRUE, will sort case-sensitive. Uppercase will have priority over
-	 *                                     lowercase.
 	 *
 	 * @link https://stackoverflow.com/a/9261304/429071
+	 *
+	 *@param array|string $order
+	 * @param bool|null   $reset_keys     If set to TRUE, will reset the root keys to match the new order.
+	 * @param bool|null   $case_sensitive If set to TRUE, will sort case-sensitive. Uppercase will have priority over
+	 *                                     lowercase.
+	 * @param array|null  $array          $array
 	 */
-	static function multidimensionalOrderBy(?array &$array, $order = ["order" => "ASC"], ?bool $reset_keys = NULL, ?bool $case_sensitive = NULL): void
+	static function multidimensionalOrderBy(?array &$array, array|string $order = ["order" => "ASC"], ?bool $reset_keys = NULL, ?bool $case_sensitive = NULL): void
 	{
 		if(!$array){
 			return;
@@ -4535,7 +4633,7 @@ EOF;
 		# In case a float is passed, round it
 		$seconds = round($seconds);
 
-		$dt = new \DateTime("1970-01-01 {$seconds} seconds");
+		$dt = new DateTime("1970-01-01 {$seconds} seconds");
 
 		return ((int)$dt->format('H')) . " hr, " . ((int)$dt->format('i')) . " min, " . ((int)$dt->format('s')) . " sec";
 	}
@@ -4887,7 +4985,7 @@ EOF;
 		$interval = new \DateInterval("P{$days}DT{$hours}H{$minutes}M{$seconds}S");
 
 		# Subtract the interval from the current time
-		$startTime = new \DateTime();
+		$startTime = new DateTime();
 		$startTime->sub($interval);
 
 		# Add the start time to the process info

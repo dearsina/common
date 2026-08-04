@@ -44,7 +44,7 @@ class Home extends Prototype {
 			}
 
 			if($role != "user" && $subdomain && $subdomain != "app"){
-				$url = "https://app.{$_ENV['domain']}/";
+				$url = "https://app." . str::getRegisteredDomain() . "/";
 				$url .= str::generate_uri([
 					"subdomain" => "app",
 					"rel_table" => $rel_table,
@@ -112,7 +112,7 @@ class Home extends Prototype {
 		 * is trying to access a different subdomain than app
 		 * push them to the app subdomain.
 		 */
-		$url = "https://app.{$_ENV['domain']}/";
+		$url = "https://app." . str::getRegisteredDomain() . "/";
 		// The URL ends with a slash
 
 

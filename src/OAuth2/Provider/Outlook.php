@@ -248,7 +248,7 @@ class Outlook extends \App\Common\Prototype implements \App\Common\OAuth2\EmailP
 		$provider = new \TheNetworg\OAuth2\Client\Provider\Azure([
 			'clientId' => $_ENV['microsoft_graph_client_id'],
 			'clientSecret' => $_ENV['microsoft_graph_client_secret'],
-			'redirectUri' => "https://app.{$_ENV['domain']}/oauth2.php",
+			'redirectUri' => "https://app." . str::getRegisteredDomain() . "/oauth2.php",
 			"prompt" => $force_refresh_token ? "consent" : NULL,
 			'scopes' => self::SCOPES,
 			'defaultEndPointVersion' => '2.0',
