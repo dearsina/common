@@ -244,13 +244,13 @@ class Request {
 	/**
 	 * Format the exception trace as a string.
 	 *
-	 * @param \Exception $exception
+	 * @link https://gist.github.com/abtris/1437966
+	 *
+	 *@param \Exception $exception
 	 *
 	 * @return string
-	 * @link https://gist.github.com/abtris/1437966
 	 */
-	private function getExceptionTraceAsString($exception)
-	{
+	private function getExceptionTraceAsString(\Throwable $exception): string {
 		$rtn = "";
 		$count = 0;
 		foreach($exception->getTrace() as $frame){
@@ -340,17 +340,15 @@ class Request {
 			# Reload to get either
 			$this->hash->set("reload");
 
-			# Return false, but don't raise an exception
+			# Return false but don't raise an exception
 			return false;
 		}
 
-		# Remove the subdomain
-		$domain = substr($domain, strlen($_ENV['domain']) * -1);
-
 		# Ensure the request was sent from our domain
-		if($domain != $_ENV['domain']){
+        $allowedDomains = ($_ENV['csrf_domains'] ?? '') . ',' . $_ENV['domain'];
+		if(!str::isAllowedDomain($domain, $allowedDomains)){
 			//if this request wasn't done from our own domain
-			$this->logErrorInternally("A cross domain request was attempted. {$domain} != {$_ENV['domain']}");
+			$this->logErrorInternally("A cross domain request was attempted. $domain in allowed list: " . $allowedDomains);
 			throw new Unauthorized("A cross domain request was attempted.");
 		}
 
