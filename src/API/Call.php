@@ -259,15 +259,20 @@ class Call {
 		# Create a new instance of the class
 		$this->classInstance = new $classPath();
 
-		# Set the method (view is the default)
-		$method = str::getMethodCase($action) ?: "view";
-
-		# Ensure the method is available
-		if(!str::methodAvailable($this->classInstance, $method)){
-			throw new BadRequest("Invalid request method sent.");
+		# If an action has been provided and it's a valid method
+		if($method = str::getMethodCase($action)){
+			if(str::methodAvailable($this->classInstance, $method)){
+				return (bool)$this->classInstance->$method($a);
+			}
 		}
 
-		return (bool)$this->classInstance->$method($a);
+		# Otherwise, fall back to "view", the default method
+		if(str::methodAvailable($this->classInstance, "view")){
+			return (bool)$this->classInstance->view($a);
+		}
+
+		# Failing that, throw an error
+		throw new BadRequest("Invalid request method sent.");
 	}
 
 	/**
