@@ -2,6 +2,7 @@
 
 namespace App\Common;
 
+use App\Email\Email;
 use App\UI\Badge;
 use App\UI\Icon;
 use Composer\Autoload\ClassLoader;
@@ -1375,7 +1376,7 @@ class str {
 		}
 
 		# Strip away the https:// and any trailing slashes, and get the host part of the URL
-		if (!preg_match('#^[a-z][a-z0-9+.-]*://#i', $domain)) {
+		if(!preg_match('#^[a-z][a-z0-9+.-]*://#i', $domain)){
 			$domain = 'https://' . ltrim($domain, '/');
 		}
 		if(!$domain = parse_url($domain, PHP_URL_HOST)){
@@ -3101,16 +3102,12 @@ EOF;
 		switch($length) {
 		case 4: # Return the second section (4 characteres) of the UUID
 			return explode("-", $uuid)[1];
-			break;
 		case 8: # Return the second and penultimate sections (in total 8 characters)
 			return explode("-", $uuid)[1] . explode("-", $uuid)[3];
-			break;
 		case 12: # Return the last section (12 characters) of the UUID
 			return explode("-", $uuid)[4];
-			break;
 		default: # Return the entire 36 character string
 			return $uuid;
-			break;
 		}
 	}
 
@@ -3237,6 +3234,10 @@ EOF;
 	{
 		$now = new DateTime;
 		$ago = new DateTime($datetime);
+
+		/**
+		 * @var DateInterval $diff
+		 */
 		$diff = $now->diff($ago);
 
 		$diff->w = floor($diff->d / 7);
@@ -3614,7 +3615,7 @@ EOF;
 	 *
 	 * @return string
 	 */
-	public static function var_export($expression, bool $return = false): string
+	public static function var_export($expression, bool $return = false): string|null
 	{
 		$export = var_export($expression, true);
 		$export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
@@ -3624,6 +3625,7 @@ EOF;
 		if((bool)$return)
 			return $export;
 		else echo $export;
+		return null;
 	}
 
 	/**
@@ -3901,25 +3903,6 @@ EOF;
 
 		# Return the string and the new number suffix
 		return "{$match[1]} ({$number})";
-	}
-
-	/**
-	 * Given an array, returns a human readable XML string.
-	 *
-	 * @param $array array A standard PHP array that you want to convert to XML.
-	 * @param $root  string The root bracket that you want to enclose the XML in.
-	 *
-	 * @return string A human readable XML string.
-	 */
-	public static function xmlify($array, $root)
-	{
-		$xml = self::array_to_xml($array, new \SimpleXMLElement($root))->asXML();
-		$dom = new \DOMDocument;
-		$dom->preserveWhiteSpace = false;
-		$dom->loadXML($xml);
-		$dom->formatOutput = true;
-		$xml_string = $dom->saveXml($dom->documentElement);
-		return $xml_string;
 	}
 
 	/**

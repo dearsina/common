@@ -6,6 +6,7 @@ namespace App\Common\Prototype;
 
 use App\Common\Img;
 use App\Common\Prototype;
+use App\Common\str;
 
 /**
  * Class PrintPrototype
