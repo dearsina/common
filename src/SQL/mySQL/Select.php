@@ -90,7 +90,13 @@ class Select extends Common {
 		# If output is to be stored in a tmp table
 		if($tmp){
 			$query = "
-			SET TRANSACTION ISOLATION LEVEL READ COMMITTED;			
+			-- Prevent query from being blocking
+			SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+						
+			-- Cap the execution time to 60 seconds
+			SET SESSION max_execution_time = 60000;
+			
+			-- Create the temporary table
 			CREATE TEMPORARY TABLE IF NOT EXISTS `{$tmp}` AS ({$query})
 			";
 		}
