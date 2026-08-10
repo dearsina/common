@@ -277,7 +277,15 @@ class Doc extends \App\Common\Prototype {
 		}
 
 		# Filter the text for unfriendly characters
-		$file['pdf_info']['text'] = preg_replace('/[^[:print:][:space:]]/', "", $file['pdf_info']['text']);
+		$file['pdf_info']['text'] = json_decode(
+			json_encode(
+				$file['pdf_info']['text'],
+				JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR
+			),
+			true,
+			512,
+			JSON_THROW_ON_ERROR
+		);
 		// We're removing all non-printable and non-space characters to avoid issues loading the array (as a JSON)
 
 		return (bool)strlen($file['pdf_info']['text']);
