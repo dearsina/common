@@ -6882,12 +6882,15 @@ LATEX;
 	/**
 	 * Checks if a string contains any arabic characters
 	 *
-	 * @param $str
+	 * @param string|null $str
 	 *
 	 * @return bool
 	 */
-	public static function containsArabic($str): bool
+	public static function containsArabic(?string $str): bool
 	{
+		if($str === NULL){
+			return false;
+		}
 		return preg_match('/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{08A0}-\x{08FF}]/u', $str) === 1;
 	}
 
