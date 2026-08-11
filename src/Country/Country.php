@@ -9,8 +9,113 @@ use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 use App\Common\str;
 use App\Translation\Translator;
+use App\UI\Icon;
+use App\Workflow\Workflow;
 
 class Country extends Prototype {
+	const CURRENCY_EXCEPTIONS = [
+		"AUD" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "au",
+			],
+			"name" => "Australian Dollar",
+		],
+		"ANG" => [
+			"icon" => "globe",
+		],
+		"CHF" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "ch",
+			],
+			"name" => "Swiss Franc",
+		],
+		"CZK" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "cz",
+			],
+			"name" => "Czechia",
+		],
+		"DKK" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "dk",
+			],
+			"name" => "Denmark",
+		],
+		"EUR" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "eu",
+			],
+			"name" => "Euro",
+		],
+		"USD" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "us",
+			],
+			"name" => "US Dollar",
+		],
+		"GBP" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "gb",
+			],
+			"name" => "Pound Sterling",
+			"alt" => "UK, British",
+		],
+		"ILS" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "il",
+			],
+			"name" => "Israeli New Shekel",
+		],
+		"MAD" => [
+			"icon" => "globe",
+		],
+		"NOK" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "no",
+			],
+			"name" => "Norway",
+		],
+		"NZD" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "nz",
+			],
+			"name" => "New Zealand",
+		],
+		"TRY" => [
+			"icon" => [
+				"type" => "flag",
+				"name" => "tr",
+			],
+			"name" => "Turkish Lira",
+		],
+		"XAF" => [
+			"icon" => "earth-africa",
+			"name" => "Central African CFA franc",
+		],
+		"XCD" => [
+			"icon" => "earth-americas",
+			"name" => "East Caribbean Dollar",
+		],
+		"XOF" => [
+			"icon" => "earth-africa",
+			"name" => "West African CFA franc",
+		],
+		"XPF" => [
+			"icon" => "earth-oceania",
+			"name" => "CFP franc",
+		],
+	];
+
 	public ?string $db = "address";
 
 	/**
@@ -25,29 +130,76 @@ class Country extends Prototype {
 	{
 		$sql = Factory::getInstance();
 		$exchange_rates = ExchangeRates::get();
-		foreach($sql->select([
+
+		$countries = $sql->select([
 			"columns" => [
 				"currency_code",
-				"countries" => ["group_concat", [
-					"distinct" => true,
-					"columns" => "name",
-					"order_by" => [
-						"country" => "ASC",
+				"country_codes" => [
+					"group_concat",
+					[
+						"distinct" => true,
+						"columns" => "country_code",
+						"order_by" => [
+							"country" => "ASC",
+						],
+						"separator" => ", ",
 					],
-					"separator" => ", ",
 				],
+				"names" => [
+					"group_concat",
+					[
+						"distinct" => true,
+						"columns" => "name",
+						"order_by" => [
+							"country" => "ASC",
+						],
+						"separator" => ", ",
+					],
 				],
+				"alt_name"
 			],
 			"table" => "country",
 			"order_by" => [
 				"currency_code" => "ASC",
 			],
-		]) as $id => $country){
+		]);
+
+		foreach($countries as $country){
+			# If we don't have an exchange rate for the currency, ignore it
 			if(!$exchange_rates[$country['currency_code']]){
-				//if we don't have an exchange rate for the currency, ignore it
 				continue;
 			}
-			$currency_code_options[$country['currency_code']] = "{$country['currency_code']}, used by {$country['countries']}";
+
+			$alt = NULL;
+			$icon = NULL;
+
+			if(isset(self::CURRENCY_EXCEPTIONS[$country['currency_code']])){
+				$exception = self::CURRENCY_EXCEPTIONS[$country['currency_code']];
+				$icon = $exception['icon'];
+				$country_name = $exception['name'] ?? $country['names'];
+				$alt = $exception['alt'] ?? NULL;
+			}
+			else {
+				$country['country_code'] = $country['country_codes'];
+				$country_name = $country['names'];
+				$icon = [
+					"type" => "flag",
+					"name" => $country['country_code'],
+				];
+				$alt = $country['alt_name'];
+			}
+
+			$currency_code = str::monospace($country['currency_code']);
+			$country_name = explode(",", $country_name)
+					|> (fn($x) => array_map(function($name){
+						return Workflow::getPrefixWrapper($name);
+					}, $x))
+					|> (fn($x) => implode(" ", $x));
+
+			$currency_code_options[$country['currency_code']] = [
+				"title" => "{$country['currency_code']} {$country_name} {$alt}",
+				"html" => Icon::generate($icon)."{$currency_code} {$country_name}",
+			];
 		}
 
 		return $currency_code_options;
