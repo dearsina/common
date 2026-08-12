@@ -13,7 +13,7 @@ class Geolocation extends \App\Common\Prototype {
 	/**
 	 * The official IP data provider.
 	 */
-//	const PROVIDER = "ipstack";
+	//	const PROVIDER = "ipstack";
 	//This provider only has a quote of 100/month
 
 	const PROVIDER = "ipdata";
@@ -185,7 +185,6 @@ class Geolocation extends \App\Common\Prototype {
 		$this->sql->insert([
 			"table" => "geolocation",
 			"set" => $set,
-			"grow" => true,
 		]);
 
 		# Try again, this time the data will have been loaded
