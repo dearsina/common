@@ -89,14 +89,18 @@ class Select extends Common {
 
 		# If output is to be stored in a tmp table
 		if($tmp){
+			$md5 = md5($query);
 			$query = "
-			-- Prevent query from being blocking
+			-- Use READ COMMITTED for the SELECT portion
 			SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
-						
-			-- Cap the execution time to 60 seconds
-			SET SESSION max_execution_time = 60000;
 			
-			-- Create the temporary table
+			-- Don't wait longer than 60 seconds for an InnoDB row lock
+			SET SESSION innodb_lock_wait_timeout = 60;
+			
+			-- Don't wait longer than 60 seconds for a metadata lock
+			SET SESSION lock_wait_timeout = 60;
+			
+			-- Create the temporary table {$md5}
 			CREATE TEMPORARY TABLE IF NOT EXISTS `{$tmp}` AS ({$query})
 			";
 		}
@@ -234,10 +238,10 @@ class Select extends Common {
 			return NULL;
 		}
 
-//		$this->mysqli->query("
-//		-- Stop execution after 60s
-//		SET SESSION max_execution_time = 60000;
-//		");
+		$this->mysqli->query("
+		-- Stop execution after 60s
+		SET SESSION max_execution_time = 60000;
+		");
 
 		return "\r\nWITH " . implode(",\r\n", $ctes);
 	}
