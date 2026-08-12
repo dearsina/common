@@ -234,6 +234,11 @@ class Select extends Common {
 			return NULL;
 		}
 
+//		$this->mysqli->query("
+//		-- Stop execution after 60s
+//		SET SESSION max_execution_time = 60000;
+//		");
+
 		return "\r\nWITH " . implode(",\r\n", $ctes);
 	}
 

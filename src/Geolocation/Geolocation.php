@@ -163,20 +163,14 @@ class Geolocation extends \App\Common\Prototype {
 		}
 
 		# Get the content as a flattened array to insert as a new row
-		$array = json_decode($response->getBody()->getContents(), true);
-
-		# Remove location data (too much data for now)
-		unset($array['location']);
-
-		# Flatten (don't really need this, as the data *should* be flat already)
-		$set = str::flatten($array);
+		$set = json_decode($response->getBody()->getContents(), true);
 
 		# Set the type based on the length if it's not given by the API
 		if(!$set['type']){
 			$set['type'] = strlen($ip) <= 15 ? "ipv4" : "ipv6";
 		}
 
-		# Double check that it hasn't been added while we got the data about it
+		# Double-check that it hasn't been added while we got the data about it
 		if($geolocation = $this->info([
 			"rel_table" => "geolocation",
 			"where" => [
