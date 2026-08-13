@@ -28,6 +28,20 @@ abstract class Common {
 	const TABLE_COL_SEPARATOR = ".";
 
 	/**
+	 * The on-disk schema cache format version.
+	 */
+	private const SCHEMA_CACHE_FILE_VERSION = 1;
+
+	/**
+	 * How long the shared schema metadata file can be used before it is considered stale.
+	 *
+	 * App-driven schema changes call this class with `$refresh = true`, so they invalidate the
+	 * cache immediately. The TTL protects against manual DDL or deploy-time schema changes that
+	 * happen outside this SQL helper.
+	 */
+	private const SCHEMA_CACHE_FILE_TTL_SECONDS = 300;
+
+	/**
 	 * The database object given by the root class.
 	 * @var \mysqli
 	 */
@@ -176,12 +190,36 @@ abstract class Common {
 	/**
 	 * Indicates whether the persistent schema cache has been hydrated during the current request.
 	 *
-	 * This flag prevents multiple hydration attempts in a single request,
-	 * ensuring that the schema cache is loaded only once per request.
+	 * This flag is retained for backwards-compatible object state, but the real request-level
+	 * hydration guard is static so short-lived query helpers share one metadata cache.
 	 *
 	 * @var bool 
 	 */
 	private bool $isHydrated = false;
+
+	/**
+	 * Request-scoped cache of real database metadata.
+	 *
+	 * Query helpers are short-lived and repeatedly instantiated during one request, so this static
+	 * cache prevents each helper from copying/parsing the same session or file payload.
+	 *
+	 * @var array
+	 */
+	private static array $persistentSchemaCache = [];
+
+	/**
+	 * Whether the request-scoped persistent schema cache has been hydrated.
+	 *
+	 * @var bool
+	 */
+	private static bool $persistentSchemaCacheHydrated = false;
+
+	/**
+	 * Request-scoped record of missing real-table columns that have already forced one refresh.
+	 *
+	 * @var array
+	 */
+	private static array $missingColumnRefreshAttempts = [];
 
 	/**
 	 * Seed the query helper with the shared mysqli connection owned by the root SQL class.
@@ -290,21 +328,180 @@ abstract class Common {
 	 * the same PHP session. Local in-memory metadata wins on collisions because it may already
 	 * contain fresher state gathered earlier in the current request.
 	 */
-	private function hydratePersistentSchemaCache(): void
+	private function hydratePersistentSchemaCache(?string $db = NULL, ?string $table = NULL): void
 	{
-		if ($this->isHydrated) {
-			return; // Stop parsing if we already loaded it in this request!
-		}
+		$this->ensurePersistentSchemaCacheIsHydrated();
 
-		$schema_cache = $_SESSION['schema_cache']['db'] ?? NULL;
-		if(!is_array($schema_cache)){
+		if(!$db){
+			if(self::$persistentSchemaCache){
+				$this->meta = array_replace_recursive(self::$persistentSchemaCache, $this->meta ?? []);
+			}
+
+			$this->isHydrated = true;
 			return;
 		}
 
-		// Keep request-local metadata authoritative
-		$this->meta = array_replace_recursive($schema_cache, $this->meta ?: []);
+		if($table){
+			if(isset(self::$persistentSchemaCache[$db][$table])){
+				$this->meta[$db][$table] = self::$persistentSchemaCache[$db][$table];
+			}
 
-		$this->isHydrated = true; // Mark as complete
+			$this->isHydrated = true;
+			return;
+		}
+
+		if(isset(self::$persistentSchemaCache[$db])){
+			$this->meta[$db] = self::$persistentSchemaCache[$db];
+		}
+
+		$this->isHydrated = true;
+	}
+
+	/**
+	 * Hydrate the request-wide real-table schema cache from the fastest available source.
+	 *
+	 * The filesystem cache is shared by all users/FPM workers for the same configured database
+	 * connection. The old session cache is used only as a migration fallback and then removed so
+	 * session payloads stop carrying a copy of the full schema.
+	 */
+	private function ensurePersistentSchemaCacheIsHydrated(): void
+	{
+		if(self::$persistentSchemaCacheHydrated){
+			return;
+		}
+
+		self::$persistentSchemaCache = $this->readPersistentSchemaCacheFromFile();
+
+		if(!self::$persistentSchemaCache){
+			$session_cache = $_SESSION['schema_cache']['db'] ?? NULL;
+			if(is_array($session_cache)){
+				self::$persistentSchemaCache = $session_cache;
+				if($this->writePersistentSchemaCacheToFile(self::$persistentSchemaCache)){
+					unset($_SESSION['schema_cache']['db']);
+					$this->cleanupSchemaCacheSession();
+				}
+			}
+		}
+		else {
+			unset($_SESSION['schema_cache']['db']);
+			$this->cleanupSchemaCacheSession();
+		}
+
+		self::$persistentSchemaCacheHydrated = true;
+	}
+
+	/**
+	 * Return the shared schema cache file path for the active database configuration.
+	 *
+	 * @return string|null
+	 */
+	private function getPersistentSchemaCacheFilePath(): ?string
+	{
+		$directory = (string)($_ENV['tmp_dir'] ?? sys_get_temp_dir());
+
+		if(!$directory){
+			return NULL;
+		}
+
+		$directory = rtrim($directory, "/\\") . DIRECTORY_SEPARATOR . "sql-schema-cache";
+		$key = md5(implode("|", [
+			(string)($_ENV['db_servername'] ?? ""),
+			(string)($_ENV['db_username'] ?? ""),
+			(string)($_ENV['db_database'] ?? ""),
+			(string)self::SCHEMA_CACHE_FILE_VERSION,
+		]));
+
+		return $directory . DIRECTORY_SEPARATOR . "{$key}.cache";
+	}
+
+	/**
+	 * Read the shared real-table schema cache from disk.
+	 *
+	 * @return array
+	 */
+	private function readPersistentSchemaCacheFromFile(): array
+	{
+		$path = $this->getPersistentSchemaCacheFilePath();
+
+		if(!$path || !is_file($path)){
+			return [];
+		}
+
+		clearstatcache(true, $path);
+
+		if((time() - (int)filemtime($path)) > self::SCHEMA_CACHE_FILE_TTL_SECONDS){
+			return [];
+		}
+
+		$handle = @fopen($path, "rb");
+
+		if(!$handle){
+			return [];
+		}
+
+		try {
+			if(!flock($handle, LOCK_SH)){
+				return [];
+			}
+
+			$contents = stream_get_contents($handle);
+		} finally {
+			flock($handle, LOCK_UN);
+			fclose($handle);
+		}
+
+		if(!$contents){
+			return [];
+		}
+
+		$payload = @unserialize($contents, [
+			"allowed_classes" => false,
+		]);
+
+		if(!is_array($payload) || ($payload['version'] ?? NULL) !== self::SCHEMA_CACHE_FILE_VERSION){
+			return [];
+		}
+
+		return is_array($payload['schema_cache'] ?? NULL) ? $payload['schema_cache'] : [];
+	}
+
+	/**
+	 * Persist the shared real-table schema cache to disk.
+	 *
+	 * @param array $schema_cache
+	 */
+	private function writePersistentSchemaCacheToFile(array $schema_cache): bool
+	{
+		$path = $this->getPersistentSchemaCacheFilePath();
+
+		if(!$path){
+			return false;
+		}
+
+		$directory = dirname($path);
+
+		if(!is_dir($directory) && !@mkdir($directory, 0775, true) && !is_dir($directory)){
+			return false;
+		}
+
+		$payload = serialize([
+			"version" => self::SCHEMA_CACHE_FILE_VERSION,
+			"created_at" => time(),
+			"schema_cache" => $schema_cache,
+		]);
+		$tmp_path = $path . "." . getmypid() . "." . str_replace(".", "", uniqid("", true)) . ".tmp";
+
+		if(@file_put_contents($tmp_path, $payload, LOCK_EX) === false){
+			return @file_put_contents($path, $payload, LOCK_EX) !== false;
+		}
+
+		if(!@rename($tmp_path, $path)){
+			$written = @file_put_contents($path, $payload, LOCK_EX) !== false;
+			@unlink($tmp_path);
+			return $written;
+		}
+
+		return true;
 	}
 
 	/**
@@ -339,12 +536,19 @@ abstract class Common {
 		unset($meta['tmp']);
 
 		if($meta){
-			$_SESSION['schema_cache']['db'] = $meta;
+			self::$persistentSchemaCache = array_replace_recursive(self::$persistentSchemaCache, $meta);
 		}
 		else {
-			unset($_SESSION['schema_cache']['db']);
+			self::$persistentSchemaCache = [];
 		}
 
+		self::$persistentSchemaCacheHydrated = true;
+		if($this->writePersistentSchemaCacheToFile(self::$persistentSchemaCache)){
+			unset($_SESSION['schema_cache']['db']);
+		}
+		else if(self::$persistentSchemaCache){
+			$_SESSION['schema_cache']['db'] = self::$persistentSchemaCache;
+		}
 		$this->cleanupSchemaCacheSession();
 	}
 
@@ -384,10 +588,14 @@ abstract class Common {
 	{
 		if($table){
 			unset($this->meta[$db][$table]);
+			unset(self::$persistentSchemaCache[$db][$table]);
 			unset($_SESSION['schema_cache']['db'][$db][$table]);
 
 			if(empty($this->meta[$db])){
 				unset($this->meta[$db]);
+			}
+			if(empty(self::$persistentSchemaCache[$db])){
+				unset(self::$persistentSchemaCache[$db]);
 			}
 			if(empty($_SESSION['schema_cache']['db'][$db])){
 				unset($_SESSION['schema_cache']['db'][$db]);
@@ -395,10 +603,53 @@ abstract class Common {
 		}
 		else {
 			unset($this->meta[$db]);
+			unset(self::$persistentSchemaCache[$db]);
 			unset($_SESSION['schema_cache']['db'][$db]);
 		}
 
+		if(!$this->writePersistentSchemaCacheToFile(self::$persistentSchemaCache) && self::$persistentSchemaCache){
+			$_SESSION['schema_cache']['db'] = self::$persistentSchemaCache;
+		}
 		$this->cleanupSchemaCacheSession();
+	}
+
+	/**
+	 * Clear all schema metadata caches so the next array-built SQL query reloads fresh metadata.
+	 *
+	 * This is intentionally broad and is used only as a one-time recovery path after MySQL
+	 * reports an unknown column. At that point the safest assumption is that cached schema
+	 * metadata may have survived a manual/deploy-time DDL change.
+	 */
+	protected function invalidateAllSchemaCaches(): void
+	{
+		$this->meta = [];
+		self::$persistentSchemaCache = [];
+		self::$persistentSchemaCacheHydrated = true;
+		self::$missingColumnRefreshAttempts = [];
+
+		unset($_SESSION['schema_cache']);
+
+		if($path = $this->getPersistentSchemaCacheFilePath()){
+			if(is_file($path)){
+				@unlink($path);
+			}
+		}
+	}
+
+	/**
+	 * Determine whether a SQL error may have been caused by stale column metadata.
+	 *
+	 * @param \Throwable $e
+	 *
+	 * @return bool
+	 */
+	protected function isMissingColumnSchemaError(\Throwable $e): bool
+	{
+		$message = $e->getMessage();
+
+		return (int)$e->getCode() === 1054
+			|| stripos($message, "Unknown column") !== false
+			|| stripos($message, "Column not found") !== false;
 	}
 
 	/**
@@ -2806,7 +3057,7 @@ abstract class Common {
 	private function loadDatabaseMetadata(string $db, ?string $table = NULL, ?bool $refresh = NULL, ?bool $retrying = NULL): void
 	{
 		# Reuse any persisted cache before touching the database
-		$this->hydratePersistentSchemaCache();
+		$this->hydratePersistentSchemaCache($db, $table);
 
 		# Clear any cache if the loaded data is to be refreshed
 		if($refresh){
@@ -2827,6 +3078,8 @@ abstract class Common {
 		# Only validate the connection if we actually need to hit INFORMATION_SCHEMA
 		$this->ensureMetadataConnection($db);
 
+		$table_filter = $table ? "AND `TABLE_NAME` = '{$table}'" : "";
+
 		# Write the query for database metadata
 		$query = "
 		SELECT
@@ -2840,6 +3093,7 @@ abstract class Common {
 		       `CHARACTER_MAXIMUM_LENGTH`
 		FROM `INFORMATION_SCHEMA`.`COLUMNS`
 		WHERE `TABLE_SCHEMA` = '{$db}'
+		{$table_filter}
 		ORDER BY `TABLE_SCHEMA`, `TABLE_NAME`, `ORDINAL_POSITION`";
 		// The columns are used by a variety of scripts, primarily the Grow() class.
 
@@ -2848,15 +3102,19 @@ abstract class Common {
 
 		# Go through the result (assuming the database exists)
 		if(is_array($result['rows'])){
-			# Replace the cached snapshot for this database with the freshly loaded one
-			// Clearing the old branch prevents removed tables/columns from lingering in the cache.
-			unset($this->meta[$db]);
+			if($table){
+				# Replace the cached snapshot for this table with the freshly loaded one
+				// Clearing the old branch prevents removed columns from lingering in the cache.
+				unset($this->meta[$db][$table]);
+			}
+			else {
+				# Replace the cached snapshot for this database with the freshly loaded one
+				// Clearing the old branch prevents removed tables/columns from lingering in the cache.
+				unset($this->meta[$db]);
+			}
 
 			# Save each result row
 			foreach($result['rows'] as $row){
-				if($db == "cache" && $table && $row['TABLE_NAME'] != $table){
-					continue;
-				}
 				# The meta array contains DB > Table > Column data
 				$this->meta[$row['TABLE_SCHEMA']][$row['TABLE_NAME']][$row['COLUMN_NAME']] = $row;
 			}
@@ -3460,6 +3718,16 @@ abstract class Common {
 		$table['db'] = $table['db'] ?: $_ENV['db_database'];
 
 		$this->loadDatabaseMetadata($table['db'], $table['name']);
+		if(!empty($this->meta[$table['db']][$table['name']][$col])){
+			return true;
+		}
+
+		$cache_key = strtolower("{$table['db']}.{$table['name']}.{$col}");
+		if(empty(self::$missingColumnRefreshAttempts[$cache_key])){
+			self::$missingColumnRefreshAttempts[$cache_key] = true;
+			$this->loadDatabaseMetadata($table['db'], $table['name'], true);
+		}
+
 		return (bool)$this->meta[$table['db']][$table['name']][$col];
 	}
 

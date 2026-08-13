@@ -176,8 +176,10 @@ class mySQL extends Common {
 		}
 
 		# Generate SQL, run query, return results
-		$sql = new Select($this->mysqli);
-		return $sql->select($a, $return_query);
+		return $this->runWithSchemaCacheRefreshRetry(function() use ($a, $return_query){
+			$sql = new Select($this->mysqli);
+			return $sql->select($a, $return_query);
+		});
 	}
 
 	/**
@@ -203,12 +205,14 @@ class mySQL extends Common {
 
 	public function update(array $a, ?bool $return_query = NULL)
 	{
-		# Reconnect (for long running scripts)
-		if($a['reconnect']){
-			$this->reconnect();
-		}
-		$sql = new Update($this->mysqli);
-		return $sql->update($a, $return_query);
+		return $this->runWithSchemaCacheRefreshRetry(function() use ($a, $return_query){
+			# Reconnect (for long running scripts)
+			if($a['reconnect']){
+				$this->reconnect();
+			}
+			$sql = new Update($this->mysqli);
+			return $sql->update($a, $return_query);
+		});
 	}
 
 	public function remove(array $a, ?bool $return_query = NULL)
@@ -232,16 +236,47 @@ class mySQL extends Common {
 			throw new mysqli_sql_exception("SQL {$call} calls must be in an array format.");
 		}
 
-		# Reconnect (for long running scripts)
-		if($a['reconnect']){
-			$this->reconnect();
+		return $this->runWithSchemaCacheRefreshRetry(function() use ($a, $return_query, $call){
+			# Reconnect (for long running scripts)
+			if($a['reconnect']){
+				$this->reconnect();
+			}
+
+			$class = __NAMESPACE__ . '\\' . ucfirst($call);
+
+			# Generate SQL, run query, return results
+			$sql = new $class($this->mysqli);
+			return $sql->{$call}($a, $return_query);
+		});
+	}
+
+	/**
+	 * Run an array-built SQL operation, clearing schema metadata and rebuilding once if MySQL
+	 * reports an unknown column.
+	 *
+	 * Raw SQL strings are intentionally not handled here because they cannot be rebuilt from
+	 * refreshed metadata; the useful recovery path is for query arrays that pass through the
+	 * metadata-aware builders.
+	 *
+	 * @param callable $callback
+	 *
+	 * @return mixed
+	 * @throws \Throwable
+	 */
+	private function runWithSchemaCacheRefreshRetry(callable $callback)
+	{
+		try {
+			return $callback();
 		}
+		catch(\Throwable $e) {
+			if(!$this->isMissingColumnSchemaError($e)){
+				throw $e;
+			}
 
-		$class = __NAMESPACE__ . '\\' . ucfirst($call);
+			$this->invalidateAllSchemaCaches();
 
-		# Generate SQL, run query, return results
-		$sql = new $class($this->mysqli);
-		return $sql->{$call}($a, $return_query);
+			return $callback();
+		}
 	}
 
 	/**
