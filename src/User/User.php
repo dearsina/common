@@ -681,25 +681,6 @@ class User extends Prototype {
 
 		$user = $this->info($rel_table, $rel_id);
 
-		# Subscriptions
-		if($subscriptions_count = $this->sql->select([
-			"count" => true,
-			"table" => "subscription",
-			"where" => [
-				"owner_id" => $user['user_id'],
-				["status", "NOT IN", ["closed", "draft"]],
-			],
-		])){
-			//if the user has active (non close or draft) subscriptions
-			$this->log->error([
-				"title" => "Active " . str::pluralise_if($subscriptions_count, "subscription", false),
-				"message" => "You have " .
-					str::pluralise_if($subscriptions_count, "subscription", true) .
-					" that " . str::isAre($subscriptions_count) . " still active. You cannot close your account until you've closed all subscriptions.",
-			]);
-			return false;
-		}
-
 		# Check to see if there are any seats to remove also
 		if($seats_count = $this->sql->select([
 			"count" => true,
