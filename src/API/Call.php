@@ -55,7 +55,7 @@ class Call {
 	 *
 	 * @var string
 	 */
-	private string $connection_id;
+	private ?string $connection_id = NULL;
 
 	public function __construct()
 	{
@@ -220,9 +220,12 @@ class Call {
 		echo json_encode($output);
 
 		# Log the connection close, and record the response code
-		Connection::close($this->connection_id, [
-			"response_code" => http_response_code(),
-		]);
+		if($this->connection_id){
+			// Ensue there is a connection ID
+			Connection::close($this->connection_id, [
+				"response_code" => http_response_code(),
+			]);
+		}
 
 		# Close the database connection
 		$this->sql->disconnect();
