@@ -118,20 +118,9 @@ class Country extends Prototype {
 
 	public ?string $db = "address";
 
-	/**
-	 * Get an array of currency code options
-	 * to use in a dropdown select.
-	 *
-	 * Ignores currencies that we don't have an exchange rate for
-	 *
-	 * @return array
-	 */
-	public static function getCurrencyCodeOptions(): array
+	public static function getCurrencyCountries(?string $currency_code = NULL): array
 	{
-		$sql = Factory::getInstance();
-		$exchange_rates = ExchangeRates::get();
-
-		$countries = $sql->select([
+		$countries = \App\Common\SQL\Info\Info::getInstance()->getInfo([
 			"columns" => [
 				"currency_code",
 				"country_codes" => [
@@ -158,51 +147,78 @@ class Country extends Prototype {
 				],
 				"alt_name"
 			],
-			"table" => "country",
+			"rel_table" => "country",
 			"order_by" => [
 				"currency_code" => "ASC",
 			],
 		]);
 
-		foreach($countries as $country){
+		# If we're only returning a single country
+		if($currency_code){
+			$countries = array_filter($countries, function($country) use ($currency_code){
+				return $country['currency_code'] == $currency_code;
+			});
+			return reset($countries);
+		}
+
+		return $countries;
+	}
+
+	/**
+	 * Get an array of currency code options
+	 * to use in a dropdown select.
+	 *
+	 * Ignores currencies that we don't have an exchange rate for
+	 *
+	 * @return array
+	 */
+	public static function getCurrencyCodeOptions(): array
+	{
+		$exchange_rates = ExchangeRates::get();
+
+		foreach(self::getCurrencyCountries() as $country){
 			# If we don't have an exchange rate for the currency, ignore it
 			if(!$exchange_rates[$country['currency_code']]){
 				continue;
 			}
 
-			$alt = NULL;
-			$icon = NULL;
-
-			if(isset(self::CURRENCY_EXCEPTIONS[$country['currency_code']])){
-				$exception = self::CURRENCY_EXCEPTIONS[$country['currency_code']];
-				$icon = $exception['icon'];
-				$country_name = $exception['name'] ?? $country['names'];
-				$alt = $exception['alt'] ?? NULL;
-			}
-			else {
-				$country['country_code'] = $country['country_codes'];
-				$country_name = $country['names'];
-				$icon = [
-					"type" => "flag",
-					"name" => $country['country_code'],
-				];
-				$alt = $country['alt_name'];
-			}
-
-			$currency_code = str::monospace($country['currency_code']);
-			$country_name = explode(",", $country_name)
-					|> (fn($x) => array_map(function($name){
-						return Workflow::getPrefixWrapper($name);
-					}, $x))
-					|> (fn($x) => implode(" ", $x));
-
-			$currency_code_options[$country['currency_code']] = [
-				"title" => "{$country['currency_code']} {$country_name} {$alt}",
-				"html" => Icon::generate($icon)."{$currency_code} {$country_name}",
-			];
+			$currency_code_options[$country['currency_code']] = self::getCurrencyCodeOption($country['currency_code']);
 		}
 
 		return $currency_code_options;
+	}
+
+	public static function getCurrencyCodeOption(string $currency_code): array
+	{
+		$country = self::getCurrencyCountries($currency_code);
+
+		if(isset(self::CURRENCY_EXCEPTIONS[$country['currency_code']])){
+			$exception = self::CURRENCY_EXCEPTIONS[$country['currency_code']];
+			$icon = $exception['icon'];
+			$country_name = $exception['name'] ?? $country['names'];
+			$alt = $exception['alt'] ?? NULL;
+		}
+		else {
+			$country['country_code'] = $country['country_codes'];
+			$country_name = $country['names'];
+			$icon = [
+				"type" => "flag",
+				"name" => $country['country_code'],
+			];
+			$alt = $country['alt_name'];
+		}
+
+		$currency_code = str::monospace($country['currency_code']);
+		$country_name = explode(",", $country_name)
+				|> (fn($x) => array_map(function($name){
+					return Workflow::getPrefixWrapper($name);
+				}, $x))
+				|> (fn($x) => implode(" ", $x));
+
+		return [
+			"title" => "{$country['currency_code']} {$country_name} {$alt}",
+			"html" => Icon::generate($icon)."{$currency_code} {$country_name}",
+		];
 	}
 
 	public static function getUserCurrencyCode(): ?string
