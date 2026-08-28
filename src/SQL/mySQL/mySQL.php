@@ -61,23 +61,72 @@ class mySQL extends Common {
 			# Ensure everything is UTF8mb4
 			$mysqli->set_charset('utf8mb4');
 
-			# Ensure PHP and mySQL time zones are in sync
+			/**
+			 * Ensure PHP and mySQL time zones are in sync.
+			 *
+			 * This DateTime call looks harmless, but it can throw \DateError if PHP
+			 * temporarily cannot read its timezone database. That normally points to
+			 * a host/container issue such as missing/corrupt tzdata, an FPM chroot
+			 * without /usr/share/zoneinfo, or a transient filesystem/access problem.
+			 *
+			 * The error is intermittent in production, so the catch block below treats
+			 * this specific failure the same way as a transient connection failure:
+			 * close anything opened so far, wait briefly, and retry the whole connection
+			 * setup instead of killing the request/script immediately.
+			 */
 			$offset = (new \DateTime())->format("P");
 			$mysqli->query("SET time_zone='$offset';");
 		}
 
-		catch(\mysqli_sql_exception $e) {
-			switch($e->getCode()) {
-				# Connection errors warrant re-tries
-			case "2002":
-			case "2006": //SQL reconnection error when trying to get the metadata of a db [2006]: MySQL server has gone away
-			default:
-				if($retry <= 3){
-					$retry++;
-					# Wait 3, 6, 9 seconds between tries
-					sleep($retry * 3);
-					return self::getNewConnection($retry);
-				}
+		catch(\Throwable $e) {
+			/**
+			 * This deliberately catches \Throwable instead of only \mysqli_sql_exception.
+			 *
+			 * Why:
+			 * - mysqli_sql_exception covers normal MySQL connection/query setup failures.
+			 * - DateError extends Error, not Exception, so it would bypass a normal
+			 *   catch(\Exception) or catch(\mysqli_sql_exception) block and crash PHP.
+			 *
+			 * Guardrail:
+			 * Do not retry every Throwable. Most other Throwables are programming errors
+			 * or hard configuration problems that should fail loudly. Only the known
+			 * transient startup failures are allowed through the retry path below.
+			 */
+			$retryable = $e instanceof \mysqli_sql_exception || (class_exists(\DateError::class, false) && $e instanceof \DateError);
+
+			if(!$retryable){
+				throw $e;
+			}
+
+			/**
+			 * The failure can happen after mysqli has already connected but before this
+			 * method returns the connection to callers. For example, DateTime can fail
+			 * while calculating the timezone offset after the connection and charset are
+			 * already established.
+			 *
+			 * Close that half-initialised connection before retrying so intermittent
+			 * DateError failures do not leak MySQL connections.
+			 */
+			if(isset($mysqli) && $mysqli instanceof \mysqli){
+				$mysqli->close();
+			}
+
+			if($retry < 3){
+				$retry++;
+				/**
+				 * Retry only a few times. If tzdata/MySQL is genuinely broken, continuing
+				 * forever would tie up workers and make the outage worse.
+				 *
+				 * Backoff schedule:
+				 * - retry 1 waits about 3 seconds
+				 * - retry 2 waits about 6 seconds
+				 * - retry 3 waits about 9 seconds
+				 *
+				 * The small random jitter prevents multiple workers from all reconnecting
+				 * at exactly the same moment after a shared transient failure.
+				 */
+				usleep(($retry * 3000000) + random_int(0, 500000));
+				return self::getNewConnection($retry);
 			}
 
 			/**

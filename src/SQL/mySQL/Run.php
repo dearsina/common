@@ -32,6 +32,11 @@ class Run extends Common {
 	 */
 	public function run(string $query, ?bool $log = true, ?int $tries = 1): array
 	{
+		$rows = NULL;
+		$num_rows = NULL;
+		$affected_rows = NULL;
+		$multi_query = false;
+
 		# Store the query in a session variable
 		if($log){
 			$this->logRun($query);
@@ -51,6 +56,7 @@ class Run extends Common {
 			# Multi-query
 			if($this->isMultiQuery($query)){
 				//If there is more than one query to run
+				$multi_query = true;
 
 				# Run the multi-query
 				if(!$result = @$this->mysqli->multi_query($query)){
@@ -59,9 +65,7 @@ class Run extends Common {
 				}
 
 				# Consume the results so that a query can be run afterwards
-				while($this->mysqli->next_result()) {
-					//Otherwise threads will collide
-				}
+				$this->clearPendingResults();
 			}
 
 			# Single query (most common)
@@ -133,10 +137,18 @@ class Run extends Common {
 
 			# Free up memory
 			$result->close();
+
+			if(!$multi_query){
+				$this->clearPendingResults(false);
+			}
 		}
 
 		else {
 			$affected_rows = $this->mysqli->affected_rows;
+
+			if(!$multi_query){
+				$this->clearPendingResults(false);
+			}
 		}
 
 		return [
@@ -168,6 +180,43 @@ class Run extends Common {
 		# The semicolon must divide the query into at least two parts
 		$parts = array_filter(explode(";", trim($filtered_query)));
 		return count($parts) > 1;
+	}
+
+	/**
+	 * Clears every pending result on the active mysqli connection.
+	 *
+	 * mysqli keeps the connection busy until every result packet from
+	 * multi_query() or stored procedures has been consumed. If even one result
+	 * remains unread, the next query fails with "Commands out of sync".
+	 *
+	 * @param bool|null $include_current_result
+	 *
+	 * @return void
+	 */
+	private function clearPendingResults(?bool $include_current_result = true): void
+	{
+		if($include_current_result){
+			$this->freeCurrentResult();
+		}
+
+		while($this->mysqli->more_results()) {
+			$this->mysqli->next_result();
+			$this->freeCurrentResult();
+		}
+	}
+
+	/**
+	 * Frees the current mysqli result if the current statement produced one.
+	 *
+	 * @return void
+	 */
+	private function freeCurrentResult(): void
+	{
+		$result = $this->mysqli->store_result();
+
+		if($result instanceof \mysqli_result){
+			$result->free();
+		}
 	}
 
 	/**
