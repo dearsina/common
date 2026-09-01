@@ -137,7 +137,7 @@ class App extends Prototype implements NavigationInterface {
 
 		# User account
 		$children[] = [
-			"title" => "Account",
+			"title" => "My account",
 			"icon" => "user",
 			"hash" => [
 				"rel_table" => "user",
@@ -163,6 +163,10 @@ class App extends Prototype implements NavigationInterface {
 		$this->levels[1]['items'][] = [
 			"icon" => $user['user_role'][array_search($role, array_column($user['user_role'], "role"))]['icon'],
 			"alt" => "You are currently logged in as " . str::A($role),
+			"title" => [
+				"title" => "Account",
+				"class" => "btn-mobile-only",
+			],
 			"direction" => "left",
 			"children" => $children,
 		];
