@@ -1346,6 +1346,16 @@ class str {
 		return false;
 	}
 
+	public static function getRegisteredCompany(): string
+	{
+		switch(self::getRegisteredDomain()){
+		case "kycdd.ae":
+			return "KYCetc LLC-FZ";
+		default:
+			return "KYC DD (Pty) Ltd";
+		}
+	}
+
 	/**
 	 * Retrieves the registered domain from the current HTTP origin or referer, matching it against a list of allowed
 	 * domains. This function determines the domain from the HTTP_ORIGIN or HTTP_REFERER values provided by the server
@@ -1356,18 +1366,13 @@ class str {
 	 */
 	public static function getRegisteredDomain(): string
 	{
+		# If all else fails, this is the fallback domain
 		$fallback_domain = $_ENV['domain'] ?: "kycdd.co.za";
 
 		# If we have been given the HTTP origin, grab the domain from there
-		if($_SERVER['HTTP_ORIGIN']){
-			// HTTP_ORIGIN: "https://subdomain.example.com"
-			$domain = $_SERVER['HTTP_ORIGIN'];
-		}
-
-		# Or if we've been given the HTTP referer
-		else if($_SERVER['HTTP_REFERER']){
-			// HTTP_REFERER: "https://subdomain.example.com/folder"
-			$domain = $_SERVER['HTTP_REFERER'];
+		if($_SERVER['HTTP_HOST']){
+			// HTTP_HOST: "subdomain.example.com"
+			$domain = $_SERVER['HTTP_HOST'];
 		}
 
 		# Fallback
@@ -1379,6 +1384,8 @@ class str {
 		if(!preg_match('#^[a-z][a-z0-9+.-]*://#i', $domain)){
 			$domain = 'https://' . ltrim($domain, '/');
 		}
+
+		# Strip away any subdomains
 		if(!$domain = parse_url($domain, PHP_URL_HOST)){
 			return $fallback_domain;
 		}

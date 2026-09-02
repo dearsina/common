@@ -48,10 +48,12 @@ class App extends Prototype implements NavigationInterface {
 	{
 		$year = date("Y");
 
+
+
 		$this->footers[1] = [[
 			"sm" => "8",
 			"class" => "copyright",
-			"html" => "© {$year} {$_ENV['title']}, all rights reserved.",
+			"html" => "© {$year} ".str::getRegisteredCompany().", all rights reserved.",
 		], [
 			"sm" => "4",
 			"style" => [
