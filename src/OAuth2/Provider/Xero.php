@@ -18,7 +18,7 @@ use XeroAPI\XeroPHP\Models\Accounting\Contact;
 use XeroAPI\XeroPHP\Models\Accounting\Contacts;
 
 class Xero extends Prototype implements ProviderInterface {
-	const SCOPES = "openid email profile offline_access accounting.settings accounting.transactions accounting.contacts accounting.journals.read accounting.reports.read accounting.attachments";
+	const SCOPES = "openid email profile offline_access accounting.settings accounting.invoices accounting.payments accounting.banktransactions.read accounting.contacts";
 
 	/**
 	 * @inheritDoc
