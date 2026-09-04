@@ -200,6 +200,17 @@ class Select extends Common {
 		return $rows;
 	}
 
+	/**
+	 * Add CTEs to the ctes array.
+	 * Allows for CTEs to be passed as strings also, but the CTE
+	 * must follow a strict query and columns format.
+	 *
+	 * @param array|null $ctes
+	 * @param array|null $cte_table_aliases
+	 *
+	 * @return void
+	 * @throws \Exception
+	 */
 	protected function setCTEs(?array $ctes, ?array $cte_table_aliases = NULL): void
 	{
 		# Set aliases of other CTEs that this CTE may be referencing
@@ -214,6 +225,17 @@ class Select extends Common {
 		}
 
 		foreach($ctes as $alias => $cte){
+			if(is_string($cte)){
+				throw new \Exception("CTE {$alias} is a string. to pass a SQL query, use the key <code>query</code> for the query string and <code>columns</code> for an array of columns in the query.");
+			}
+
+			# Make an exception for when you want to pass a CTE query as a string
+			if($cte['query'] && $cte['columns']){
+				$this->ctes[$alias]['query'] = $cte['query'];
+				$this->ctes[$alias]['columns'] = $cte['columns'];
+				continue;
+			}
+
 			$select = new Select($this->mysqli);
 			$this->ctes[$alias]['query'] = $select->select($cte, true, $this->ctes);
 			$this->ctes[$alias]['columns'] = $select->getAllColumns();

@@ -3685,8 +3685,14 @@ abstract class Common {
 		if($table['is_cte']){
 			# Go through each CTE column and see if the name matches
 			foreach($this->ctes[$table['name']]['columns'] as $column){
+				# If the column passed is just the name, compare that
+				if(is_string($column)){
+					if($col == $column){
+						return true;
+					}
+				}
 				# If there is a match on name or alias, we're good
-				if(in_array($col, [$column['name'], $column['alias']])){
+				else if(in_array($col, [$column['name'], $column['alias']])){
 					return true;
 				}
 			}
