@@ -16,6 +16,7 @@ use App\Common\Output;
 use App\Common\SQL\Factory;
 use App\Common\SQL\mySQL\mySQL;
 use App\Common\str;
+use App\Email\Email;
 use App\SubscriptionApiKey\SubscriptionApiKey;
 
 /**
@@ -471,7 +472,8 @@ class Call {
 		}
 
 		# Ensure the subscription is active
-		if(!in_array($subscription['status'], ["trial", "active", "closing", "closing"])){
+        // TODO: Remove overdue once better logic has been established
+		if(!in_array($subscription['status'], ["trial", "active", "closing", "closing", "overdue"])){
 			throw new Unauthorized(
 			"The subscription is {$subscription['status']} and the API is no longer accessible.",
 			"Subscription ID [{$subscription['subscription_id']}] API still active, subscription is {$subscription['status']}.");
