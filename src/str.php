@@ -961,6 +961,44 @@ class str {
 		exit;
 	}
 
+	/**
+	 * Returns an array of information about the class and method that
+	 * called the method that called this method.
+	 * The array contains the following keys:
+	 * - caller (class+type+method)
+	 * - class
+	 * - function/method
+	 * - file
+	 * - line
+	 * - type
+	 * - args (an array of arguments passed to the method, that called this method)
+	 *
+	 * @param int|null $depth The depth of the caller to return. By default it's 2:
+	 *                        The method that called the method that called this method.
+	 *
+	 * @return array|null
+	 */
+	public static function getCaller(?string $key = NULL, ?int $depth = 2): null|string|array
+	{
+		$trace = debug_backtrace(0, $depth + 1);
+
+		if(!$caller = $trace[$depth]){
+			return NULL;
+		}
+
+		# Set the method
+		$caller['method'] = $caller['function'];
+
+		# Set the caller string
+		$caller['caller'] = $caller['class'] . ($caller['type'] ?? '::') . $caller['method'];
+
+		if($key){
+			return $caller[$key];
+		}
+
+		return $trace[$depth];
+	}
+
 	public static function isOdd(?int $number): bool
 	{
 		return $number % 2 != 0;
