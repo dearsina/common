@@ -965,38 +965,73 @@ class str {
 	 * Returns an array of information about the class and method that
 	 * called the method that called this method.
 	 * The array contains the following keys:
-	 * - caller (class+type+method)
-	 * - class
-	 * - function/method
-	 * - file
-	 * - line
-	 * - type
-	 * - args (an array of arguments passed to the method, that called this method)
+	 * - path (The whole path of the class, including the name space)
+	 * - namespace (The namespace of the class)
+	 * - class (The class name without the namespace)
+	 * - caller (The full path of the class + type + method that called this method)
+	 * - method (The method/function name)
+	 * - file (The file path of the class)
+	 * - line (The line number of the method that called this method)
+	 * - type (The type of method that called this method, e.g. :: or ->)
+	 * - args (An array of arguments passed to the method that called this method)
 	 *
-	 * @param int|null $depth The depth of the caller to return. By default it's 2:
-	 *                        The method that called the method that called this method.
+	 * @param int|null $depth The depth of the caller to return. By default it's 2.
+	 *                        Set to NULL to get all depths.
+	 *
 	 *
 	 * @return array|null
 	 */
 	public static function getCaller(?string $key = NULL, ?int $depth = 2): null|string|array
 	{
-		$trace = debug_backtrace(0, $depth + 1);
+		# Set the limit
+		$limit = $depth === NULL ? 0 : $depth + 1;
 
-		if(!$caller = $trace[$depth]){
-			return NULL;
+		# Get the backtrace
+		$traces = debug_backtrace(0, $limit);
+
+		foreach($traces as $level => $trace){
+			# Set the method
+			$trace['method'] = $trace['function'];
+
+			# Set the caller string
+			$trace['caller'] = $trace['class'] . ($trace['type'] ?? '::') . $trace['method'];
+
+			# Rename class to path
+			$trace['path'] = $trace['class'];
+
+			# Break up the path into namespace and class
+			$path = explode("\\", $trace['class'] ?? "");
+			$trace['namespace'] = implode("\\", array_slice($path, 0, -1));
+			$trace['class'] = end($path);
+
+			# If we're interested in all depths
+			if($depth === NULL){
+				# Add the updates
+				$traces[$level] = $trace;
+				# Go to the next level
+				continue;
+			}
+
+			# If we're interested in a particular depth, but we're not at that depth yet
+			if($level !== $depth){
+				continue;
+			}
+
+			# If a particular key has been asked for
+			if($key){
+				# Return that key for this depth
+				return $trace[$key];
+			}
+
+			# Otherwise, return the whole array for this depth
+			return $trace;
 		}
-
-		# Set the method
-		$caller['method'] = $caller['function'];
-
-		# Set the caller string
-		$caller['caller'] = $caller['class'] . ($caller['type'] ?? '::') . $caller['method'];
 
 		if($key){
-			return $caller[$key];
+			return array_column($traces, $key);
 		}
 
-		return $trace[$depth];
+		return $traces;
 	}
 
 	public static function isOdd(?int $number): bool
