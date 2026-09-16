@@ -20,7 +20,7 @@ abstract class HandlerPrototype extends \App\Common\Prototype {
 	 *
 	 * @param array|string $requested_joins
 	 */
-	protected function setJoin($requested_joins): void
+	public function setJoin($requested_joins): void
 	{
 		if(!$requested_joins){
 			return;

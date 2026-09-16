@@ -404,6 +404,16 @@ class Grow extends Common {
 		# Prepare the type
 		$type = $this->prepareType($type, $val, $tableMetadata[$key]);
 
+		# Failsafe, if the colum name ends with _id and the type is "char(36)", we don't need to do anything
+		if(str_ends_with($col, "_id") && $type == "char(36)"){
+			return NULL;
+		}
+
+		# Don't change the PID column (from int to string) as it will break the system
+		if($col == "pid"){
+			return NULL;
+		}
+
 		# Return the query
 		return "ALTER TABLE `{$table['db']}`.`{$table['name']}` CHANGE COLUMN `{$col}` `{$col}` {$type};";
 	}
@@ -452,6 +462,11 @@ class Grow extends Common {
 
 		# Prepare the type
 		$type = $this->prepareType($type, $val, $tableMetadata[$key]);
+
+		# Failsafe, if the colum name ends with _id and the type is "char(36)", we don't need to do anything
+		if(str_ends_with($col, "_id") && $type == "char(36)"){
+			return NULL;
+		}
 
 		# Return the query
 		return "ALTER TABLE `{$table['db']}`.`{$table['name']}` CHANGE COLUMN `{$col}` `{$col}` {$type};";
