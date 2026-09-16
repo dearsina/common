@@ -363,7 +363,12 @@ class Grow extends Common {
 		}
 
 		# If the current type is INT
-		//Change it
+		if($tableMetadata[$key]['DATA_TYPE'] == "int"){
+			# If the value is a string, but could be an int, we don't need to do anything
+			if($val == (int) $val){
+				return NULL;
+			}
+		}
 
 		# If the current type is DECIMAL
 		if($tableMetadata[$key]['DATA_TYPE'] == "decimal"){
