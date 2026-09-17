@@ -438,6 +438,12 @@ class Email extends Prototype {
 			//for each image link
 			$image_path = $img_tag[2];
 
+			# Already embedded image
+			if(str_starts_with($image_path, "cid:")){
+				//If this image has already been converted to a CID, skip it
+                return "<img src=\"{$image_path}\" {$img_tag[3]}>";
+			}
+
 			# Local file
 			if(substr($image_path, 0, 1) == "/"){
 				//If this is a local file
