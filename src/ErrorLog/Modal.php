@@ -4,6 +4,7 @@
 namespace App\Common\ErrorLog;
 
 
+use App\Common\str;
 use App\UI\Form\Form;
 use App\UI\Icon;
 
@@ -12,6 +13,23 @@ use App\UI\Icon;
  * @package App\Common\ErrorLog
  */
 class Modal extends \App\Common\Prototype {
+	public function message(array $error): string
+	{
+		$modal = new \App\UI\Modal\Modal([
+			"size" => "xl",
+			"icon" => Icon::get("error"),
+			"header" => $error['title'] ?: "Error message",
+			"body" => str::pre(html_entity_decode(trim((string)$error['message']))),
+			"footer" => [
+				"button" => ["close_md"],
+			],
+			"draggable" => true,
+			"resizable" => true,
+		]);
+
+		return $modal->getHTML();
+	}
+
 	/**
 	 * @param $a
 	 *

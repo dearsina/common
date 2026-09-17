@@ -19,6 +19,8 @@ class ErrorLog extends Prototype {
 	 * Maximum number of characters to display of an error message.
 	 */
 	const MAX_ERROR_BODY_LENGTH = 5000;
+	const DEFAULT_PAGE_LENGTH = 10;
+	const MAX_PAGE_LENGTH = 100;
 
 	/**
 	 * @param bool|null $output_to_email
@@ -213,7 +215,11 @@ class ErrorLog extends Prototype {
 	}
 
 	/**
-	 * An excellent example of how to use the Table::onDemand feature.
+	 * Return one bounded batch for the on-demand error table.
+	 *
+	 * The default order uses a cursor so older pages do not repeatedly scan and
+	 * discard every preceding row. Message bodies are deliberately projected to
+	 * a small preview; the complete blob is available through message().
 	 *
 	 * @param $a
 	 *
@@ -224,60 +230,236 @@ class ErrorLog extends Prototype {
 	{
 		str::replaceNullStrings($a);
 
-		extract($a);
-
-		/**
-		 * We're stripping this var out because
-		 * due to its complexity, we treat it
-		 * in the base_query instead of feeding it
-		 * to the Table class.
-		 */
-		unset($a['vars']['resolved']);
-
 		if(!$this->user->is("admin")){
 			//Only admins have access
 			return $this->accessDenied();
 		}
 
-		/**
-		 * The base query is the base of the search
-		 * query to run to get the results, it will
-		 * be supplemented with vars are where clauses.
-		 */
-		$base_query = [
-			"include_meta" => true,
+		$vars = str::urldecode($a['vars'] ?: []);
+		$request = $this->getErrorsRequest($vars);
+		$where = $this->getErrorsWhere($vars);
+		$total_results = NULL;
+
+		if(!$request['start']){
+			$total_results = (int)$this->sql->select([
+				"table" => "error_log",
+				"where" => $where,
+				"count" => "error_log_id",
+			]);
+
+			if(!$total_results){
+				return $this->sendEmptyErrorsResponse($request['id']);
+			}
+		}
+
+		$use_cursor = !$request['order_by_col']
+			&& (!$request['start'] || $request['cursor']);
+		if($use_cursor && $request['cursor']){
+			$where[] = ["error_log_id", "<", $request['cursor']];
+		}
+
+		$rows_query = [
 			"table" => "error_log",
-			"left_join" => [[
+			"columns" => [
+				"error_log_id",
+				"resolved",
+				"title",
+				"message" => ["LEFT(`error_log`.`message`, " . self::MAX_ERROR_BODY_LENGTH . ")"],
+				"message_length" => ["OCTET_LENGTH(`error_log`.`message`)"],
+				"subdomain",
+				"rel_table",
+				"rel_id",
+				"action",
+				"vars",
+				"issue_tracker_id",
+				"created",
+				"created_by",
+			],
+			"where" => $where,
+			"order_by" => $this->getErrorsOrderBy($request),
+			"start" => $use_cursor ? 0 : $request['start'],
+			"length" => $request['length'],
+		];
+
+		if($request['order_by_col'] == "user.first_name"){
+			$rows_query['left_join'] = [[
 				"table" => "user",
+				"columns" => false,
 				"on" => [
 					"user_id" => ["error_log", "created_by"],
 				],
-			]],
-			"where" => [
-				["resolved", "IS", $vars['resolved'] == 'unresolved' ? NULL : false],
-				["resolved", "IS NOT", $vars['resolved'] == 'resolved' ? NULL : false],
-			],
-			"order_by" => [
-				"error_log_id" => "desc",
-			],
-		];
+			]];
+		}
 
-		/**
-		 * The row handler gets one row of data from SQL,
-		 * and its job is to format the row and return
-		 * an array of metadata in addition to the column
-		 * values to feed to the Grid() class.
-		 *
-		 * @param array $error
-		 *
-		 * @return array
-		 */
-		$row_handler = function(array $error){
+		$errors = $this->sql->select($rows_query) ?: [];
+		if(!$errors){
+			return $this->sendExhaustedErrorsResponse($request);
+		}
+
+		$this->addUsersToErrors($errors);
+		$last_error_log_id = end($errors)['error_log_id'];
+		$rows = array_map(function(array $error){
 			return $this->rowHandler($error);
-		};
+		}, $errors);
 
-		# This line is all that is required to respond to the page request
-		Table::managePageRequest($a, $base_query, $row_handler);
+		$output = [
+			"id" => $request['id'],
+			"start" => $request['start'] + count($rows),
+			"row_count" => count($rows),
+			"rows" => Table::generate($rows, $a, $request['start'] > 0, true),
+			"order_by_col" => $request['order_by_col'],
+			"order_by_dir" => strtolower($request['order_by_dir']),
+		];
+		if($total_results !== NULL){
+			$output['total_results'] = $total_results;
+		}
+		if($use_cursor){
+			$output['cursor'] = $last_error_log_id;
+		}
+
+		$this->output->function("onDemandResponse", $output);
+
+		return true;
+	}
+
+	/**
+	 * Fetch the complete message only after an administrator explicitly requests it.
+	 */
+	public function message(array $a): bool
+	{
+		if(!$this->user->is("admin")){
+			return $this->accessDenied($a);
+		}
+
+		if(!$error = $this->sql->select([
+			"table" => "error_log",
+			"columns" => ["error_log_id", "title", "message", "created"],
+			"id" => $a['rel_id'],
+		])){
+			throw new \RuntimeException("The requested error log entry could not be found.");
+		}
+
+		$this->output->modal($this->modal()->message($error));
+		$this->hash->set(-1);
+		$this->hash->silent();
+
+		return true;
+	}
+
+	private function getErrorsRequest(array $vars): array
+	{
+		$order_by_col = in_array($vars['order_by_col'] ?? NULL, [
+			"created",
+			"title",
+			"rel_table",
+			"user.first_name",
+		], true) ? $vars['order_by_col'] : NULL;
+
+		return [
+			"id" => (string)($vars['id'] ?? ""),
+			"start" => max(0, (int)($vars['start'] ?? 0)),
+			"length" => max(1, min(self::MAX_PAGE_LENGTH, (int)($vars['length'] ?? self::DEFAULT_PAGE_LENGTH))),
+			"cursor" => is_string($vars['cursor'] ?? NULL) ? $vars['cursor'] : NULL,
+			"order_by_col" => $order_by_col,
+			"order_by_dir" => strtoupper($vars['order_by_dir'] ?? "ASC") == "DESC" ? "DESC" : "ASC",
+		];
+	}
+
+	private function getErrorsWhere(array $vars): array
+	{
+		$where = [];
+		switch($vars['resolved'] ?? NULL) {
+		case "unresolved":
+			$where[] = ["resolved", "IS", NULL];
+			break;
+		case "resolved":
+			$where[] = ["resolved", "IS NOT", NULL];
+			break;
+		}
+
+		foreach([
+			"error_log_id",
+			"title",
+			"created_by",
+			"rel_table",
+			"action",
+			"subdomain",
+			"issue_tracker_id",
+			"connection_id",
+			"code",
+		] as $column){
+			if(!array_key_exists($column, $vars)){
+				continue;
+			}
+			$where[$column] = $vars[$column];
+		}
+
+		return $where;
+	}
+
+	private function getErrorsOrderBy(array $request): array
+	{
+		if(!$request['order_by_col']){
+			return ["error_log_id" => "DESC"];
+		}
+
+		if($request['order_by_col'] == "user.first_name"){
+			return [
+				"`user`.`first_name` {$request['order_by_dir']}",
+				"`error_log`.`error_log_id` DESC",
+			];
+		}
+
+		return [
+			$request['order_by_col'] => $request['order_by_dir'],
+			"error_log_id" => "DESC",
+		];
+	}
+
+	private function addUsersToErrors(array &$errors): void
+	{
+		$user_ids = array_values(array_unique(array_filter(array_column($errors, "created_by"))));
+		$users_by_id = [];
+		if($user_ids){
+			$users = $this->sql->select([
+				"table" => "user",
+				"columns" => ["user_id", "first_name", "last_name"],
+				"where" => [["user_id", "IN", $user_ids]],
+			]) ?: [];
+			foreach($users as $user){
+				$users_by_id[$user['user_id']] = $user;
+			}
+		}
+
+		foreach($errors as &$error){
+			$user = $users_by_id[$error['created_by']] ?? NULL;
+			$error['user'] = $user ? [$user] : [];
+		}
+		unset($error);
+	}
+
+	private function sendEmptyErrorsResponse(string $id): bool
+	{
+		$this->output->function("onDemandResponse", [
+			"id" => $id,
+			"start" => 1,
+			"total_results" => 0,
+			"row_count" => 0,
+			"rows" => "<i>No rows found</i>",
+		]);
+
+		return true;
+	}
+
+	private function sendExhaustedErrorsResponse(array $request): bool
+	{
+		$this->output->function("onDemandResponse", [
+			"id" => $request['id'],
+			"start" => $request['start'],
+			"total_results" => $request['start'],
+			"row_count" => 0,
+			"rows" => "",
+		]);
 
 		return true;
 	}
@@ -308,10 +490,22 @@ class ErrorLog extends Prototype {
 		$header = "<b>{$error['title']}</b> " . $first_line;
 
 		$body = html_entity_decode(trim($error['message']));
-		$message_len = strlen($body);
+		$message_len = (int)($error['message_length'] ?? strlen($body));
 		if($message_len > self::MAX_ERROR_BODY_LENGTH){
 			$body = substr($body, 0, self::MAX_ERROR_BODY_LENGTH);
-			$body = str::pre($body) . "<small class=\"text-muted\">(Truncated. Whole error " . str::number($message_len) . " characters.)</small>";
+			$body = str::pre($body)
+				. "<small class=\"text-muted\">(Truncated. Stored message is " . str::number($message_len) . " bytes.)</small>"
+				. Button::generate([
+					"title" => "View full message",
+					"icon" => "expand",
+					"size" => "s",
+					"basic" => true,
+					"hash" => [
+						"rel_table" => "error_log",
+						"rel_id" => $error['error_log_id'],
+						"action" => "message",
+					],
+				]);
 		}
 		else {
 			$body = str::pre($body);

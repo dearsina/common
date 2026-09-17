@@ -5,7 +5,6 @@ namespace App\Common\ErrorLog;
 
 
 use App\Common\str;
-use App\UI\Countdown;
 use App\UI\Icon;
 use App\UI\Table;
 
@@ -376,17 +375,6 @@ class Card extends \App\Common\Prototype {
 			"length" => 10,
 		]);
 
-		$countdown = Countdown::generate([
-			"modify" => "+5 minutes", //A string modifying the datetime
-			"pre" => "Refreshing in ", //Text that goes before the timer
-			"post" => ".",
-			"callback" => "onDemandReset", //The name of a function to call at zero
-			"vars" => $id, //Variables to send to the callback function,
-			"restart" => [
-				"minutes" => 5,
-			],
-		]);
-
 		$card = new \App\UI\Card\Card([
 			"header" => [
 				"icon" => $icon,
@@ -395,10 +383,6 @@ class Card extends \App\Common\Prototype {
 			],
 			"body" => $body,
 			"footer" => true,
-			"post" => [
-				"class" => "text-center text-muted smaller",
-				"html" => $countdown,
-			],
 		]);
 
 		return $card->getHTML();
