@@ -9,7 +9,7 @@ final class RuntimePolicy {
 	public const DB = "cron";
 	public const DEFAULT_TIMEOUT_SECONDS = 900;
 	public const MIN_TIMEOUT_SECONDS = 60;
-	public const MAX_TIMEOUT_SECONDS = 3600;
+	public const MAX_TIMEOUT_SECONDS = 10800;
 	public const QUEUE_MAX_AGE_SECONDS = 3600;
 	/**
 	 * Only covers the small launch-to-PID-publication race. Once a supervisor

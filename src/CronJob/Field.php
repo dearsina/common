@@ -90,7 +90,7 @@ class Field {
 				"name" => "timeout_seconds",
 				"value" => $timeout_seconds ?: RuntimePolicy::DEFAULT_TIMEOUT_SECONDS,
 				"title" => "Hard runtime limit (seconds)",
-				"desc" => "The worker and its child processes are terminated after this wall-clock limit. Minimum 60 seconds; absolute maximum 3600 seconds.",
+				"desc" => "The worker and its child processes are terminated after this wall-clock limit. Minimum 60 seconds; absolute maximum 10800 seconds (3 hours).",
 				"min" => RuntimePolicy::MIN_TIMEOUT_SECONDS,
 				"max" => RuntimePolicy::MAX_TIMEOUT_SECONDS,
 				"step" => 60,

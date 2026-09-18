@@ -3,6 +3,7 @@
 
 namespace App\Common\Geolocation;
 
+use App\Common\CronJob\RunOutput;
 
 
 use App\Common\str;
@@ -212,11 +213,16 @@ class Geolocation extends \App\Common\Prototype {
 	 */
 	public function loadAsnList(): bool
 	{
+		$asns = [];
+		$downloaded_lists = 0;
+		$failed_lists = 0;
 		foreach(self::ASN_LISTS as $asn_list){
 			# Download the list
 			if(($asn_list_string = file_get_contents($asn_list['url'])) === false){
+				$failed_lists++;
 				continue;
 			}
+			$downloaded_lists++;
 
 			# Break the list into rows
 			$asn_list_rows = str::explode(["\r\n", "\r", "\n"], $asn_list_string);
@@ -248,10 +254,17 @@ class Geolocation extends \App\Common\Prototype {
 		}
 
 		if(!$asns){
+			$message = "Unable to load ASNs from the " . str::pluralise_if(self::ASN_LISTS, "ASN list", true) . ".";
 			$this->log->error([
 				"title" => "Unable to download ASN lists",
-				"message" => "Unable to load ASNs from the ".str::pluralise_if(self::ASN_LISTS, "ASN list", true)."."
+				"message" => $message,
 			]);
+			if(RunOutput::isActive()){
+				RunOutput::metric("asn_sources_downloaded", $downloaded_lists, "sources", "failure");
+				RunOutput::metric("asn_sources_failed", $failed_lists, "sources", "failure");
+				RunOutput::failure($message);
+				return true;
+			}
 			return false;
 		}
 
@@ -274,6 +287,21 @@ class Geolocation extends \App\Common\Prototype {
 			"title" => "Loaded ASN lists successfully",
 			"message" => "Loaded ".count($asns)." unique ASNs successfully."
 		]);
+
+		if(RunOutput::isActive()){
+			RunOutput::metric("asn_sources_downloaded", $downloaded_lists, "sources", "success");
+			RunOutput::metric("asn_sources_failed", $failed_lists, "sources", $failed_lists ? "warning" : "success");
+			RunOutput::metric("asns_loaded", count($asns), "ASNs", "success");
+			if($failed_lists){
+				RunOutput::warning("The ASN table was refreshed, but {$failed_lists} source list(s) could not be downloaded.", [
+					"sources_downloaded" => $downloaded_lists,
+					"sources_failed" => $failed_lists,
+				]);
+			}
+			else {
+				RunOutput::success("The ASN table was refreshed with " . count($asns) . " unique ASNs.");
+			}
+		}
 
 		return true;
 	}
