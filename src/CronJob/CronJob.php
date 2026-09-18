@@ -236,10 +236,31 @@ class CronJob extends Prototype {
 			throw new \InvalidArgumentException("The selected cron class cannot be loaded.");
 		}
 
-		$instance = new $class();
-		if(!$method || !str::methodAvailable($instance, $method)){
+		if(!$this->isPublicCronMethod($class, $method)){
 			throw new \InvalidArgumentException("The selected cron method is unavailable.");
 		}
+	}
+
+	/**
+	 * Validate a cron target without constructing it. Some cron classes, such as
+	 * the WebSocket server, intentionally cannot be instantiated by a web request.
+	 */
+	private function isPublicCronMethod(string $class, string $method): bool
+	{
+		if(!$method || !method_exists($class, $method)){
+			return false;
+		}
+
+		try {
+			$reflection = new \ReflectionMethod($class, $method);
+		}
+		catch(\ReflectionException) {
+			return false;
+		}
+
+		return $reflection->isPublic()
+			&& !$reflection->isConstructor()
+			&& !$reflection->isDestructor();
 	}
 
 	/**
@@ -792,7 +813,7 @@ class CronJob extends Prototype {
 					"colour" => $this->statusColour($run["status"]),
 				]])],
 				"Job" => [
-					"html" => "<b>{$title}</b><br><code class=\"small\">" . htmlspecialchars((string)$run["cron_log_id"], ENT_QUOTES, "UTF-8") . "</code>",
+					"html" => "<b>{$title}</b><br><code class=\"small\" style=\"word-wrap: anywhere;\">" . htmlspecialchars((string)$run["cron_log_id"], ENT_QUOTES, "UTF-8") . "</code>",
 				],
 				"Trigger" => ["html" => str::title((string)$run["trigger_type"])],
 				"Elapsed" => [
