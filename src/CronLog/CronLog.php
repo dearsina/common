@@ -320,7 +320,7 @@ class CronLog extends \App\Common\Prototype {
 		];
 		$row["Job and outputs"] = [
 			"accordion" => [
-				"header" => "{$title}<br><code class=\"small\">{$class_method}</code>",
+				"header" => "{$title}<br><code class=\"small\" style=\"word-wrap: anywhere;\">{$class_method}</code>",
 				"body" => "<h6>Reported results</h6>{$reported_output}"
 					. "<hr><h6>Technical output</h6><pre class=\"mb-0 text-wrap\">"
 					. htmlspecialchars($technical_output, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") . "</pre>",
