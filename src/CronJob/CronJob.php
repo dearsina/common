@@ -4,19 +4,22 @@
 namespace App\Common\CronJob;
 
 use App\Common\Prototype;
-use App\Common\Process;
-use App\Common\Request;
+use App\Common\href;
 use App\Common\str;
+use App\Common\CronLog\RunFilter;
 use App\UI\Badge;
 use App\UI\Icon;
 use App\UI\Page;
 use App\UI\Table;
+use Cron\CronExpression;
 
 /**
  * Class CronJob
  * @package App\Common\CronJob
  */
 class CronJob extends Prototype {
+	public ?string $db = RuntimePolicy::DB;
+
 	public const INTERVALS = [
 		'@yearly' => 'Yearly',
 		'@monthly' => 'Monthly',
@@ -73,17 +76,17 @@ class CronJob extends Prototype {
 		}
 
 		$page = new Page([
-			"title" => "Cron jobs",
+			"title" => "Cron job control centre",
 			"icon" => Icon::get("cron_job"),
 		]);
 
-		$page->setGrid([
-			"html" => $this->card()->all($a),
-		]);
-
-		$page->setGrid([
+		$page->setGrid([[
+			"html" => $this->card()->summary($a),
+		], [
 			"html" => $this->card()->running($a),
-		]);
+		]]);
+
+		$page->setGrid(["html" => $this->card()->all($a)]);
 
 		$this->output->html($page->getHTML());
 
@@ -160,9 +163,12 @@ class CronJob extends Prototype {
 			return $this->accessDenied();
 		}
 
+		$vars = is_array($vars ?? NULL) ? $vars : [];
+		$this->validateJobConfiguration($vars);
 		$vars['order'] = $this->getOrder($rel_table);
 
 		$this->sql->insert([
+			"db" => RuntimePolicy::DB,
 			"table" => $rel_table,
 			"set" => $vars,
 		]);
@@ -193,7 +199,12 @@ class CronJob extends Prototype {
 			return $this->accessDenied();
 		}
 
+		$vars = is_array($vars ?? NULL) ? $vars : [];
+		$this->validateJobConfiguration($vars);
+		$vars["last_status"] = NULL;
+
 		$this->sql->update([
+			"db" => RuntimePolicy::DB,
 			"table" => $rel_table,
 			"set" => $vars,
 			"id" => $rel_id,
@@ -206,6 +217,29 @@ class CronJob extends Prototype {
 		$this->updateCronJobs($a);
 
 		return true;
+	}
+
+	private function validateJobConfiguration(array &$vars): void
+	{
+		$vars["timeout_seconds"] = RuntimePolicy::timeout($vars["timeout_seconds"] ?? NULL);
+
+		try {
+			CronExpression::factory((string)($vars["interval"] ?? ""));
+		}
+		catch(\Throwable $throwable) {
+			throw new \InvalidArgumentException("The cron interval is invalid: " . $throwable->getMessage(), 0, $throwable);
+		}
+
+		$class = (string)($vars["class"] ?? "");
+		$method = (string)($vars["method"] ?? "");
+		if(!$class || !class_exists($class)){
+			throw new \InvalidArgumentException("The selected cron class cannot be loaded.");
+		}
+
+		$instance = new $class();
+		if(!$method || !str::methodAvailable($instance, $method)){
+			throw new \InvalidArgumentException("The selected cron method is unavailable.");
+		}
 	}
 
 	/**
@@ -226,6 +260,7 @@ class CronJob extends Prototype {
 		}
 
 		$this->sql->update([
+			"db" => RuntimePolicy::DB,
 			"table" => $rel_table,
 			"set" => $vars,
 			"id" => $rel_id,
@@ -257,8 +292,12 @@ class CronJob extends Prototype {
 			//Only admins have access
 			return $this->accessDenied();
 		}
+		if((new Runtime())->getActiveRuns((string)$rel_id)){
+			throw new \RuntimeException("This cron job has an active or queued run. Cancel it before removing the schedule.");
+		}
 
 		$this->sql->remove([
+			"db" => RuntimePolicy::DB,
 			"table" => $rel_table,
 			"id" => $rel_id,
 		]);
@@ -351,121 +390,133 @@ class CronJob extends Prototype {
 	 */
 	public function updateCronJobs(array $a): bool
 	{
-		extract($a);
-
 		if(!$this->user->is("admin")){
-			//Only admins have access
 			return true;
-			/**
-			 * We don't show access denied, because if there is a tab opened
-			 * with the cron jobs, and the user changes permissions meanwhile,
-			 * we don't want to spam them with access denied messages.
-			 */
 		}
 
-		$cron_jobs = $this->sql->select([
-			"table" => $rel_table,
+		$rel_table = $a["rel_table"] ?? "cron_job";
+		$cron_jobs = $this->normaliseRows($this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"table" => "cron_job",
 			"order_by" => [
 				"order" => "ASC",
 			],
-		]);
+		]));
 
-		if($cron_jobs){
-			foreach($cron_jobs as $job){
-				$buttons = [];
-
-				# Check to see if the job is still running
-				if($job['pid']){
-					$process = new Process();
-					$process->setPid($job['pid']);
-					if(!$process->status()){
-						//if the process is no longer active
-						$this->sql->update([
-							"table" => "cron_job",
-							"id" => $job['cron_job_id'],
-							"set" => [
-								"pid" => NULL,
-							],
-						]);
-					}
-					$job = $this->sql->select([
-						"table" => "cron_job",
-						"id" => $job['cron_job_id'],
-					]);
-				}
-
-				$title = <<<EOF
-<span class="text-header">{$job['title']} {$this->getCronJobTableBadges($job)}</span><br/>
-<span class="text-desc">{$job['desc']}</span>
-EOF;
-
-				$rows[] = [
-					"order" => $job['order'],
-					"id" => $job['cron_job_id'],
-					"Cron jobs" => [
-						"html" => $title,
-						"hash" => [
-							"rel_table" => $rel_table,
-							"rel_id" => $job['cron_job_id'],
-							"action" => "edit",
-						],
-					],
-					"Last run" => [
-						"html" => $job['last_run'] ?: "(Never)",
-						"sm" => 2,
-					],
-					"" => [
-						"sortable" => false,
-						"sm" => 3,
-						"header_style" => [
-							"opacity" => 0,
-						],
-						"button" => $this->getCronJobTableButtons($job),
-					],
-				];
-			}
+		$runtime = new Runtime();
+		$active_runs = $runtime->getActiveRuns();
+		$active_by_job = [];
+		foreach($active_runs as $run){
+			$active_by_job[$run["cron_job_id"]][] = $run;
 		}
-		else {
+
+		$rows = [];
+		foreach($cron_jobs as $job){
+			$active_run = $active_by_job[$job["cron_job_id"]][0] ?? NULL;
+			$latest_run = $this->getLatestRun($job["cron_job_id"]);
+			$stats = $this->getJobRunStats($job["cron_job_id"]);
+			$title = htmlspecialchars((string)$job["title"], ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+			$desc = htmlspecialchars((string)$job["desc"], ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+			$class_method = htmlspecialchars((string)$job["class"] . "::" . (string)$job["method"], ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+			$schedule = self::INTERVALS[$job["interval"]] ?? $job["interval"];
+
 			$rows[] = [
-				"id" => true,
-				"Cron jobs" => [
-					"icon" => Icon::get("new"),
-					"html" => "New cron job...",
+				"order" => $job["order"],
+				"id" => $job["cron_job_id"],
+				"Job" => [
+					"html" => "<span class=\"text-header\">{$title} {$this->getCronJobTableBadges($job, $active_run, $latest_run)}</span><br>"
+						. "<span class=\"text-desc\">{$desc}</span><br>"
+						. "<code class=\"small\">{$class_method}</code>",
 					"hash" => [
 						"rel_table" => $rel_table,
-						"action" => "new",
+						"rel_id" => $job["cron_job_id"],
+						"action" => "edit",
 					],
+				],
+				"Schedule" => [
+					"html" => htmlspecialchars((string)$schedule, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8")
+						. "<br><span class=\"small text-muted\">Hard limit: "
+						. RuntimePolicy::formatDuration(RuntimePolicy::timeout($job["timeout_seconds"] ?? NULL)) . "</span>",
+					"sm" => 2,
+				],
+				"Last run" => [
+					"html" => $this->formatLatestRun($latest_run),
+					"sm" => 2,
+				],
+				"30-day health" => [
+					"html" => $this->formatRunStats($stats),
+					"sm" => 2,
+				],
+				"" => [
+					"sortable" => false,
+					"sm" => 2,
+					"header_style" => ["opacity" => 0],
+					"button" => $this->getCronJobTableButtons($job, $active_run),
 				],
 			];
 		}
 
-		$this->output->update("#all_cron_job", Table::generate($rows, [
+		$jobs_html = $rows
+			? Table::generate($rows, [
 			"rel_table" => $rel_table,
+			"rel_db" => RuntimePolicy::DB,
 			"order" => true,
-		]));
+		])
+			: "<div class=\"text-muted text-center p-4\">No cron jobs are configured.</div>";
+
+		$this->output->update("#all_cron_job", $jobs_html);
+		$this->output->update("#currently_running_cron_jobs", $this->formatActiveRuns($active_runs));
+		$this->output->update("#cron_job_summary", $this->formatSchedulerSummary($cron_jobs, $active_runs));
 
 		return true;
 	}
 
-	private function getCronJobTableBadges(array $job): string
+	public function setOrder(array $a, $silent = NULL): void
 	{
+		$a["rel_db"] = RuntimePolicy::DB;
+		parent::setOrder($a, $silent);
+	}
+
+	private function getCronJobTableBadges(array $job, ?array $active_run = NULL, ?array $latest_run = NULL): string
+	{
+		$badges = [];
 		if($job['paused']){
 			$badges[] = [
 				"title" => "PAUSED",
 				"colour" => "blue",
 			];
 		}
+		else if($active_run){
+			$badges[] = [
+				"title" => strtoupper(str_replace("_", " ", $active_run["status"])),
+				"colour" => $this->statusColour($active_run["status"]),
+			];
+		}
 		else {
 			$badges[] = [
 				"title" => $job['interval'],
 				"colour" => "red",
-				"alt" => str::title("This cron job runs " . self::INTERVALS[$job['interval']]),
+				"alt" => str::title("This cron job runs " . (self::INTERVALS[$job['interval']] ?? $job['interval'])),
 			];
+		}
+		if(!$active_run && $latest_run){
+			$badges[] = [
+				"title" => strtoupper(str_replace("_", " ", $latest_run["status"])),
+				"colour" => $this->statusColour($latest_run["status"]),
+				"alt" => "Most recent execution status",
+			];
+			if(($latest_run["result_status"] ?? RuntimePolicy::RESULT_NONE) !== RuntimePolicy::RESULT_NONE){
+				$badges[] = [
+					"title" => "RESULT " . strtoupper(str_replace("_", " ", (string)$latest_run["result_status"])),
+					"colour" => $this->resultColour((string)$latest_run["result_status"]),
+					"alt" => "Most recent reported business result",
+				];
+			}
 		}
 		if($job['silent']){
 			$badges[] = [
 				"icon" => "volume-slash",
-				"alt" => "This cron job will not be logged unless there is an error",
+				"alt" => "Routine notifications are silent; executions are still retained",
 				"colour" => "black",
 			];
 		}
@@ -473,9 +524,10 @@ EOF;
 		return Badge::generate($badges);
 	}
 
-	private function getCronJobTableButtons(array $job): array
+	private function getCronJobTableButtons(array $job, ?array $active_run = NULL): array
 	{
-		if($job['pid']){
+		$buttons = [];
+		if($active_run){
 			$buttons[] = [
 				"alt" => "Stop this job...",
 				"colour" => "red",
@@ -558,27 +610,395 @@ EOF;
 					"cron_job_id" => $job["cron_job_id"],
 				],
 			],
-			"alt" => "See alert",
+			"alt" => "View every run, status, result, and duration for this job",
 			"icon" => Icon::get("log"),
 			"colour" => "info",
 			"size" => "s",
 			"basic" => true,
 		];
-		$buttons[] = [
-			"hash" => [
-				"rel_table" => "cron_job",
-				"rel_id" => $job["cron_job_id"],
-				"action" => "remove",
-			],
-			"alt" => "Remove..",
-			"icon" => Icon::get("trash"),
-			"colour" => "danger",
-			"size" => "s",
-			"basic" => true,
-			"approve" => true,
-		];
+		if(!$active_run){
+			$buttons[] = [
+				"hash" => [
+					"rel_table" => "cron_job",
+					"rel_id" => $job["cron_job_id"],
+					"action" => "remove",
+				],
+				"alt" => "Remove..",
+				"icon" => Icon::get("trash"),
+				"colour" => "danger",
+				"size" => "s",
+				"basic" => true,
+				"approve" => true,
+			];
+		}
 
 		return $buttons;
+	}
+
+	private function getLatestRun(string $cron_job_id): ?array
+	{
+		$runs = $this->normaliseRows($this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"table" => "cron_log",
+			"where" => ["cron_job_id" => $cron_job_id],
+			"order_by" => [
+				"created" => "DESC",
+				"cron_log_id" => "DESC",
+			],
+			"start" => 0,
+			"length" => 1,
+		]));
+		return $runs ? reset($runs) : NULL;
+	}
+
+	private function getJobRunStats(string $cron_job_id): array
+	{
+		$since = date("Y-m-d H:i:s", strtotime("-30 days"));
+		$groups = $this->normaliseRows($this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"columns" => [
+				"status",
+				"Runs" => ["count", "cron_log_id"],
+				"Average" => ["avg", "duration"],
+			],
+			"table" => "cron_log",
+			"where" => [
+				"cron_job_id" => $cron_job_id,
+				["created", ">=", $since],
+				["status", "IN", [
+					RuntimePolicy::STATUS_SUCCESS,
+					RuntimePolicy::STATUS_WARNING,
+					RuntimePolicy::STATUS_FAILED,
+					RuntimePolicy::STATUS_TIMED_OUT,
+				]],
+			],
+			"group_by" => "status",
+		]));
+		$output_totals = $this->normaliseRows($this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"columns" => [
+				"ReportedFailures" => ["sum", "reported_failures"],
+				"ReportedWarnings" => ["sum", "reported_warnings"],
+			],
+			"table" => "cron_log",
+			"where" => [
+				"cron_job_id" => $cron_job_id,
+				["created", ">=", $since],
+			],
+		]));
+		$output_totals = $output_totals ? reset($output_totals) : [];
+		$result_failure_runs = (int)$this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"count" => true,
+			"table" => "cron_log",
+			"where" => [
+				"cron_job_id" => $cron_job_id,
+				"result_status" => RuntimePolicy::RESULT_FAILURE,
+				["created", ">=", $since],
+			],
+		]);
+
+		$successes = 0;
+		$run_count = 0;
+		$duration_total = 0.0;
+		$duration_count = 0;
+		foreach($groups as $group){
+			$count = (int)($group["Runs"] ?? 0);
+			$run_count += $count;
+			if(in_array($group["status"], [RuntimePolicy::STATUS_SUCCESS, RuntimePolicy::STATUS_WARNING], true)){
+				$successes += $count;
+			}
+			if(is_numeric($group["Average"] ?? NULL)){
+				$duration_total += (float)$group["Average"] * $count;
+				$duration_count += $count;
+			}
+		}
+
+		return [
+			"runs" => $run_count,
+			"successes" => $successes,
+			"average_duration" => $duration_count ? $duration_total / $duration_count : NULL,
+			"result_failure_runs" => $result_failure_runs,
+			"reported_failures" => (int)($output_totals["ReportedFailures"] ?? 0),
+			"reported_warnings" => (int)($output_totals["ReportedWarnings"] ?? 0),
+		];
+	}
+
+	private function formatLatestRun(?array $run): string
+	{
+		if(!$run){
+			return "<span class=\"text-muted\">Never run</span>";
+		}
+
+		$when = $run["finished_at"] ?: $run["started_at"] ?: $run["scheduled_for"] ?: $run["created"];
+		$status = htmlspecialchars(str::title(str_replace("_", " ", (string)$run["status"])), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+		$duration = RuntimePolicy::formatDuration($run["duration"] ?? NULL);
+		$ago = $when ? str::ago($when) : "unknown time";
+		$result_status = (string)($run["result_status"] ?? RuntimePolicy::RESULT_NONE);
+		$result = htmlspecialchars(str::title(str_replace("_", " ", $result_status)), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+		return "<span class=\"{$this->statusTextClass($run['status'])}\">Execution: {$status}</span>"
+			. "<br><span class=\"{$this->resultTextClass($result_status)}\">Result: {$result}</span>"
+			. "<br><span class=\"small text-muted\">{$duration}; {$ago}</span>";
+	}
+
+	private function formatRunStats(array $stats): string
+	{
+		if(!$stats["runs"]){
+			return "<span class=\"text-muted\">No completed runs</span>";
+		}
+
+		$rate = round(($stats["successes"] / $stats["runs"]) * 100, 1);
+		$colour = $rate >= 98 ? "text-success" : ($rate >= 90 ? "text-warning" : "text-danger");
+		$result_class = $stats["result_failure_runs"] ? "text-danger" : "text-muted";
+		$result_line = $stats["result_failure_runs"]
+			? "{$stats['result_failure_runs']} runs reported failures ({$stats['reported_failures']} items)"
+			: "No reported failures";
+		return "<span class=\"{$colour}\"><b>{$rate}%</b> execution success</span>"
+			. "<br><span class=\"{$result_class}\">{$result_line}</span>"
+			. "<br><span class=\"small text-muted\">{$stats['runs']} runs; avg "
+			. RuntimePolicy::formatDuration($stats["average_duration"]) . "</span>";
+	}
+
+	private function formatActiveRuns(array $runs): string
+	{
+		if(!$runs){
+			return "<div class=\"text-muted text-center p-4\">No active or queued runs.</div>";
+		}
+
+		$rows = [];
+		foreach($runs as $run){
+			if($run["started_at"]){
+				$elapsed_from = $run["started_at"];
+				$elapsed_label = "Runtime";
+			}
+			else if($run["launched_at"]){
+				$elapsed_from = $run["launched_at"];
+				$elapsed_label = "Launch wait";
+			}
+			else {
+				$elapsed_from = $run["scheduled_for"] ?: $run["created"];
+				$elapsed_label = "Queue wait";
+			}
+			$elapsed = $elapsed_from ? max(0, time() - strtotime($elapsed_from)) : NULL;
+			$deadline = $this->formatDeadline($run["deadline_at"] ?? NULL);
+			$title = htmlspecialchars((string)($run["job_title"] ?: $run["cron_job_id"]), ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+			$display_status = $run["status"] === RuntimePolicy::STATUS_QUEUED && $run["launched_at"]
+				? "starting"
+				: $run["status"];
+
+			$rows[] = [
+				"Status" => ["html" => Badge::generate([[
+					"title" => strtoupper(str_replace("_", " ", $display_status)),
+					"colour" => $this->statusColour($run["status"]),
+				]])],
+				"Job" => [
+					"html" => "<b>{$title}</b><br><code class=\"small\">" . htmlspecialchars((string)$run["cron_log_id"], ENT_QUOTES, "UTF-8") . "</code>",
+				],
+				"Trigger" => ["html" => str::title((string)$run["trigger_type"])],
+				"Elapsed" => [
+					"html" => "<span class=\"small text-muted\">{$elapsed_label}</span><br>"
+						. RuntimePolicy::formatDuration($elapsed),
+				],
+				"Deadline" => ["html" => "<span class=\"small\">{$deadline}</span>"],
+				"Process" => [
+					"html" => $run["worker_pid"]
+						? "Worker {$run['worker_pid']}<br><span class=\"small text-muted\">Supervisor {$run['supervisor_pid']}</span>"
+						: ($run["supervisor_pid"] ? "Starting ({$run['supervisor_pid']})" : "Queued"),
+				],
+				"" => [
+					"sortable" => false,
+					"button" => [[
+						"title" => "Cancel this run...",
+						"icon" => "stop",
+						"colour" => "danger",
+						"size" => "s",
+						"hash" => [
+							"rel_table" => "cron_log",
+							"rel_id" => $run["cron_log_id"],
+							"action" => "cancel",
+						],
+						"approve" => [
+							"title" => "Cancel cron run?",
+							"message" => "The worker and all of its child processes will be terminated.",
+							"colour" => "red",
+						],
+					]],
+				],
+			];
+		}
+
+		return Table::generate($rows);
+	}
+
+	private function formatDeadline(?string $deadline): string
+	{
+		return $deadline
+			? str::ago($deadline, true)
+			: "Starts when capacity is available";
+	}
+
+	private function formatSchedulerSummary(array $jobs, array $active_runs): string
+	{
+		$recent_runs = $this->normaliseRows($this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"columns" => [
+				"status",
+				"Runs" => ["count", "cron_log_id"],
+			],
+			"table" => "cron_log",
+			"where" => [["created", ">=", date("Y-m-d H:i:s", strtotime("-24 hours"))]],
+			"group_by" => "status",
+		]));
+		$failures = 0;
+		$successes = 0;
+		foreach($recent_runs as $recent_run){
+			$count = (int)($recent_run["Runs"] ?? 0);
+			if(in_array($recent_run["status"], [RuntimePolicy::STATUS_FAILED, RuntimePolicy::STATUS_TIMED_OUT], true)){
+				$failures += $count;
+			}
+			if(in_array($recent_run["status"], [RuntimePolicy::STATUS_SUCCESS, RuntimePolicy::STATUS_WARNING], true)){
+				$successes += $count;
+			}
+		}
+		$queued = count(array_filter($active_runs, static fn($run) => $run["status"] === RuntimePolicy::STATUS_QUEUED));
+		$running = count($active_runs) - $queued;
+		$paused = count(array_filter($jobs, static fn($job) => !empty($job["paused"])));
+		$reported_failure_runs = (int)$this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"count" => true,
+			"table" => "cron_log",
+			"where" => [
+				"result_status" => RuntimePolicy::RESULT_FAILURE,
+				["created", ">=", date("Y-m-d H:i:s", strtotime("-24 hours"))],
+			],
+		]);
+
+		$metrics = [
+			["label" => "Running", "value" => $running, "class" => $running ? "text-primary" : "text-muted", "scope" => "running"],
+			["label" => "Queued", "value" => $queued, "class" => $queued ? "text-warning" : "text-muted", "scope" => "queued"],
+			["label" => "Succeeded (24h)", "value" => $successes, "class" => "text-success", "scope" => "succeeded_24h"],
+			["label" => "Failed / timed out (24h)", "value" => $failures, "class" => $failures ? "text-danger" : "text-success", "scope" => "failed_24h"],
+			["label" => "Reported failures (24h)", "value" => $reported_failure_runs, "class" => $reported_failure_runs ? "text-danger" : "text-success", "scope" => "reported_failures_24h"],
+			["label" => "Configured", "value" => count($jobs), "class" => "text-info", "scope" => "configured"],
+			["label" => "Paused", "value" => $paused, "class" => $paused ? "text-warning" : "text-muted", "scope" => "paused"],
+		];
+
+		$html = $this->formatDispatcherState() . "<div class=\"row text-center\">";
+		foreach($metrics as $metric){
+			$value = href::a([
+				"hash" => [
+					"rel_table" => "cron_log",
+					"action" => "all",
+					"vars" => [RunFilter::SCOPE_KEY => $metric["scope"]],
+				],
+				"html" => $metric["value"],
+				"class" => $metric["class"],
+				"style" => ["font-size" => "1.65rem", "font-weight" => 600],
+				"alt" => "View these runs in the execution ledger",
+			]);
+			$html .= "<div class=\"col-6 col-md-4 mb-3\">{$value}"
+				. "<div class=\"small text-muted\">{$metric['label']}</div></div>";
+		}
+		return $html . "</div>";
+	}
+
+	private function formatDispatcherState(): string
+	{
+		$state = $this->sql->select([
+			"db" => RuntimePolicy::DB,
+			"table" => "cron_scheduler_state",
+			"id" => "00000000-0000-0000-0000-000000000001",
+		]);
+		if(!$state){
+			return "<div class=\"alert alert-danger mb-3\"><b>Dispatcher heartbeat missing.</b> The scheduler migration may not be installed.</div>";
+		}
+
+		$status = (string)($state["status"] ?? "never_run");
+		$last_tick = $state["last_finished"] ?: $state["last_started"];
+		$last_timestamp = $last_tick ? (strtotime((string)$last_tick) ?: 0) : 0;
+		$is_stale = !$last_timestamp || $last_timestamp < time() - 180;
+		$is_failed = $status === "failed";
+		$is_running = $status === "running" && !$is_stale;
+
+		$colour = ($is_stale || $is_failed) ? "danger" : ($is_running ? "info" : "success");
+		$title = $is_stale
+			? "Dispatcher heartbeat is stale"
+			: ($is_failed ? "The last dispatcher tick failed" : ($is_running ? "Dispatcher tick in progress" : "Dispatcher is healthy"));
+		$details = $last_tick
+			? "Last heartbeat " . str::ago((string)$last_tick)
+				. " (" . htmlspecialchars((string)$last_tick, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") . " UTC)"
+			: "No dispatcher tick has been recorded.";
+		if(!$is_stale && !$is_running && is_numeric($state["duration"] ?? NULL)){
+			$details .= "; tick duration " . RuntimePolicy::formatDuration($state["duration"]);
+		}
+		if(!empty($state["hostname"])){
+			$details .= "; host " . htmlspecialchars((string)$state["hostname"], ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+		}
+		if($is_failed && !empty($state["error_message"])){
+			$details .= "<br><code>" . htmlspecialchars((string)$state["error_message"], ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") . "</code>";
+		}
+		$retention_days = (int)($state["retention_days"] ?? RuntimePolicy::DEFAULT_RETENTION_DAYS);
+		$details .= $retention_days === 0
+			? "<br>Automatic run-history pruning is disabled."
+			: "<br>History retention: {$retention_days} days"
+				. (!empty($state["last_pruned_at"]) ? "; last pruned " . str::ago((string)$state["last_pruned_at"]) : "; awaiting first prune");
+
+		return "<div class=\"alert alert-{$colour} mb-3\"><b>{$title}.</b> {$details}</div>";
+	}
+
+	private function statusColour(?string $status): string
+	{
+		return match($status){
+			RuntimePolicy::STATUS_SUCCESS => "green",
+			RuntimePolicy::STATUS_WARNING => "yellow",
+			RuntimePolicy::STATUS_RUNNING => "blue",
+			RuntimePolicy::STATUS_QUEUED => "grey",
+			RuntimePolicy::STATUS_CANCELLING => "orange",
+			RuntimePolicy::STATUS_FAILED, RuntimePolicy::STATUS_TIMED_OUT => "red",
+			RuntimePolicy::STATUS_CANCELLED, RuntimePolicy::STATUS_MISSED, RuntimePolicy::STATUS_SKIPPED_OVERLAP => "black",
+			default => "grey",
+		};
+	}
+
+	private function statusTextClass(?string $status): string
+	{
+		return match($status){
+			RuntimePolicy::STATUS_SUCCESS => "text-success",
+			RuntimePolicy::STATUS_WARNING => "text-warning",
+			RuntimePolicy::STATUS_RUNNING => "text-primary",
+			RuntimePolicy::STATUS_FAILED, RuntimePolicy::STATUS_TIMED_OUT => "text-danger",
+			default => "text-muted",
+		};
+	}
+
+	private function resultColour(?string $status): string
+	{
+		return match($status){
+			RuntimePolicy::RESULT_SUCCESS => "green",
+			RuntimePolicy::RESULT_WARNING => "yellow",
+			RuntimePolicy::RESULT_FAILURE => "red",
+			RuntimePolicy::RESULT_INFO => "blue",
+			default => "grey",
+		};
+	}
+
+	private function resultTextClass(?string $status): string
+	{
+		return match($status){
+			RuntimePolicy::RESULT_SUCCESS => "text-success",
+			RuntimePolicy::RESULT_WARNING => "text-warning",
+			RuntimePolicy::RESULT_FAILURE => "text-danger",
+			RuntimePolicy::RESULT_INFO => "text-primary",
+			default => "text-muted",
+		};
+	}
+
+	private function normaliseRows($rows): array
+	{
+		if(!$rows || !is_array($rows)){
+			return [];
+		}
+		return array_is_list($rows) ? $rows : [$rows];
 	}
 
 	/**
@@ -591,33 +1011,7 @@ EOF;
 	 */
 	public function runScheduled(): bool
 	{
-		if(!str::runFromCLI()){
-			throw new \Exception("You can only run this method from the command line.");
-		}
-
-		# Set the user ID to be zero, the system user ID
-		global $user_id;
-		$user_id = "0";
-		$_SESSION['user_id'] = $user_id;
-
-		# Get all active (non-paused) cron jobs, in the order they appear
-		if(!$cron_jobs = $this->sql->select([
-			"table" => "cron_job",
-			"where" => [
-				"paused" => NULL,
-			],
-			"order_by" => [
-				"order" => "ASC",
-			],
-		])){
-			//if no cron jobs are scheduled, close up shop
-			return true;
-		}
-
-		# Execute all jobs (at their scheduled interval)
-		$this->execute($cron_jobs);
-
-		return true;
+		return (new Runtime())->runScheduled();
 	}
 
 
@@ -639,42 +1033,35 @@ EOF;
 		}
 
 		if(!$cron_job = $this->sql->select([
+			"db" => RuntimePolicy::DB,
 			"table" => $rel_table,
 			"id" => $rel_id,
 		])){
 			throw new \Exception("The cron job cannot be found.");
 		}
 
-		# Both \ and " must be escaped or else the command will fail
-		$cron_job_json = str_replace(["'", "\\", '"'], ["", "\\\\", '\\"'], json_encode($cron_job));
-		// In addition, we're just stripping out single quotes, because they're not needed
-
-		# Build the command that executes the execute method
-		$cmd = "\\Swoole\\Coroutine\\run(function(){";
-		$cmd .= "require \"/var/www/html/app/settings.php\";";
-		$cmd .= "\$cron_job = new \App\Common\CronJob\CronJob();";
-		$cmd .= "\$cron_job->execute(\"{$cron_job_json}\", true);";
-		$cmd .= "});";
-
-		# Use the Process class to execute it with a pID that can be checked
-		$process = new Process("php -r '{$cmd}'");
-
-		# Attach the pID to the job
-		$this->sql->update([
-			"table" => "cron_job",
-			"id" => $cron_job['cron_job_id'],
-			"set" => [
-				"pid" => $process->getPid(),
-			],
-		]);
+		$run_id = (new Runtime())->queueManualRun($cron_job["cron_job_id"]);
 
 		$this->log->info([
 			"icon" => "play",
-			"title" => "Cron job started",
-			"message" => "The <b>{$cron_job['title']}</b> cron job has been started.",
+			"title" => "Cron job queued",
+			"message" => "The <b>{$cron_job['title']}</b> cron job was queued as run <code>{$run_id}</code>.",
 		]);
 
-		$this->hash->set(-1);
+		$request_vars = is_array($a["vars"] ?? NULL) ? $a["vars"] : [];
+		if(!empty($request_vars[RunFilter::TRACK_KEY])){
+			$this->hash->set([
+				"rel_table" => "cron_log",
+				"action" => "all",
+				"vars" => [
+					"cron_job_id" => $cron_job["cron_job_id"],
+					RunFilter::TRACK_KEY => $run_id,
+				],
+			]);
+		}
+		else {
+			$this->hash->set(-1);
+		}
 
 		return true;
 	}
@@ -689,59 +1076,26 @@ EOF;
 		}
 
 		$cron_job = $this->sql->select([
+			"db" => RuntimePolicy::DB,
 			"table" => $rel_table,
 			"id" => $rel_id,
 		]);
 
-		$process = new Process();
-		$process->setPid($cron_job['pid']);
-
-		# Ensure process is still active
-		if(!$process->status()){
-			//if the process is no longer active
-			$this->sql->update([
-				"table" => $rel_table,
-				"id" => $rel_id,
-				"set" => [
-					"pid" => NULL,
-				],
-			]);
+		$count = (new Runtime())->requestJobCancellation($cron_job["cron_job_id"]);
+		if(!$count){
 			$this->log->warning([
 				"icon" => "tombstone",
-				"title" => "Inactive job",
-				"message" => "The <b>{$cron_job['title']}</b> job was no longer running.",
+				"title" => "No active run",
+				"message" => "The <b>{$cron_job['title']}</b> job has no active or queued run to cancel.",
 			]);
-
-			$this->hash->set(-1);
-
-			return true;
 		}
-
-		# Kill
-		if(!$process->stop()){
-			//if the job could not be killed
-			$this->log->error([
-				"icon" => "ghost",
-				"title" => "Unable to stop job",
-				"message" => "Unable to stop the <b>{$cron_job['title']}</b> job. The process ID is {$cron_job['pid']}.",
+		else {
+			$this->log->success([
+				"icon" => "stop-circle",
+				"title" => "Cancellation requested",
+				"message" => "Cancellation was requested for " . str::pluralise_if($count, "active run", true) . " of <b>{$cron_job['title']}</b>.",
 			]);
-			return false;
 		}
-
-		# Remove the process ID
-		$this->sql->update([
-			"table" => $rel_table,
-			"id" => $rel_id,
-			"set" => [
-				"pid" => NULL,
-			],
-		]);
-
-		$this->log->success([
-			"icon" => "dizzy",
-			"title" => "Job killed",
-			"message" => "The <b>{$cron_job['title']}</b> job was successfully killed.",
-		]);
 
 		$this->hash->set(-1);
 
@@ -759,164 +1113,18 @@ EOF;
 	 */
 	public function execute($a, ?bool $ignore_interval = NULL): void
 	{
-		# Ensure this method is only run from the command line
-		if(!str::runFromCLI()){
-			die("You can only run this method from the command line.");
+		str::runFromCLI(true);
+		$cron_jobs = is_string($a) ? [json_decode($a, true)] : $a;
+		if(!is_array($cron_jobs)){
+			throw new \InvalidArgumentException("No cron job was supplied for execution.");
 		}
 
-		# Some cron jobs will run for a long while
-		ini_set('max_execution_time', 0);
-
-		# Load the cron job(s) to run
-		if(is_string($a)){
-			//If a single, ad hoc job is sent to run
-			$cron_jobs[] = json_decode($a, true);
-		}
-		else if(str::isNumericArray($a)){
-			//If scheduled jobs are sent to run
-			$cron_jobs = $a;
-		}
-		else {
-			die("No cron job sent to execute.");
-		}
-
-		# Create a new scheduler
-		$scheduler = new \GO\Scheduler();
-
-		# For each job (even if only one is supplied)
+		$runtime = new Runtime();
 		foreach($cron_jobs as $cron_job){
-
-			# Function to run
-			$func = function($a){
-				# Extract the $cron_job array
-				extract($a);
-
-				global $user_id;
-				$user_id = 0;
-				$_SESSION['user_id'] = 0;
-
-				global $SESSION;
-				$SESSION = [];
-
-				# Run the method
-				try {
-					# Create a new instance of the class
-					$classInstance = new $cron_job['class']($this);
-
-					# Ensure the method is available
-					if(!str::methodAvailable($classInstance, $cron_job['method'], "protected")){
-						throw new \Exception("The <code>" . $cron_job['method'] . "</code> method doesn't exist or is not protected or public.");
-					}
-
-					# Run the cron job method
-					$output = $classInstance->{$cron_job['method']}();
-					// If the cron job method exits, this script stops here. No logs will be saved.
-				}
-
-					# Catch SQL errors
-				catch(\mysqli_sql_exception $e) {
-					$last_query = $SESSION['query'];
-					//If this variable isn't moved over to a local one, it is overwritten
-					$this->log->error([
-						"icon" => "database",
-						"title" => "mySQL error",
-						"message" => $e->getMessage(),
-					], ["role" => "admin"]);
-					$this->log->error([
-						"icon" => "code",
-						"title" => "Query",
-						"message" => $last_query,
-					], ["role" => "admin"]);
-				}
-
-					# Catch type errors
-				catch(\TypeError $e) {
-					$this->log->error([
-						"icon" => "code",
-						"title" => "Type error",
-						"message" => $e->getMessage(),
-					], ["role" => "admin"]);
-				}
-
-					# Catch all other exceptions
-				catch(\Exception $e) {
-					$this->log->error([
-						"icon" => "ethernet",
-						"title" => "System error",
-						"message" => $e->getMessage(),
-					], ["role" => "admin"]);
-				}
-
-				# Return the string (or boolean) output
-				return $output;
-			};
-
-			$before = function(){
-				$this->log->clearAlerts();
-				$this->log->startTimer();
-			};
-
-			$then = function($output) use ($cron_job){
-				/**
-				 * Update the cron job:
-				 * 1. Set the last run datetime
-				 * 2. Remove the pID if one was set
-				 */
-				$this->sql->update([
-					"table" => "cron_job",
-					"id" => $cron_job['cron_job_id'],
-					"set" => [
-						"last_run" => "NOW()",
-						"pid" => NULL,
-					],
-					"user_id" => NULL,
-				]);
-
-				/**
-				 * If the cron job is set to silent,
-				 * it will not be logged if it's
-				 * successful.
-				 */
-				if($cron_job['silent'] && ($this->log->getStatus() == "success")){
-					return true;
-				}
-
-				# Log the job as complete
-				$this->sql->insert([
-					"table" => "cron_log",
-					"set" => [
-						"cron_job_id" => $cron_job['cron_job_id'],
-						"status" => $this->log->getStatus(),
-						"duration" => $this->log->getDuration(),
-						"output" => $this->log->getAlertMessages() . str::pre($output),
-					],
-				]);
-                return true;
-			};
-
-			$args = [[
-				"cron_job" => $cron_job,
-			]];
-
-			if($ignore_interval){
-				//If the job interval is to be ignored and the job to be run right now
-				$scheduler
-					->call($func, $args, $cron_job['cron_job_id'])
-					->before($before)
-					->then($then);
-				continue;
+			if(!empty($cron_job["cron_job_id"])){
+				$runtime->queueManualRun($cron_job["cron_job_id"]);
 			}
-
-			# Otherwise, the job will only be run at its scheduled interval
-			$scheduler
-				->call($func, $args, $cron_job['cron_job_id'])
-				->at($cron_job['interval'])
-				->before($before)
-				->then($then);
-
 		}
-
-		$scheduler->run();
 	}
 
 	public function getClassOptions(array $a): bool

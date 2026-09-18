@@ -84,6 +84,16 @@ class Field {
 				"value" => $interval,
 				"title" => "Interval",
 				"desc" => "How often do you want the cron job to run?",
+			], [
+				"type" => "number",
+				"required" => true,
+				"name" => "timeout_seconds",
+				"value" => $timeout_seconds ?: RuntimePolicy::DEFAULT_TIMEOUT_SECONDS,
+				"title" => "Hard runtime limit (seconds)",
+				"desc" => "The worker and its child processes are terminated after this wall-clock limit. Minimum 60 seconds; absolute maximum 3600 seconds.",
+				"min" => RuntimePolicy::MIN_TIMEOUT_SECONDS,
+				"max" => RuntimePolicy::MAX_TIMEOUT_SECONDS,
+				"step" => 60,
 			], [[
 				"type" => "checkbox",
 				"name" => "paused",
@@ -94,8 +104,8 @@ class Field {
 			], [
 				"type" => "checkbox",
 				"name" => "silent",
-				"title" => "silent",
-				"desc" => "Silent jobs will not be logged if they are successful. Useful for high frequency jobs.",
+				"title" => "Silent",
+				"desc" => "Keep routine notifications quiet. Every execution is still retained in the run ledger.",
 				"value" => 1,
 				"checked" => $silent,
 			]],

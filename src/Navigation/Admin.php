@@ -149,8 +149,8 @@ class Admin extends Prototype implements NavigationInterface {
 
 		$children[] = [
 			"icon" => Icon::get("log"),
-			"title" => "Cron job alert",
-			"alt" => "View the cron job alert",
+			"title" => "Cron run history",
+			"alt" => "Inspect every scheduled and manual cron execution",
 			"hash" => [
 				"rel_table" => "cron_log",
 				"action" => "all",

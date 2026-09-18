@@ -2041,6 +2041,7 @@ class User extends Prototype {
 	{
 		extract($a);
 		$cron_jobs_count = $this->sql->select([
+			"db" => \App\Common\CronJob\RuntimePolicy::DB,
 			"count" => true,
 			"table" => "cron_job",
 		]);

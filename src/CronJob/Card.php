@@ -1,69 +1,59 @@
 <?php
 
-
 namespace App\Common\CronJob;
 
-
-use App\UI\Countdown;
 use App\UI\Icon;
 
 class Card extends \App\Common\Prototype {
-	/**
-	 * @param array $a
-	 *
-	 * @return string
-	 */
-	public function all(array $a){
-		extract($a);
-
-		$countdown = Countdown::generate([
-			"modify" => "+10 seconds", //A string modifying the datetime
-			"pre" => "Refreshing in ", //Text that goes before the timer
-			"post" => ".",
-			"callback" => "ajaxCall", //The name of a function to call at zero
-			"vars" => [
-				"rel_table" => "cron_job",
-				"action" => "updateCronJobs"
-			],//Variables to send to the callback function,
-			"restart" => [
-				"seconds" => 10
-			]
-		]);
-
+	public function summary(array $a): string
+	{
 		$card = new \App\UI\Card\Card([
-			"icon" => Icon::get("cron_job"),
-			"header" => "All cron jobs",
+			"icon" => "tachometer-alt",
+			"header" => "Scheduler health",
 			"body" => [
-				"id" => "all_cron_job",
+				"id" => "cron_job_summary",
+				"html" => "<div class=\"text-muted text-center\">Loading scheduler health…</div>",
 			],
-			"buttons" => [[
-				"hash" => [
-					"rel_table" => $rel_table,
-					"action" => "new"
-				],
-				"title" => "New cron job...",
-				"icon" => Icon::get("new"),
-			]],
-			"post" => [
-				"class" => "text-center text-muted smaller",
-				"html" => $countdown
-			]
 		]);
 
 		return $card->getHTML();
 	}
 
-	public function running(array $a){
+	public function all(array $a): string
+	{
+		$card = new \App\UI\Card\Card([
+			"icon" => Icon::get("cron_job"),
+			"header" => "Scheduled jobs",
+			"body" => [
+				"id" => "all_cron_job",
+				"html" => "<div class=\"text-muted text-center\">Loading jobs…</div>",
+			],
+			"buttons" => [[
+				"hash" => [
+					"rel_table" => $a["rel_table"] ?? "cron_job",
+					"action" => "new",
+				],
+				"title" => "New cron job...",
+				"icon" => Icon::get("new"),
+			]],
+		]);
+
+		return $card->getHTML();
+	}
+
+	public function running(array $a): string
+	{
 		$card = new \App\UI\Card\Card([
 			"icon" => "play",
-			"header" => "Output from currently running jobs",
+			"header" => "Active and queued runs",
 			"body" => [
 				"id" => "currently_running_cron_jobs",
+				"html" => "<div class=\"text-muted text-center\">Loading active runs…</div>",
 				"style" => [
 					"min-height" => "5rem",
 					"max-height" => "50vh",
-					"overflow-y" => "auto"
-				]
+					"overflow-y" => "auto",
+				],
 			],
 		]);
 
