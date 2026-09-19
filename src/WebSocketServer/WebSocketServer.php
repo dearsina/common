@@ -4,8 +4,8 @@
 namespace App\Common\WebSocketServer;
 
 use App\Common\Prototype;
-use App\Common\CronJob\RunOutput;
-use App\Common\CronJob\Runtime;
+use App\Common\Log;
+use App\Common\SQL\Factory;
 use App\Common\str;
 
 /**
@@ -25,6 +25,7 @@ use App\Common\str;
  * websocket_internal_port="8080"                         # The internal port, can be anything
  */
 class WebSocketServer extends Prototype {
+
 	/**
 	 * Grace period (in seconds) before cert expiry to trigger a restart.
 	 */
@@ -42,11 +43,11 @@ class WebSocketServer extends Prototype {
 	 */
 	private $external_server;
 
-		/**
-		 * This is the port that only internal connections can use.
-		 *
-		 * @var \Swoole\Server\Port
-		 */
+	/**
+	 * This is the port that only internal connections can use.
+	 *
+	 * @var \Swoole\WebSocket\Server
+	 */
 	private $internal_server;
 
 	/**
@@ -115,17 +116,9 @@ class WebSocketServer extends Prototype {
 	{
 		# Ensure the server isn't already running
 		if($this->serverAlreadyRunning()){
-			// A healthy server is the normal no-op outcome. Completing without a
-			// structured result records a successful execution with no result.
+			$this->log->success("The server is already running.");
 			return;
 		}
-
-		$this->startDaemonServer();
-	}
-
-	/** Build and run the Swoole daemon. */
-	private function startDaemonServer(): void
-	{
 
 		$cpu_count = function_exists('swoole_cpu_num') ? \swoole_cpu_num() : 2;
 		$worker_count = max(2, (int)$cpu_count);
@@ -148,8 +141,10 @@ class WebSocketServer extends Prototype {
 			# Use dedicated worker processes for the event callbacks
 			"worker_num" => $worker_count,
 
-			# Increase the connection queue
+			# Increase the connection queue and clean up stale sockets
 			"backlog" => 512,
+			"heartbeat_idle_time" => 600,
+			"heartbeat_check_interval" => 60,
 
 			# Raise the message size limit from the default 2mb to 32mb
 			"package_max_length" => 32 * 1024 * 1024,
@@ -165,30 +160,20 @@ class WebSocketServer extends Prototype {
 		# Generate the server ID
 		$this->server_id = date("YmdHis");
 
-		# The internal control port
+		# The internal port
 		if(!$this->internal_server = $this->external_server->listen($_ENV['websocket_internal_ip'], $_ENV['websocket_internal_port'], SWOOLE_SOCK_TCP)){
-			//if we're unable to create a listener on localhost
-			$message = "Unable to create an internal listener on {$_ENV['websocket_internal_ip']}:{$_ENV['websocket_internal_port']}. Ensure the port is open.";
-			$this->alert($message);
-			throw new \RuntimeException($message);
+			//if we're unable to create a listener on localhost:808
+			$this->alert("Unable to create a WebSocket listener on {$_ENV['websocket_internal_ip']}:{$_ENV['websocket_internal_port']}. Ensure the port is open.");
+			return;
 		}
-
-		# Treat the internal port as a plain TCP control channel.
-		$this->internal_server->set([
-			"open_eof_check" => true,
-			"open_eof_split" => true,
-			"package_eof" => "\n",
-			"open_http_protocol" => false,
-			"open_websocket_protocol" => false,
-			"package_max_length" => 32 * 1024 * 1024,
-		]);
 
 		# Server start
 		$this->external_server->on("start", [$this, 'onStart']);
 
 		# Internal connections
 		$this->internal_server->on("connect", [$this, 'onInternalConnect']);
-		$this->internal_server->on("receive", [$this, 'onInternalReceive']);
+		$this->internal_server->on("open", [$this, 'onInternalOpen']);
+		$this->internal_server->on("message", [$this, 'onInternalMessage']);
 		$this->internal_server->on("close", [$this, 'onInternalClose']);
 
 		# External connections
@@ -197,16 +182,8 @@ class WebSocketServer extends Prototype {
 		$this->external_server->on("message", [$this, 'onExternalMessage']);
 		$this->external_server->on("close", [$this, 'onExternalClose']);
 
-		# Release the cron worker lock immediately before Swoole forks. The active
-		# ledger row still prevents overlap, and the daemon cannot inherit the lock.
-		if(!Runtime::releaseCurrentWorkerLockBeforeDaemonizing()){
-			throw new \RuntimeException("The cron worker lock could not be released before WebSocket daemonization.");
-		}
-
 		# Start the server
-		if(!$this->external_server->start()){
-			throw new \RuntimeException("The WebSocket server could not be started.");
-		}
+		$this->external_server->start();
 	}
 
 	/**
@@ -214,10 +191,10 @@ class WebSocketServer extends Prototype {
 	 *
 	 * @return bool
 	 */
-	protected function serverAlreadyRunning(): bool
+	private function serverAlreadyRunning(): bool
 	{
 		# Check if the server is already running by attempting to connect to the external port
-		if(!$this->portAcceptsConnections($this->healthCheckIp(), (int)$_ENV['websocket_external_port'])){
+		if (!$this->portAcceptsConnections($_ENV['websocket_external_ip'], (int)$_ENV['websocket_external_port'])) {
 			// If not running, the WebSocket server is not running
 			return false;
 		}
@@ -230,14 +207,7 @@ class WebSocketServer extends Prototype {
 				return false;
 			}
 			// Couldn't terminate cleanly; still report running to avoid a failed bind loop
-			$message = "Failed to terminate the WebSocket server for its required certificate restart; the existing process was left running.";
-			$this->alert($message);
-			if(RunOutput::isActive()){
-				RunOutput::failure($message, [
-					"pid_file" => self::PID_FILE_PATH,
-					"certificate" => $_ENV['local_cert'],
-				]);
-			}
+			$this->alert("Failed to terminate existing server; keeping current process.");
 			return true;
 		}
 
@@ -263,21 +233,6 @@ class WebSocketServer extends Prototype {
 			"title" => "Swoole WebSocket Server",
 			"message" => $message,
 		]);
-
-		if(RunOutput::isActive()){
-			try {
-				RunOutput::success("The WebSocket server was started.", [
-					"daemon_pid" => $server->master_pid ?? NULL,
-					"address" => "{$_ENV['websocket_external_ip']}:{$_ENV['websocket_external_port']}",
-				]);
-			}
-			catch(\Throwable $throwable) {
-				$this->alert("Unable to record the WebSocket cron result: " . $throwable->getMessage());
-			}
-			finally {
-				RunOutput::end();
-			}
-		}
 	}
 
 	/**
@@ -292,57 +247,53 @@ class WebSocketServer extends Prototype {
 	}
 
 	/**
+	 * When an internal script connection has opened.
+	 *
+	 * @param \Swoole\WebSocket\Server $server
+	 * @param \Swoole\Http\Request     $request
+	 */
+	public function onInternalOpen(\Swoole\WebSocket\Server $server, \Swoole\Http\Request $request)
+	{
+		$this->debugAlert("Internal connection [{$request->fd}] opened.");
+	}
+
+	/**
 	 * When an internal script sends a message.
-	 * Expects the data being sent ($data) to be
+	 * Expects the data being sent ($frame->data) to be
 	 * in the following format:
 	 * <code>
 	 * [fd] => array containing one or more connections to send the message to
 	 * [data] => array containing data to send to the connection(s)
 	 * </code>
 	 *
-	 * @param \Swoole\Server $server
-	 * @param int            $fd
-	 * @param int            $reactor_id
-	 * @param string         $data
+	 * @param \Swoole\WebSocket\Server $server
+	 * @param \Swoole\WebSocket\Frame  $frame
 	 *
 	 * @return bool
+	 * @return bool
 	 */
-	public function onInternalReceive(\Swoole\Server $server, int $fd, int $reactor_id, string $data): bool
+	public function onInternalMessage(\Swoole\WebSocket\Server $server, \Swoole\WebSocket\Frame $frame): bool
 	{
-		$this->debugAlert("Internal message from connection [{$fd}]: {$data}");
+		$this->debugAlert("Internal message from connection [{$frame->fd}]: {$frame->data}");
 
 		# Break open the data string into an array
-		$data_array = json_decode(trim($data), true);
-		if(!is_array($data_array)){
-			$this->debugAlert("Invalid internal payload from connection [{$fd}].");
-			$server->close($fd);
-			return false;
-		}
+		$data_array = json_decode($frame->data, true);
 
 		if(!$data_array['fd']){
 			$this->debugAlert("No recipients identified.");
-			$server->close($fd);
 			return true;
 		}
 
-		$payload = json_encode($data_array['data']);
-		if($payload === false){
-			$this->debugAlert("Unable to encode internal payload for recipients.");
-			$server->close($fd);
-			return false;
-		}
-
 		# For each recipient (fd), send the (data) message
-		foreach($data_array['fd'] as $recipient_fd){
-			if($server->isEstablished($recipient_fd)){
-				$server->push($recipient_fd, $payload);
+		foreach($data_array['fd'] as $id => $fd){
+			if($server->isEstablished($fd)){
+				$server->push($fd, json_encode($data_array['data']));
 			}
 			else {
-				$this->debugAlert("The [{$recipient_fd}] connection is no longer established, thus the message was not sent.");
+				$this->debugAlert("The [{$fd}] connection is no longer established, thus the message was not sent.");
 			}
-		}
 
-		$server->close($fd);
+		}
 
 		return true;
 	}
@@ -563,7 +514,7 @@ class WebSocketServer extends Prototype {
 		# Wait until port is freed (max ~10s)
 		$deadline = time() + 10;
 		while(time() < $deadline) {
-			if(!$this->portAcceptsConnections($this->healthCheckIp(), (int)$_ENV['websocket_external_port'])){
+			if(!$this->portAcceptsConnections($_ENV['websocket_external_ip'], (int)$_ENV['websocket_external_port'])){
 				return true;
 			}
 			usleep(200_000);
@@ -576,17 +527,7 @@ class WebSocketServer extends Prototype {
 			usleep(300_000);
 		}
 
-		return !$this->portAcceptsConnections($this->healthCheckIp(), (int)$_ENV['websocket_external_port']);
-	}
-
-	/**
-	 * Wildcard addresses are valid server bind targets but not reliable client
-	 * destinations. Probe the local listener through loopback instead.
-	 */
-	private function healthCheckIp(): string
-	{
-		$ip = trim((string)($_ENV['websocket_external_ip'] ?? ""));
-		return in_array($ip, ["", "*", "0.0.0.0", "::", "[::]"], true) ? "127.0.0.1" : $ip;
+		return !$this->portAcceptsConnections($_ENV['websocket_external_ip'], (int)$_ENV['websocket_external_port']);
 	}
 
 	/**
@@ -602,8 +543,7 @@ class WebSocketServer extends Prototype {
 	{
 		$errno = 0;
 		$errstr = '';
-		$host = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? "[{$ip}]" : $ip;
-		$s = @stream_socket_client("tcp://{$host}:{$port}", $errno, $errstr, 2);
+		$s = @stream_socket_client("tcp://{$ip}:{$port}", $errno, $errstr, 2);
 		if($s){
 			fclose($s);
 			return true;
