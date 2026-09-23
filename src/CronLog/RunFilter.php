@@ -12,6 +12,7 @@ use App\Common\CronJob\RuntimePolicy;
 final class RunFilter {
 	public const SCOPE_KEY = "run_scope";
 	public const TRACK_KEY = "track_run_id";
+	public const INCLUDE_SILENT_KEY = "include_silent";
 
 	private static array $job_ids_by_scope = [];
 
@@ -37,9 +38,12 @@ final class RunFilter {
 	{
 		$where = self::normalise($vars);
 		$scope = (string)($where[self::SCOPE_KEY] ?? "");
+		$include_silent = self::includesSilent($where);
+		$targets_one_job = !empty($where["cron_job_id"]);
 		foreach([
 			self::SCOPE_KEY,
 			self::TRACK_KEY,
+			self::INCLUDE_SILENT_KEY,
 			"id",
 			"start",
 			"length",
@@ -89,7 +93,23 @@ final class RunFilter {
 				break;
 		}
 
+		// Silent jobs remain fully logged, but their high-volume routine runs do
+		// not clutter the global ledger. An explicitly selected job always shows
+		// its own history, regardless of its current silent setting.
+		if(!$include_silent && !$targets_one_job){
+			$silent_job_ids = self::jobIds("silent", $sql);
+			if($silent_job_ids){
+				$where[] = ["cron_job_id", "NOT IN", $silent_job_ids];
+			}
+		}
+
 		return $where;
+	}
+
+	public static function includesSilent($vars): bool
+	{
+		$vars = self::normalise($vars);
+		return filter_var($vars[self::INCLUDE_SILENT_KEY] ?? false, FILTER_VALIDATE_BOOL);
 	}
 
 	public static function title($vars): ?string
@@ -125,6 +145,9 @@ final class RunFilter {
 		if($scope === "paused"){
 			$query["where"] = ["paused" => 1];
 		}
+		else if($scope === "silent"){
+			$query["where"] = ["silent" => 1];
+		}
 
 		$rows = $sql->select($query);
 		if(!$rows || !is_array($rows)){
@@ -135,7 +158,10 @@ final class RunFilter {
 		}
 
 		$ids = array_values(array_filter(array_column($rows, "cron_job_id")));
-		// An impossible identifier ensures an empty job scope cannot expose all runs.
-		return self::$job_ids_by_scope[$scope] = $ids ?: ["__no_matching_cron_jobs__"];
+		// An impossible identifier ensures an empty inclusive job scope cannot
+		// expose all runs. An empty exclusion needs no SQL condition at all.
+		return self::$job_ids_by_scope[$scope] = $ids ?: ($scope === "silent"
+			? []
+			: ["__no_matching_cron_jobs__"]);
 	}
 }

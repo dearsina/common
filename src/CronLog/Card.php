@@ -39,7 +39,34 @@ class Card extends \App\Common\Prototype {
 		$vars = $this->normaliseVars($a["vars"] ?? []);
 		$cron_job_id = (string)($vars["cron_job_id"] ?? "");
 		if(!$cron_job_id){
-			return [];
+			$include_silent = RunFilter::includesSilent($vars);
+			$toggle_vars = $vars;
+			foreach(["id", "start", "length", "cursor"] as $table_control){
+				unset($toggle_vars[$table_control]);
+			}
+			if($include_silent){
+				unset($toggle_vars[RunFilter::INCLUDE_SILENT_KEY]);
+			}
+			else {
+				$toggle_vars[RunFilter::INCLUDE_SILENT_KEY] = 1;
+			}
+
+			$buttons[] = [
+				"title" => "Include silent jobs",
+				"alt" => $include_silent
+					? "Silent jobs are included; click to hide them"
+					: "Include runs from jobs configured as silent",
+				"icon" => $include_silent ? "eye" : "eye-slash",
+				"colour" => "primary",
+				"size" => "s",
+				"basic" => !$include_silent,
+				"hash" => [
+					"rel_table" => $a["rel_table"] ?? "cron_log",
+					"action" => $a["action"] ?? "all",
+					"vars" => $toggle_vars,
+				],
+			];
+			return $buttons;
 		}
 
 		$job = $this->sql->select([
