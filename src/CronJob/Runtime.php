@@ -20,6 +20,8 @@ class Runtime extends Prototype {
 	private const JOB_LOCK_PREFIX = "kycdd:cron-job:";
 	private const DEFAULT_MAX_CONCURRENT_RUNS = 4;
 	private const MAX_CONCURRENT_RUNS_LIMIT = 20;
+	private const DEFAULT_WEBSOCKET_OPEN_FILE_LIMIT = 65536;
+	private const WEBSOCKET_SERVER_CLASS = "App\\Common\\WebSocketServer\\WebSocketServer";
 	private const CANCEL_GRACE_SECONDS = 30;
 	private const TIMEOUT_TERMINATION_GRACE_SECONDS = 5;
 	private const SIGNAL_TERM = 15;
@@ -645,7 +647,11 @@ class Runtime extends Prototype {
 			}
 
 			try {
-				$pid = $this->startSupervisor($run["cron_log_id"], $timeout);
+				$pid = $this->startSupervisor(
+					$run["cron_log_id"],
+					$timeout,
+					$this->openFileLimitForRun($run)
+				);
 				if($pid < 1){
 					throw new \RuntimeException("The detached cron worker returned no process ID.");
 				}
@@ -677,7 +683,7 @@ class Runtime extends Prototype {
 		}
 	}
 
-	private function startSupervisor(string $cron_log_id, int $timeout): int
+	private function startSupervisor(string $cron_log_id, int $timeout, ?int $open_file_limit = NULL): int
 	{
 		$bootstrap = $_ENV["cron_bootstrap_path"] ?? "/var/www/html/app/settings.php";
 		$php_binary = PHP_BINARY ?: "php";
@@ -693,6 +699,9 @@ class Runtime extends Prototype {
 		$worker_command = escapeshellarg($timeout_binary)
 			. " --signal=TERM --kill-after=" . self::TIMEOUT_TERMINATION_GRACE_SECONDS . "s "
 			. $this->timeoutEnforcementSeconds($timeout) . "s " . $worker_command;
+		if($open_file_limit !== NULL){
+			$worker_command = $this->openFileLimitCommand($open_file_limit) . $worker_command;
+		}
 
 		$setsid_binary = $_ENV["cron_setsid_binary"] ?? "/usr/bin/setsid";
 		if(!is_executable($setsid_binary)){
@@ -724,6 +733,44 @@ class Runtime extends Prototype {
 		}
 
 		return $pid;
+	}
+
+	/**
+	 * Swoole must inherit its descriptor limit before PHP initialises the
+	 * extension. Applying this only to the WebSocket job avoids changing the
+	 * resource limits of unrelated cron workers.
+	 */
+	private function openFileLimitForRun(array $run): ?int
+	{
+		$job_class = ltrim(trim((string)($run["job_class"] ?? "")), "\\");
+		if($job_class !== self::WEBSOCKET_SERVER_CLASS){
+			return NULL;
+		}
+
+		$limit = filter_var(
+			$_ENV["websocket_open_file_limit"] ?? self::DEFAULT_WEBSOCKET_OPEN_FILE_LIMIT,
+			FILTER_VALIDATE_INT,
+			["options" => ["min_range" => 1024, "max_range" => 1048576]]
+		);
+		if($limit === false){
+			throw new \RuntimeException("websocket_open_file_limit must be an integer between 1024 and 1048576.");
+		}
+
+		return $limit;
+	}
+
+	/**
+	 * Cap the requested soft limit at the inherited hard limit so development
+	 * environments with a lower ceiling can still start the server.
+	 */
+	private function openFileLimitCommand(int $requested_limit): string
+	{
+		return "websocket_nofile_limit={$requested_limit}; "
+			. "websocket_nofile_hard=\$(ulimit -Hn 2>/dev/null || printf '%s' \"\$websocket_nofile_limit\"); "
+			. "case \"\$websocket_nofile_hard\" in unlimited) ;; *[!0-9]*|'') websocket_nofile_hard=\$websocket_nofile_limit ;; esac; "
+			. "if [ \"\$websocket_nofile_hard\" != unlimited ] && [ \"\$websocket_nofile_limit\" -gt \"\$websocket_nofile_hard\" ]; "
+			. "then websocket_nofile_limit=\$websocket_nofile_hard; fi; "
+			. "ulimit -Sn \"\$websocket_nofile_limit\" 2>/dev/null || printf '%s\\n' 'Unable to raise WebSocket open-file limit.' >&2; ";
 	}
 
 	private function reconcileActiveRuns(): void

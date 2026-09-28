@@ -25,8 +25,11 @@ use App\Common\str;
  * websocket_internal_port="8080"                         # Internal WebSocket port
  * websocket_internal_tcp_enabled="false"                 # Enable the in-process internal WebSocket sender
  * websocket_internal_push_secret="..."                   # At least 32 random characters
+ * websocket_open_file_limit="65536"                      # Soft descriptor limit inherited by the server
+ * websocket_max_connections="32768"                      # Leave descriptor headroom for Swoole internals
  */
 class WebSocketServer extends Prototype {
+	private const DEFAULT_MAX_CONNECTIONS = 32768;
 
 	/**
 	 * Grace period (in seconds) before cert expiry to trigger a restart.
@@ -142,6 +145,7 @@ class WebSocketServer extends Prototype {
 
 			# Use dedicated worker processes for the event callbacks
 			"worker_num" => $worker_count,
+			"max_connection" => $this->maxConnections(),
 
 			# Increase the connection queue and clean up stale sockets
 			"backlog" => 512,
@@ -226,6 +230,17 @@ class WebSocketServer extends Prototype {
 	public function onStart(\Swoole\WebSocket\Server $server)
 	{
 		$message = "Swoole WebSocket Server [{$this->server_id}] has started at wss://{$_ENV['websocket_external_ip']}:{$_ENV['websocket_external_port']}";
+		$max_connections = (int)($server->setting["max_connection"] ?? 0);
+		$soft_open_files = NULL;
+		if(function_exists("posix_getrlimit")){
+			$limits = posix_getrlimit();
+			$soft_open_files = $limits["soft openfiles"] ?? NULL;
+		}
+		$message .= " (max connections: {$max_connections}";
+		if($soft_open_files !== NULL){
+			$message .= ", open-file soft limit: {$soft_open_files}";
+		}
+		$message .= ")";
 
 		# Log it to the admins
 		$this->alert($message);
@@ -236,6 +251,20 @@ class WebSocketServer extends Prototype {
 			"title" => "Swoole WebSocket Server",
 			"message" => $message,
 		]);
+	}
+
+	private function maxConnections(): int
+	{
+		$max_connections = filter_var(
+			$_ENV["websocket_max_connections"] ?? self::DEFAULT_MAX_CONNECTIONS,
+			FILTER_VALIDATE_INT,
+			["options" => ["min_range" => 1024, "max_range" => 1048576]]
+		);
+		if($max_connections === false){
+			throw new \RuntimeException("websocket_max_connections must be an integer between 1024 and 1048576.");
+		}
+
+		return $max_connections;
 	}
 
 	/**
