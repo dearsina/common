@@ -532,7 +532,7 @@ class PA {
 		}
 
 		self::$tcp_fallback_reported = true;
-		error_log("Internal TCP WebSocket push failed; using the legacy WebSocket transport. {$throwable->getMessage()}");
+		error_log("In-process WebSocket push failed; using the legacy WebSocket transport. {$throwable->getMessage()}");
 	}
 
 	/**
@@ -628,7 +628,8 @@ class PA {
 	}
 
 	/**
-	 * Sends a message to a list of file descriptors (FDs) through the fast internal TCP push listener.
+	 * Sends a message through the existing internal WebSocket listener without
+	 * launching a shell and a second PHP process.
 	 *
 	 * @param array $fd      An array of file descriptors representing the recipients.
 	 * @param array $message An array containing the message to be sent to the specified file descriptors.
@@ -639,9 +640,9 @@ class PA {
 	 */
 	public function tcpPush(array $fd, array $message): void
 	{
-		$data = InternalPushProtocol::encodePayload($fd, $message);
+		$data = InternalPushProtocol::encodePayload($fd, $message, true);
 		$ip = trim((string)($_ENV["websocket_internal_ip"] ?? "127.0.0.1"));
-		$port = filter_var($_ENV["websocket_internal_tcp_port"] ?? NULL, FILTER_VALIDATE_INT, [
+		$port = filter_var($_ENV["websocket_internal_port"] ?? NULL, FILTER_VALIDATE_INT, [
 			"options" => [
 				"min_range" => 1,
 				"max_range" => 65535,
@@ -649,48 +650,202 @@ class PA {
 		]);
 
 		if($port === false){
-			throw new \RuntimeException("A valid websocket_internal_tcp_port is required for internal TCP pushes.");
+			throw new \RuntimeException("A valid websocket_internal_port is required for internal WebSocket pushes.");
 		}
 
 		$errno = 0;
 		$errstr = NULL;
 		$socket = @stream_socket_client("tcp://{$ip}:{$port}", $errno, $errstr, 0.25, STREAM_CLIENT_CONNECT);
 		if(!$socket){
-			throw new \RuntimeException("Unable to connect to the internal TCP push listener at {$ip}:{$port} ({$errno}: {$errstr}).");
+			throw new \RuntimeException("Unable to connect to the internal WebSocket listener at {$ip}:{$port} ({$errno}: {$errstr}).");
 		}
 
 		try {
 			stream_set_blocking($socket, true);
-			stream_set_timeout($socket, 1);
+			stream_set_timeout($socket, 2);
 			stream_set_write_buffer($socket, 0);
 
-			$written = 0;
-			$length = strlen($data);
-			while($written < $length){
-				$bytes = fwrite($socket, substr($data, $written));
-				if($bytes === false || $bytes === 0){
-					$metadata = stream_get_meta_data($socket);
-					$reason = !empty($metadata["timed_out"]) ? " (write timed out)" : "";
-					throw new \RuntimeException("Unable to write to the internal TCP push listener at {$ip}:{$port}{$reason}.");
-				}
-				$written += $bytes;
-			}
-
-			fflush($socket);
-			$acknowledgement = fgets($socket, 4096);
-
-			if($acknowledgement === false){
-				$metadata = stream_get_meta_data($socket);
-				if(!empty($metadata["timed_out"])){
-					throw new \RuntimeException("The internal TCP push listener did not acknowledge the message within one second.");
-				}
-				throw new \RuntimeException("The internal TCP push listener closed without acknowledging the message.");
-			}
-
+			$this->upgradeInternalWebSocket($socket, $ip, $port);
+			$this->writeSocket($socket, $this->encodeClientWebSocketFrame($data));
+			$acknowledgement = $this->readServerWebSocketFrame($socket);
 			InternalPushProtocol::assertAcknowledgement($acknowledgement);
 		}
 		finally {
 			fclose($socket);
 		}
+	}
+
+	/**
+	 * Complete a standards-compliant WebSocket upgrade on the internal port.
+	 *
+	 * @param resource $socket
+	 */
+	private function upgradeInternalWebSocket($socket, string $ip, int $port): void
+	{
+		$key = base64_encode(random_bytes(16));
+		$request = "GET / HTTP/1.1\r\n"
+			. "Host: {$ip}:{$port}\r\n"
+			. "Upgrade: websocket\r\n"
+			. "Connection: Upgrade\r\n"
+			. "Sec-WebSocket-Key: {$key}\r\n"
+			. "Sec-WebSocket-Version: 13\r\n\r\n";
+
+		$this->writeSocket($socket, $request);
+
+		$response = "";
+		while(!str_contains($response, "\r\n\r\n")){
+			$line = fgets($socket, 8192);
+			if($line === false){
+				$this->throwSocketReadFailure($socket, "The internal WebSocket listener did not complete the upgrade");
+			}
+			$response .= $line;
+			if(strlen($response) > 16384){
+				throw new \RuntimeException("The internal WebSocket listener returned oversized upgrade headers.");
+			}
+		}
+
+		$lines = preg_split("/\r\n/", trim($response));
+		$status_line = array_shift($lines);
+		if(!is_string($status_line) || !preg_match('/^HTTP\/1\.[01] 101(?:\s|$)/', $status_line)){
+			throw new \RuntimeException("The internal WebSocket upgrade failed: " . ($status_line ?: "no HTTP status"));
+		}
+
+		$headers = [];
+		foreach($lines as $line){
+			if(!str_contains($line, ":")){
+				continue;
+			}
+			[$name, $value] = explode(":", $line, 2);
+			$headers[strtolower(trim($name))] = trim($value);
+		}
+
+		$expected_accept = base64_encode(sha1($key . "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", true));
+		$actual_accept = $headers["sec-websocket-accept"] ?? "";
+		if(!is_string($actual_accept) || !hash_equals($expected_accept, $actual_accept)){
+			throw new \RuntimeException("The internal WebSocket listener returned an invalid upgrade acknowledgement.");
+		}
+	}
+
+	private function encodeClientWebSocketFrame(string $payload, int $opcode = 0x1): string
+	{
+		$length = strlen($payload);
+		$frame = chr(0x80 | ($opcode & 0x0f));
+
+		if($length <= 125){
+			$frame .= chr(0x80 | $length);
+		}
+		elseif($length <= 65535){
+			$frame .= chr(0x80 | 126) . pack("n", $length);
+		}
+		else {
+			$frame .= chr(0x80 | 127) . pack("NN", 0, $length);
+		}
+
+		$mask = random_bytes(4);
+		$mask_bytes = str_repeat($mask, (int)ceil($length / 4));
+		return $frame . $mask . ($payload ^ substr($mask_bytes, 0, $length));
+	}
+
+	/**
+	 * @param resource $socket
+	 */
+	private function readServerWebSocketFrame($socket): string
+	{
+		while(true){
+			$header = $this->readSocketBytes($socket, 2);
+			$first = ord($header[0]);
+			$second = ord($header[1]);
+			$final = ($first & 0x80) !== 0;
+			$opcode = $first & 0x0f;
+			$masked = ($second & 0x80) !== 0;
+			$length = $second & 0x7f;
+
+			if($length === 126){
+				$length = unpack("nlength", $this->readSocketBytes($socket, 2))["length"];
+			}
+			elseif($length === 127){
+				$parts = unpack("Nhigh/Nlow", $this->readSocketBytes($socket, 8));
+				if($parts["high"] !== 0){
+					throw new \RuntimeException("The internal WebSocket acknowledgement is too large.");
+				}
+				$length = $parts["low"];
+			}
+
+			if($length > 65535){
+				throw new \RuntimeException("The internal WebSocket acknowledgement is too large.");
+			}
+
+			$mask = $masked ? $this->readSocketBytes($socket, 4) : "";
+			$payload = $length ? $this->readSocketBytes($socket, $length) : "";
+			if($masked){
+				$payload ^= substr(str_repeat($mask, (int)ceil($length / 4)), 0, $length);
+			}
+
+			if($opcode === 0x8){
+				throw new \RuntimeException("The internal WebSocket listener closed before acknowledging the message.");
+			}
+			if($opcode === 0x9){
+				$this->writeSocket($socket, $this->encodeClientWebSocketFrame($payload, 0xA));
+				continue;
+			}
+			if($opcode === 0xA){
+				continue;
+			}
+			if(!$final || $opcode !== 0x1){
+				throw new \RuntimeException("The internal WebSocket listener returned an unsupported acknowledgement frame.");
+			}
+
+			return $payload;
+		}
+	}
+
+	/**
+	 * @param resource $socket
+	 */
+	private function writeSocket($socket, string $data): void
+	{
+		$written = 0;
+		$length = strlen($data);
+		while($written < $length){
+			$bytes = fwrite($socket, substr($data, $written));
+			if($bytes === false || $bytes === 0){
+				$metadata = stream_get_meta_data($socket);
+				$reason = !empty($metadata["timed_out"]) ? " (write timed out)" : "";
+				throw new \RuntimeException("Unable to write to the internal WebSocket listener{$reason}.");
+			}
+			$written += $bytes;
+		}
+		fflush($socket);
+	}
+
+	/**
+	 * @param resource $socket
+	 */
+	private function readSocketBytes($socket, int $length): string
+	{
+		$data = "";
+		while(strlen($data) < $length){
+			$chunk = fread($socket, $length - strlen($data));
+			if($chunk === false || $chunk === ""){
+				$this->throwSocketReadFailure($socket, "The internal WebSocket listener did not acknowledge the message");
+			}
+			$data .= $chunk;
+		}
+		return $data;
+	}
+
+	/**
+	 * @param resource $socket
+	 */
+	private function throwSocketReadFailure($socket, string $message): void
+	{
+		$metadata = stream_get_meta_data($socket);
+		if(!empty($metadata["timed_out"])){
+			throw new \RuntimeException("{$message} within two seconds.");
+		}
+		if(!empty($metadata["eof"])){
+			throw new \RuntimeException("{$message} before closing the connection.");
+		}
+		throw new \RuntimeException("{$message}.");
 	}
 }

@@ -22,9 +22,8 @@ use App\Common\str;
  * websocket_external_ip="0.0.0.0"                        # Should always be set to 0.0.0.0
  * websocket_external_port="8080"                         # The port used for WSS, can be anything, but must match in JS
  * websocket_internal_ip="127.0.0.1"                      # Should always be set to 127.0.0.1
- * websocket_internal_port="8080"                         # Legacy internal WebSocket port
- * websocket_internal_tcp_port="8081"                     # Optional fast internal TCP push port
- * websocket_internal_tcp_enabled="false"                 # Enable only after the TCP listener has been verified
+ * websocket_internal_port="8080"                         # Internal WebSocket port
+ * websocket_internal_tcp_enabled="false"                 # Enable the in-process internal WebSocket sender
  */
 class WebSocketServer extends Prototype {
 
@@ -51,13 +50,6 @@ class WebSocketServer extends Prototype {
 	 * @var \Swoole\WebSocket\Server
 	 */
 	private $internal_server;
-
-	/**
-	 * Optional loopback-only, newline-framed TCP push listener.
-	 *
-	 * @var \Swoole\Server\Port|null
-	 */
-	private $internal_tcp_server = NULL;
 
 	/**
 	 * A DateTime string acting as server ID.
@@ -176,8 +168,6 @@ class WebSocketServer extends Prototype {
 			return;
 		}
 
-		$this->configureInternalTcpListener();
-
 		# Server start
 		$this->external_server->on("start", [$this, 'onStart']);
 
@@ -195,65 +185,6 @@ class WebSocketServer extends Prototype {
 
 		# Start the server
 		$this->external_server->start();
-	}
-
-	/**
-	 * Add the optional fast internal transport without changing the legacy
-	 * WebSocket listener. Merely configuring the port starts the listener;
-	 * senders opt in separately with websocket_internal_tcp_enabled.
-	 */
-	private function configureInternalTcpListener(): void
-	{
-		$raw_port = $_ENV["websocket_internal_tcp_port"] ?? NULL;
-		if($raw_port === NULL || $raw_port === ""){
-			return;
-		}
-
-		$port = filter_var($raw_port, FILTER_VALIDATE_INT, [
-			"options" => [
-				"min_range" => 1,
-				"max_range" => 65535,
-			],
-		]);
-		$legacy_port = filter_var($_ENV["websocket_internal_port"] ?? NULL, FILTER_VALIDATE_INT);
-		$ip = trim((string)($_ENV["websocket_internal_ip"] ?? "127.0.0.1"));
-
-		if($port === false){
-			$this->alert("The configured websocket_internal_tcp_port is invalid; the fast internal push listener was not started.");
-			return;
-		}
-		if($legacy_port !== false && $port === $legacy_port){
-			$this->alert("The fast internal TCP push port must differ from the legacy internal WebSocket port; the fast listener was not started.");
-			return;
-		}
-		if(!$this->isLoopbackAddress($ip)){
-			$this->alert("The fast internal TCP push listener must use an IPv4 loopback address; [{$ip}] was rejected.");
-			return;
-		}
-
-		$this->internal_tcp_server = $this->external_server->listen($ip, $port, SWOOLE_SOCK_TCP);
-		if(!$this->internal_tcp_server){
-			$this->alert("Unable to create the fast internal TCP push listener on {$ip}:{$port}; legacy WebSocket delivery remains available.");
-			return;
-		}
-
-		$this->internal_tcp_server->set([
-			"open_eof_check" => true,
-			"open_eof_split" => true,
-			"package_eof" => InternalPushProtocol::FRAME_DELIMITER,
-			"open_http_protocol" => false,
-			"open_websocket_protocol" => false,
-			"package_max_length" => InternalPushProtocol::MAX_PAYLOAD_BYTES,
-		]);
-		$this->internal_tcp_server->on("connect", [$this, "onInternalConnect"]);
-		$this->internal_tcp_server->on("receive", [$this, "onInternalTcpReceive"]);
-		$this->internal_tcp_server->on("close", [$this, "onInternalClose"]);
-	}
-
-	private function isLoopbackAddress(string $ip): bool
-	{
-		$packed = @inet_pton(trim($ip));
-		return is_string($packed) && strlen($packed) === 4 && ord($packed[0]) === 127;
 	}
 
 	/**
@@ -346,36 +277,29 @@ class WebSocketServer extends Prototype {
 	{
 		$this->debugAlert("Internal message from connection [{$frame->fd}]: {$frame->data}");
 
-		# Break open the data string into an array
+		# Keep the legacy message path unchanged. Only the in-process sender asks
+		# for an acknowledgement and uses the stricter protocol validation below.
 		$data_array = json_decode($frame->data, true);
+		if(($data_array["internal_ack"] ?? false) !== true){
+			if(!$data_array['fd']){
+				$this->debugAlert("No recipients identified.");
+				return true;
+			}
 
-		if(!$data_array['fd']){
-			$this->debugAlert("No recipients identified.");
+			foreach($data_array['fd'] as $id => $fd){
+				if($server->isEstablished($fd)){
+					$server->push($fd, json_encode($data_array['data']));
+				}
+				else {
+					$this->debugAlert("The [{$fd}] connection is no longer established, thus the message was not sent.");
+				}
+			}
+
 			return true;
 		}
 
-		# For each recipient (fd), send the (data) message
-		foreach($data_array['fd'] as $id => $fd){
-			if($server->isEstablished($fd)){
-				$server->push($fd, json_encode($data_array['data']));
-			}
-			else {
-				$this->debugAlert("The [{$fd}] connection is no longer established, thus the message was not sent.");
-			}
-
-		}
-
-		return true;
-	}
-
-	/**
-	 * Receive one newline-framed message from the fast loopback TCP channel,
-	 * forward it to the browser WebSockets, and acknowledge processing.
-	 */
-	public function onInternalTcpReceive(\Swoole\WebSocket\Server $server, int $fd, int $reactor_id, string $data): void
-	{
 		try {
-			$payload = InternalPushProtocol::decodePayload($data);
+			$payload = InternalPushProtocol::decodePayload($frame->data);
 			$browser_payload = json_encode($payload["data"], JSON_THROW_ON_ERROR);
 			$delivered = 0;
 			$unavailable = 0;
@@ -386,21 +310,20 @@ class WebSocketServer extends Prototype {
 				}
 				else {
 					$unavailable++;
-					$this->debugAlert("The [{$recipient_fd}] connection is no longer established, thus the TCP message was not sent.");
+					$this->debugAlert("The [{$recipient_fd}] connection is no longer established, thus the WebSocket message was not sent.");
 				}
 			}
 
-			$acknowledgement = InternalPushProtocol::encodeAcknowledgement($delivered, $unavailable);
+			if($payload["internal_ack"]){
+				$server->push($frame->fd, InternalPushProtocol::encodeAcknowledgement($delivered, $unavailable));
+			}
 		}
 		catch(\Throwable $throwable) {
-			$this->debugAlert("Fast internal TCP push failed for connection [{$fd}]: {$throwable->getMessage()}");
-			$acknowledgement = InternalPushProtocol::encodeFailureAcknowledgement($throwable);
+			$this->debugAlert("Internal WebSocket push failed for connection [{$frame->fd}]: {$throwable->getMessage()}");
+			$server->push($frame->fd, InternalPushProtocol::encodeFailureAcknowledgement($throwable));
 		}
 
-		if(!$server->send($fd, $acknowledgement)){
-			$this->debugAlert("Unable to acknowledge fast internal TCP push connection [{$fd}].");
-		}
-		$server->close($fd);
+		return true;
 	}
 
 	/**

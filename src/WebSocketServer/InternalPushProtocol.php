@@ -6,29 +6,29 @@ namespace App\Common\WebSocketServer;
  * Framing and validation for the loopback-only internal push channel.
  */
 final class InternalPushProtocol {
-	public const FRAME_DELIMITER = "\n";
 	public const MAX_PAYLOAD_BYTES = 32 * 1024 * 1024;
 
 	/**
 	 * @throws \JsonException
 	 * @throws \LengthException
 	 */
-	public static function encodePayload(array $fds, array $message): string
+	public static function encodePayload(array $fds, array $message, bool $request_acknowledgement = false): string
 	{
 		$payload = json_encode([
 			"fd" => self::normaliseFileDescriptors($fds),
 			"data" => $message,
+			"internal_ack" => $request_acknowledgement,
 		], JSON_THROW_ON_ERROR);
 
-		if(strlen($payload) + strlen(self::FRAME_DELIMITER) > self::MAX_PAYLOAD_BYTES){
+		if(strlen($payload) > self::MAX_PAYLOAD_BYTES){
 			throw new \LengthException("The internal WebSocket payload exceeds the maximum permitted size.");
 		}
 
-		return $payload . self::FRAME_DELIMITER;
+		return $payload;
 	}
 
 	/**
-	 * @return array{fd: array<int>, data: array}
+	 * @return array{fd: array<int>, data: array, internal_ack: bool}
 	 *
 	 * @throws \JsonException
 	 * @throws \InvalidArgumentException
@@ -54,6 +54,7 @@ final class InternalPushProtocol {
 		return [
 			"fd" => self::normaliseFileDescriptors($decoded["fd"]),
 			"data" => $decoded["data"],
+			"internal_ack" => ($decoded["internal_ack"] ?? false) === true,
 		];
 	}
 
@@ -66,7 +67,7 @@ final class InternalPushProtocol {
 			"ok" => true,
 			"delivered" => $delivered,
 			"unavailable" => $unavailable,
-		], JSON_THROW_ON_ERROR) . self::FRAME_DELIMITER;
+		], JSON_THROW_ON_ERROR);
 	}
 
 	public static function encodeFailureAcknowledgement(\Throwable $throwable): string
@@ -75,10 +76,10 @@ final class InternalPushProtocol {
 			return json_encode([
 				"ok" => false,
 				"error" => $throwable->getMessage(),
-			], JSON_THROW_ON_ERROR) . self::FRAME_DELIMITER;
+			], JSON_THROW_ON_ERROR);
 		}
 		catch(\JsonException) {
-			return '{"ok":false,"error":"Internal push failed."}' . self::FRAME_DELIMITER;
+			return '{"ok":false,"error":"Internal push failed."}';
 		}
 	}
 
