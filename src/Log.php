@@ -110,9 +110,12 @@ class Log {
 		# Remove backtrace
 		unset($alert['backtrace']);
 
+		$alert['title'] = $this->normaliseAlertField($alert['title'] ?? NULL);
+		$alert['message'] = $this->normaliseAlertField($alert['message'] ?? NULL);
+
 		# Get the key
 		$md5 = md5(serialize([
-			$alert['icon'],
+			$alert['icon'] ?? NULL,
 			$alert['title'],
 			$alert['message'],
 		]));
@@ -395,6 +398,47 @@ EOF;
 		return round($now - $this->script_start_time, 3);
 	}
 
+	private function getObjectClassName(object $object): string
+	{
+		$class = get_class($object);
+		$class_parts = explode("\\", $class);
+		return end($class_parts);
+	}
+
+	private function normaliseAlertField($value): ?string
+	{
+		if($value === NULL){
+			return NULL;
+		}
+
+		if(is_bool($value)){
+			return $value ? "1" : "0";
+		}
+
+		if(is_scalar($value)){
+			return (string)$value;
+		}
+
+		if($value instanceof \Throwable){
+			return $value->getMessage();
+		}
+
+		if(is_object($value)){
+			if(method_exists($value, "__toString")){
+				return (string)$value;
+			}
+
+			return $this->getObjectClassName($value);
+		}
+
+		if(is_array($value)){
+			$json = json_encode($value, JSON_PARTIAL_OUTPUT_ON_ERROR);
+			return $json === false ? "Array" : $json;
+		}
+
+		return (string)$value;
+	}
+
 	/**
 	 * Log an message of any type
 	 * <code>
@@ -426,6 +470,15 @@ EOF;
 			return true;
 		}
 
+		# If the error is a throwable
+		else if($a instanceof \Throwable){
+			$alert = [
+				"title" => $this->getObjectClassName($a),
+				"message" => $a->getMessage(),
+				"trace" => $a->getTraceAsString(),
+			];
+		}
+
 		# If the error is fleshed out into an array
 		else if(str::isAssociativeArray($a)){
 			$alert = $a;
@@ -436,14 +489,39 @@ EOF;
 			$alert = ["message" => $a];
 		}
 
+		if(!array_key_exists("message", $alert)){
+			$alert['message'] = NULL;
+		}
+
+		if($alert['message'] instanceof \Throwable){
+			if(empty($alert['title'])){
+				$alert['title'] = $this->getObjectClassName($alert['message']);
+			}
+			if(empty($alert['trace'])){
+				$alert['trace'] = $alert['message']->getTraceAsString();
+			}
+			$alert['message'] = $alert['message']->getMessage();
+		}
+
 		# Ensure the alert message is a string
 		if(is_array($alert['message'])){
 			if(str::isNumericArray($alert['message'])){
-				$alert['message'] = implode("\r\n", $alert['message']);
+				$alert['message'] = implode("\r\n", array_map([$this, 'normaliseAlertField'], $alert['message']));
 			}
 			else {
-				$alert['message'] = json_encode($alert['message']);
+				$alert['message'] = json_encode($alert['message'], JSON_PARTIAL_OUTPUT_ON_ERROR);
 			}
+		}
+		else {
+			$alert['message'] = $this->normaliseAlertField($alert['message']);
+		}
+
+		if(array_key_exists("title", $alert)){
+			$alert['title'] = $this->normaliseAlertField($alert['title']);
+		}
+
+		if(array_key_exists("icon", $alert) && !is_array($alert['icon'])){
+			$alert['icon'] = $this->normaliseAlertField($alert['icon']);
 		}
 
 		if(str::isBinary($alert['message'])){

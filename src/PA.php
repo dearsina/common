@@ -7,6 +7,7 @@ use App\Common\ConnectionMessage\ConnectionMessage;
 use App\Common\SQL\Factory;
 use App\Common\SQL\Info\Info;
 use App\Common\SQL\mySQL\mySQL;
+use App\Common\WebSocketServer\InternalPushProtocol;
 
 /**
  * Class PA
@@ -39,6 +40,7 @@ class PA {
 	private array $where = [];
 
 	private static $instance = NULL;
+	private static bool $tcp_fallback_reported = false;
 
 	/**
 	 * The constructor is private so that the class can be run in static mode
@@ -157,7 +159,11 @@ class PA {
 			$this->push($fds, $data);
 		}
 		catch(\Exception $e) {
-			$this->log->error($e);
+			$this->log->error([
+				"title" => "Immediate alert failed",
+				"message" => $e->getMessage(),
+				"trace" => $e->getTraceAsString(),
+			]);
 			return false;
 		}
 
@@ -489,6 +495,59 @@ class PA {
 			throw new \Exception("No message provided.");
 		}
 
+		if(!$this->tcpPushEnabled()){
+			$this->legacySwoolePush($fd, $message);
+			return;
+		}
+
+		try {
+			$this->tcpPush($fd, $message);
+			return;
+		}
+		catch(\Throwable $tcp_error) {
+			$this->reportTcpFallback($tcp_error);
+		}
+
+		try {
+			$this->legacySwoolePush($fd, $message);
+		}
+		catch(\Throwable $legacy_error) {
+			throw new \RuntimeException(
+				"Internal TCP push failed ({$tcp_error->getMessage()}); legacy WebSocket fallback also failed ({$legacy_error->getMessage()}).",
+				(int)$legacy_error->getCode(),
+				$legacy_error
+			);
+		}
+	}
+
+	private function tcpPushEnabled(): bool
+	{
+		return filter_var($_ENV["websocket_internal_tcp_enabled"] ?? false, FILTER_VALIDATE_BOOL);
+	}
+
+	private function reportTcpFallback(\Throwable $throwable): void
+	{
+		if(self::$tcp_fallback_reported){
+			return;
+		}
+
+		self::$tcp_fallback_reported = true;
+		error_log("Internal TCP WebSocket push failed; using the legacy WebSocket transport. {$throwable->getMessage()}");
+	}
+
+	/**
+	 * Sends a message to specified recipient connections using the Swoole HTTP client.
+	 * If the message size exceeds a certain limit, the message is stored in a temporary file, and a link is sent instead.
+	 *
+	 * @param array $fd      An array of file descriptors representing the connections to which the message should be sent.
+	 * @param array $message The content of the message to be pushed to the specified connections.
+	 *
+	 * @return void
+	 *
+	 * @throws \Exception If there is an error during the execution of the shell command.
+	 */
+	public function legacySwoolePush(array $fd, array $message): void
+	{
 		//		if(str::runFromCLI()){
 		//			//If this method is called from the CLI
 		//
@@ -567,31 +626,71 @@ class PA {
 			throw new \Exception($output);
 		}
 	}
-}
 
-/**
- * To estimate the shell_exec character limit, the following code was run. It turned out
- * to be incorrect and a far shorter limit (of ~900 chars) was established.
- *
- * function generateRandomString($length = 25) {
- *    $characters = '0123456789';
- *    $charactersLength = strlen($characters);
- *    $randomString = '';
- *    for ($i = 0; $i < $length; $i++) {
- *        $randomString .= $characters[rand(0, $charactersLength - 1)];
- *    }
- *    return $randomString;
- * }
- *
- * # Our starting point
- * $times = 130000;
- *
- * while(true){
- *    $output = @shell_exec("echo ".generateRandomString($times));
- *    if(!preg_match("/[^0-9]+/", $output)){
- *        print "Can't do ".$times;
- *        exit;
- *    }
- *    $times += 1;
- * }
- */
+	/**
+	 * Sends a message to a list of file descriptors (FDs) through the fast internal TCP push listener.
+	 *
+	 * @param array $fd      An array of file descriptors representing the recipients.
+	 * @param array $message An array containing the message to be sent to the specified file descriptors.
+	 *
+	 * @return void
+	 *
+	 * @throws \Throwable If encoding, connection, delivery, or acknowledgement fails.
+	 */
+	public function tcpPush(array $fd, array $message): void
+	{
+		$data = InternalPushProtocol::encodePayload($fd, $message);
+		$ip = trim((string)($_ENV["websocket_internal_ip"] ?? "127.0.0.1"));
+		$port = filter_var($_ENV["websocket_internal_tcp_port"] ?? NULL, FILTER_VALIDATE_INT, [
+			"options" => [
+				"min_range" => 1,
+				"max_range" => 65535,
+			],
+		]);
+
+		if($port === false){
+			throw new \RuntimeException("A valid websocket_internal_tcp_port is required for internal TCP pushes.");
+		}
+
+		$errno = 0;
+		$errstr = NULL;
+		$socket = @stream_socket_client("tcp://{$ip}:{$port}", $errno, $errstr, 0.25, STREAM_CLIENT_CONNECT);
+		if(!$socket){
+			throw new \RuntimeException("Unable to connect to the internal TCP push listener at {$ip}:{$port} ({$errno}: {$errstr}).");
+		}
+
+		try {
+			stream_set_blocking($socket, true);
+			stream_set_timeout($socket, 1);
+			stream_set_write_buffer($socket, 0);
+
+			$written = 0;
+			$length = strlen($data);
+			while($written < $length){
+				$bytes = fwrite($socket, substr($data, $written));
+				if($bytes === false || $bytes === 0){
+					$metadata = stream_get_meta_data($socket);
+					$reason = !empty($metadata["timed_out"]) ? " (write timed out)" : "";
+					throw new \RuntimeException("Unable to write to the internal TCP push listener at {$ip}:{$port}{$reason}.");
+				}
+				$written += $bytes;
+			}
+
+			fflush($socket);
+			$acknowledgement = fgets($socket, 4096);
+
+			if($acknowledgement === false){
+				$metadata = stream_get_meta_data($socket);
+				if(!empty($metadata["timed_out"])){
+					throw new \RuntimeException("The internal TCP push listener did not acknowledge the message within one second.");
+				}
+				throw new \RuntimeException("The internal TCP push listener closed without acknowledging the message.");
+			}
+
+			InternalPushProtocol::assertAcknowledgement($acknowledgement);
+		}
+		finally {
+			fclose($socket);
+		}
+	}
+}
