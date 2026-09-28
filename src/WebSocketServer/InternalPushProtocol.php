@@ -12,12 +12,11 @@ final class InternalPushProtocol {
 	 * @throws \JsonException
 	 * @throws \LengthException
 	 */
-	public static function encodePayload(array $fds, array $message, bool $request_acknowledgement = false): string
+	public static function encodePayload(array $fds, array $message): string
 	{
 		$payload = json_encode([
 			"fd" => self::normaliseFileDescriptors($fds),
 			"data" => $message,
-			"internal_ack" => $request_acknowledgement,
 		], JSON_THROW_ON_ERROR);
 
 		if(strlen($payload) > self::MAX_PAYLOAD_BYTES){
@@ -28,7 +27,7 @@ final class InternalPushProtocol {
 	}
 
 	/**
-	 * @return array{fd: array<int>, data: array, internal_ack: bool}
+	 * @return array{fd: array<int>, data: array}
 	 *
 	 * @throws \JsonException
 	 * @throws \InvalidArgumentException
@@ -54,7 +53,6 @@ final class InternalPushProtocol {
 		return [
 			"fd" => self::normaliseFileDescriptors($decoded["fd"]),
 			"data" => $decoded["data"],
-			"internal_ack" => ($decoded["internal_ack"] ?? false) === true,
 		];
 	}
 

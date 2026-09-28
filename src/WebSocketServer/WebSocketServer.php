@@ -24,6 +24,7 @@ use App\Common\str;
  * websocket_internal_ip="127.0.0.1"                      # Should always be set to 127.0.0.1
  * websocket_internal_port="8080"                         # Internal WebSocket port
  * websocket_internal_tcp_enabled="false"                 # Enable the in-process internal WebSocket sender
+ * websocket_internal_push_secret="..."                   # At least 32 random characters
  */
 class WebSocketServer extends Prototype {
 
@@ -178,6 +179,7 @@ class WebSocketServer extends Prototype {
 		$this->internal_server->on("close", [$this, 'onInternalClose']);
 
 		# External connections
+		$this->external_server->on("request", [$this, 'onInternalPushRequest']);
 		$this->external_server->on("connect", [$this, 'onExternalConnect']);
 		$this->external_server->on("open", [$this, 'onExternalOpen']);
 		$this->external_server->on("message", [$this, 'onExternalMessage']);
@@ -277,53 +279,93 @@ class WebSocketServer extends Prototype {
 	{
 		$this->debugAlert("Internal message from connection [{$frame->fd}]: {$frame->data}");
 
-		# Keep the legacy message path unchanged. Only the in-process sender asks
-		# for an acknowledgement and uses the stricter protocol validation below.
+		# Break open the data string into an array
 		$data_array = json_decode($frame->data, true);
-		if(($data_array["internal_ack"] ?? false) !== true){
-			if(!$data_array['fd']){
-				$this->debugAlert("No recipients identified.");
-				return true;
-			}
 
-			foreach($data_array['fd'] as $id => $fd){
-				if($server->isEstablished($fd)){
-					$server->push($fd, json_encode($data_array['data']));
-				}
-				else {
-					$this->debugAlert("The [{$fd}] connection is no longer established, thus the message was not sent.");
-				}
-			}
-
+		if(!$data_array['fd']){
+			$this->debugAlert("No recipients identified.");
 			return true;
 		}
 
+		# For each recipient (fd), send the (data) message
+		foreach($data_array['fd'] as $id => $fd){
+			if($server->isEstablished($fd)){
+				$server->push($fd, json_encode($data_array['data']));
+			}
+			else {
+				$this->debugAlert("The [{$fd}] connection is no longer established, thus the message was not sent.");
+			}
+
+		}
+
+		return true;
+	}
+
+	/**
+	 * Receive an authenticated push over the primary HTTPS/WSS listener.
+	 * This bypasses additional Swoole listeners, which are not serviced
+	 * reliably by all supported Swoole versions.
+	 */
+	public function onInternalPushRequest(\Swoole\Http\Request $request, \Swoole\Http\Response $response): void
+	{
+		$uri = (string)($request->server["request_uri"] ?? "");
+		if($uri !== "/_internal-push"){
+			$response->status(404);
+			$response->end();
+			return;
+		}
+
+		$remote_ip = (string)($request->server["remote_addr"] ?? "");
+		$configured_secret = (string)($_ENV["websocket_internal_push_secret"] ?? "");
+		$provided_secret = (string)($request->header["x-internal-push-token"] ?? "");
+		if(!$this->isLoopbackAddress($remote_ip)
+			|| strlen($configured_secret) < 32
+			|| !hash_equals($configured_secret, $provided_secret)){
+			$response->status(404);
+			$response->end();
+			return;
+		}
+
+		if(strtoupper((string)($request->server["request_method"] ?? "")) !== "POST"){
+			$response->status(405);
+			$response->header("Allow", "POST");
+			$response->end();
+			return;
+		}
+
+		$response->header("Content-Type", "application/json");
 		try {
-			$payload = InternalPushProtocol::decodePayload($frame->data);
+			$payload = InternalPushProtocol::decodePayload($request->rawContent());
 			$browser_payload = json_encode($payload["data"], JSON_THROW_ON_ERROR);
 			$delivered = 0;
 			$unavailable = 0;
 
 			foreach($payload["fd"] as $recipient_fd){
-				if($server->isEstablished($recipient_fd) && $server->push($recipient_fd, $browser_payload)){
+				if($this->external_server->isEstablished($recipient_fd)
+					&& $this->external_server->push($recipient_fd, $browser_payload)){
 					$delivered++;
 				}
 				else {
 					$unavailable++;
-					$this->debugAlert("The [{$recipient_fd}] connection is no longer established, thus the WebSocket message was not sent.");
 				}
 			}
 
-			if($payload["internal_ack"]){
-				$server->push($frame->fd, InternalPushProtocol::encodeAcknowledgement($delivered, $unavailable));
-			}
+			$response->status(200);
+			$response->end(InternalPushProtocol::encodeAcknowledgement($delivered, $unavailable));
 		}
 		catch(\Throwable $throwable) {
-			$this->debugAlert("Internal WebSocket push failed for connection [{$frame->fd}]: {$throwable->getMessage()}");
-			$server->push($frame->fd, InternalPushProtocol::encodeFailureAcknowledgement($throwable));
+			$this->debugAlert("Internal HTTPS push failed: {$throwable->getMessage()}");
+			$response->status(400);
+			$response->end(InternalPushProtocol::encodeFailureAcknowledgement($throwable));
 		}
+	}
 
-		return true;
+	private function isLoopbackAddress(string $ip): bool
+	{
+		$packed = @inet_pton(trim($ip));
+		return is_string($packed)
+			&& ((strlen($packed) === 4 && ord($packed[0]) === 127)
+				|| $packed === inet_pton("::1"));
 	}
 
 	/**

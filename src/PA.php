@@ -532,7 +532,7 @@ class PA {
 		}
 
 		self::$tcp_fallback_reported = true;
-		error_log("In-process WebSocket push failed; using the legacy WebSocket transport. {$throwable->getMessage()}");
+		error_log("In-process HTTPS WebSocket push failed; using the legacy WebSocket transport. {$throwable->getMessage()}");
 	}
 
 	/**
@@ -628,8 +628,8 @@ class PA {
 	}
 
 	/**
-	 * Sends a message through the existing internal WebSocket listener without
-	 * launching a shell and a second PHP process.
+	 * Sends a message through the primary HTTPS/WSS listener without launching
+	 * a shell and a second PHP process.
 	 *
 	 * @param array $fd      An array of file descriptors representing the recipients.
 	 * @param array $message An array containing the message to be sent to the specified file descriptors.
@@ -640,24 +640,36 @@ class PA {
 	 */
 	public function tcpPush(array $fd, array $message): void
 	{
-		$data = InternalPushProtocol::encodePayload($fd, $message, true);
+		$data = InternalPushProtocol::encodePayload($fd, $message);
 		$ip = trim((string)($_ENV["websocket_internal_ip"] ?? "127.0.0.1"));
-		$port = filter_var($_ENV["websocket_internal_port"] ?? NULL, FILTER_VALIDATE_INT, [
+		$port = filter_var($_ENV["websocket_external_port"] ?? NULL, FILTER_VALIDATE_INT, [
 			"options" => [
 				"min_range" => 1,
 				"max_range" => 65535,
 			],
 		]);
+		$secret = (string)($_ENV["websocket_internal_push_secret"] ?? "");
 
 		if($port === false){
-			throw new \RuntimeException("A valid websocket_internal_port is required for internal WebSocket pushes.");
+			throw new \RuntimeException("A valid websocket_external_port is required for in-process WebSocket pushes.");
+		}
+		if(strlen($secret) < 32 || str_contains($secret, "\r") || str_contains($secret, "\n")){
+			throw new \RuntimeException("websocket_internal_push_secret must contain at least 32 characters and no line breaks.");
 		}
 
+		$context = stream_context_create([
+			"ssl" => [
+				"verify_peer" => false,
+				"verify_peer_name" => false,
+				"allow_self_signed" => true,
+				"SNI_enabled" => false,
+			],
+		]);
 		$errno = 0;
 		$errstr = NULL;
-		$socket = @stream_socket_client("tcp://{$ip}:{$port}", $errno, $errstr, 0.25, STREAM_CLIENT_CONNECT);
+		$socket = @stream_socket_client("tls://{$ip}:{$port}", $errno, $errstr, 0.5, STREAM_CLIENT_CONNECT, $context);
 		if(!$socket){
-			throw new \RuntimeException("Unable to connect to the internal WebSocket listener at {$ip}:{$port} ({$errno}: {$errstr}).");
+			throw new \RuntimeException("Unable to connect to the primary WebSocket listener at {$ip}:{$port} ({$errno}: {$errstr}).");
 		}
 
 		try {
@@ -665,9 +677,19 @@ class PA {
 			stream_set_timeout($socket, 2);
 			stream_set_write_buffer($socket, 0);
 
-			$this->upgradeInternalWebSocket($socket, $ip, $port);
-			$this->writeSocket($socket, $this->encodeClientWebSocketFrame($data));
-			$acknowledgement = $this->readServerWebSocketFrame($socket);
+			$request = "POST /_internal-push HTTP/1.1\r\n"
+				. "Host: {$ip}:{$port}\r\n"
+				. "Content-Type: application/json\r\n"
+				. "Content-Length: " . strlen($data) . "\r\n"
+				. "X-Internal-Push-Token: {$secret}\r\n"
+				. "Connection: close\r\n\r\n"
+				. $data;
+
+			$this->writeSocket($socket, $request);
+			[$status_code, $acknowledgement] = $this->readInternalPushResponse($socket);
+			if($status_code !== 200){
+				throw new \RuntimeException("The internal push endpoint returned HTTP {$status_code}.");
+			}
 			InternalPushProtocol::assertAcknowledgement($acknowledgement);
 		}
 		finally {
@@ -676,39 +698,29 @@ class PA {
 	}
 
 	/**
-	 * Complete a standards-compliant WebSocket upgrade on the internal port.
-	 *
 	 * @param resource $socket
+	 * @return array{0: int, 1: string}
 	 */
-	private function upgradeInternalWebSocket($socket, string $ip, int $port): void
+	private function readInternalPushResponse($socket): array
 	{
-		$key = base64_encode(random_bytes(16));
-		$request = "GET / HTTP/1.1\r\n"
-			. "Host: {$ip}:{$port}\r\n"
-			. "Upgrade: websocket\r\n"
-			. "Connection: Upgrade\r\n"
-			. "Sec-WebSocket-Key: {$key}\r\n"
-			. "Sec-WebSocket-Version: 13\r\n\r\n";
-
-		$this->writeSocket($socket, $request);
-
 		$response = "";
 		while(!str_contains($response, "\r\n\r\n")){
 			$line = fgets($socket, 8192);
 			if($line === false){
-				$this->throwSocketReadFailure($socket, "The internal WebSocket listener did not complete the upgrade");
+				$this->throwSocketReadFailure($socket, "The internal HTTPS push endpoint did not return response headers");
 			}
 			$response .= $line;
 			if(strlen($response) > 16384){
-				throw new \RuntimeException("The internal WebSocket listener returned oversized upgrade headers.");
+				throw new \RuntimeException("The internal HTTPS push endpoint returned oversized response headers.");
 			}
 		}
 
-		$lines = preg_split("/\r\n/", trim($response));
+		$lines = preg_split("/\r\n/", rtrim($response, "\r\n"));
 		$status_line = array_shift($lines);
-		if(!is_string($status_line) || !preg_match('/^HTTP\/1\.[01] 101(?:\s|$)/', $status_line)){
-			throw new \RuntimeException("The internal WebSocket upgrade failed: " . ($status_line ?: "no HTTP status"));
+		if(!is_string($status_line) || !preg_match('/^HTTP\/1\.[01] ([1-5][0-9]{2})(?:\s|$)/', $status_line, $matches)){
+			throw new \RuntimeException("The internal HTTPS push endpoint returned an invalid HTTP status.");
 		}
+		$status_code = (int)$matches[1];
 
 		$headers = [];
 		foreach($lines as $line){
@@ -719,83 +731,51 @@ class PA {
 			$headers[strtolower(trim($name))] = trim($value);
 		}
 
-		$expected_accept = base64_encode(sha1($key . "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", true));
-		$actual_accept = $headers["sec-websocket-accept"] ?? "";
-		if(!is_string($actual_accept) || !hash_equals($expected_accept, $actual_accept)){
-			throw new \RuntimeException("The internal WebSocket listener returned an invalid upgrade acknowledgement.");
+		$content_length = $headers["content-length"] ?? NULL;
+		if(is_string($content_length) && ctype_digit($content_length)){
+			$length = (int)$content_length;
+			if($length > 65535){
+				throw new \RuntimeException("The internal HTTPS push endpoint returned an oversized response.");
+			}
+			$body = $this->readSocketBytes($socket, $length, "The internal HTTPS push response ended early");
 		}
-	}
-
-	private function encodeClientWebSocketFrame(string $payload, int $opcode = 0x1): string
-	{
-		$length = strlen($payload);
-		$frame = chr(0x80 | ($opcode & 0x0f));
-
-		if($length <= 125){
-			$frame .= chr(0x80 | $length);
-		}
-		elseif($length <= 65535){
-			$frame .= chr(0x80 | 126) . pack("n", $length);
+		elseif(str_contains(strtolower((string)($headers["transfer-encoding"] ?? "")), "chunked")){
+			$body = $this->readChunkedResponseBody($socket);
 		}
 		else {
-			$frame .= chr(0x80 | 127) . pack("NN", 0, $length);
+			$body = stream_get_contents($socket, 65536);
+			if($body === false){
+				$this->throwSocketReadFailure($socket, "The internal HTTPS push endpoint did not return a response body");
+			}
 		}
 
-		$mask = random_bytes(4);
-		$mask_bytes = str_repeat($mask, (int)ceil($length / 4));
-		return $frame . $mask . ($payload ^ substr($mask_bytes, 0, $length));
+		return [$status_code, $body];
 	}
 
 	/**
 	 * @param resource $socket
 	 */
-	private function readServerWebSocketFrame($socket): string
+	private function readChunkedResponseBody($socket): string
 	{
+		$body = "";
 		while(true){
-			$header = $this->readSocketBytes($socket, 2);
-			$first = ord($header[0]);
-			$second = ord($header[1]);
-			$final = ($first & 0x80) !== 0;
-			$opcode = $first & 0x0f;
-			$masked = ($second & 0x80) !== 0;
-			$length = $second & 0x7f;
-
-			if($length === 126){
-				$length = unpack("nlength", $this->readSocketBytes($socket, 2))["length"];
+			$line = fgets($socket, 128);
+			if($line === false){
+				$this->throwSocketReadFailure($socket, "The internal HTTPS push response ended early");
 			}
-			elseif($length === 127){
-				$parts = unpack("Nhigh/Nlow", $this->readSocketBytes($socket, 8));
-				if($parts["high"] !== 0){
-					throw new \RuntimeException("The internal WebSocket acknowledgement is too large.");
-				}
-				$length = $parts["low"];
+			$size_token = trim(explode(";", $line, 2)[0]);
+			if($size_token === "" || !ctype_xdigit($size_token)){
+				throw new \RuntimeException("The internal HTTPS push endpoint returned invalid chunk framing.");
 			}
-
-			if($length > 65535){
-				throw new \RuntimeException("The internal WebSocket acknowledgement is too large.");
+			$size = hexdec($size_token);
+			if($size === 0){
+				return $body;
 			}
-
-			$mask = $masked ? $this->readSocketBytes($socket, 4) : "";
-			$payload = $length ? $this->readSocketBytes($socket, $length) : "";
-			if($masked){
-				$payload ^= substr(str_repeat($mask, (int)ceil($length / 4)), 0, $length);
+			if($size > 65535 || strlen($body) + $size > 65535){
+				throw new \RuntimeException("The internal HTTPS push endpoint returned an oversized response.");
 			}
-
-			if($opcode === 0x8){
-				throw new \RuntimeException("The internal WebSocket listener closed before acknowledging the message.");
-			}
-			if($opcode === 0x9){
-				$this->writeSocket($socket, $this->encodeClientWebSocketFrame($payload, 0xA));
-				continue;
-			}
-			if($opcode === 0xA){
-				continue;
-			}
-			if(!$final || $opcode !== 0x1){
-				throw new \RuntimeException("The internal WebSocket listener returned an unsupported acknowledgement frame.");
-			}
-
-			return $payload;
+			$body .= $this->readSocketBytes($socket, $size, "The internal HTTPS push response ended early");
+			$this->readSocketBytes($socket, 2, "The internal HTTPS push response ended early");
 		}
 	}
 
@@ -811,7 +791,7 @@ class PA {
 			if($bytes === false || $bytes === 0){
 				$metadata = stream_get_meta_data($socket);
 				$reason = !empty($metadata["timed_out"]) ? " (write timed out)" : "";
-				throw new \RuntimeException("Unable to write to the internal WebSocket listener{$reason}.");
+				throw new \RuntimeException("Unable to write to the internal HTTPS push endpoint{$reason}.");
 			}
 			$written += $bytes;
 		}
@@ -821,13 +801,13 @@ class PA {
 	/**
 	 * @param resource $socket
 	 */
-	private function readSocketBytes($socket, int $length): string
+	private function readSocketBytes($socket, int $length, string $failure_message): string
 	{
 		$data = "";
 		while(strlen($data) < $length){
 			$chunk = fread($socket, $length - strlen($data));
 			if($chunk === false || $chunk === ""){
-				$this->throwSocketReadFailure($socket, "The internal WebSocket listener did not acknowledge the message");
+				$this->throwSocketReadFailure($socket, $failure_message);
 			}
 			$data .= $chunk;
 		}
