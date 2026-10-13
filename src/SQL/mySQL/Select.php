@@ -445,7 +445,7 @@ class Select extends Common {
 			}
 			if($except_alias){
 				if(in_array($alias, $except_alias)){
-					continue;
+					$conditions = $this->getProjectedOrderBy($conditions, $except_alias);
 				}
 			}
 			$order_by = array_merge($order_by ?: [], $conditions ?: []);
@@ -457,6 +457,28 @@ class Select extends Common {
 		}
 
 		return "ORDER BY " . implode(",\r\n", $order_by);
+	}
+
+	private function getProjectedOrderBy(?array $conditions, array $aliases): array
+	{
+		foreach($conditions ?: [] as $condition){
+			foreach($this->getAllColumns($aliases) as $column){
+				$name = ($column['alias'] ?? NULL) ?: ($column['name'] ?? NULL);
+				$references = array_filter([
+					!empty($column['table_alias']) && !empty($column['name']) ? "`{$column['table_alias']}`.`{$column['name']}`" : NULL,
+					!empty($column['alias']) ? "`{$column['alias']}`" : NULL,
+				]);
+
+				foreach($references as $reference){
+					if(preg_match("/^" . preg_quote($reference, "/") . "\\s+(ASC|DESC)$/i", $condition, $match)){
+						$order_by[] = "`{$this->table['alias']}`.`{$name}` {$match[1]}";
+						continue 3;
+					}
+				}
+			}
+		}
+
+		return $order_by ?: [];
 	}
 
 	/**

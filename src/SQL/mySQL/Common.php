@@ -3296,7 +3296,7 @@ abstract class Common {
 			}
 
 			# Column
-			if($key = array_search($col, array_column($columns ?: [], 'name')) !== false){
+			if(($key = array_search($col, array_column($columns ?: [], 'name'), true)) !== false){
 				//if the column being ordered is the name of a column
 
 				# Set the table as a table that has an order
@@ -3307,7 +3307,7 @@ abstract class Common {
 			}
 
 			# Alias
-			if($key = array_search($col, array_column($columns ?: [], 'alias')) !== false){
+			if(($key = array_search($col, array_column($columns ?: [], 'alias'), true)) !== false){
 				//if the column being ordered is the alias of a column
 
 				# Set the table as a table that has an order
