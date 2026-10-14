@@ -83,7 +83,7 @@ class str {
 	 *
 	 * @return string|null
 	 */
-	public static function setScripts(?string $string): ?string
+	public static function setScripts(?string $string, ?array $style = []): ?string
 	{
 		if(!$string){
 			return $string;
@@ -97,6 +97,10 @@ class str {
 		$words = explode(" ", $string);
 		$scripted_words = [];
 
+		if($style){
+			$style_tag = str::getAttrTag("style", $style);
+		}
+
 		for($i = 0; $i < count($words); $i++){
 
 			# Cyrillic
@@ -107,7 +111,7 @@ class str {
 			}
 			if($cyrillic_words){
 				$cyrillic_words = implode(" ", $cyrillic_words);
-				$scripted_words[] = "<span class=\"script-cyrillic\">$cyrillic_words</span>";
+				$scripted_words[] = "<span class=\"script-cyrillic\"{$style_tag}>$cyrillic_words</span>";
 			}
 
 			# Arabic
@@ -118,7 +122,7 @@ class str {
 			}
 			if($arabic_words){
 				$arabic_words = implode(" ", $arabic_words);
-				$scripted_words[] = "<span class=\"script-arabic\">$arabic_words</span>";
+				$scripted_words[] = "<span class=\"script-arabic\"{$style_tag}>$arabic_words</span>";
 			}
 
 			$scripted_words[] = $words[$i];
