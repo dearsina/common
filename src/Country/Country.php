@@ -13,6 +13,10 @@ use App\UI\Icon;
 use App\Workflow\Workflow;
 
 class Country extends Prototype {
+	public const CODE_FORMAT_SETTING = "country_code_format";
+	public const ALPHA_2 = "alpha-2";
+	public const ALPHA_3 = "alpha-3";
+
 	const CURRENCY_EXCEPTIONS = [
 		"AUD" => [
 			"icon" => [
@@ -301,6 +305,265 @@ class Country extends Prototype {
 		}
 
 		return $country_options;
+	}
+
+	/**
+	 * Resolve the ISO country-code format configured for a form field.
+	 *
+	 * Alpha-2 is the backward-compatible default. Alpha-3 is returned only when
+	 * the {@see self::CODE_FORMAT_SETTING} setting explicitly contains
+	 * {@see self::ALPHA_3}; missing, NULL, or unsupported values fall back to
+	 * {@see self::ALPHA_2}.
+	 *
+	 * @param array{country_code_format?: string}|null $settings Form-field settings containing the optional storage format.
+	 *
+	 * @return string One of {@see self::ALPHA_2} or {@see self::ALPHA_3}.
+	 */
+	public static function getStorageFormat(?array $settings = NULL): string
+	{
+		return ($settings[self::CODE_FORMAT_SETTING] ?? NULL) === self::ALPHA_3
+			? self::ALPHA_3
+			: self::ALPHA_2;
+	}
+
+	/**
+	 * Return the country-table column associated with the configured code format.
+	 *
+	 * The returned column can be passed to {@see self::getCountryCode()} as its
+	 * return column, allowing any recognised country representation to be
+	 * converted directly to the configured storage value.
+	 *
+	 * @param array{country_code_format?: string}|null $settings Form-field settings containing the optional storage format.
+	 *
+	 * @return string `country_code` for alpha-2 or `iso_alpha-3` for alpha-3.
+	 */
+	public static function getCodeColumn(?array $settings = NULL): string
+	{
+		return self::getStorageFormat($settings) === self::ALPHA_3
+			? "iso_alpha-3"
+			: "country_code";
+	}
+
+	/**
+	 * Return the number of characters required by the configured ISO code format.
+	 *
+	 * @param array{country_code_format?: string}|null $settings Form-field settings containing the optional storage format.
+	 *
+	 * @return int `2` for alpha-2 or `3` for alpha-3.
+	 */
+	public static function getCodeLength(?array $settings = NULL): int
+	{
+		return self::getStorageFormat($settings) === self::ALPHA_3 ? 3 : 2;
+	}
+
+	/**
+	 * Convert a recognised country representation to the configured stored code.
+	 *
+	 * Alpha-2 codes, alpha-3 codes, alternative alpha-3 codes, country names,
+	 * alternative names, and nationalities are accepted through
+	 * {@see self::getCountryCode()}. The returned code is always uppercase.
+	 * NULL and blank strings are returned unchanged, while an unrecognised
+	 * non-blank value returns NULL.
+	 *
+	 * @param string|null                              $value    Country code, name, nationality, NULL, or a blank string.
+	 * @param array{country_code_format?: string}|null $settings Form-field settings containing the desired storage format.
+	 *
+	 * @return string|null The uppercase alpha-2/alpha-3 code, the unchanged empty value, or NULL when unrecognised.
+	 * @throws \Exception If the country reference data cannot be loaded.
+	 */
+	public static function normalise(?string $value, ?array $settings = NULL): ?string
+	{
+		if($value === NULL || trim($value) === ""){
+			return $value;
+		}
+
+		$code = self::getCountryCode($value, NULL, self::getCodeColumn($settings));
+		return $code ? strtoupper($code) : NULL;
+	}
+
+	/**
+	 * Recursively normalise one or more country values for storage.
+	 *
+	 * Arrays are traversed recursively without reindexing, so associative and
+	 * multiplier keys are retained. Every non-NULL scalar value is cast to a
+	 * string and passed to {@see self::normalise()}; NULL remains NULL.
+	 *
+	 * @param mixed                                      $value    Scalar country value, nested array of values, or NULL.
+	 * @param array{country_code_format?: string}|null   $settings Form-field settings containing the desired storage format.
+	 *
+	 * @return mixed The normalised scalar, NULL, or an array matching the input shape.
+	 * @throws \Exception If the country reference data cannot be loaded.
+	 */
+	public static function normaliseValue($value, ?array $settings = NULL)
+	{
+		if(is_array($value)){
+			foreach($value as $key => $item){
+				$value[$key] = self::normaliseValue($item, $settings);
+			}
+			return $value;
+		}
+
+		if($value === NULL){
+			return NULL;
+		}
+
+		return self::normalise((string)$value, $settings);
+	}
+
+	/**
+	 * Normalise a database-shaped scalar, array, or JSON-encoded array.
+	 *
+	 * A string containing a valid JSON array is decoded, recursively normalised,
+	 * and JSON-encoded again so its database representation remains a string.
+	 * Native arrays remain arrays, and all other values are handled by
+	 * {@see self::normaliseValue()}.
+	 *
+	 * @param mixed                                    $value    Stored scalar, native array, JSON-encoded array, or NULL.
+	 * @param array{country_code_format?: string}|null $settings Form-field settings containing the desired storage format.
+	 *
+	 * @return mixed A normalised value preserving whether an input array was native or JSON encoded.
+	 * @throws \Exception If the country reference data cannot be loaded.
+	 */
+	public static function normaliseStoredValue($value, ?array $settings = NULL)
+	{
+		if(is_string($value)){
+			$decoded = json_decode($value, true);
+			if(json_last_error() === JSON_ERROR_NONE && is_array($decoded)){
+				return json_encode(self::normaliseValue($decoded, $settings));
+			}
+		}
+
+		return self::normaliseValue($value, $settings);
+	}
+
+	/**
+	 * Determine whether a submitted value is a valid code in the configured format.
+	 *
+	 * Validation is case-insensitive but format-sensitive: an alpha-2 code is not
+	 * valid for an alpha-3 field, and vice versa. Country names and nationalities
+	 * are deliberately rejected even when they identify a known country. NULL and
+	 * blank values are valid here because required-field validation is handled by
+	 * the caller.
+	 *
+	 * @param string|null                              $value    Submitted country code, NULL, or a blank string.
+	 * @param array{country_code_format?: string}|null $settings Form-field settings containing the required code format.
+	 *
+	 * @return bool TRUE when the value is blank or exactly represents a known code in the configured format.
+	 * @throws \Exception If the country reference data cannot be loaded.
+	 */
+	public static function isValidStoredCode(?string $value, ?array $settings = NULL): bool
+	{
+		if($value === NULL || trim($value) === ""){
+			return true;
+		}
+
+		$normalised = self::normalise($value, $settings);
+		return $normalised !== NULL && $normalised === strtoupper(trim($value));
+	}
+
+	/**
+	 * Resolve a country value to its full canonical country name for display.
+	 *
+	 * Both alpha-2 and alpha-3 codes are supported, as are the other country
+	 * representations recognised by {@see self::getCountryCode()}. NULL and blank
+	 * strings are returned unchanged. Unknown values are also returned unchanged
+	 * so historical or externally supplied data remains visible to the user.
+	 *
+	 * @param string|null $value Country code, name, nationality, NULL, or a blank string.
+	 *
+	 * @return string|null The canonical country name, or the original value when empty or unrecognised.
+	 * @throws \Exception If the country reference data cannot be loaded.
+	 */
+	public static function getName(?string $value): ?string
+	{
+		if($value === NULL || trim($value) === ""){
+			return $value;
+		}
+
+		if(!$iso2 = self::getCountryCode($value)){
+			return $value;
+		}
+
+		return self::getCountryFromISOAlpha2($iso2) ?: $value;
+	}
+
+	/**
+	 * Build country dropdown options keyed by the configured stored-code format.
+	 *
+	 * Option labels always remain full country names. When `$formatted` is TRUE,
+	 * each value also contains the existing flag-icon metadata. The `only` and
+	 * `except` filters may contain any country representation recognised by
+	 * {@see self::getCountryCode()}; they are canonicalised to alpha-2 internally
+	 * so existing geofencing settings remain compatible. Exclusions take
+	 * precedence when the same country appears in both filters.
+	 *
+	 * @param bool|null                                 $formatted        TRUE for title/icon option arrays; otherwise plain names.
+	 * @param string|null                               $language_id      Optional language UUID used to translate country names.
+	 * @param array{country_code_format?: string}|null  $settings         Form-field settings containing the desired option-key format.
+	 * @param array<array-key, string>|null             $only_countries   Optional allow-list of country codes, names, or nationalities.
+	 * @param array<array-key, string>|null             $except_countries Optional deny-list of country codes, names, or nationalities.
+	 *
+	 * @return array<string, string|array<string, mixed>> Options keyed by uppercase alpha-2 or alpha-3 country code.
+	 * @throws \Exception If country or translation reference data cannot be loaded.
+	 */
+	public static function getOptions(
+		?bool $formatted = NULL,
+		?string $language_id = NULL,
+		?array $settings = NULL,
+		?array $only_countries = NULL,
+		?array $except_countries = NULL
+	): array {
+		$options = self::getAllCountries($formatted, $language_id);
+		$country_options = [];
+		$only = self::getIso2Lookup($only_countries);
+		$except = self::getIso2Lookup($except_countries);
+		$has_only_filter = (bool)$only_countries;
+
+		foreach($options as $iso2 => $option){
+			$iso2 = strtoupper($iso2);
+
+			if(($has_only_filter && !isset($only[$iso2])) || isset($except[$iso2])){
+				continue;
+			}
+
+			if(self::getStorageFormat($settings) !== self::ALPHA_3){
+				$country_options[$iso2] = $option;
+				continue;
+			}
+
+			$iso3 = self::convertIso2toIso3($iso2);
+			if(!$iso3 || $iso3 === $iso2){
+				continue;
+			}
+
+			$country_options[strtoupper($iso3)] = $option;
+		}
+
+		return $country_options;
+	}
+
+	/**
+	 * Canonicalise a country filter into an alpha-2 lookup set.
+	 *
+	 * Unrecognised values are omitted. The lookup is used internally for constant-
+	 * time allow-list and deny-list checks while building country options.
+	 *
+	 * @param array<array-key, string>|null $countries Country codes, names, or nationalities to canonicalise.
+	 *
+	 * @return array<string, true> Uppercase alpha-2 codes as keys with TRUE values.
+	 * @throws \Exception If the country reference data cannot be loaded.
+	 */
+	private static function getIso2Lookup(?array $countries): array
+	{
+		$lookup = [];
+
+		foreach($countries ?: [] as $country){
+			if($iso2 = self::getCountryCode((string)$country)){
+				$lookup[strtoupper($iso2)] = true;
+			}
+		}
+
+		return $lookup;
 	}
 
 	public static function getIconFromISOAlpha2(?string $iso2): ?array
