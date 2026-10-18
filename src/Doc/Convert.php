@@ -448,22 +448,23 @@ class Convert {
 		$original = Convert::makeCopy($file, __FUNCTION__);
 
 		# Command
-		$command = "dwebp {$file['tmp_name']} -quiet -o {$quality} {$file['tmp_name']}.png";
+		$output_file = $file['tmp_name'] . ".png";
+		$command = "dwebp -quiet " . escapeshellarg($file['tmp_name']) . " -o " . escapeshellarg($output_file) . " 2>&1";
 		// -quiet means that it won't output anything unless there is an error
 
-		$output = shell_exec($command);
-		// If the command has an output (that's bad news)
+		exec($command, $output, $exit_code);
+		// A non-zero exit code or missing output file means conversion failed.
 
 		# Return the last bit of the output, which is generally the error message
-		if($output){
-			throw new \Exception(trim($output));
+		if($exit_code !== 0 || !is_file($output_file)){
+			throw new \Exception(trim(implode("\n", $output)) ?: "The WebP image could not be converted to PNG.");
 		}
 
 		# Remove the original webp file
-		exec("rm {$file['tmp_name']}");
+		@unlink($file['tmp_name']);
 
-		# Add the jpg suffix to the tmp name (to reflect the conversion to PNG)
-		$file['tmp_name'] .= ".png";
+		# Add the PNG suffix to the tmp name (to reflect the conversion to PNG)
+		$file['tmp_name'] = $output_file;
 
 		/**
 		 * Data fetched by filesize() is "statcached",
