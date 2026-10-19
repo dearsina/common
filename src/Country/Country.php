@@ -500,8 +500,8 @@ class Country extends Prototype {
 	 * @param bool|null                                 $formatted        TRUE for title/icon option arrays; otherwise plain names.
 	 * @param string|null                               $language_id      Optional language UUID used to translate country names.
 	 * @param array{country_code_format?: string}|null  $settings         Form-field settings containing the desired option-key format.
-	 * @param array<array-key, string>|null             $only_countries   Optional allow-list of country codes, names, or nationalities.
-	 * @param array<array-key, string>|null             $except_countries Optional deny-list of country codes, names, or nationalities.
+	 * @param array<array-key, string>|string|null      $only_countries   Optional allow-list, either decoded or JSON encoded.
+	 * @param array<array-key, string>|string|null      $except_countries Optional deny-list, either decoded or JSON encoded.
 	 *
 	 * @return array<string, string|array<string, mixed>> Options keyed by uppercase alpha-2 or alpha-3 country code.
 	 * @throws \Exception If country or translation reference data cannot be loaded.
@@ -510,11 +510,13 @@ class Country extends Prototype {
 		?bool $formatted = NULL,
 		?string $language_id = NULL,
 		?array $settings = NULL,
-		?array $only_countries = NULL,
-		?array $except_countries = NULL
+		array|string|null $only_countries = NULL,
+		array|string|null $except_countries = NULL
 	): array {
 		$options = self::getAllCountries($formatted, $language_id);
 		$country_options = [];
+		$only_countries = self::normaliseCountryFilter($only_countries);
+		$except_countries = self::normaliseCountryFilter($except_countries);
 		$only = self::getIso2Lookup($only_countries);
 		$except = self::getIso2Lookup($except_countries);
 		$has_only_filter = (bool)$only_countries;
@@ -540,6 +542,31 @@ class Country extends Prototype {
 		}
 
 		return $country_options;
+	}
+
+	/**
+	 * Convert a decoded, JSON-encoded, or scalar country filter to an array.
+	 *
+	 * @param array<array-key, string>|string|null $countries Stored country-filter value.
+	 *
+	 * @return array<array-key, string> Country values in array form.
+	 */
+	private static function normaliseCountryFilter(array|string|null $countries): array
+	{
+		if(is_array($countries)){
+			return $countries;
+		}
+
+		if($countries === NULL || trim($countries) === ""){
+			return [];
+		}
+
+		$decoded = json_decode($countries, true);
+		if(json_last_error() === JSON_ERROR_NONE && is_array($decoded)){
+			return $decoded;
+		}
+
+		return [$countries];
 	}
 
 	/**
