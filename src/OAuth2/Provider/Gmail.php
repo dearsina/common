@@ -52,7 +52,7 @@ class Gmail extends Prototype implements EmailProviderInterface {
 
 		// Construct email message
 		$email = new \Google_Service_Gmail_Message();
-		$email->setRaw($this->base64url_encode($message->getEnvelope()->toString()));
+		$email->setRaw($this->base64url_encode($message->toString()));
 
 		// Send the email
 		try {
