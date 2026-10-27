@@ -474,12 +474,11 @@ EOF;
 	 *
 	 * @param string $tab_title
 	 *
-	 * @return bool
+	 * @return void
 	 */
-	public function tabTitle(string $tab_title): bool
+	public function tabTitle(string $tab_title): void
 	{
-		$this->output['tab_title'] = $tab_title;
-		return true;
+		$this->output['tab_title'] = strip_tags($tab_title);
 	}
 
 	/**
@@ -488,11 +487,11 @@ EOF;
 	 * @param $type
 	 * @param $data
 	 *
-	 * @return mixed
+	 * @return void
 	 */
-	public function setVar($type, $data)
+	public function setVar($type, $data): void
 	{
-		return $this->output[$type] = $data;
+		$this->output[$type] = $data;
 	}
 
 	/**
