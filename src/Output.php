@@ -470,15 +470,16 @@ EOF;
 	}
 
 	/**
-	 * Set the title of the page.
+	 * Set the title of the browser tab.
 	 *
-	 * @param $page_title
+	 * @param string $tab_title
 	 *
 	 * @return bool
 	 */
-	public function pageTitle($page_title)
+	public function tabTitle(string $tab_title): bool
 	{
-		return $this->setData("page_title", NULL, $page_title);
+		$this->output['tab_title'] = $tab_title;
+		return true;
 	}
 
 	/**
