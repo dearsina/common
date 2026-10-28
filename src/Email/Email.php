@@ -12,10 +12,18 @@ use App\Common\SQL\Info\Info;
 use App\Common\str;
 use App\Subscription\SubscriptionHandler;
 use App\SubscriptionEmail\SubscriptionEmail;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Crypto\DkimSigner;
+use Symfony\Component\Mime\Email as MimeEmail;
+use Symfony\Component\Mime\Part\DataPart;
 
 /**
  * Class Email
- * A wrapper for the Swift_Message() class.
+ * A wrapper for the Symfony Mime Email class, sent with Symfony Mailer.
  * @package App\Common
  */
 class Email extends Prototype {
@@ -31,8 +39,8 @@ class Email extends Prototype {
 	const MAX_TRIES = 5;
 
 	/**
-	 * Contains the swift message envelope
-	 * @var \Swift_Message
+	 * Contains the Symfony email message
+	 * @var MimeEmail
 	 */
 	public $envelope;
 
@@ -100,12 +108,12 @@ class Email extends Prototype {
 	public function __construct(?array $subscription_email = NULL)
 	{
 		# Create the envelope that will contain the email metadata and message
-		$this->envelope = new \Swift_Message();
+		$this->envelope = new MimeEmail();
 
 		# If an OAuth2 token has been passed and can be loaded, load it
 		if($subscription_email['oauth_token_id']){
 			$this->oauth_token = $this->info("oauth_token", $subscription_email['oauth_token_id']);
-			// We're still going to load the SwiftMessage as a fallback
+			// We're still going to load the message as a fallback
 		}
 
 		# If we have custom SMTP settings, set them
@@ -130,6 +138,12 @@ class Email extends Prototype {
 		# Set the From address
 		$this->setFrom($subscription_email);
 		// Will vary if there is an oAuth token
+
+		# Fix the message ID for all other emails too
+		if(!$this->envelope->getHeaders()->has('Message-ID')){
+			$this->envelope->getHeaders()->addIdHeader('Message-ID', $this->envelope->generateMessageId());
+		}
+		// Symfony otherwise generates a new one every time the message is rendered, so the stored copy wouldn't match the sent one
 
 		# Set the default email format (include the OAuth token if one is set)
 		$this->format = array_merge(
@@ -200,17 +214,66 @@ class Email extends Prototype {
 	protected function setFrom(?array $subscription_email = NULL): void
 	{
 		[$from_email, $from_name] = Email::getFrom($subscription_email);
-		$this->envelope->setFrom([$from_email => $from_name]);
+		$this->envelope->from(self::address($from_email, $from_name));
 	}
 
 	/**
-	 * Returns the entire underlying Swift Message object.
+	 * Converts an email/name pair into a Symfony address.
+	 * Names that are just the email address repeated are dropped.
 	 *
-	 * @return \Swift_Message
+	 * @param string      $email
+	 * @param string|null $name
+	 *
+	 * @return Address
 	 */
-	public function getEnvelope(): \Swift_Message
+	protected static function address(string $email, ?string $name = NULL): Address
+	{
+		return new Address($email, $name && $name != $email ? $name : '');
+	}
+
+	/**
+	 * Returns the entire underlying Symfony Email object.
+	 *
+	 * @return MimeEmail
+	 */
+	public function getEnvelope(): MimeEmail
 	{
 		return $this->envelope;
+	}
+
+	/**
+	 * Returns the From address(es) as email => name pairs.
+	 * Not to be confused with the static getFrom(),
+	 * which works out who the sender should be.
+	 *
+	 * @return array
+	 */
+	public function getFromAddresses(): array
+	{
+		foreach($this->envelope->getFrom() as $address){
+			$addresses[$address->getAddress()] = $address->getName() ?: $address->getAddress();
+		}
+
+		return $addresses ?? [];
+	}
+
+	/**
+	 * Returns the entire message in MIME format, Bcc header included.
+	 * Symfony leaves the Bcc header out of its own toString(),
+	 * but providers that send the raw message (Gmail) need it,
+	 * and it's kept in the stored copies of the message.
+	 *
+	 * @return string
+	 */
+	public function toString(): string
+	{
+		$headers = $this->envelope->getPreparedHeaders();
+
+		if($bcc = $this->envelope->getBcc()){
+			$headers->addMailboxListHeader('Bcc', $bcc);
+		}
+
+		return $headers->toString() . $this->envelope->getBody()->toString();
 	}
 
 	public function format(?array $format = NULL): object
@@ -228,7 +291,7 @@ class Email extends Prototype {
 	 */
 	public function from(string $from): object
 	{
-		$this->envelope->setFrom([$_ENV['email_username'] => $_ENV['email_name']]);
+		$this->envelope->from(self::address($_ENV['email_username'], $_ENV['email_name']));
 
 		return $this;
 	}
@@ -250,7 +313,7 @@ class Email extends Prototype {
 			return $this;
 		}
 
-		$this->envelope->setReplyTo($email, $name);
+		$this->envelope->replyTo(self::address($email, $name));
 
 		return $this;
 	}
@@ -308,8 +371,8 @@ class Email extends Prototype {
 			throw new \Exception("An email was attempted sent without a subject line.");
 		}
 
-		# Set the subject line for the Swift Message
-		$this->envelope->setSubject($subject);
+		# Set the subject line for the message
+		$this->envelope->subject($subject);
 
 		# Set the subject class variable
 		$this->subject = $subject;
@@ -366,14 +429,11 @@ class Email extends Prototype {
 		# Convert images to CIDs
 		$message = $this->convertImages($message);
 
-		$this->envelope->setContentType('text/html');
-		$this->envelope->setCharset('utf-8');
-
 		# Set the HTML body
-		$this->envelope->setBody($message, 'text/html');
+		$this->envelope->html($message, 'utf-8');
 
 		# Create and set the text version
-		$this->envelope->addPart($this->generateTextVersion($message), 'text/plain');
+		$this->envelope->text($this->generateTextVersion($message), 'utf-8');
 
 		$this->htmlBody = $message;
 		$this->textBody = $this->generateTextVersion($message);
@@ -447,7 +507,7 @@ class Email extends Prototype {
 			# Local file
 			if(substr($image_path, 0, 1) == "/"){
 				//If this is a local file
-				$image_file = \Swift_Image::fromPath($image_path);
+				$image_file = DataPart::fromPath($image_path);
 			}
 
 			# Base64 image data
@@ -460,7 +520,7 @@ class Email extends Prototype {
 				$base64 = $image_data[2];
 				$filename = str::id("image") . ".{$ext}";
 
-				$image_file = new \Swift_Image(base64_decode($base64), $filename, $content_type);
+				$image_file = new DataPart(base64_decode($base64), $filename, $content_type);
 			}
 
 			# External file
@@ -494,14 +554,11 @@ class Email extends Prototype {
 				$mime_type = $finfo->buffer($data);
 
 				# Create image file
-				$image_file = new \Swift_Image($data, $filename, $mime_type);
-
-				# Set the disposition to be inline (not sure if we need this)
-				$image_file->setDisposition('inline');
+				$image_file = new DataPart($data, $filename, $mime_type);
 			}
 
 			# Create a CID
-			$cid = $this->envelope->embed($image_file);
+			$cid = $this->embed($image_file);
 
 			# Return the img tag with the CID instead of the file reference
 			return "<img src=\"{$cid}\" {$img_tag[3]}>";
@@ -526,10 +583,10 @@ class Email extends Prototype {
 				$mime_type = $matches[1][$id];
 
 				# Create image file
-				$image_file = new \Swift_Image($data, $filename, $mime_type);
+				$image_file = new DataPart($data, $filename, $mime_type);
 
 				# Create a CID
-				$cid = $this->envelope->embed($image_file);
+				$cid = $this->embed($image_file);
 
 				# Replace the entire src tag with the CID
 				$message = str_replace("data:{$matches[1][$id]};base64,{$base64}", $cid, $message);
@@ -537,6 +594,21 @@ class Email extends Prototype {
 		}
 
 		return $message;
+	}
+
+	/**
+	 * Embeds an image inline in the message,
+	 * and returns the CID to reference it by.
+	 *
+	 * @param DataPart $image
+	 *
+	 * @return string
+	 */
+	private function embed(DataPart $image): string
+	{
+		$this->envelope->addPart($image->asInline());
+
+		return "cid:{$image->getContentId()}";
 	}
 
 	public function headers(?array $a = NULL): object
@@ -587,7 +659,7 @@ class Email extends Prototype {
 
 		foreach($attachments as $attachment){
 
-			$this->envelope->attach(\Swift_Attachment::fromPath($attachment['path'])->setFilename($attachment['filename']));
+			$this->envelope->attachFromPath($attachment['path'], $attachment['filename']);
 		}
 
 		$this->attachments = $attachments;
@@ -642,8 +714,8 @@ class Email extends Prototype {
 			}
 		}
 
-		$method = "set" . ucwords($type);
-		$this->envelope->{$method}($recipients);
+		$addresses = array_map(self::address(...), array_keys($recipients), $recipients);
+		$this->envelope->{$type}(...$addresses);
 		$this->{$type} = $recipients;
 
 		return $this;
@@ -741,7 +813,7 @@ class Email extends Prototype {
 			Log::getInstance()->info([
 				"icon" => "email",
 				"title" => $this->envelope->getSubject(),
-				"message" => $this->envelope->getBody(),
+				"message" => $this->envelope->getHtmlBody(),
 			]);
 			return true;
 		}
@@ -787,7 +859,7 @@ class Email extends Prototype {
 
 		try {
 			# Send the email
-			@$mailer->send($this->envelope);
+			@$this->sendWith($mailer);
 			// Supress warnings
 		}
 
@@ -795,7 +867,7 @@ class Email extends Prototype {
 			# Expected response code 250 but got code "554", with message "554 5.2.270 MapiExceptionMaxSubmissionExceeded; Message size exceeds maximum size limit.
 			if($e->getCode() == 554 && strpos($e->getMessage(), "554 5.2.270") !== false){
 				# Collect recipients
-				$recipients = array_filter(array_merge($this->envelope->getTo() ?:[], $this->envelope->getCc()?:[], $this->envelope->getBcc()?:[]));
+				$recipients = array_filter(array_merge($this->getTo() ?:[], $this->getCc()?:[], $this->getBcc()?:[]));
 
 				\App\Email\Email::notifyAdmins([
 					"subject" => "544 5.2.270 Message size exceeds maximum size limit email error",
@@ -825,8 +897,8 @@ class Email extends Prototype {
 				// Keep re-trying, but don't send a notice to the admins
 			}
 
-			# Connection to tcp://smtp.office365.com:587 Timed Out
-			else if(strpos($e->getMessage(), "Timed Out") !== false){
+			# Connection to "tcp://smtp.office365.com:587" timed out.
+			else if(stripos($e->getMessage(), "Timed Out") !== false){
 				// Keep re-trying, but don't send a notice to the admins
 			}
 
@@ -838,15 +910,15 @@ class Email extends Prototype {
 			# For all other errors, notify the admins
 			else {
 				# Collect recipients
-				if($to_recipients  = $this->envelope->getTo()){
+				if($to_recipients  = $this->getTo()){
 					$to_recipients = implode(", ", $to_recipients);
 					$recipients[] = "to {$to_recipients}";
 				}
-				if($cc_recipients  = $this->envelope->getCc()){
+				if($cc_recipients  = $this->getCc()){
 					$cc_recipients = implode(", ", $cc_recipients);
 					$recipients[] = "CC {$cc_recipients}";
 				}
-				if($bcc_recipients = $this->envelope->getBcc()){
+				if($bcc_recipients = $this->getBcc()){
 					$bcc_recipients = implode(", ", $bcc_recipients);
 					$recipients = "BCC {$bcc_recipients}";
 				}
@@ -894,7 +966,7 @@ class Email extends Prototype {
 
 			\App\Email\Email::notifyAdmins([
 				"subject" => "Email sent successfully on try {$tries}",
-				"body" => "An email to ".str::oxfordImplode($this->envelope->getTo())." with the subject line {$this->envelope->getSubject()} was successfully sent after {$tries} tries.",
+				"body" => "An email to ".str::oxfordImplode($this->getTo())." with the subject line {$this->envelope->getSubject()} was successfully sent after {$tries} tries.",
 			]);
 		}
 
@@ -1342,21 +1414,25 @@ class Email extends Prototype {
 		}
 	}
 
-	protected function getSmtpMailer(): \Swift_Mailer
+	protected function getSmtpMailer(): Mailer
 	{
 		$this->getEffectiveSmtpTransportSettings();
 
-		# Create the Transport
-		$transport = new \Swift_SmtpTransport();
-		$transport->setHost($this->smtp_transport_settings['email_smtp_host']);
-		$transport->setPort($this->smtp_transport_settings['email_smtp_port']);
-		$transport->setEncryption($this->smtp_transport_settings['email_smtp_encryption'] ?: "TLS");
-		$transport->setUsername($this->smtp_transport_settings['email_username']);
-		$transport->setPassword($this->smtp_transport_settings['email_password']);
+		# Create the Transport ("ssl" is implicit TLS, "tls" upgrades the connection with STARTTLS)
+		$encryption = strtolower($this->smtp_transport_settings['email_smtp_encryption'] ?: "TLS");
+		$transport = new EsmtpTransport(
+			$this->smtp_transport_settings['email_smtp_host'],
+			(int)$this->smtp_transport_settings['email_smtp_port'],
+			$encryption == "ssl"
+		);
+		$transport->setUsername((string)$this->smtp_transport_settings['email_username']);
+		$transport->setPassword((string)$this->smtp_transport_settings['email_password']);
 
 		if($this->smtp_transport_settings['disable_certificate_verification']){
 			// This is a hack to allow self-signed certificates, which seems to be necessary for some email servers.
-			$transport->setStreamOptions(array(
+			/** @var SocketStream $stream */
+			$stream = $transport->getStream();
+			$stream->setStreamOptions(array(
 				'ssl' => array(
 					'verify_peer' => false,
 					'verify_peer_name' => false,
@@ -1366,18 +1442,44 @@ class Email extends Prototype {
 		}
 
 		// Create the Mailer using your created Transport
-		$smtp_mailer = new \Swift_Mailer($transport);
+		return new Mailer($transport);
+	}
 
-		# Add the DKIM key (if it exists)
-		if($this->smtp_transport_settings['dkim_private_key'] && $this->smtp_transport_settings['dkim_domain']){
-			$privateKey = $this->smtp_transport_settings['dkim_private_key'];
-			$domainName = $this->smtp_transport_settings['dkim_domain'];
-			$selector = 'default';
-			$signer = new \Swift_Signers_DKIMSigner($privateKey, $domainName, $selector);
-			$this->envelope->attachSigner($signer);
+	/**
+	 * Returns the DKIM signer, if a DKIM key has been set.
+	 *
+	 * @return DkimSigner|null
+	 */
+	protected function getDkimSigner(): ?DkimSigner
+	{
+		$settings = $this->getEffectiveSmtpTransportSettings();
+
+		if(!$settings['dkim_private_key'] || !$settings['dkim_domain']){
+			return NULL;
 		}
 
-		return $smtp_mailer;
+		return new DkimSigner($settings['dkim_private_key'], $settings['dkim_domain'], 'default');
+	}
+
+	/**
+	 * Sends the message with the given mailer,
+	 * DKIM signing it first if a DKIM key has been set.
+	 *
+	 * @param Mailer $mailer
+	 *
+	 * @return void
+	 * @throws \Symfony\Component\Mailer\Exception\TransportExceptionInterface
+	 */
+	protected function sendWith(Mailer $mailer): void
+	{
+		$message = $this->envelope;
+
+		if($signer = $this->getDkimSigner()){
+			$message = $signer->sign($this->envelope);
+		}
+
+		# The envelope is taken from the unsigned message, as signing drops the Bcc header (and with it, the Bcc recipients)
+		$mailer->send($message, Envelope::create($this->envelope));
 	}
 
     public function notifyAdminsWorker(array $a): bool
