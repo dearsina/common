@@ -59,6 +59,7 @@ class DateFinder extends \App\Common\Prototype {
 	private function setMonths(): void
 	{
 		if(!$rows = $this->sql->select([
+			"db" => "ui",
 			"table" => "month",
 			"include_removed" => true,
 		])){
