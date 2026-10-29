@@ -3073,7 +3073,7 @@ EOF;
 	{
 		if(is_array($val)){
 			$val_array = $val;
-			unset($val);
+			$val = NULL;
 			if(str::isNumericArray($val_array)){
 				//if keys don't matter
 				array_walk_recursive($val_array, function($a) use (&$flat_val_array){
@@ -6426,6 +6426,7 @@ EOF;
 			return NULL;
 		}
 
+		$str = NULL;
 		foreach($a as $key => $val){
 			if(!$keep_empty){
 				if($val === NULL || $val === "" || $val === []){

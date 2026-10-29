@@ -83,6 +83,8 @@ class href {
 			return NULL;
 		}
 
+		$onclick = $onClick = $uri = $url = $hash = $div = $href = NULL;
+		$return = [];
 		extract($a);
 
 		# Ensure the capitalisation is done in a uniform manner
