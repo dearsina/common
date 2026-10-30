@@ -67,7 +67,7 @@ class SharePoint extends \App\Common\OAuth2\Prototype implements \App\Common\OAu
 	{
 		$provider = new \TheNetworg\OAuth2\Client\Provider\Azure([
 			'clientId' => $_ENV['microsoft_graph_client_id'],
-			'clientSecret' => $_ENV['microsoft_graph_client_secret'],
+			'clientSecret' => $_ENV['MICROSOFT_GRAPH_CLIENT_SECRET'],
 			'redirectUri' => "https://app." . str::getRegisteredDomain() . "/oauth2.php",
 			"prompt" => $force_refresh_token ? "consent" : NULL,
 			'scopes' => [

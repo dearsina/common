@@ -375,13 +375,11 @@ EOF;
 			$set[$key] = $val;
 		}
 
-		# Insert the error in the DB
-		if(!$sql->insert([
-			"table" => "error_log",
-			"set" => $set,
-		])){
-			echo "There was a problem logging your error.";
-		}
+		# Store the $set in a file
+		$filename = "error_log_".date("Y-m-d").".json";
+		$file = fopen($_ENV['tmp_dir'].$filename, "w");
+		fwrite($file, json_encode($set));
+		// To avoid infinite loops
 
 		# Exit stage right
 		exit;
@@ -536,7 +534,8 @@ EOF;
 
 		$alert['seconds'] = $this->secondsSinceStart();
 		if(is_array($a)){
-			$alert['backtrace'] = key_exists("trace", $a) ? $a['trace'] : str::backtrace(true);
+			$alert['backtrace'] = key_exists("trace", $a) ? $a['trace'] : str::backtrace(true, false);
+			// By keeping arguments we may sometimes hit a memory error
 		}		
 
 		# If the alert is to be shared with the user immediately

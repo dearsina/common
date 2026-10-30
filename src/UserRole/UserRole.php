@@ -105,6 +105,11 @@ class UserRole extends \App\Common\Prototype {
 				"ignore_empty" => true,
 			]);
 
+			# Weird thing we have to do
+			if(is_array($rel_id)){
+				$rel_id = $rel_id[0];
+			}
+
 			$this->sql->insert([
 				"table" => $rel_table,
 				"set" => [
