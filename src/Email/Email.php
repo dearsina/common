@@ -836,6 +836,21 @@ class Email extends Prototype {
 		return $this->sender(1);
 	}
 
+
+	/**
+	 * Store the envelope locally for analysis purposes.
+	 *
+	 * @return void
+	 */
+	private function storeEnvelopeLocally(): void
+	{
+		# Create a unique filename
+		$filename = "too-big-".str::uuid() . ".eml";
+
+		# Store the envelope locally
+		file_put_contents("{$_ENV['tmp_dir']}{$filename}", $this->envelope->toString());
+	}
+
 	/**
 	 * Sends the actual email. Separated out
 	 * so that it can be called recursively
@@ -877,6 +892,9 @@ class Email extends Prototype {
 					The message will not be attempted re-sent, because the issue was with the sender.",
 					"backtrace" => str::backtrace(true, false),
 				]);
+
+				# Store envelope locally
+				$this->storeEnvelopeLocally();
 
 				# Don't try again
 				$tries = self::MAX_TRIES;
@@ -920,7 +938,7 @@ class Email extends Prototype {
 				}
 				if($bcc_recipients = $this->getBcc()){
 					$bcc_recipients = implode(", ", $bcc_recipients);
-					$recipients = "BCC {$bcc_recipients}";
+					$recipients[] = "BCC {$bcc_recipients}";
 				}
 				$recipients = str::oxfordImplode($recipients);
 
@@ -1436,8 +1454,8 @@ class Email extends Prototype {
 				'ssl' => array(
 					'verify_peer' => false,
 					'verify_peer_name' => false,
-					'allow_self_signed' => true
-				)
+					'allow_self_signed' => true,
+				),
 			));
 		}
 
