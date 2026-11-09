@@ -43,7 +43,7 @@ class Home extends Prototype {
 				return true;
 			}
 
-			if($role != "user" && $subdomain && $subdomain != "app"){
+			if($role != "user" && $subdomain && $subdomain != "app" && $subdomain != "studytrust"){
 				$url = "https://app." . str::getRegisteredDomain() . "/";
 				$url .= str::generate_uri([
 					"subdomain" => "app",
@@ -104,6 +104,10 @@ class Home extends Prototype {
 
 		# App subdomain is always allowed
 		if($subdomain == "app"){
+			return true;
+		}
+
+		if($subdomain == "studytrust"){
 			return true;
 		}
 
