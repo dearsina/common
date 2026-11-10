@@ -488,8 +488,26 @@ class CronJob extends Prototype {
 		$this->output->update("#all_cron_job", $jobs_html);
 		$this->output->update("#currently_running_cron_jobs", $this->formatActiveRuns($active_runs));
 		$this->output->update("#cron_job_summary", $this->formatSchedulerSummary($cron_jobs, $active_runs));
+		$this->output->function("trackCronJobControlCentre", [
+			"active" => (bool)$active_runs,
+			"interval_ms" => 2000,
+		]);
 
 		return true;
+	}
+
+	/**
+	 * Refresh the cron control centre while a queued or running job is active.
+	 *
+	 * @param array<string,mixed> $a Routed action payload.
+	 */
+	public function refreshControlCentre(array $a): bool
+	{
+		if(!$this->user->is("admin")){
+			return $this->accessDenied();
+		}
+
+		return $this->updateCronJobs($a);
 	}
 
 	public function setOrder(array $a, $silent = NULL): void
@@ -855,7 +873,7 @@ class CronJob extends Prototype {
 	{
 		return $deadline
 			? str::ago($deadline, true)
-			: "Starts when capacity is available";
+			: "Waiting for scheduler dispatch";
 	}
 
 	private function formatSchedulerSummary(array $jobs, array $active_runs): string
@@ -1083,6 +1101,10 @@ class CronJob extends Prototype {
 		else {
 			$this->hash->set(-1);
 		}
+
+		// Show the queued run immediately and begin the short-lived control-centre
+		// refresh loop rather than leaving the page frozen until a manual reload.
+		$this->updateCronJobs($a);
 
 		return true;
 	}
