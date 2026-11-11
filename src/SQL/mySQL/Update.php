@@ -53,7 +53,7 @@ class Update extends Common {
 		}
 
 		# Set the columns that are going to be SET into this table
-		$this->setSet($set, $html);
+		$this->setSet($set, $html, NULL, $include_meta);
 
 		if($include_meta !== false){
 			# Add ID, created by and time
