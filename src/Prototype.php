@@ -545,8 +545,9 @@ abstract class Prototype {
 		    -- We're not interested in views
             AND `INFORMATION_SCHEMA`.`VIEWS`.`VIEW_DEFINITION` IS NULL
             
-			-- We're interested in all tables except the cache tables
+			-- We're interested in all tables except the cache and log tables
 			AND `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA` <> 'cache'
+			AND `INFORMATION_SCHEMA`.`COLUMNS`.`TABLE_SCHEMA` <> 'log'
 			
 			-- Where the column name appears
 			AND `INFORMATION_SCHEMA`.`COLUMNS`.`COLUMN_NAME` = '{$column_name}';
