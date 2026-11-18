@@ -649,7 +649,9 @@ abstract class Common {
 
 		return (int)$e->getCode() === 1054
 			|| stripos($message, "Unknown column") !== false
-			|| stripos($message, "Column not found") !== false;
+			|| stripos($message, "Column not found") !== false
+			|| stripos($message, "doesn't have any columns allocated") !== false
+			|| stripos($message, "does not have any columns allocated") !== false;
 	}
 
 	/**
